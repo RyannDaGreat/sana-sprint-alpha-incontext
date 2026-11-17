@@ -1,7 +1,7 @@
 // The matte editor: a 1024² white-on-black canvas built from a raster layer (uploads, brush,
 // eraser) and vector objects (text, rectangles, ellipses) that can be dragged and resized.
 
-import { SIZE } from './util.js';
+import { SIZE, fitRect } from './util.js';
 
 const HANDLE = 28;        // resize handle side, in matte pixels
 const MIN_OBJECT = 8;     // smallest shape side, in matte pixels
@@ -110,14 +110,24 @@ export class MatteEditor {
    * @param {ImageBitmap} bitmap
    */
   upload(bitmap) {
-    const s = Math.min(SIZE / bitmap.width, SIZE / bitmap.height);
-    const w = Math.round(bitmap.width * s), h = Math.round(bitmap.height * s);
+    const { w, h } = fitRect(bitmap.width, bitmap.height);
     const t = new OffscreenCanvas(w, h).getContext('2d'); // image-sized, so no letterbox reads as alpha
     t.drawImage(bitmap, 0, 0, w, h);
-    const gray = uploadToMatte(t.getImageData(0, 0, w, h).data);
+    this.placeGray(uploadToMatte(t.getImageData(0, 0, w, h).data), w, h);
+  }
+
+  /**
+   * Command. Replaces the raster layer with a w × h gray image, centered on black (fitRect's letterbox).
+   *
+   * @param {Uint8ClampedArray} gray - (h, w, 4) uint8, R = G = B
+   * @param {boolean} fresh - Also drop objects and inversion (a new matte, e.g. from a photo)
+   */
+  placeGray(gray, w, h, fresh = false) {
+    if (fresh) { this.objects = []; this.selected = null; this.invert = false; }
+    const r = fitRect(w, h);
     this.rctx.fillStyle = '#000';
     this.rctx.fillRect(0, 0, SIZE, SIZE);
-    this.rctx.putImageData(new ImageData(gray, w, h), Math.round((SIZE - w) / 2), Math.round((SIZE - h) / 2));
+    this.rctx.putImageData(new ImageData(gray, w, h), r.x, r.y);
     this.changed();
   }
 

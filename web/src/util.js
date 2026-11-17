@@ -4,6 +4,18 @@ const MB = 1024 * 1024;
 export const SIZE = 1024; // image and matte side, in pixels
 
 /**
+ * Pure function. Size and offset of a w × h image fitted inside the SIZE² square, centered.
+ *
+ * @example fitRect(2048, 1024) // {w: 1024, h: 512, x: 0, y: 256}
+ * @example fitRect(500, 1000)  // {w: 512, h: 1024, x: 256, y: 0}
+ */
+export function fitRect(w, h) {
+  const s = Math.min(SIZE / w, SIZE / h);
+  const fw = Math.round(w * s), fh = Math.round(h * s);
+  return { w: fw, h: fh, x: Math.round((SIZE - fw) / 2), y: Math.round((SIZE - fh) / 2) };
+}
+
+/**
  * Pure function. Formats a byte count as KB below 1 MB, MB with one decimal, GB above 1024 MB.
  *
  * @param {number} bytes

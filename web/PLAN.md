@@ -16,6 +16,8 @@ The one-step matte → image model (manifest §12) runs in the browser with ONNX
 
 Upload (alpha channel if the PNG has one, else luminance; fit inside 1024²) · Brush · Eraser (size slider) · Text (types white words; font + size; placed at click) · Rectangle / Ellipse · Move (drag objects; corner handle resizes; Delete removes) · Invert · Clear. Model: one raster layer (upload + strokes) plus a list of vector objects (text, shapes) drawn over it; invert is applied last.
 
+**Photo → matte** (m00632): upload any photo; BEN2 (MIT, `onnx-community/BEN2-ONNX` fp16, 219 MB, from the HF hub into the same OPFS cache with a progress bar) finds the foreground in the browser — WebGPU when the adapter has shader-f16, else WASM; the status line names which. The photo is stretched to 1024² for the model; the soft alpha is resized back and letterboxed like an upload, replacing the raster (objects and invert are reset), so every tool still edits it. "Show photo" puts the letterboxed photo under a translucent matte. BiRefNet_lite was rejected: its Split nodes (up to 33 outputs) exceed WebGPU's storage buffers per shader, and its fp32 run hit std::bad_alloc on WASM.
+
 ## Pipeline
 
 `prompt → tokenizer (JS, SANA template) → text_encoder → embeddings (IndexedDB cache by text encoder + prompt)`, `matte → vae_encoder → × scaling_factor`, `noise (seeded) + matte latent + embeddings → transformer (one step, Sprint math inside the graph) → ÷ scaling_factor → vae_decoder → RGB on gray`. RGBA = un-composite with the matte: `fg = (rgb − (1 − a)·0.5) / a`.

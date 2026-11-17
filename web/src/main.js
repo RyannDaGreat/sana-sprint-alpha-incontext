@@ -5,10 +5,11 @@ import './style.css';
 import { MatteEditor } from './matte.js';
 import { loadVersions, versionFiles, cachedFlags, cacheBytes, clearCache } from './models.js';
 import { countEmbeddings, clearEmbeddings } from './embcache.js';
-import { formatBytes, formatEta, rate, mattePixelsToTensor, decodeToPixels, SIZE } from './util.js';
+import { formatBytes, formatEta, rate, mattePixelsToTensor, decodeToPixels, fitRect, SIZE } from './util.js';
 // pipeline.js (with ONNX Runtime) is a separate chunk: ORT's WASM worker re-imports its own
 // module URL, which must not be this file (it touches the DOM).
 const { Pipeline } = await import('./pipeline.js');
+const { Segmenter, SEG_FILE } = await import('./segment.js');
 
 const REALTIME_DEBOUNCE_MS = 120;   // wait this long after the last edit before a real-time run
 const PROGRESS_REDRAW_MS = 100;     // throttle for progress-bar text updates
@@ -18,7 +19,7 @@ const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
 const modelsBase = new URL(params.get('models') ?? '../models/web/', location.href).href;
 
-const state = { versions: [], selected: null, pipeline: null, busy: false, pending: false, timer: null, last: null };
+const state = { versions: [], selected: null, pipeline: null, busy: false, pending: false, timer: null, last: null, segmenter: null, hasPhoto: false };
 
 /** Command. Shows a message in the status line (red when it is an error). */
 function status(text, isError = false) {
@@ -71,12 +72,49 @@ $('clear').addEventListener('click', () => editor.clear());
 $('delete').addEventListener('click', () => editor.deleteSelected());
 $('upload').addEventListener('change', async (e) => {
   const file = e.target.files[0];
-  if (file) editor.upload(await createImageBitmap(file));
+  if (file) { editor.upload(await createImageBitmap(file)); showPhoto(null); }
   e.target.value = '';
 });
 addEventListener('keydown', (e) => {
   if ((e.key === 'Delete' || e.key === 'Backspace') && !e.target.closest('input, textarea, select')) editor.deleteSelected();
 });
+
+// ---------- photo → matte ----------
+
+/** Command. Draws the photo letterboxed like the matte (or clears it for null) and applies "Show photo". */
+function showPhoto(bitmap) {
+  const c = $('photo').getContext('2d');
+  c.clearRect(0, 0, SIZE, SIZE);
+  if (bitmap) { const r = fitRect(bitmap.width, bitmap.height); c.drawImage(bitmap, r.x, r.y, r.w, r.h); }
+  state.hasPhoto = !!bitmap;
+  $('matte-square').classList.toggle('photo-on', state.hasPhoto && $('show-photo').checked);
+}
+
+/** Command. Segments a photo in the browser (model loaded once, cached in OPFS) and makes its soft mask the matte. */
+async function photoToMatte(file) {
+  const seg = $('seg-status');
+  const bitmap = await createImageBitmap(file);
+  if (!state.segmenter) {
+    const { ep, label, f16 } = await pickEp();
+    const segEp = ep === 'webgpu' && !f16 ? { ep: 'wasm', label: 'WASM (WebGPU has no f16)' } : { ep, label };
+    seg.textContent = `Loading BEN2 (${segEp.label})…`;
+    state.segmenter = await Segmenter.load(segEp.ep, progressRows([SEG_FILE], $('seg-files')));
+    state.segmenter.label = `BEN2 fp16 · ${segEp.label}`;
+  }
+  seg.textContent = `Segmenting (${state.segmenter.label})…`;
+  const { gray, w, h, ms } = await state.segmenter.run(bitmap);
+  editor.placeGray(gray, w, h, true);
+  showPhoto(bitmap);
+  seg.textContent = `Matte in ${ms.toFixed(0)} ms · ${state.segmenter.label}`;
+  refreshCacheInfo();
+}
+
+$('photo-upload').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (file) photoToMatte(file).catch((err) => { $('seg-status').textContent = `Error: ${err.message}`; fail(err); });
+});
+$('show-photo').addEventListener('change', () => $('matte-square').classList.toggle('photo-on', state.hasPhoto && $('show-photo').checked));
 
 // ---------- output ----------
 
@@ -154,15 +192,15 @@ $('prompt').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.met
  * Query. 'webgpu' when an adapter is available (or ?ep=…), else 'wasm', plus a label naming the
  * adapter and whether it has shader-f16 (fp16 graphs need it; software adapters lack it).
  *
- * @returns {Promise<{ep: string, label: string}>}
+ * @returns {Promise<{ep: string, label: string, f16: boolean}>}
  */
 async function pickEp() {
   const adapter = navigator.gpu && (await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' }));
   const ep = params.get('ep') ?? (adapter ? 'webgpu' : 'wasm');
-  if (ep !== 'webgpu') return { ep, label: adapter ? 'WASM' : 'WASM (no WebGPU)' };
+  if (ep !== 'webgpu') return { ep, label: adapter ? 'WASM' : 'WASM (no WebGPU)', f16: false };
   const info = adapter.info ?? {};
-  const f16 = adapter.features.has('shader-f16') ? 'f16' : 'no f16';
-  return { ep, label: `WebGPU · ${info.vendor || ''} ${info.architecture || ''} · ${f16}`.replace(/\s+/g, ' ') };
+  const f16 = adapter.features.has('shader-f16');
+  return { ep, f16, label: `WebGPU · ${info.vendor || ''} ${info.architecture || ''} · ${f16 ? 'f16' : 'no f16'}`.replace(/\s+/g, ' ') };
 }
 
 /** Command. Updates cache size and prompt-cache count. */
@@ -199,9 +237,9 @@ async function renderVersions() {
   }
 }
 
-/** Command. Creates one progress row per file and returns its updater. */
-function progressRows(files) {
-  $('files').innerHTML = '';
+/** Command. Creates one progress row per file in `box` and returns its updater. */
+function progressRows(files, box = $('files')) {
+  box.innerHTML = '';
   const t0 = performance.now();
   const rows = new Map();
   for (const f of files) {
@@ -209,7 +247,7 @@ function progressRows(files) {
     row.className = 'file';
     row.innerHTML = '<span class="name"></span><div class="bar"><div></div></div><span class="info meta">waiting</span>';
     row.querySelector('.name').textContent = f.name;
-    $('files').append(row);
+    box.append(row);
     rows.set(f.url, { row, drawn: 0 });
   }
   return (f, done, total, fromCache) => {
