@@ -87,7 +87,7 @@ def serve():
                 data["cond"] = encode_mattes(pipe.vae, data["mattes"])
             kwargs = dict(defaults, num_inference_steps=int(steps), guidance_scale=float(guidance))
             if kind == "sprint" and int(steps) != 2:
-                kwargs.pop("intermediate_timesteps")  # SCMScheduler defines it for 2 steps only
+                kwargs["intermediate_timesteps"] = None  # 2 steps only; popping it leaves the pipeline default 1.3
             prompts = [row["caption"] + PROMPT_SUFFIXES[row["prompt_variant"]] for _, row in members]
             indices = [row["noise_index"] for _, row in members]
             seeds = [STEP_NOISE_SEED + i for i in indices]

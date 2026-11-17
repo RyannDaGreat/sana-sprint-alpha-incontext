@@ -364,12 +364,16 @@ def load_control(transformer, folder, merge=False):
             base for the final model W_base + (W_control − W_adapter))
         folder (pathlib.Path): written by save_control
         merge (bool): True = add the LoRA delta into the weights in float32 (see merge_lora_into_state_dict) and
-            round once to the transformer's dtype; False = keep a PEFT adapter
+            round once to the transformer's dtype; False = keep a PEFT adapter. A Sprint student (guidance_embeds)
+            needs merge=True and gets the keys of student_lora_keys
 
     Returns:
         the same transformer
     """
     lora, gates, meta = load_control_files(folder)
+    if transformer.config.guidance_embeds:  # control transfer onto the Sprint student (merge only: see student_lora_keys)
+        assert merge, "a PEFT adapter would also hit the student's guidance_embedder.linear_1/2: use merge=True"
+        lora = student_lora_keys(lora)
     if merge:
         base = {k: v.float().cpu() for k, v in transformer.state_dict().items()}
         merged = merge_lora_into_state_dict(base, lora, int(meta["rank"]), float(meta["alpha"]))
@@ -381,6 +385,24 @@ def load_control(transformer, folder, merge=False):
         assert config.r == int(meta["rank"])
     attach_gates(transformer).load_state_dict(gates, strict=True)
     return enable_gatecontrol(transformer)
+
+
+def student_lora_keys(lora):
+    """
+    Pure function. Renames teacher LoRA keys to the Sprint student's: its time_embed holds the teacher's timestep MLP
+    `time_embed.emb.timestep_embedder.*` as `time_embed.timestep_embedder.*` (plus a new guidance_embedder).
+
+    Args:
+        lora (dict): PEFT keys of a teacher-trained control LoRA
+
+    Returns:
+        dict: same tensors, student keys
+
+    Examples:
+        >>> list(student_lora_keys({"time_embed.emb.timestep_embedder.linear_1.lora_A.weight": 0, "proj_out.lora_A.weight": 1}))
+        ['time_embed.timestep_embedder.linear_1.lora_A.weight', 'proj_out.lora_A.weight']
+    """
+    return {k.replace("time_embed.emb.timestep_embedder.", "time_embed.timestep_embedder."): v for k, v in lora.items()}
 
 
 def lora_delta(lora_a, lora_b, scale):

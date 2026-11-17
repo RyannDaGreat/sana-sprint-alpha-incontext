@@ -173,6 +173,28 @@ tables
 				prompt_variant plain
 				steps 20
 				guidance 4.5
+			,
+				 Step 5 transfer: a control step on the sprint pipeline = stock student + merged control LoRA + gates
+				model_tag transfer_overfit_test_step000400_1step
+				pipeline sprint
+				checkpoint models/control/overfit_test/step_000400
+				prompt_variant plain
+				steps 1
+				guidance 4.5
+			,
+				model_tag transfer_overfit_test_step000400_2step
+				pipeline sprint
+				checkpoint models/control/overfit_test/step_000400
+				prompt_variant plain
+				steps 2
+				guidance 4.5
+			,
+				model_tag transfer_overfit_test_step000400_4step
+				pipeline sprint
+				checkpoint models/control/overfit_test/step_000400
+				prompt_variant plain
+				steps 4
+				guidance 4.5
 
 	eval_generations
 		 One row per model and eval image: the image that the model makes from the caption and the fixed noise

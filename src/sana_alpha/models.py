@@ -108,8 +108,10 @@ def load_eval_pipeline(kind, checkpoint):
         "stock"                                       the stock `kind` model
         a .safetensors file, or a diffusers           its weights replace the transformer's (adapter: models/adapter/<run>/step_XXXXXX)
             transformer folder
-        a control step folder                         the base it trained on (metadata "adapter"; "None" = teacher)
-            (control_lora.safetensors + gates)        + PEFT control LoRA + gates (models/control/<run>/step_XXXXXX)
+        a control step folder                         teacher: the base it trained on (metadata "adapter"; "None" =
+            (control_lora.safetensors + gates)        teacher) + PEFT control LoRA + gates (models/control/<run>/step_XXXXXX);
+                                                      sprint: stock student + control LoRA merged in float32 + gates
+                                                      (Step 5 transfer, like the final model: no adapter)
         a merge_final folder                          W_base + (W_control - W_adapter) in float32, then gates
             (transformer + gates.safetensors)         (models/control/<run>/final_step_XXXXXX)
 
@@ -124,7 +126,9 @@ def load_eval_pipeline(kind, checkpoint):
 
     pipe, defaults = load_pipeline(kind)
     path = ROOT / checkpoint
-    if (path / "control_lora.safetensors").exists():
+    if (path / "control_lora.safetensors").exists() and kind == "sprint":
+        gc.load_control(pipe.transformer, path, merge=True)
+    elif (path / "control_lora.safetensors").exists():
         adapter = gc.load_control_files(path)[2]["adapter"]
         if adapter != "None":
             load_transformer_weights(pipe, adapter)
@@ -135,5 +139,4 @@ def load_eval_pipeline(kind, checkpoint):
             gc.attach_gates(pipe.transformer).load_state_dict(load_file(path / "gates.safetensors"), strict=True)
             gc.enable_gatecontrol(pipe.transformer)
     conditioned = hasattr(pipe.transformer, "gatecontrol_gates")
-    assert kind == "teacher" or not conditioned, f"GateControl models run on the teacher pipeline, not {kind!r}"
     return pipe, defaults, conditioned
