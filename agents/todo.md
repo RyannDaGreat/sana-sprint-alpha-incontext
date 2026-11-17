@@ -3,7 +3,7 @@
 - [x] Transcribe user (agents/transcripts.md)
 - [x] Rename dump, git init, manifest + concerns
 - [ ] Sub-frenzy research (5 Sonnet agents) → fold into manifest §5
-- [ ] Create private GitHub repo, push
+- [x] Create private GitHub repo, push
 - [ ] Notify user that repo is ready
 - [ ] User confirms/denies distilled plan
 - [ ] (node) Step 0 curate MAGICK

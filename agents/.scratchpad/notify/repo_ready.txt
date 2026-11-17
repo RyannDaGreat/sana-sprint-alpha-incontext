@@ -1,0 +1,6 @@
+SANA-Sprint alpha project: planning repo is on GitHub and ready to clone.
+Goal: teach SANA-Sprint to turn a black/white alpha mask + caption into the object on a flat 50% gray background. Train an "adapter" on MAGICK, then a "control" model on top, then use base - adapter + control.
+Done: repo github.com/RyannDaGreat/sana-sprint-alpha-incontext (private). It has the plan, your transcripts, a TODO list and a journal folder. MAGICK check: 148,193 RGBA PNGs at 1024px, 191 GB, straight alpha.
+Next: 2 research agents are still running (Sprint fine-tuning, in-context method). I will add their results to the plan.
+Unapproved: I named the repo and the dump folder "sana-sprint-alpha-incontext" (no spaces, as you asked).
+Decide: 1) Read the short plan in agents/manifest.md section 1 and say if I understood you. 2) Train the teacher (multi-step, re-distill later) or the 1-step Sprint student directly? I recommend the teacher.
