@@ -144,3 +144,6 @@ Don't forget to localize the model to disk as well. Look up how localization wor
 
 ## m00614 — 2026-11-17 4:44 AM
 It's automatic when you call [the] BlueJay processor, right? If you have to call it manually, then, well, that's stupid.
+
+## m00615 — 2026-11-17 12:40 PM
+It's okay if it doesn't always do the perfect [gray, transcribed as "grade"] background, by the way. I still want to see full subtraction vs not. You can do your partial subtractions to show the [gray] background too, I'm curious to see them. But we need more examples, because the current journal doesn't show 50 different images like it wanted them to. What's the current status? Have we trained on [1024, transcribed as "10/24"] yet?
