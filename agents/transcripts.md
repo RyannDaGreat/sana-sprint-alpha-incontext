@@ -215,3 +215,6 @@ Okay, it's public now. In the future, don't make private repositories, please.
 
 ## m00637 — 2026-11-17 1:45 PM
 I don't know why the journal is completely empty. Like, this GitHub repository is completely bare bones and has nothing we need in it. So make sure the GitHub repository actually has the stuff that we need.
+
+## m00638 — 2026-11-17 3:55 PM
+I should be able to control the math myself. Why am I unable to change the number of steps for the CFG or the lambda value on the webpage?
