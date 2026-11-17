@@ -205,3 +205,14 @@ The DTAB formatting rules. Change all members together.
 ## 10. Success Criteria
 
 The final model (`W_base − W_adapter + W_control`) generates the right-half image so that it (a) matches the input matte's silhouette, (b) has a flat 0.5 gray background, and (c) looks like stock SANA-Sprint quality rather than MAGICK's 2023 quality. It is judged on the fixed eval set against Steps 1–3.
+
+## 12. WebGPU browser app (m00624, m00625)
+
+Goal: the one-step matte model runs in a browser on WebGPU, on a 16–32 GB MacBook (integrated GPU). Upload or draw a silhouette (brush, text, draggable shapes), type a caption, generate. Pick among model versions in the UI; each downloads with a loading bar and is cached in the browser (Cache Storage / OPFS) so the second load is fast. Gemma prompt embeddings are cached too (m00625), so mask edits never re-run the text encoder. Real-time toggle (default off: press Generate). Simplified Swiss style, full dark and light modes, Jost font (thin for titles, regular for text), loading bars with speeds.
+
+Model contract (SEMANTIC BINDING: web-model-contract), one folder per version under `models/web/<version>/` (gitignored, served by the app's server) with `manifest.json`:
+- `text_encoder`: Gemma-2 2B, prompt → embeddings (1, 300, 2304) + attention mask (1, 300). SANA's prompt template applied in JS.
+- `vae_encoder`: matte RGB (1, 3, 1024, 1024) in [−1, 1] → latent (1, 32, 32, 32), then × scaling_factor 0.41407.
+- `transformer`: Sprint student + control delta (+ λ adapter delta) + gates, one step: inputs noisy latent (1, 32, 32, 32), matte latent (1, 32, 32, 32), timestep, guidance, embeddings + mask → velocity / denoised latent (exact Sprint 1-step math written in the manifest).
+- `vae_decoder`: latent (1, 32, 32, 32) / 0.41407 → RGB (1, 3, 1024, 1024).
+- Quantization per file (fp16 / int8 / int4) is recorded in the manifest; fp16 overflow is checked first (WebGPU has no bf16).
