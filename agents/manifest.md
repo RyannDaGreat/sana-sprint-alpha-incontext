@@ -18,7 +18,7 @@
 
 **Agent deadlines (m00608).** Each subagent gets an expected finish time. After it, Sana babysits the agent (checks files, logs, GPUs every ~20 min) and steps in if it stalls. Wave 1 (launched 4:25 AM): data pipeline → 5:15 AM, eval set + baseline → 5:30 AM, adapter training code → 6:00 AM, GateControl port → 6:30 AM.
 
-**Talk out loud: once per request (m00620).** Pending: one phone notification + one spoken message when the journal (gallery) is ready to look at.
+**Talk out loud: once per request (m00620, m00621).** Reply in chat first, then speak 1–2 plain-English sentences: `curl -s -d "MESSAGE" ntfy.sh/stark_comma > /dev/null &`. "Notify me" = `rp call ntfy_send` (phone); "talk to me" = this curl (audio). They are different. Pending: one phone notification + one spoken message when the journal (gallery) is ready to look at.
 
 **Notifications (max 6, m00604).** Each starts with "Sana:". Sent: (1) 8:26 AM Checkpoint 1. (2) 10:38 AM control works; subtraction loses the gray; λ = 0.75 fix; adapter_v2 on random colors. Plan: (1) Checkpoint 1, (2) control model follows mattes, (3) Step 4 result, (4) final wrap-up. Two are kept in reserve for blockers that only the user can fix.
 

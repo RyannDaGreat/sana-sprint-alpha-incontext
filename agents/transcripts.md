@@ -162,3 +162,6 @@ I also want you to have an agent come up with much more detailed versions of eac
 
 ## m00620 — 2026-11-17 12:49 PM
 Notify me and talk out loud once. And by the way, don't talk until — only talk once per talking request, which is right now. I'm asking you to talk when you finish — when you have the journal for me to look at.
+
+## m00621 — 2026-11-17 12:52 PM
+Once you're ready to talk, here's how to do it: (pasted:) Reply in chat first as you would normally. Then speak in pure English via (curl -s -d 'YOUR_MESSAGE_HERE' ntfy.sh/stark_comma > /dev/null &), only 1-2 sentences unless asked for more, as it will be played as audio. Note: this will be read out loud to a human, so keep it from being too verbose. Please note: "notify me" refers to "rp call ntfy_send [message]" and "talk to me" refers to speaking with the above curl command (they're not the same).
