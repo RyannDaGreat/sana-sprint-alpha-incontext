@@ -223,3 +223,7 @@
 
 ## 2026-11-17 5:52 PM — control_v2 step 4000 (end of the run)
 - Full subtraction, showcase, MAGICK captions: Sprint 1 step IoU 0.941 / gray 0.021 (step 3000: 0.922 / 0.026); 2 steps 0.969 / 0.014 (0.965 / 0.022); teacher 0.942 / 0.012 (0.926 / 0.017). Still improving at 4000 steps, so training continues from this checkpoint.
+
+## 2026-11-17 ~6:00 PM — control_v2 step 4000 is the live default (subagent 16)
+- Exported `models/control/control_v2/sprint_step_004000` as int4 (dynamic sizes) and int4-lambda (D from the step 4000 merge pair, rank 128), with the same script as step 3000 (`agents/.scratchpad/agent16_step4000.sh`). Added 1.21 GB (int4 transformer) + 0.32 GB (λ delta); the models branch is now 8.90 GB. Index order: step 4000 int4, step 4000 int4-lambda, step 3000 ×2, step 1500 ×2, v1. Pages was republished with --build_web. Live Puppeteer: step 4000 is listed first and Load streams at ~54 MB/s.
+- Not pushed: the v1 dynamic re-export. Its int4 weights did not come out byte-identical (+1.22 GB, over the 500 MB rule), so live v1 stays at 1024² only.
