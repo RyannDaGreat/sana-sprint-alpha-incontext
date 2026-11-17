@@ -191,3 +191,7 @@
 - Mistake: the first push carried one 2.42 GB commit (batching was per file, and the Gemma file is 2.4 GB) → HTTP 500. Fix: commit/push every 400 MB of parts. Lesson: batch by the unit that is actually sent.
 - Mistake: my v2 chain started `merge_final` for control_v2 while the coordinator ran the same merges; killed mine before it wrote anything (the folder did not exist yet). Lesson: ask who owns shared outputs before writing them.
 - Live check (Puppeteer, headless Chrome with SwiftShader): https://ryanndagreat.github.io/sana-sprint-alpha-incontext/webgpu/ lists both versions as loadable, Load streams the sharded files from raw.githubusercontent.com at ~50 MB/s with moving progress bars, OPFS holds 3.2 GB after 25 s. A real generation cannot run here (SwiftShader has no shader-f16).
+
+## 2026-11-17 3:23 PM — wrong times in phone notifications
+- Mistake: notifications 3, 4 and 5 stated times 7–17 minutes later than the real send time (1:25 vs 1:18, 3:25 vs 3:22, 3:40 vs 3:23). I wrote the time into the draft before running `date`.
+- Lesson: fill the time into the message from `TZ=America/New_York date` in the same command that sends it.
