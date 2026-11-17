@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Alpha Journal</title>
+<style>
+:root { --bg: #fdfdfb; --fg: #1d1d1f; --muted: #66666b; --rule: #dcdcd6; --accent: #2f5d8a; --gutter: 16px; --measure: 760px; --font-body: 17px; --font-small: 14px; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #18191b; --fg: #e8e8e6; --muted: #a0a0a5; --rule: #3a3b3e; --accent: #8ab4dc; } }
+:root[data-theme="dark"] { --bg: #18191b; --fg: #e8e8e6; --muted: #a0a0a5; --rule: #3a3b3e; --accent: #8ab4dc; }
+body { background: var(--bg); color: var(--fg); font: var(--font-body)/1.6 Georgia, serif; margin: 0; }
+main { max-width: var(--measure); margin: 0 auto; padding: 0 var(--gutter); }
+a { color: var(--accent); }
+li { border-bottom: 1px solid var(--rule); padding: 12px 0; list-style: none; }
+.note { color: var(--muted); font-size: var(--font-small); }
+</style>
+</head>
+<body>
+<main>
+<h1>SANA-Sprint in-context alpha → RGB on gray: journal</h1>
+<p>We teach SANA-Sprint to take an alpha matte and a caption and paint the object on a flat 50% gray background. One entry per step. Every step uses the same 29 eval images and the same noise.</p>
+<ul style="padding: 0">
+<li><a href="step1_baseline.html">Step 1: baseline</a> <span class="note">2026-11-17. Stock Sprint and teacher on the eval prompts, with and without a gray-background suffix.</span></li>
+</ul>
+</main>
+</body>
+</html>
