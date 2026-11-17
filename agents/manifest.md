@@ -16,6 +16,8 @@
 | 16:30 | Journal written; web UI if time allows |
 | 17:16 | Hard stop: final notification |
 
+**Agent deadlines (m00608).** Each subagent gets an expected finish time. After it, Sana babysits the agent (checks files, logs, GPUs every ~20 min) and steps in if it stalls. Wave 1 (launched 04:25): data pipeline → 05:15, eval set + baseline → 05:30, adapter training code → 06:00, GateControl port → 06:30.
+
 **Notifications (max 6, m00604).** Each starts with "Sana:". Plan: (1) Checkpoint 1, (2) control model follows mattes, (3) Step 4 result, (4) final wrap-up. Two are kept in reserve for blockers that only the user can fix.
 
 **Aviary (m00600).** `data/Aviary` is a git checkout of `corp/Aviary` branch `bluejay2` (gitignored; `setup.sh` clones it). `data/aviary.sh` runs Aviary from that checkout. It plays the same role as `aviary.sh` in MulticamDailies: every script calls Aviary only through it. The dtab uses `lineage` keys, which only the bluejay2 source has, not the PyPI release.

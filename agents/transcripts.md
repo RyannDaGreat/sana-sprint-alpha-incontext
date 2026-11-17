@@ -123,3 +123,9 @@ If you want to, you can also build inference as BlueJay processors too. It hones
 
 ## m00607 — 2026-11-17 04:33
 If you pass your deadline, continue to work anyway, but really do try to make that deadline. Don't cut corners though. A shitty model is worth nothing. So yeah, you can keep training after that, right? You got 8 GPUs, it's a lot of power. You should be able to make something good with it.
+
+## m00608 — 2026-11-17 04:37
+Whenever you have agents, make sure to set some reasonable amount of expected time, and after that, start babysitting them. You got a schedule to keep, right?
+
+## m00609 — 2026-11-17 04:28
+You can plan your schedule ahead of time, and I'm not going to make that schedule for you or micromanage you. I'm just giving you advice.
