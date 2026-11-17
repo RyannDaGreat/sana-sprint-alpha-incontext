@@ -150,6 +150,7 @@ Planned top level (target state; only `AGENTS.md`, `agents/`, `journal/` exist n
 
 ```text
 run_server.sh      # launch the web UI (always visible at top level)
+run_sparrow.fish   # Sparrow viewer of the BlueJay tables, port 26400 (m00630)
 run_diffusion.sh   # CLI inference: matte + caption -> RGB-on-gray / RGBA
 pyproject.toml     # uv project; all deps
 README.md
