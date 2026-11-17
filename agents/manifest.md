@@ -62,13 +62,30 @@ If a step fails, go back, try again, and journal it.
 
 1. **Sprint student vs teacher.** Train directly on the Sprint student (fast eval, but a plain diffusion loss may break few-step ability)? Or train on the teacher and distill to Sprint later? User said (m00018, paraphrased): "maybe we could just start with the teacher model and distill it a little later."
 2. **LoRA vs full fine-tune** for the adapter and the control. With 8× A100 80GB, full fine-tune of 1.6B is feasible.
-3. **In-context mechanics on SANA.** Wide canvas (2048×1024) vs sequence concat. Clean left half via per-token timestep 0, vs re-pasting the clean latent each step. Masked loss. Positional encoding. (Research pending; LTX IC-LoRA was mentioned by the user.)
+3. **In-context mechanics on SANA.** Wide canvas (2048×1024) vs sequence concat. Clean left half via per-token timestep 0, vs re-pasting the clean latent each step. Masked loss. Positional encoding. (Researched: see §5. Wide canvas, clean left half, shared scalar t, target-only loss.)
 4. **Resolution.** Sprint is 1024px. Use 1024×1024 per half (2048-wide canvas) or 512 per half?
 5. **The weight-arithmetic step assumes LoRA/full deltas are compatible.** If the adapter is a LoRA, `W_control − W_adapter_baked` is exact in fp32 but lossy in bf16. Keep fp32 master copies for the subtraction.
 
 ## 5. Research Findings
 
-(Filled in from the sub-frenzy: `agents/.scratchpad/frenzy/agent_*.md`.)
+From the 2026-11-17 sub-frenzy (5 Sonnet agents). The raw reports are in `agents/.scratchpad/frenzy/`, which is not saved, so the key facts are copied here.
+
+**MAGICK dataset.** 148,193 RGBA PNGs, 1024², 191 GB, straight (not premultiplied) alpha. Path `images/{page_id[:2]}/{page_id}.png`. Index `magick_index.tsv` (read with `quoting=3`); columns `page_id, sim_score, color, nsfw, subject, tag_idk, picked`. Caption = `subject` (short phrase). 3,000 are nsfw. `load_dataset` fails; use `hf download OneOverZero/MAGICK --repo-type dataset --local-dir MAGICK`. Some green spill in hair: filter by `sim_score`.
+
+**Training SANA-Sprint.** No report of a working plain flow-matching LoRA on the Sprint student. The maintainer "never tried" a diffusion loss on Sprint (Sana issue #256). The diffusers script `examples/research_projects/sana/train_sana_sprint_diffusers.py` (sCM+LADD) is merged, full fine-tune only, and inits the student from the teacher. Teacher differs from stock SANA: TrigFlow, dense time embedding, QK RMSNorm. Teachers: `Efficient-Large-Model/Sana_Sprint_{0.6B,1.6B}_1024px_teacher_diffusers`. Inference defaults: 2 steps, `max_timesteps=1.5708`, `intermediate_timesteps=1.3`, guidance 4.5. Fixed noise: pass `latents` of shape (B, 32, H/32, W/32) with `use_resolution_binning=False`. **→ Teacher-first, distill last.**
+
+**AnimateDiff adapter.** LoRA on self- and cross-attention, MSE loss on single frames, base frozen, scale 0 at inference. Evidence is qualitative (paper Fig. 6). Closest precedent for `base − adapter + control`: lllyasviel's ControlNet transfer `Any3 + SD15_control − SD15`; task arithmetic (Ilharco et al.). No direct report of this exact recipe. **Do all weight arithmetic in fp32 from stored originals; round to bf16 once at the end.**
+
+**In-context conditioning on SANA.**
+- SANA has **no positional encoding** (position comes from the 3×3 depthwise conv in Mix-FFN). RoPE-shift sequence concat (Kontext, OminiControl, UNO) does not apply. Use a **wide canvas, clean matte on the left**.
+- Timestep is one scalar per sample. Per-token timestep is not required: the Kontext pipeline gives clean context tokens the same scalar timestep and slices the output. LTX and Diffusion Forcing use per-token t, clean = 0 (upgrade path).
+- **Loss on target (right-half) tokens only**, as in LTX and Kontext.
+- GateControl (arXiv 2603.27666): token concat on SANA-1.6B, LoRA rank 16. Plain concat converges slowly on spatially aligned tasks; a 0.09M-param gate speeds it up >10×. Upgrade path if convergence is slow.
+- SDEdit-style re-pasting on a model not trained with a clean left half is weak (In-Context LoRA). Use re-pasting only as a diagnostic.
+- Reported LoRA ranks: 4 (OminiControl) to 512 (UNO); 16 is typical. Steps: 5k (In-Context LoRA) to 100k (EasyControl); aligned tasks ~50k (OminiControl).
+- Agent's suggested first design: 1024×512 canvas (16×32 latent tokens) for fast iteration, matte replicated to 3 channels, each half VAE-encoded separately, shared scalar t, rank-16 LoRA on all linears. Seam behavior through the Mix-FFN conv is unverified.
+
+**Prior art and eval.** Zippo (arXiv 2403.11077, matte latent concat, SD2.1) is the closest. No published model trained on MAGICK. Eval: ≥20 held-out MAGICK items × fixed seeds; metrics = exterior gray purity, IoU vs matte, edge-band L1 / color fringe, CLIP/SigLIP, VLM rubric + A/B, montage. FID is meaningless at this size; use KID if needed.
 
 ## 6. Hardware & Paths
 
