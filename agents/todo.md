@@ -1,13 +1,19 @@
 # TODO
 
-- [x] Transcribe user (agents/transcripts.md)
+- [x] Transcribe user (agents/transcripts.md) — through m00257
 - [x] Rename dump, git init, manifest + concerns
-- [ ] Sub-frenzy research (5 Sonnet agents) → fold into manifest §5
+- [x] Sub-frenzy research (5 Sonnet agents) → manifest §5
 - [x] Create private GitHub repo, push
-- [ ] Notify user that repo is ready
-- [ ] User confirms/denies distilled plan
-- [ ] (node) Step 0 curate MAGICK
+- [x] Notify user that repo is ready
+- [x] Research GateControl (agent 6) → manifest §5
+- [x] Draft data/project.dtab (512 only), validated with `aviary bluejay initialize`
+- [ ] User answers: teacher vs Sprint student; base model for the 512 test
+- [ ] Write data/processors/*.py
+- [ ] Port GateControl training to our base model (guidance / TrigFlow)
+- [ ] (node) Step 0 curate MAGICK via BlueJay (user gives BlueJay path)
+- [ ] (node) ≤1 h throughput tuning, big batches
 - [ ] (node) Step 1 baseline
-- [ ] (node) Step 2 adapter → Checkpoint 1 notify
-- [ ] (node) Step 3 control
+- [ ] (node) Step 2 adapter → Checkpoint 1 notify (babysit)
+- [ ] (node) Step 3 control, GateControl-based (babysit)
 - [ ] (node) Step 4 base − adapter + control
+- Target: something working by ~15:38 EST 2026-11-17 (12 h from m00245)

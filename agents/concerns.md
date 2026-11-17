@@ -19,3 +19,11 @@
 - Sprint: no successful plain flow-matching LoRA reported. The maintainer has "never tried" a diffusion loss on Sprint (Sana issue #256). The diffusers sCM+LADD script (`train_sana_sprint_diffusers.py`) is merged, full fine-tune only, and inits the student from the teacher. → The teacher-first route is favored.
 - AnimateDiff: the adapter is a LoRA on attention layers, MSE loss, scale 0 at inference; evidence is qualitative only. Closest precedent for base − adapter + control: lllyasviel's ControlNet transfer. No direct report found. Do the arithmetic in fp32.
 - Prior art: Zippo (matte → RGB by latent concat) is the closest. No model trained on MAGICK has been published. Eval: exterior gray purity, IoU vs matte, VLM rubric, paired seeds.
+
+## 2026-11-17 03:40 — Decisions: GateControl, 512 first, BlueJay, 12 h target
+- User picked GateControl (arXiv 2603.27666) as the control method (m00231) after reading the paper I opened for them. Research agent 6 read the official code. Key fit: the base is frozen and only LoRA + gates train, so `W_control − W_adapter` = the control LoRA delta, which suits our weight arithmetic.
+- Risk: GateControl's script is for stock SANA flow matching and never passes `guidance`. The Sprint teacher (TrigFlow) and student (guidance-embedded) need changes there. Not yet checked: whether diffusers' teacher checkpoint already behaves like a flow-matching SANA (it loads with `SanaPipeline`).
+- Risk: gates start at 0.5, not 0, so adding GateControl modules changes the base output before training. This is the paper's choice; keep it.
+- 512×512 end to end first (m00222, m00245). The dtab was cut to 512-only columns (latents (32,16,16), noise_512).
+- Data now goes through BlueJay (m00196), which replaces the "no framework, plain subfolders" rule in the manifest.
+- Lesson: `aviary bluejay initialize` starts a database server that keeps running. Delete its lance folder and re-initialize, and the old server answers "Dataset ... was not found". Kill the server first (`pkill -f "bluejay.local_database 0.0.0.0 <port>"`).
