@@ -370,7 +370,7 @@ processors
 		query sql
 			SELECT page_id, rgba FROM magick_samples    -- MAGICK images
 			WHERE   encode_colorbg_claim IS NULL        -- not yet claimed,
-			    AND rgba                 IS NOT NULL    -- that download_image did,
+			    AND rgb_on_gray          IS NOT NULL    -- that split_alpha did (it fails RGB-only PNGs),
 			ORDER BY random() LIMIT $COLORBG_BATCH_SIZE -- one batch at a time, in random order
 		claim	encode_colorbg_claim magick_samples
 		command bash
