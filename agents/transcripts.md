@@ -135,3 +135,6 @@ I am in Eastern time and I use AM/PM.
 
 ## m00611 — 2026-11-17 4:33 AM
 It is in your best interest to make sure that you're using the most of all of our GPUs. All eight of them should be burning at full capacity, including during data processing and when we do embeddings. The BlueJay processor should be efficient in this way. And inference itself could also be a BlueJay processor. Why not, you know? It could take in keyword arguments — sorry, not keyword arguments, I mean, like, environment variables to say what you actually want to do. Then you might have a script that could actually launch the job for you.
+
+## m00612 — 2026-11-17 4:40 AM
+Just as well, the generated evaluations could also make best use of them. After all, we could feed a list of prompts in, like its query or something. You know what, let there be [transcribed as "let me be draws my"] a bunch of inference prompts or something, or inference sets or something like that, as some processors might generate those things from text files or whatever. But the point is that whatever workload the inference stuff does, it should also keep all GPUs maximally busy without having to load and unload the model for everything. You know, efficiency is good. This is a good decision. Keep your delta lines, okay, to a minimum.
