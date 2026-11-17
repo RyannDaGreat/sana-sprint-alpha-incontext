@@ -1,4 +1,4 @@
-# SanaSprint Alpha InContext Plan
+# sana-sprint-alpha-incontext
 
 Planning repo for an experiment: train SANA-Sprint (via the AnimateDiff-style adapter trick) to turn an alpha matte into the RGB foreground on a 50% gray background, in-context.
 
