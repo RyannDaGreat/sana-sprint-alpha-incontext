@@ -209,3 +209,6 @@ Once they're on GitHub Pages, [notify, transcribed as "notice by"] me.
 
 ## m00635 — 2026-11-17 1:42 PM
 I never asked for them to be private. I'll make it public.
+
+## m00636 — 2026-11-17 1:43 PM
+Okay, it's public now. In the future, don't make private repositories, please.
