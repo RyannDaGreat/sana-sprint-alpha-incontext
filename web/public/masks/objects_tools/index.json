@@ -1,0 +1,235 @@
+{
+  "items": [
+    {
+      "file": "scissors.png",
+      "name": "Scissors",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/scissors-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "hammer.png",
+      "name": "Hammer",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/hammer-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "wrench.png",
+      "name": "Wrench",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/wrench-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "screwdriver.png",
+      "name": "Screwdriver",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/screwdriver-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "paint-brush.png",
+      "name": "Paint Brush",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/paint-brush-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "pencil-simple.png",
+      "name": "Pencil",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/pencil-simple-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "ruler.png",
+      "name": "Ruler",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/ruler-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "toolbox.png",
+      "name": "Toolbox",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/toolbox-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "lamp.png",
+      "name": "Desk Lamp",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/lamp-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "lamp-pendant.png",
+      "name": "Pendant Lamp",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/lamp-pendant-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "flashlight.png",
+      "name": "Flashlight",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/flashlight-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "camera.png",
+      "name": "Camera",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/camera-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "guitar.png",
+      "name": "Guitar",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/guitar-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "piano-keys.png",
+      "name": "Piano Keys",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/piano-keys-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "microphone-stage.png",
+      "name": "Microphone Stand",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/microphone-stage-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "chair.png",
+      "name": "Chair",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/chair-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "armchair.png",
+      "name": "Armchair",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/armchair-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "couch.png",
+      "name": "Couch",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/couch-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "bed.png",
+      "name": "Bed",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/bed-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "bathtub.png",
+      "name": "Bathtub",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/bathtub-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "table.png",
+      "name": "Table",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/table-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "bicycle.png",
+      "name": "Bicycle",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/bicycle-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "umbrella.png",
+      "name": "Umbrella",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/umbrella-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "key.png",
+      "name": "Key",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/key-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "suitcase.png",
+      "name": "Suitcase",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/suitcase-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "sword.png",
+      "name": "Sword",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/sword-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "cooking-pot.png",
+      "name": "Cooking Pot",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/cooking-pot-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "knife.png",
+      "name": "Knife",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/knife-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "headphones.png",
+      "name": "Headphones",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/headphones-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "watch.png",
+      "name": "Wristwatch",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/watch-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "oven.png",
+      "name": "Oven",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/oven-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "shovel.png",
+      "name": "Shovel",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/shovel-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "spray-bottle.png",
+      "name": "Spray Bottle",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/spray-bottle-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    }
+  ]
+}

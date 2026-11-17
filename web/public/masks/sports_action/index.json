@@ -1,0 +1,316 @@
+{
+  "items": [
+    {
+      "file": "skateboarder.png",
+      "name": "Skateboarder",
+      "source_url": "https://icon-sets.iconify.design/mdi/skateboarding/",
+      "license": "Apache-2.0",
+      "author": "Pictogrammers (Material Design Icons)",
+      "coverage": 0.183
+    },
+    {
+      "file": "surfer.png",
+      "name": "Surfer",
+      "source_url": "https://icon-sets.iconify.design/mdi/surfing/",
+      "license": "Apache-2.0",
+      "author": "Pictogrammers (Material Design Icons)",
+      "coverage": 0.285
+    },
+    {
+      "file": "snowboarder.png",
+      "name": "Snowboarder",
+      "source_url": "https://icon-sets.iconify.design/mdi/snowboard/",
+      "license": "Apache-2.0",
+      "author": "Pictogrammers (Material Design Icons)",
+      "coverage": 0.21
+    },
+    {
+      "file": "skier.png",
+      "name": "Skier",
+      "source_url": "https://icon-sets.iconify.design/ph/person-simple-ski-fill/",
+      "license": "MIT",
+      "author": "Phosphor Icons",
+      "coverage": 0.157
+    },
+    {
+      "file": "basketball.png",
+      "name": "Basketball",
+      "source_url": "https://icon-sets.iconify.design/mdi/basketball/",
+      "license": "Apache-2.0",
+      "author": "Pictogrammers (Material Design Icons)",
+      "coverage": 0.386
+    },
+    {
+      "file": "soccer-kick.png",
+      "name": "Soccer kick",
+      "source_url": "https://game-icons.net/1x1/delapouite/soccer-kick.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite",
+      "coverage": 0.143
+    },
+    {
+      "file": "martial-arts.png",
+      "name": "Martial arts",
+      "source_url": "https://icon-sets.iconify.design/mdi/martial-arts/",
+      "license": "Apache-2.0",
+      "author": "Pictogrammers (Material Design Icons)",
+      "coverage": 0.202
+    },
+    {
+      "file": "gymnast.png",
+      "name": "Gymnast",
+      "source_url": "https://icon-sets.iconify.design/mdi/gymnastics/",
+      "license": "Apache-2.0",
+      "author": "Pictogrammers (Material Design Icons)",
+      "coverage": 0.16
+    },
+    {
+      "file": "climber.png",
+      "name": "Mountain climber",
+      "source_url": "https://game-icons.net/1x1/caro-asercion/mountain-climbing.html",
+      "license": "CC BY 3.0",
+      "author": "Caro Asercion",
+      "coverage": 0.287
+    },
+    {
+      "file": "cyclist.png",
+      "name": "Cyclist",
+      "source_url": "https://icon-sets.iconify.design/ph/person-simple-bike-fill/",
+      "license": "MIT",
+      "author": "Phosphor Icons",
+      "coverage": 0.181
+    },
+    {
+      "file": "kayaker.png",
+      "name": "Kayaker",
+      "source_url": "https://icon-sets.iconify.design/mdi/kayaking/",
+      "license": "Apache-2.0",
+      "author": "Pictogrammers (Material Design Icons)",
+      "coverage": 0.209
+    },
+    {
+      "file": "tennis.png",
+      "name": "Tennis",
+      "source_url": "https://icon-sets.iconify.design/mdi/tennis/",
+      "license": "Apache-2.0",
+      "author": "Pictogrammers (Material Design Icons)",
+      "coverage": 0.192
+    },
+    {
+      "file": "weightlifter.png",
+      "name": "Weightlifter",
+      "source_url": "https://icon-sets.iconify.design/mdi/weight-lifter/",
+      "license": "Apache-2.0",
+      "author": "Pictogrammers (Material Design Icons)",
+      "coverage": 0.207
+    },
+    {
+      "file": "swimmer.png",
+      "name": "Swimmer",
+      "source_url": "https://icon-sets.iconify.design/ph/person-simple-swim-fill/",
+      "license": "MIT",
+      "author": "Phosphor Icons",
+      "coverage": 0.276
+    },
+    {
+      "file": "runner.png",
+      "name": "Runner",
+      "source_url": "https://icon-sets.iconify.design/ph/person-simple-run-fill/",
+      "license": "MIT",
+      "author": "Phosphor Icons",
+      "coverage": 0.153
+    },
+    {
+      "file": "baseball.png",
+      "name": "Baseball",
+      "source_url": "https://icon-sets.iconify.design/mdi/baseball/",
+      "license": "Apache-2.0",
+      "author": "Pictogrammers (Material Design Icons)",
+      "coverage": 0.4
+    },
+    {
+      "file": "american-football.png",
+      "name": "American football",
+      "source_url": "https://icon-sets.iconify.design/mdi/football/",
+      "license": "Apache-2.0",
+      "author": "Pictogrammers (Material Design Icons)",
+      "coverage": 0.442
+    },
+    {
+      "file": "golf.png",
+      "name": "Golf",
+      "source_url": "https://icon-sets.iconify.design/mdi/golf/",
+      "license": "Apache-2.0",
+      "author": "Pictogrammers (Material Design Icons)",
+      "coverage": 0.159
+    },
+    {
+      "file": "hockey-sticks.png",
+      "name": "Hockey sticks",
+      "source_url": "https://icon-sets.iconify.design/mdi/hockey-sticks/",
+      "license": "Apache-2.0",
+      "author": "Pictogrammers (Material Design Icons)",
+      "coverage": 0.225
+    },
+    {
+      "file": "cricket.png",
+      "name": "Cricket",
+      "source_url": "https://icon-sets.iconify.design/mdi/cricket/",
+      "license": "Apache-2.0",
+      "author": "Pictogrammers (Material Design Icons)",
+      "coverage": 0.234
+    },
+    {
+      "file": "bowling.png",
+      "name": "Bowling",
+      "source_url": "https://icon-sets.iconify.design/mdi/bowling/",
+      "license": "Apache-2.0",
+      "author": "Pictogrammers (Material Design Icons)",
+      "coverage": 0.496
+    },
+    {
+      "file": "trophy.png",
+      "name": "Trophy",
+      "source_url": "https://icon-sets.iconify.design/ph/trophy-fill/",
+      "license": "MIT",
+      "author": "Phosphor Icons",
+      "coverage": 0.324
+    },
+    {
+      "file": "medal.png",
+      "name": "Medal",
+      "source_url": "https://icon-sets.iconify.design/ph/medal-fill/",
+      "license": "MIT",
+      "author": "Phosphor Icons",
+      "coverage": 0.302
+    },
+    {
+      "file": "paraglider.png",
+      "name": "Paraglider",
+      "source_url": "https://icon-sets.iconify.design/mdi/paragliding/",
+      "license": "Apache-2.0",
+      "author": "Pictogrammers (Material Design Icons)",
+      "coverage": 0.325
+    },
+    {
+      "file": "archery.png",
+      "name": "Archery",
+      "source_url": "https://icon-sets.iconify.design/mdi/bow-arrow/",
+      "license": "Apache-2.0",
+      "author": "Pictogrammers (Material Design Icons)",
+      "coverage": 0.227
+    },
+    {
+      "file": "skateboarder-trick.png",
+      "name": "Skateboarder trick",
+      "source_url": "https://freesvg.org/skateboarding",
+      "license": "CC0",
+      "author": "Unknown (freesvg.org upload, CC0)",
+      "coverage": 0.17
+    },
+    {
+      "file": "surfer-on-wave.png",
+      "name": "Surfer on wave",
+      "source_url": "https://freesvg.org/surfing-the-waves",
+      "license": "CC0",
+      "author": "Unknown (freesvg.org upload, CC0)",
+      "coverage": 0.704
+    },
+    {
+      "file": "ballet-leap.png",
+      "name": "Ballet leap",
+      "source_url": "https://freesvg.org/black-ballet-dancer-silhouette",
+      "license": "CC0",
+      "author": "Unknown (freesvg.org upload, CC0)",
+      "coverage": 0.174
+    },
+    {
+      "file": "high-jump.png",
+      "name": "High jump",
+      "source_url": "https://freesvg.org/1280932922",
+      "license": "CC0",
+      "author": "Unknown (freesvg.org upload, CC0)",
+      "coverage": 0.327
+    },
+    {
+      "file": "sprinter.png",
+      "name": "Sprinter",
+      "source_url": "https://freesvg.org/sprinter-silhouette",
+      "license": "CC0",
+      "author": "Unknown (freesvg.org upload, CC0)",
+      "coverage": 0.111
+    },
+    {
+      "file": "karate-kick.png",
+      "name": "Karate kick",
+      "source_url": "https://freesvg.org/karate-silhouette",
+      "license": "CC0",
+      "author": "Unknown (freesvg.org upload, CC0)",
+      "coverage": 0.056
+    },
+    {
+      "file": "skater-trick.png",
+      "name": "Skater stunt",
+      "source_url": "https://freesvg.org/skater-boy-silhouette",
+      "license": "CC0",
+      "author": "Unknown (freesvg.org upload, CC0)",
+      "coverage": 0.094
+    },
+    {
+      "file": "ski-jumper.png",
+      "name": "Ski jumper",
+      "source_url": "https://freesvg.org/ski-jumper",
+      "license": "CC0",
+      "author": "Unknown (freesvg.org upload, CC0)",
+      "coverage": 0.103
+    },
+    {
+      "file": "basketball-dunk.png",
+      "name": "Basketball dunk",
+      "source_url": "https://freesvg.org/slam-dunk-basketball-silhouette",
+      "license": "CC0",
+      "author": "Unknown (freesvg.org upload, CC0)",
+      "coverage": 0.148
+    },
+    {
+      "file": "rhythmic-gymnast.png",
+      "name": "Rhythmic gymnast",
+      "source_url": "https://freesvg.org/rhythmic-gymnast-silhouette-vector-illustration",
+      "license": "CC0",
+      "author": "Unknown (freesvg.org upload, CC0)",
+      "coverage": 0.114
+    },
+    {
+      "file": "hurdle.png",
+      "name": "Hurdle jump",
+      "source_url": "https://freesvg.org/vector-silhouette-of-an-athlete",
+      "license": "CC0",
+      "author": "Unknown (freesvg.org upload, CC0)",
+      "coverage": 0.09
+    },
+    {
+      "file": "soccer-kick-silhouette.png",
+      "name": "Soccer kick silhouette",
+      "source_url": "https://freesvg.org/silhouette-vector-illustration-of-football-player",
+      "license": "CC0",
+      "author": "Unknown (freesvg.org upload, CC0)",
+      "coverage": 0.18
+    },
+    {
+      "file": "ballet-jump.png",
+      "name": "Ballet jump",
+      "source_url": "https://freesvg.org/jumping-dancer-silhouette",
+      "license": "CC0",
+      "author": "Unknown (freesvg.org upload, CC0)",
+      "coverage": 0.081
+    },
+    {
+      "file": "jumping-man.png",
+      "name": "Jumping man",
+      "source_url": "https://freesvg.org/jumping-man-silhouette",
+      "license": "CC0",
+      "author": "Unknown (freesvg.org upload, CC0)",
+      "coverage": 0.272
+    }
+  ]
+}

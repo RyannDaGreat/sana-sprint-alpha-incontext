@@ -1,0 +1,179 @@
+{
+  "items": [
+    {
+      "file": "running.png",
+      "name": "Running",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/person-simple-run-fill.svg",
+      "license": "MIT (Phosphor Icons)",
+      "author": "Phosphor Icons contributors"
+    },
+    {
+      "file": "cycling.png",
+      "name": "Cycling",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/person-simple-bike-fill.svg",
+      "license": "MIT (Phosphor Icons)",
+      "author": "Phosphor Icons contributors"
+    },
+    {
+      "file": "hiking.png",
+      "name": "Hiking",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/person-simple-hike-fill.svg",
+      "license": "MIT (Phosphor Icons)",
+      "author": "Phosphor Icons contributors"
+    },
+    {
+      "file": "skiing.png",
+      "name": "Skiing",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/person-simple-ski-fill.svg",
+      "license": "MIT (Phosphor Icons)",
+      "author": "Phosphor Icons contributors"
+    },
+    {
+      "file": "snowboarding.png",
+      "name": "Snowboarding",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/person-simple-snowboard-fill.svg",
+      "license": "MIT (Phosphor Icons)",
+      "author": "Phosphor Icons contributors"
+    },
+    {
+      "file": "swimming.png",
+      "name": "Swimming",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/person-simple-swim-fill.svg",
+      "license": "MIT (Phosphor Icons)",
+      "author": "Phosphor Icons contributors"
+    },
+    {
+      "file": "tai-chi.png",
+      "name": "Tai chi",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/person-simple-tai-chi-fill.svg",
+      "license": "MIT (Phosphor Icons)",
+      "author": "Phosphor Icons contributors"
+    },
+    {
+      "file": "throwing.png",
+      "name": "Throwing",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/person-simple-throw-fill.svg",
+      "license": "MIT (Phosphor Icons)",
+      "author": "Phosphor Icons contributors"
+    },
+    {
+      "file": "walking.png",
+      "name": "Walking",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/person-simple-walk-fill.svg",
+      "license": "MIT (Phosphor Icons)",
+      "author": "Phosphor Icons contributors"
+    },
+    {
+      "file": "arms-spread.png",
+      "name": "Arms spread",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/person-arms-spread-fill.svg",
+      "license": "MIT (Phosphor Icons)",
+      "author": "Phosphor Icons contributors"
+    },
+    {
+      "file": "bust-user.png",
+      "name": "Bust (user)",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/user-fill.svg",
+      "license": "MIT (Phosphor Icons)",
+      "author": "Phosphor Icons contributors"
+    },
+    {
+      "file": "hand-palm.png",
+      "name": "Hand palm",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/hand-palm-fill.svg",
+      "license": "MIT (Phosphor Icons)",
+      "author": "Phosphor Icons contributors"
+    },
+    {
+      "file": "hand-peace.png",
+      "name": "Hand peace",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/hand-peace-fill.svg",
+      "license": "MIT (Phosphor Icons)",
+      "author": "Phosphor Icons contributors"
+    },
+    {
+      "file": "hand-pointing.png",
+      "name": "Hand pointing",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/hand-pointing-fill.svg",
+      "license": "MIT (Phosphor Icons)",
+      "author": "Phosphor Icons contributors"
+    },
+    {
+      "file": "hand-fist.png",
+      "name": "Hand fist",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/hand-fist-fill.svg",
+      "license": "MIT (Phosphor Icons)",
+      "author": "Phosphor Icons contributors"
+    },
+    {
+      "file": "hand-waving.png",
+      "name": "Hand waving",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/hand-waving-fill.svg",
+      "license": "MIT (Phosphor Icons)",
+      "author": "Phosphor Icons contributors"
+    },
+    {
+      "file": "hands-clapping.png",
+      "name": "Hands clapping",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/hands-clapping-fill.svg",
+      "license": "MIT (Phosphor Icons)",
+      "author": "Phosphor Icons contributors"
+    },
+    {
+      "file": "hands-praying.png",
+      "name": "Hands praying",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/hands-praying-fill.svg",
+      "license": "MIT (Phosphor Icons)",
+      "author": "Phosphor Icons contributors"
+    },
+    {
+      "file": "ninja-running.png",
+      "name": "Ninja running",
+      "source_url": "https://game-icons.net/1x1/darkzaitzev/running-ninja.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "DarkZaitzev"
+    },
+    {
+      "file": "acrobat.png",
+      "name": "Acrobat",
+      "source_url": "https://game-icons.net/1x1/darkzaitzev/acrobatic.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "DarkZaitzev"
+    },
+    {
+      "file": "high-kick.png",
+      "name": "High kick",
+      "source_url": "https://game-icons.net/1x1/delapouite/high-kick.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Delapouite"
+    },
+    {
+      "file": "fencer.png",
+      "name": "Fencer",
+      "source_url": "https://game-icons.net/1x1/delapouite/fencer.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Delapouite"
+    },
+    {
+      "file": "archer.png",
+      "name": "Archer",
+      "source_url": "https://game-icons.net/1x1/delapouite/archer.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Delapouite"
+    },
+    {
+      "file": "sprint.png",
+      "name": "Sprint",
+      "source_url": "https://game-icons.net/1x1/lorc/sprint.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "philosopher-bust.png",
+      "name": "Philosopher bust",
+      "source_url": "https://game-icons.net/1x1/caro-asercion/philosopher-bust.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Caro Asercion"
+    }
+  ]
+}

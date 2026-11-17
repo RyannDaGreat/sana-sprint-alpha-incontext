@@ -1,0 +1,214 @@
+{
+  "items": [
+    {
+      "file": "tree.png",
+      "name": "Tree",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/tree-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "tree-palm.png",
+      "name": "Palm Tree",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/tree-palm-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "tree-evergreen.png",
+      "name": "Evergreen Tree",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/tree-evergreen-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "flower.png",
+      "name": "Flower",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/flower-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "flower-lotus.png",
+      "name": "Lotus",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/flower-lotus-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "flower-tulip.png",
+      "name": "Tulip",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/flower-tulip-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "plant.png",
+      "name": "Plant",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/plant-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "potted-plant.png",
+      "name": "Potted Plant",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/potted-plant-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "leaf.png",
+      "name": "Leaf",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/leaf-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "cactus.png",
+      "name": "Cactus",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/cactus-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "carrot.png",
+      "name": "Carrot",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/carrot-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "avocado.png",
+      "name": "Avocado",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/avocado-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "orange-slice.png",
+      "name": "Orange Slice",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/orange-slice-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "pepper.png",
+      "name": "Pepper",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/pepper-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "pizza.png",
+      "name": "Pizza",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/pizza-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "hamburger.png",
+      "name": "Hamburger",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/hamburger-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "bread.png",
+      "name": "Bread Loaf",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/bread-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "cake.png",
+      "name": "Cake",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/cake-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "cherries.png",
+      "name": "Cherries",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/cherries-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "egg.png",
+      "name": "Egg",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/egg-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "fish.png",
+      "name": "Fish",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/fish-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "bowl-food.png",
+      "name": "Bowl of Food",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/bowl-food-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "bowl-steam.png",
+      "name": "Steaming Bowl",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/bowl-steam-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "cookie.png",
+      "name": "Cookie",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/cookie-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "ice-cream.png",
+      "name": "Ice Cream",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/ice-cream-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "coffee.png",
+      "name": "Coffee Cup",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/coffee-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "wine.png",
+      "name": "Wine Glass",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/wine-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "champagne.png",
+      "name": "Champagne Flute",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/champagne-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "acorn.png",
+      "name": "Acorn",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/acorn-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    },
+    {
+      "file": "cheese.png",
+      "name": "Cheese",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/cheese-fill.svg",
+      "license": "MIT",
+      "author": "Phosphor Icons"
+    }
+  ]
+}

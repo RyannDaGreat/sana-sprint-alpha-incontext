@@ -1,0 +1,179 @@
+{
+  "items": [
+    {
+      "file": "horse.png",
+      "name": "Horse",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/horse-fill.svg",
+      "license": "MIT (Phosphor Icons)",
+      "author": "Phosphor Icons contributors"
+    },
+    {
+      "file": "bird.png",
+      "name": "Bird",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/bird-fill.svg",
+      "license": "MIT (Phosphor Icons)",
+      "author": "Phosphor Icons contributors"
+    },
+    {
+      "file": "fish.png",
+      "name": "Fish",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/fish-fill.svg",
+      "license": "MIT (Phosphor Icons)",
+      "author": "Phosphor Icons contributors"
+    },
+    {
+      "file": "fish-simple.png",
+      "name": "Fish (simple)",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/fish-simple-fill.svg",
+      "license": "MIT (Phosphor Icons)",
+      "author": "Phosphor Icons contributors"
+    },
+    {
+      "file": "cat.png",
+      "name": "Cat",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/cat-fill.svg",
+      "license": "MIT (Phosphor Icons)",
+      "author": "Phosphor Icons contributors"
+    },
+    {
+      "file": "dog.png",
+      "name": "Dog",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/dog-fill.svg",
+      "license": "MIT (Phosphor Icons)",
+      "author": "Phosphor Icons contributors"
+    },
+    {
+      "file": "cow.png",
+      "name": "Cow",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/cow-fill.svg",
+      "license": "MIT (Phosphor Icons)",
+      "author": "Phosphor Icons contributors"
+    },
+    {
+      "file": "rabbit.png",
+      "name": "Rabbit",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/rabbit-fill.svg",
+      "license": "MIT (Phosphor Icons)",
+      "author": "Phosphor Icons contributors"
+    },
+    {
+      "file": "butterfly.png",
+      "name": "Butterfly",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/butterfly-fill.svg",
+      "license": "MIT (Phosphor Icons)",
+      "author": "Phosphor Icons contributors"
+    },
+    {
+      "file": "beetle.png",
+      "name": "Beetle",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/bug-beetle-fill.svg",
+      "license": "MIT (Phosphor Icons)",
+      "author": "Phosphor Icons contributors"
+    },
+    {
+      "file": "shrimp.png",
+      "name": "Shrimp",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/shrimp-fill.svg",
+      "license": "MIT (Phosphor Icons)",
+      "author": "Phosphor Icons contributors"
+    },
+    {
+      "file": "lion.png",
+      "name": "Lion",
+      "source_url": "https://game-icons.net/1x1/lorc/lion.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "wolf-howling.png",
+      "name": "Wolf howling",
+      "source_url": "https://game-icons.net/1x1/lorc/wolf-howl.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "kangaroo.png",
+      "name": "Kangaroo",
+      "source_url": "https://game-icons.net/1x1/delapouite/kangaroo.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Delapouite"
+    },
+    {
+      "file": "penguin.png",
+      "name": "Penguin",
+      "source_url": "https://game-icons.net/1x1/delapouite/penguin.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Delapouite"
+    },
+    {
+      "file": "dolphin.png",
+      "name": "Dolphin",
+      "source_url": "https://game-icons.net/1x1/delapouite/dolphin.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Delapouite"
+    },
+    {
+      "file": "shark-jaws.png",
+      "name": "Shark jaws",
+      "source_url": "https://game-icons.net/1x1/lorc/shark-jaws.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "dove.png",
+      "name": "Dove",
+      "source_url": "https://game-icons.net/1x1/lorc/dove.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "eagle.png",
+      "name": "Eagle",
+      "source_url": "https://game-icons.net/1x1/lorc/eagle-emblem.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "swan.png",
+      "name": "Swan",
+      "source_url": "https://game-icons.net/1x1/lorc/swan.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "gorilla.png",
+      "name": "Gorilla",
+      "source_url": "https://game-icons.net/1x1/delapouite/gorilla.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Delapouite"
+    },
+    {
+      "file": "elephant.png",
+      "name": "Elephant",
+      "source_url": "https://game-icons.net/1x1/delapouite/elephant.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Delapouite"
+    },
+    {
+      "file": "t-rex.png",
+      "name": "T-Rex",
+      "source_url": "https://game-icons.net/1x1/lorc/dinosaur-rex.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "frog.png",
+      "name": "Frog",
+      "source_url": "https://game-icons.net/1x1/lorc/frog.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "dragonfly.png",
+      "name": "Dragonfly",
+      "source_url": "https://game-icons.net/1x1/lorc/dragonfly.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    }
+  ]
+}

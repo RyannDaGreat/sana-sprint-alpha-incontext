@@ -1,0 +1,228 @@
+{
+  "items": [
+    {
+      "file": "heart.png",
+      "name": "Heart",
+      "source_url": "https://icon-sets.iconify.design/ph/heart-fill/",
+      "license": "MIT",
+      "author": "Phosphor Icons",
+      "coverage": 0.335
+    },
+    {
+      "file": "star.png",
+      "name": "Star",
+      "source_url": "https://icon-sets.iconify.design/ph/star-fill/",
+      "license": "MIT",
+      "author": "Phosphor Icons",
+      "coverage": 0.276
+    },
+    {
+      "file": "arrow-in-circle.png",
+      "name": "Arrow in circle",
+      "source_url": "https://icon-sets.iconify.design/mdi/arrow-right-bold-circle/",
+      "license": "Apache-2.0",
+      "author": "Pictogrammers (Material Design Icons)",
+      "coverage": 0.334
+    },
+    {
+      "file": "bent-arrow.png",
+      "name": "Bent arrow",
+      "source_url": "https://icon-sets.iconify.design/ph/arrow-bend-up-right-fill/",
+      "license": "MIT",
+      "author": "Phosphor Icons",
+      "coverage": 0.081
+    },
+    {
+      "file": "speech-bubble.png",
+      "name": "Speech bubble",
+      "source_url": "https://icon-sets.iconify.design/ph/chat-circle-fill/",
+      "license": "MIT",
+      "author": "Phosphor Icons",
+      "coverage": 0.381
+    },
+    {
+      "file": "crown.png",
+      "name": "Crown",
+      "source_url": "https://icon-sets.iconify.design/ph/crown-fill/",
+      "license": "MIT",
+      "author": "Phosphor Icons",
+      "coverage": 0.266
+    },
+    {
+      "file": "lightning.png",
+      "name": "Lightning",
+      "source_url": "https://icon-sets.iconify.design/ph/lightning-fill/",
+      "license": "MIT",
+      "author": "Phosphor Icons",
+      "coverage": 0.184
+    },
+    {
+      "file": "gear.png",
+      "name": "Gear",
+      "source_url": "https://icon-sets.iconify.design/ph/gear-fill/",
+      "license": "MIT",
+      "author": "Phosphor Icons",
+      "coverage": 0.294
+    },
+    {
+      "file": "key.png",
+      "name": "Key",
+      "source_url": "https://icon-sets.iconify.design/ph/key-fill/",
+      "license": "MIT",
+      "author": "Phosphor Icons",
+      "coverage": 0.279
+    },
+    {
+      "file": "lock.png",
+      "name": "Lock",
+      "source_url": "https://icon-sets.iconify.design/ph/lock-fill/",
+      "license": "MIT",
+      "author": "Phosphor Icons",
+      "coverage": 0.321
+    },
+    {
+      "file": "zodiac-aries.png",
+      "name": "Zodiac Aries",
+      "source_url": "https://icon-sets.iconify.design/mdi/zodiac-aries/",
+      "license": "Apache-2.0",
+      "author": "Pictogrammers (Material Design Icons)",
+      "coverage": 0.139
+    },
+    {
+      "file": "zodiac-leo.png",
+      "name": "Zodiac Leo",
+      "source_url": "https://icon-sets.iconify.design/mdi/zodiac-leo/",
+      "license": "Apache-2.0",
+      "author": "Pictogrammers (Material Design Icons)",
+      "coverage": 0.148
+    },
+    {
+      "file": "zodiac-libra.png",
+      "name": "Zodiac Libra",
+      "source_url": "https://icon-sets.iconify.design/mdi/zodiac-libra/",
+      "license": "Apache-2.0",
+      "author": "Pictogrammers (Material Design Icons)",
+      "coverage": 0.156
+    },
+    {
+      "file": "chess-king.png",
+      "name": "Chess king",
+      "source_url": "https://icon-sets.iconify.design/mdi/chess-king/",
+      "license": "Apache-2.0",
+      "author": "Pictogrammers (Material Design Icons)",
+      "coverage": 0.22
+    },
+    {
+      "file": "chess-queen.png",
+      "name": "Chess queen",
+      "source_url": "https://icon-sets.iconify.design/mdi/chess-queen/",
+      "license": "Apache-2.0",
+      "author": "Pictogrammers (Material Design Icons)",
+      "coverage": 0.226
+    },
+    {
+      "file": "chess-knight.png",
+      "name": "Chess knight",
+      "source_url": "https://icon-sets.iconify.design/mdi/chess-knight/",
+      "license": "Apache-2.0",
+      "author": "Pictogrammers (Material Design Icons)",
+      "coverage": 0.181
+    },
+    {
+      "file": "chess-pawn.png",
+      "name": "Chess pawn",
+      "source_url": "https://icon-sets.iconify.design/mdi/chess-pawn/",
+      "license": "Apache-2.0",
+      "author": "Pictogrammers (Material Design Icons)",
+      "coverage": 0.145
+    },
+    {
+      "file": "spade.png",
+      "name": "Spade suit",
+      "source_url": "https://icon-sets.iconify.design/ph/spade-fill/",
+      "license": "MIT",
+      "author": "Phosphor Icons",
+      "coverage": 0.322
+    },
+    {
+      "file": "club.png",
+      "name": "Club suit",
+      "source_url": "https://icon-sets.iconify.design/ph/club-fill/",
+      "license": "MIT",
+      "author": "Phosphor Icons",
+      "coverage": 0.331
+    },
+    {
+      "file": "diamond.png",
+      "name": "Diamond suit",
+      "source_url": "https://icon-sets.iconify.design/ph/diamond-fill/",
+      "license": "MIT",
+      "author": "Phosphor Icons",
+      "coverage": 0.301
+    },
+    {
+      "file": "smiley.png",
+      "name": "Smiley face",
+      "source_url": "https://icon-sets.iconify.design/ph/smiley-fill/",
+      "license": "MIT",
+      "author": "Phosphor Icons",
+      "coverage": 0.337
+    },
+    {
+      "file": "sad-face.png",
+      "name": "Sad face",
+      "source_url": "https://icon-sets.iconify.design/ph/smiley-sad-fill/",
+      "license": "MIT",
+      "author": "Phosphor Icons",
+      "coverage": 0.337
+    },
+    {
+      "file": "wink-face.png",
+      "name": "Wink face",
+      "source_url": "https://icon-sets.iconify.design/ph/smiley-wink-fill/",
+      "license": "MIT",
+      "author": "Phosphor Icons",
+      "coverage": 0.334
+    },
+    {
+      "file": "open-palm.png",
+      "name": "Open palm",
+      "source_url": "https://icon-sets.iconify.design/ph/hand-palm-fill/",
+      "license": "MIT",
+      "author": "Phosphor Icons",
+      "coverage": 0.273
+    },
+    {
+      "file": "pointing-hand.png",
+      "name": "Pointing hand",
+      "source_url": "https://icon-sets.iconify.design/ph/hand-pointing-fill/",
+      "license": "MIT",
+      "author": "Phosphor Icons",
+      "coverage": 0.248
+    },
+    {
+      "file": "fist.png",
+      "name": "Fist",
+      "source_url": "https://icon-sets.iconify.design/ph/hand-fist-fill/",
+      "license": "MIT",
+      "author": "Phosphor Icons",
+      "coverage": 0.274
+    },
+    {
+      "file": "thumbs-up.png",
+      "name": "Thumbs up",
+      "source_url": "https://icon-sets.iconify.design/ph/thumbs-up-fill/",
+      "license": "MIT",
+      "author": "Phosphor Icons",
+      "coverage": 0.311
+    },
+    {
+      "file": "waving-hand.png",
+      "name": "Waving hand",
+      "source_url": "https://icon-sets.iconify.design/ph/hand-waving-fill/",
+      "license": "MIT",
+      "author": "Phosphor Icons",
+      "coverage": 0.293
+    }
+  ]
+}
