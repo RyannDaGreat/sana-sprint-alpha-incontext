@@ -171,3 +171,6 @@ It would also help if you have collapsible sections, and a gallery that says, ea
 
 ## m00623 — 2026-11-17 12:57 PM
 Like, what does "final" mean? For example, how is that even defined? We have [Sprint, transcribed as "syringe"] plus control, but why not [Sprint] [plus, transcribed as "cross"] control minus adapter, or something?
+
+## m00624 — 2026-11-17 1:00 PM
+I have a question. How feasible is it to get this to run in a web browser? Let's talk. Is there, like, quantization stuff we can do after this? After we have the one-step control, [can it, transcribed as "and canopy"] run on WebGPU in a browser and fit snugly into a MacBook Pro with 16 gigabytes or 32 gigabytes of RAM? With integrated CPU/GPU.
