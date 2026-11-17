@@ -50,3 +50,23 @@ I mean, at the end though, we do want to distill it and create a web UI so that 
 
 ## m00168 — 2026-11-17 03:30
 You shouldn't have any spaces in this dump name.
+
+## m00196 — 2026-11-17 03:35
+(here, on my laptop it's `/Users/rburgert/CleanCode/Github/BlueJay`) <-- (on netflix it's https://github.netflix.net/corp/Aviary/tree/bluejay2)
+
+You're probably gonna wanna precompute the latent things too, right? You know, now that I think of it, I probably should introduce you to Bluejay. Bluejay might help you, because we're gonna wanna be able to process these in multiple different ways and create visualizations for them. In fact, Bluejay actually has a demo project based on MAGICK, not to be confused with this one, which actually downloads the whole thing. This is not a toy. The MAGICK demo is a toy. But when we're calculating different latents and different concatenations and stuff, perhaps it's good to pre-calculate it using Bluejay and create visualizations, project-based visualizations, in Sparrow [transcribed as "spyro"] for it. You can tell the agents that Bluejay, um, well, it's not gonna be located at that path. It's gonna be located at a different path, and I'll give it to you at that point. Alright, so on Netflix, it's actually, well, it's in Aviary. So you might wanna plan out what processors you'll make and how the whole graph will look and create a `project.dtab` [transcribed as "Project D tab"] or something inside, like, I don't know, in a data subfolder or something. That's what the top level should look like.
+
+## m00221 — 2026-11-17 03:36
+I'm not dogmatic about any kind of control, by the way. I don't know what the paper GateControl is. Never heard of that paper before. Can you open it in my browser? I can tell you if it looks like shit or not.
+
+## m00222 — 2026-11-17 03:36
+And yeah, we start with 512x512, of course, for sure. In fact, we might even s— nah, 512x512 was a good starting point, yeah, we'll do that.
+
+## m00231 — 2026-11-17 03:37
+Okay, then this is how we're gonna do it: we're gonna base our control on that gated condition injection paper. That's how we're gonna do it, it's official. I like it, it looks good.
+
+## m00245 — 2026-11-17 03:38
+And yes, I agree, we'll do everything in 512x512 as a test first, end to end, and, uh, later on I guess we'll then upgrade it. If it fits in our GPUs, we should probably just use big batch sizes, right? So this optimization is to be had. You can spend up to an hour optimizing the run and stuff before you actually do the run, to make it faster. Ultimately, ideally, I'd like to have something working in 12 hours from now, if possible.
+
+## m00257 — 2026-11-17 03:39
+And of course, obviously, any training runs need to be babysat. Don't forget to transcribe me and update the manifest.
