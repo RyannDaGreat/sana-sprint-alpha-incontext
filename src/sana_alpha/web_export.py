@@ -508,7 +508,7 @@ def quantize(version, bits=4, rank=None, parts="transformer,text_encoder", reuse
     for name in parts:
         if name == "transformer":
             model = OneStepTransformer(pipe.transformer)
-            linears = wq.target_linears(pipe.transformer)
+            linears = {f"transformer.{n}": m for n, m in wq.target_linears(pipe.transformer).items()}
         else:
             pipe.transformer.to("cpu")
             model = TextEncoder(AutoModel.from_pretrained(models.localize(models.SPRINT_DIR) / "text_encoder",
