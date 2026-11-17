@@ -1,4 +1,4 @@
 {
  "versions": [],
- "note": "Models are not published yet; they will be served from the repo's `models` branch."
+ "note": "On Pages the app reads models from the repo's `models` branch (raw.githubusercontent.com); see src/sana_alpha/publish_models.py."
 }
