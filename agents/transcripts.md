@@ -132,3 +132,6 @@ You can plan your schedule ahead of time, and I'm not going to make that schedul
 
 ## m00610 — 2026-11-17 4:30 AM
 I am in Eastern time and I use AM/PM.
+
+## m00611 — 2026-11-17 4:33 AM
+It is in your best interest to make sure that you're using the most of all of our GPUs. All eight of them should be burning at full capacity, including during data processing and when we do embeddings. The BlueJay processor should be efficient in this way. And inference itself could also be a BlueJay processor. Why not, you know? It could take in keyword arguments — sorry, not keyword arguments, I mean, like, environment variables to say what you actually want to do. Then you might have a script that could actually launch the job for you.
