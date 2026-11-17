@@ -195,6 +195,14 @@ tables
 				prompt_variant plain
 				steps 4
 				guidance 4.5
+			,
+				 Step 2: the real adapter run
+				model_tag adapter_v1_step001000
+				pipeline teacher
+				checkpoint models/adapter/adapter_v1/step_001000
+				prompt_variant plain
+				steps 20
+				guidance 4.5
 
 	eval_generations
 		 One row per model and eval image: the image that the model makes from the caption and the fixed noise
