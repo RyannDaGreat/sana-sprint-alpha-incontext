@@ -206,3 +206,6 @@ The remote contains a key. Try not to manually read the key, but push this to Gi
 
 ## m00634 — 2026-11-17 1:39 PM
 Once they're on GitHub Pages, [notify, transcribed as "notice by"] me.
+
+## m00635 — 2026-11-17 1:42 PM
+I never asked for them to be private. I'll make it public.
