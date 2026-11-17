@@ -35,3 +35,9 @@
 - Bug found (user's suspicion, m00295): the old multi-field initial_rows (`,\tcheckpoint x` + indented fields) parsed as ONE field whose value swallowed the other lines. Multi-field rows need `,` alone on its line with the fields indented beneath. Our only seed now is single-field `,\tjob_id magick`. Verified by initialize + read back: 1 row, job_id "magick", import_claim null.
 - MAGICK index facts: 148,193 rows but 140,955 unique page_ids. 7,238 images are listed twice (once picked=hand, once picked=auto; other fields equal). `picked` is text, not int. tag_idk is always 0. import_index must dedupe.
 - fish's `wait` returns 0 even when a child fails. run_proc_curate.fish uses a FAIL_FLAG file that each failing loop touches; tested with a fake failing loop (exits 1, next step does not run).
+
+## 2026-11-17 03:56 — dtab misaligned: wrong tab width
+- What happened: the user saw the rows.parquet table out of line in their editor.
+- Root cause: my scratch renderer aligned columns for 8-wide tabs. The house standard (MulticamDailies) is 4-wide tabs. Also, nested `input.json` blocks had the header on the `materialize` line; it belongs on the `input.json` line.
+- Fix: copied MulticamDailies' `agents/dtab_format.py` (checker) and `agents/dtab_fold.py`; ran `fix`; `check` passes; `bluejay initialize` passes. The rules are now in AGENTS.md and the dtab (semantic binding `dtab-rules`).
+- Lesson: `data/project.dtab` is edited by hand and checked with `dtab_format.py`. No generator: a generator overwrites the user's hand alignment.
