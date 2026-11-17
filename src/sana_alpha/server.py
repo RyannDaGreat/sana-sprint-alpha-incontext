@@ -4,6 +4,7 @@ import socket
 
 import fire
 import gradio as gr
+import numpy as np
 from PIL import Image
 
 from sana_alpha.inference import DEFAULT_CHECKPOINT, MAX_SEED, SIZE, load_model, prepare_matte, run_model
@@ -27,6 +28,7 @@ def build_ui(model):
         with gr.Row():
             editor = gr.ImageEditor(label="Matte", type="numpy", image_mode="RGBA", canvas_size=(SIZE, SIZE),
                                     brush=gr.Brush(colors=[WHITE, BLACK], default_color=WHITE, default_size=BRUSH_PX),
+                                    value=np.zeros((SIZE, SIZE, 3), np.uint8),  # starts black, so white strokes show
                                     sources=["upload"], transforms=[], layers=False)
             gray = gr.Image(label="RGB on 50% gray", format="png", interactive=False)
             rgba = gr.Image(label="RGBA cutout", format="png", image_mode="RGBA", interactive=False)

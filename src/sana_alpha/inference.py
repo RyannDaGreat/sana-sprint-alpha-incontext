@@ -13,7 +13,7 @@ from sana_alpha.eval_set import GRAY_LEVEL
 from sana_alpha.generate import encode_mattes, generate
 from sana_alpha.models import load_eval_pipeline
 
-DEFAULT_CHECKPOINT = "models/control/overfit_test/final_step_000400"
+DEFAULT_CHECKPOINT = "models/control/control_v1/final_step_001500_adapter0.75"
 SIZE = 1024  # the model's resolution
 MAX_SEED = 2**31 - 1
 BYTE = 255
