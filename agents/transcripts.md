@@ -70,3 +70,26 @@ And yes, I agree, we'll do everything in 512x512 as a test first, end to end, an
 
 ## m00257 — 2026-11-17 03:39
 And of course, obviously, any training runs need to be babysat. Don't forget to transcribe me and update the manifest.
+
+## m00285 — 2026-11-17 03:41
+This does, by the way, mean that the data processing should branch off where it does the 512 by 512 thing — sorry, 512p encoding and 1024p encoding. So there would be two processors after that, or perhaps one processor. Actually, I know: probably best to do two processors, right? That would be the simplest. And of course the fish scripts that go with it. Oh yeah, the simple itty bitty fish scripts.
+
+## m00295 — 2026-11-17 03:44
+Well, okay, fine. If 512 is complicated then we'll just do 1024 alone. I'm fine with that, we can skip 512 then. /Users/rburgert/CleanCode/Github/MulticamDailies
+
+(pasted:) Actually, I'm reading your message. Up until now I didn't actually read it. "Stock SANA Sprint at 512, GateControl's code runs almost as is" — I don't understand. Yeah, do teachers first, and then we distill it at the very end, after everything else, right? Once we verify it actually works, then we distill it.
+
+Also, there's conventions that were in the MulticamDailies dataset for BlueJay that I'd like you to copy, particularly in how the dtab is formatted. This is a much more complicated data pipeline, so you don't have to do everything it does, but the things that are transferable and that you think are good. Be clean about it, you know. Annotated dtab is nice. The way that it formats that dtab is just objectively better in many ways, like especially how it inlined all the queries and stuff, and how it was just — everything about it.
+
+Also, I'm not sure if initial_rows is what you think it is. Why don't you double check that? Look at the JSON, make sure it actually matches what you want and intend. Don't get bitten.
+
+Also, I like alignment. To show you, I actually just aligned some of the things between line 301 and 303, so you understand what I like a little bit better with BlueJay.
+
+Um, I don't really understand the technical issues you're asking me, because I don't understand the model and I haven't really looked at it. If Sprint is trained at 1024, then I mean, we could always just try doing inference at 512 and see what happens, and maybe it's okay. It would train four times faster, right? But at the same time, 1024 is probably fine too. Maybe it's simpler just to do 1024 by itself only.
+
+## m00371 — 2026-11-17 03:49
+I don't know what the VLM judge processor is for. The agent will be doing that itself. I also don't know why generate is a processor, or score_generation is a processor, or plan_generations is a processor. I don't know why any of those are processors.
+
+## m00397 — 2026-11-17 03:52
+[Image: Albatross graph of data/project.dtab: download_magick → magick_samples(page_id) → split_alpha → magick_samples(alpha, rgb_on_gray) → encode_latents]
+lol why ain't this it? And what downloads the MAGICK tsv first before downloading the samples?
