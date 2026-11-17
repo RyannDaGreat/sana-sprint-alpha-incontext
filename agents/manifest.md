@@ -20,7 +20,7 @@
 
 **Talk out loud: once per request (m00620, m00621).** Reply in chat first, then speak 1–2 plain-English sentences: `curl -s -d "MESSAGE" ntfy.sh/stark_comma > /dev/null &`. "Notify me" = `rp call ntfy_send` (phone); "talk to me" = this curl (audio). They are different. Done 1:18 PM: gallery ready (phone + one spoken message). Pending: one phone notification when the WebGPU demo runs and is tested (m00625).
 
-**Notifications (max 6, m00604).** Each starts with "Sana:". Sent: (1) 8:26 AM Checkpoint 1. (2) 10:38 AM control works; subtraction loses the gray; λ = 0.75 fix; adapter_v2 on random colors. (3) 1:18 PM gallery_v1 ready (the message said 1:25 PM by mistake). Plan: (1) Checkpoint 1, (2) control model follows mattes, (3) Step 4 result, (4) final wrap-up. Two are kept in reserve for blockers that only the user can fix.
+**Notifications (max 6, m00604).** Each starts with "Sana:". Sent: (1) 8:26 AM Checkpoint 1. (2) 10:38 AM control works; subtraction loses the gray; λ = 0.75 fix; adapter_v2 on random colors. (3) 1:18 PM gallery_v1 ready (the message said 1:25 PM by mistake). (4) 3:22 PM the experiment works (v2 step 1500; the message said 3:25 PM). Remaining: (5) WebGPU demo live, (6) final wrap-up. Plan: (1) Checkpoint 1, (2) control model follows mattes, (3) Step 4 result, (4) final wrap-up. Two are kept in reserve for blockers that only the user can fix.
 
 **Aviary (m00600).** `data/Aviary` is a git checkout of `corp/Aviary` branch `bluejay2` (gitignored; `setup.sh` clones it). `data/aviary.sh` runs Aviary from that checkout. It plays the same role as `aviary.sh` in MulticamDailies: every script calls Aviary only through it. The dtab uses `lineage` keys, which only the bluejay2 source has, not the PyPI release.
 
