@@ -1,0 +1,258 @@
+{
+ "show_stock_sprint1":{
+  "iou all":0.3522303295,
+  "exterior_gray_error all":0.2597623191,
+  "exterior_gray_error held-out":0.2657651978,
+  "exterior_gray_error train":0.2551811747,
+  "iou held-out":0.3742344834,
+  "iou train":0.3354376857
+ },
+ "show_stock_sprint1_detailed":{
+  "iou all":0.3817831101,
+  "exterior_gray_error all":0.1527245573,
+  "exterior_gray_error held-out":0.1687635542,
+  "exterior_gray_error train":0.1404842702,
+  "iou held-out":0.405592518,
+  "iou train":0.3636127725
+ },
+ "show_stock_sprint2":{
+  "iou all":0.3552506846,
+  "exterior_gray_error all":0.2599381622,
+  "exterior_gray_error held-out":0.2669724801,
+  "exterior_gray_error train":0.2545698669,
+  "iou held-out":0.3743830678,
+  "iou train":0.3406496553
+ },
+ "show_stock_sprint2_detailed":{
+  "iou all":0.3758401298,
+  "exterior_gray_error all":0.1565910869,
+  "exterior_gray_error held-out":0.1704971735,
+  "exterior_gray_error train":0.145978547,
+  "iou held-out":0.404043518,
+  "iou train":0.3543164914
+ },
+ "show_stock_teacher20":{
+  "iou all":0.3460742222,
+  "exterior_gray_error all":0.3249298319,
+  "exterior_gray_error held-out":0.3287395552,
+  "exterior_gray_error train":0.3220224114,
+  "iou held-out":0.3693580078,
+  "iou train":0.3283050175
+ },
+ "show_stock_teacher20_detailed":{
+  "iou all":0.372647258,
+  "exterior_gray_error all":0.184499405,
+  "exterior_gray_error held-out":0.192715098,
+  "exterior_gray_error train":0.1782295341,
+  "iou held-out":0.4042359941,
+  "iou train":0.3485400646
+ },
+ "show_v2_step000500_lam0":{
+  "iou all":0.8415006914,
+  "exterior_gray_error all":0.0350381161,
+  "exterior_gray_error held-out":0.0308624855,
+  "exterior_gray_error train":0.0382247816,
+  "iou held-out":0.9014310961,
+  "iou train":0.79576433
+ },
+ "show_v2_step000500_lam0.25":{
+  "iou all":0.8862968172,
+  "exterior_gray_error all":0.0272053478,
+  "exterior_gray_error held-out":0.025417105,
+  "exterior_gray_error train":0.0285700595,
+  "iou held-out":0.908853696,
+  "iou train":0.8690823571
+ },
+ "show_v2_step000500_lam0.25_detailed":{
+  "iou all":0.8857807691,
+  "exterior_gray_error all":0.0320916566,
+  "exterior_gray_error held-out":0.0331889935,
+  "exterior_gray_error train":0.0312542152,
+  "iou held-out":0.9003624229,
+  "iou train":0.8746526648
+ },
+ "show_v2_step000500_lam0.5":{
+  "iou all":0.913218816,
+  "exterior_gray_error all":0.023737571,
+  "exterior_gray_error held-out":0.021885443,
+  "exterior_gray_error train":0.0251510371,
+  "iou held-out":0.9246368375,
+  "iou train":0.9045050627
+ },
+ "show_v2_step000500_lam0.5_detailed":{
+  "iou all":0.8982270604,
+  "exterior_gray_error all":0.0259238357,
+  "exterior_gray_error held-out":0.0264809746,
+  "exterior_gray_error train":0.0254986507,
+  "iou held-out":0.9068889703,
+  "iou train":0.8916166555
+ },
+ "show_v2_step000500_lam0.75":{
+  "iou all":0.9458059841,
+  "exterior_gray_error all":0.021402761,
+  "exterior_gray_error held-out":0.0202352956,
+  "exterior_gray_error train":0.0222937215,
+  "iou held-out":0.9581344705,
+  "iou train":0.9363974024
+ },
+ "show_v2_step000500_lam0.75_detailed":{
+  "iou all":0.9282507196,
+  "exterior_gray_error all":0.0204609526,
+  "exterior_gray_error held-out":0.0208671285,
+  "exterior_gray_error train":0.0201509762,
+  "iou held-out":0.9273291125,
+  "iou train":0.9289540513
+ },
+ "show_v2_step000500_lam0_detailed":{
+  "iou all":0.8012184852,
+  "exterior_gray_error all":0.0392863068,
+  "exterior_gray_error held-out":0.0405373426,
+  "exterior_gray_error train":0.0383315689,
+  "iou held-out":0.8288745348,
+  "iou train":0.7801125525
+ },
+ "show_v2_step000500_lam1":{
+  "iou all":0.9508705711,
+  "exterior_gray_error all":0.0209353881,
+  "exterior_gray_error held-out":0.0203336107,
+  "exterior_gray_error train":0.0213946392,
+  "iou held-out":0.9573260593,
+  "iou train":0.9459440144
+ },
+ "show_v2_step000500_lam1_detailed":{
+  "iou all":0.94130881,
+  "exterior_gray_error all":0.0170880707,
+  "exterior_gray_error held-out":0.0171978337,
+  "exterior_gray_error train":0.0170043042,
+  "iou held-out":0.9344125958,
+  "iou train":0.9465717103
+ },
+ "show_v2_step000500_sprint_lam0.5_1step":{
+  "iou all":0.5714693003,
+  "exterior_gray_error all":0.0544060252,
+  "exterior_gray_error held-out":0.0543830125,
+  "exterior_gray_error train":0.0544235875,
+  "iou held-out":0.5678733645,
+  "iou train":0.5742135671
+ },
+ "show_v2_step000500_sprint_lam0.5_1step_detailed":{
+  "iou all":0.8611005711,
+  "exterior_gray_error all":0.0234757438,
+  "exterior_gray_error held-out":0.0245014476,
+  "exterior_gray_error train":0.0226929699,
+  "iou held-out":0.874641505,
+  "iou train":0.8507667004
+ },
+ "show_v2_step000500_sprint_lam0.5_2step":{
+  "iou all":0.8036964132,
+  "exterior_gray_error all":0.0387160963,
+  "exterior_gray_error held-out":0.0406175166,
+  "exterior_gray_error train":0.0372650124,
+  "iou held-out":0.8351747846,
+  "iou train":0.7796734456
+ },
+ "show_v2_step000500_sprint_lam0.5_2step_detailed":{
+  "iou all":0.9479275731,
+  "exterior_gray_error all":0.0147913708,
+  "exterior_gray_error held-out":0.0151038283,
+  "exterior_gray_error train":0.0145529164,
+  "iou held-out":0.9611114049,
+  "iou train":0.9378662279
+ },
+ "show_v2_step000500_sprint_lam0.75_1step":{
+  "iou all":0.7011136663,
+  "exterior_gray_error all":0.0409221595,
+  "exterior_gray_error held-out":0.0415146133,
+  "exterior_gray_error train":0.0404700237,
+  "iou held-out":0.72900265,
+  "iou train":0.6798299683
+ },
+ "show_v2_step000500_sprint_lam0.75_1step_detailed":{
+  "iou all":0.9193906052,
+  "exterior_gray_error all":0.021905586,
+  "exterior_gray_error held-out":0.0243014344,
+  "exterior_gray_error train":0.0200771753,
+  "iou held-out":0.9192400996,
+  "iou train":0.9195054647
+ },
+ "show_v2_step000500_sprint_lam0.75_2step":{
+  "iou all":0.8999610479,
+  "exterior_gray_error all":0.029675514,
+  "exterior_gray_error held-out":0.0314573034,
+  "exterior_gray_error train":0.0283157273,
+  "iou held-out":0.9158026908,
+  "iou train":0.887871373
+ },
+ "show_v2_step000500_sprint_lam0.75_2step_detailed":{
+  "iou all":0.9585105183,
+  "exterior_gray_error all":0.0140384545,
+  "exterior_gray_error held-out":0.0147873403,
+  "exterior_gray_error train":0.0134669364,
+  "iou held-out":0.9595160072,
+  "iou train":0.9577431715
+ },
+ "show_v2_step000500_sprint_lam0_1step":{
+  "iou all":0.4074441057,
+  "exterior_gray_error all":0.0968676838,
+  "exterior_gray_error held-out":0.0972419063,
+  "exterior_gray_error train":0.0965820929,
+  "iou held-out":0.4194530879,
+  "iou train":0.3982793562
+ },
+ "show_v2_step000500_sprint_lam0_1step_detailed":{
+  "iou all":0.6950140982,
+  "exterior_gray_error all":0.034145538,
+  "exterior_gray_error held-out":0.0314726891,
+  "exterior_gray_error train":0.0361853438,
+  "iou held-out":0.7277044517,
+  "iou train":0.6700661968
+ },
+ "show_v2_step000500_sprint_lam0_2step":{
+  "iou all":0.5053139636,
+  "exterior_gray_error all":0.0698284248,
+  "exterior_gray_error held-out":0.072376081,
+  "exterior_gray_error train":0.0678841608,
+  "iou held-out":0.4810413568,
+  "iou train":0.5238377951
+ },
+ "show_v2_step000500_sprint_lam0_2step_detailed":{
+  "iou all":0.9045772687,
+  "exterior_gray_error all":0.0192678682,
+  "exterior_gray_error held-out":0.0176676736,
+  "exterior_gray_error train":0.0204890693,
+  "iou held-out":0.9447701448,
+  "iou train":0.8739037579
+ },
+ "show_v2_step000500_sprint_lam1_1step":{
+  "iou all":0.8487664997,
+  "exterior_gray_error all":0.0307859065,
+  "exterior_gray_error held-out":0.0332927302,
+  "exterior_gray_error train":0.0288728042,
+  "iou held-out":0.8335705727,
+  "iou train":0.8603633913
+ },
+ "show_v2_step000500_sprint_lam1_1step_detailed":{
+  "iou all":0.9372272855,
+  "exterior_gray_error all":0.0196259412,
+  "exterior_gray_error held-out":0.0224265304,
+  "exterior_gray_error train":0.0174886495,
+  "iou held-out":0.9343893765,
+  "iou train":0.9393930582
+ },
+ "show_v2_step000500_sprint_lam1_2step":{
+  "iou all":0.9562559313,
+  "exterior_gray_error all":0.0231390358,
+  "exterior_gray_error held-out":0.0257899395,
+  "exterior_gray_error train":0.0211159777,
+  "iou held-out":0.9494840482,
+  "iou train":0.9614239473
+ },
+ "show_v2_step000500_sprint_lam1_2step_detailed":{
+  "iou all":0.9619539497,
+  "exterior_gray_error all":0.0132168862,
+  "exterior_gray_error held-out":0.0143612351,
+  "exterior_gray_error train":0.0123435672,
+  "iou held-out":0.9605120377,
+  "iou train":0.9630543562
+ }
+}
