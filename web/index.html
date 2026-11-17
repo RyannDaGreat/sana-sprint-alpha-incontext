@@ -56,19 +56,22 @@
         <button class="tool" data-tool="rect">Rectangle</button>
         <button class="tool" data-tool="ellipse">Ellipse</button>
         <button class="tool" data-tool="move">Move</button>
+        <button id="undo" title="Undo (Ctrl/Cmd+Z)" disabled>Undo</button>
+        <button id="redo" title="Redo (Ctrl/Cmd+Shift+Z or Ctrl+Y)" disabled>Redo</button>
       </div>
       <div class="row">
         <label class="field">Brush <input id="brush-size" type="range" min="4" max="400" value="64"><span id="brush-size-v" class="meta">64</span></label>
       </div>
+      <div class="row" title="Binarizes the drawn/uploaded layer at a gray level (live preview). Softness > 0 keeps a linear ramp of that width instead of a hard edge. Apply is one undo step; any other edit cancels the preview.">
+        <label class="field">Threshold <input id="th-level" type="range" min="0" max="255" value="128"><span id="th-level-v" class="meta">128</span></label>
+        <label class="field">Softness <input id="th-soft" type="range" min="0" max="128" value="0"><span id="th-soft-v" class="meta">0</span></label>
+        <button id="th-apply" disabled>Apply threshold</button>
+        <button id="th-cancel" disabled>Cancel</button>
+      </div>
       <div class="row text-opts">
         <label class="field grow">Text <input id="text-value" type="text" value="HELLO"></label>
         <label class="field">Font
-          <select id="text-font">
-            <option value="Jost Variable">Jost</option>
-            <option value="Georgia, serif">Serif</option>
-            <option value="'Courier New', monospace">Mono</option>
-            <option value="Impact, 'Arial Black', sans-serif">Impact</option>
-          </select>
+          <select id="text-font"></select>
         </label>
         <label class="field">Weight
           <select id="text-weight">
@@ -81,6 +84,7 @@
         <label class="field">Size <input id="text-size" type="number" min="16" max="1000" value="220"></label>
       </div>
       <div class="row">
+        <button id="masks">Masks…</button>
         <label class="button">Upload<input id="upload" type="file" accept="image/*" hidden></label>
         <button id="invert">Invert</button>
         <button id="delete">Delete object</button>
@@ -148,5 +152,14 @@
       </div>
     </section>
   </main>
+
+  <dialog id="gallery" class="gallery">
+    <header class="gallery-head">
+      <h2>Masks <span class="meta">click one to load it into the matte (Undo brings the old one back)</span></h2>
+      <button id="gallery-close">Close</button>
+    </header>
+    <div id="gallery-filter" class="gallery-filter"></div>
+    <div id="gallery-grid" class="gallery-grid"><p class="meta">Loading…</p></div>
+  </dialog>
 </body>
 </html>

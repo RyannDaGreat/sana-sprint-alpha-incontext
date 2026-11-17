@@ -3,6 +3,8 @@
 import '@fontsource-variable/jost';
 import './style.css';
 import { MatteEditor } from './matte.js';
+import { fillFontSelect, ensureFont } from './fonts.js';
+import { MaskGallery } from './gallery.js';
 import { loadVersions, versionFiles, cachedFlags, cacheBytes, clearCache } from './models.js';
 import { countEmbeddings, clearEmbeddings } from './embcache.js';
 import { formatBytes, formatEta, rate, mattePixelsToTensor, decodeToPixels, fitRect, cropRect, SIZE } from './util.js';
@@ -57,7 +59,47 @@ const editor = new MatteEditor($('matte'), $('overlay'), () => scheduleRealtime(
 function starterMatte() {
   editor.objects.push({ type: 'ellipse', x: 262, y: 262, w: 500, h: 500 });
   editor.changed();
+  editor.resetHistory();
 }
+
+/** Command. Enables Undo / Redo to match the editor history. */
+function syncHistoryUi() {
+  $('undo').disabled = !editor.canUndo();
+  $('redo').disabled = !editor.canRedo();
+  $('th-apply').disabled = $('th-cancel').disabled = !editor.preview;
+}
+editor.onHistory = syncHistoryUi;
+
+/** Command. One undo step for a finished text-field edit, when it changed a text object. */
+function commitText() { if (editor.selected?.type === 'text') editor.commit(); }
+
+/** Command. Loads the chosen font (and weight) before applying it, so the canvas measures the real glyphs. */
+async function applyFont() {
+  const font = $('text-font').value, weight = Number($('text-weight').value);
+  await ensureFont(font, weight);
+  editor.setText({ font, weight });
+  commitText();
+}
+
+/** Command. Shows the threshold preview for the slider values. */
+function previewThreshold() {
+  $('th-level-v').textContent = $('th-level').value;
+  $('th-soft-v').textContent = $('th-soft').value;
+  editor.previewThreshold(Number($('th-level').value), Number($('th-soft').value));
+  syncHistoryUi();
+}
+
+/** Command. Loads a gallery mask (any image, SVG included) into the matte as an upload (one undo step). */
+async function loadMask(url) {
+  const img = new Image();
+  img.src = url;
+  await img.decode();
+  editor.upload(img, img.naturalWidth || SIZE, img.naturalHeight || SIZE, true);
+  showPhoto(null);
+}
+
+const gallery = new MaskGallery($('gallery'), (url) => loadMask(url).catch(fail));
+$('masks').addEventListener('click', () => gallery.open().catch(fail));
 
 for (const b of document.querySelectorAll('[data-tool]')) {
   b.addEventListener('click', () => {
@@ -67,9 +109,18 @@ for (const b of document.querySelectorAll('[data-tool]')) {
 }
 $('brush-size').addEventListener('input', (e) => { editor.brushSize = Number(e.target.value); $('brush-size-v').textContent = e.target.value; });
 $('text-value').addEventListener('input', (e) => editor.setText({ value: e.target.value }));
-$('text-font').addEventListener('change', (e) => editor.setText({ font: e.target.value }));
-$('text-weight').addEventListener('change', (e) => editor.setText({ weight: Number(e.target.value) }));
+fillFontSelect($('text-font'));
+$('text-font').value = editor.text.font;
+$('text-font').addEventListener('change', () => applyFont().catch(fail));
+$('text-weight').addEventListener('change', () => applyFont().catch(fail));
 $('text-size').addEventListener('input', (e) => editor.setText({ size: Number(e.target.value) }));
+for (const id of ['text-value', 'text-size']) $(id).addEventListener('change', commitText);
+$('th-level').addEventListener('input', previewThreshold);
+$('th-soft').addEventListener('input', previewThreshold);
+$('th-apply').addEventListener('click', () => { editor.applyThreshold(); syncHistoryUi(); });
+$('th-cancel').addEventListener('click', () => { editor.cancelThreshold(); syncHistoryUi(); });
+$('undo').addEventListener('click', () => editor.undo());
+$('redo').addEventListener('click', () => editor.redo());
 $('invert').addEventListener('click', () => editor.toggleInvert());
 $('clear').addEventListener('click', () => editor.clear());
 $('delete').addEventListener('click', () => editor.deleteSelected());
@@ -80,6 +131,11 @@ $('upload').addEventListener('change', async (e) => {
 });
 addEventListener('keydown', (e) => {
   if ((e.key === 'Delete' || e.key === 'Backspace') && !e.target.closest('input, textarea, select')) editor.deleteSelected();
+  // Undo/redo shortcuts; text fields keep their own native undo.
+  if (!(e.ctrlKey || e.metaKey) || e.target.closest('input[type="text"], input[type="number"], textarea')) return;
+  const key = e.key.toLowerCase();
+  if (key === 'z' && !e.shiftKey) { e.preventDefault(); editor.undo(); }
+  if ((key === 'z' && e.shiftKey) || key === 'y') { e.preventDefault(); editor.redo(); }
 });
 
 // ---------- photo → matte ----------

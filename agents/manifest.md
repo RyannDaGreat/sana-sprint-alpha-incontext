@@ -219,6 +219,8 @@ The final model (`W_base − W_adapter + W_control`, full subtraction, λ = 0) g
 
 Goal: the one-step matte model runs in a browser on WebGPU, on a 16–32 GB MacBook (integrated GPU). Upload or draw a silhouette (brush, text, draggable shapes), type a caption, generate. Pick among model versions in the UI; each downloads with a loading bar and is cached in the browser (Cache Storage / OPFS) so the second load is fast. Gemma prompt embeddings are cached too (m00625), so mask edits never re-run the text encoder. Real-time toggle (default off: press Generate). Simplified Swiss style, full dark and light modes, Jost font (thin for titles, regular for text), loading bars with speeds.
 
+Editor extras (m00643): undo/redo for every matte edit, a threshold tool (with softness ramp), ~28 on-demand Google Fonts for text, and a full-screen mask gallery (`web/public/masks/<category>/`, MAGICK held-out mattes + collected silhouettes with source/license). Details: `web/PLAN.md`.
+
 Photo → matte (m00632): upload a regular photo, segment the foreground in the browser (BEN2, MIT, fp16 219 MB from the HF hub, OPFS-cached; WebGPU with shader-f16 else WASM), and the soft alpha becomes the editable matte; the photo can be shown dimmed under it. Details and why not BiRefNet: `web/PLAN.md`.
 
 Model contract (SEMANTIC BINDING: web-model-contract), one folder per version under `models/web/<version>/` (gitignored, served by the app's server) with `manifest.json`:

@@ -42,6 +42,10 @@
   --knob-inset: 3px;
   --angle-input-w: 6.5em; /* fits 1.5708 plus the spinner */
   --photo-matte-opacity: 0.65; /* matte over the photo: dim enough to see both */
+  --thumb-bg: #8a8a86;      /* mask tiles, both themes: mid gray shows white-on-black and black-on-transparent masks alike */
+  --tile-min: 150px;        /* smallest gallery tile; the grid fits as many as the width allows */
+  --backdrop: rgba(0, 0, 0, 0.6);
+  --info-opacity: 0.9;      /* mask credit over its thumbnail on hover */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -153,8 +157,33 @@ button.link { border: 0; background: none; padding: 0; color: var(--muted); font
 .bar > div { height: 100%; width: 0; background: var(--accent); }
 .file.cached .bar > div { background: var(--fg); }
 
+/* Mask gallery: full-screen dialog, Swiss grid of square tiles. */
+.gallery {
+  width: 100vw; height: 100vh; max-width: none; max-height: none; margin: 0; border: 0;
+  padding: var(--page-pad); background: var(--bg); color: var(--fg);
+}
+.gallery::backdrop { background: var(--backdrop); }
+.gallery-head { display: flex; align-items: baseline; gap: var(--space-2); }
+.gallery-head h2 { flex: 1; }
+.gallery-filter { display: flex; flex-wrap: wrap; gap: var(--space-1); margin-bottom: var(--space-3); }
+.gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--tile-min), 1fr)); gap: var(--gutter); }
+.gallery-grid h3 {
+  grid-column: 1 / -1; margin: var(--space-2) 0 0; padding-top: var(--space-1);
+  font-weight: var(--weight-title); font-size: var(--size-h2); border-top: var(--hairline) solid var(--line);
+}
+.mask-tile { margin: 0; cursor: pointer; display: flex; flex-direction: column; gap: var(--space-1); }
+.mask-tile img { width: 100%; aspect-ratio: 1; object-fit: contain; background: var(--thumb-bg); outline: var(--hairline) solid var(--line); }
+.mask-tile:hover img { outline-color: var(--accent); }
+.mask-tile { position: relative; }
+.mask-name { font-size: var(--size-meta); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mask-info {
+  display: none; position: absolute; left: 0; right: 0; top: 0; padding: var(--space-1);
+  flex-direction: column; font-size: var(--size-meta); background: var(--bg); color: var(--fg); opacity: var(--info-opacity);
+}
+.mask-tile:hover .mask-info { display: flex; }
+
 @media (max-width: 900px) {
-  body { padding: var(--mobile-pad); }
+  body, .gallery { padding: var(--mobile-pad); }
   .top h1, .top .sub, .top-right { grid-column: 1 / 13; justify-content: flex-start; }
   .top .sub { margin: var(--space-2) 0; }
   .matte-panel, .tools-panel, .output-panel, .prompt-panel, .models-panel { grid-column: 1 / 13; }

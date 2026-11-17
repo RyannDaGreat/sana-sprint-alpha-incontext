@@ -5,6 +5,38 @@ import { SIZE, fitRect } from './util.js';
 
 const HANDLE = 28;        // resize handle side, in matte pixels
 const MIN_OBJECT = 8;     // smallest shape side, in matte pixels
+const HISTORY_LIMIT = 40; // undo steps kept; each step with a raster change holds one 4 MB snapshot
+
+/**
+ * Pure function. Thresholds a gray matte at `level`; `softness` > 0 gives a linear ramp of that width
+ * centered on level (a "levels" feather) instead of a hard step.
+ *
+ * @param {Uint8ClampedArray} rgba - (H, W, 4) uint8, gray in R = G = B
+ * @param {number} level - 0..255
+ * @param {number} softness - ramp width in gray levels, 0 = hard binarize
+ * @returns {Uint8ClampedArray} (H, W, 4) uint8 gray, opaque
+ *
+ * @example thresholdGray(new Uint8ClampedArray([100,100,100,255, 200,200,200,255]), 128, 0) // [0,0,0,255, 255,255,255,255]
+ * @example thresholdGray(new Uint8ClampedArray([128,128,128,255]), 128, 64) // [128,128,128,255] (middle of the ramp)
+ */
+export function thresholdGray(rgba, level, softness) {
+  const out = new Uint8ClampedArray(rgba.length), lo = level - softness / 2;
+  for (let i = 0; i < rgba.length; i += 4) {
+    const v = softness > 0 ? (255 * (rgba[i] - lo)) / softness : rgba[i] >= level ? 255 : 0;
+    out[i] = out[i + 1] = out[i + 2] = v;
+    out[i + 3] = 255;
+  }
+  return out;
+}
+
+/**
+ * Pure function. Deep copy of the vector objects (plain data), for history snapshots.
+ *
+ * @example cloneObjects([{type: 'rect', x: 1, y: 2, w: 3, h: 4}]) // [{type: 'rect', x: 1, y: 2, w: 3, h: 4}] (new objects)
+ */
+export function cloneObjects(objects) {
+  return objects.map((o) => ({ ...o }));
+}
 
 /**
  * Pure function. Axis-aligned box of an object (text boxes come from the measured width).
@@ -80,9 +112,13 @@ export class MatteEditor {
     this.rev = 0;
     this.tool = 'brush';
     this.brushSize = 64;
-    this.text = { value: 'HELLO', font: 'Jost Variable', size: 220, weight: 700 };
+    this.text = { value: 'HELLO', font: "'Jost Variable'", size: 220, weight: 700 };
     this.drag = null;
     this.cursor = null;
+    this.preview = null;        // threshold preview: an OffscreenCanvas drawn instead of the raster
+    this.rasterRev = 0;         // bumped on every raster edit, so snapshots share unchanged rasters
+    this.history = []; this.index = -1;
+    this.onHistory = () => {};  // called when undo/redo availability or the threshold preview may change
     this.clear();
     overlay.addEventListener('pointerdown', (e) => this.down(e));
     overlay.addEventListener('pointermove', (e) => this.move(e));
@@ -90,16 +126,72 @@ export class MatteEditor {
     overlay.addEventListener('pointerleave', () => { this.cursor = null; this.drawOverlay(); });
   }
 
-  /** Command. Clears raster and objects to black. */
+  /** Command. Clears raster and objects to black (one undo step). */
   clear() {
+    this.preview = null;
     this.rctx.fillStyle = '#000';
     this.rctx.fillRect(0, 0, SIZE, SIZE);
-    this.objects = []; this.selected = null;
+    this.rasterRev++;
+    this.objects = []; this.selected = null; this.invert = false;
+    this.changed(); this.commit();
+  }
+
+  /** Command. Toggles inversion of the whole matte (one undo step). */
+  toggleInvert() { this.invert = !this.invert; this.changed(); this.commit(); }
+
+  // ---------- history ----------
+
+  /** Command. Records the current state as a new undo step (drops the redo branch; keeps HISTORY_LIMIT steps). */
+  commit() {
+    const prev = this.history[this.index];
+    const raster = prev?.rasterRev === this.rasterRev ? prev.raster : this.rctx.getImageData(0, 0, SIZE, SIZE);
+    this.history = this.history.slice(0, this.index + 1);
+    this.history.push({ raster, rasterRev: this.rasterRev, objects: cloneObjects(this.objects), invert: this.invert });
+    if (this.history.length > HISTORY_LIMIT) this.history.shift();
+    this.index = this.history.length - 1;
+    this.onHistory();
+  }
+
+  /** Command. Makes the current state the only history step (the starting point). */
+  resetHistory() { this.history = []; this.index = -1; this.commit(); }
+
+  /** Query. Whether undo / redo have a step to go to. */
+  canUndo() { return this.index > 0; }
+  canRedo() { return this.index < this.history.length - 1; }
+
+  /** Command. Restores history step `i`. */
+  restore(i) {
+    const s = this.history[i];
+    this.index = i; this.preview = null; this.drag = null; this.selected = null;
+    if (s.rasterRev !== this.rasterRev) { this.rctx.putImageData(s.raster, 0, 0); this.rasterRev = s.rasterRev; }
+    this.objects = cloneObjects(s.objects); this.invert = s.invert;
+    this.changed(); this.onHistory();
+  }
+
+  /** Command. Steps back / forward in history (no-op at either end). */
+  undo() { if (this.canUndo()) this.restore(this.index - 1); }
+  redo() { if (this.canRedo()) this.restore(this.index + 1); }
+
+  // ---------- threshold ----------
+
+  /** Command. Shows the raster thresholded at `level` (with `softness` ramp) without committing it. */
+  previewThreshold(level, softness) {
+    const gray = thresholdGray(this.rctx.getImageData(0, 0, SIZE, SIZE).data, level, softness);
+    this.preview ??= new OffscreenCanvas(SIZE, SIZE);
+    this.preview.getContext('2d').putImageData(new ImageData(gray, SIZE, SIZE), 0, 0);
     this.changed();
   }
 
-  /** Command. Toggles inversion of the whole matte. */
-  toggleInvert() { this.invert = !this.invert; this.changed(); }
+  /** Command. Drops the threshold preview. */
+  cancelThreshold() { if (this.preview) { this.preview = null; this.changed(); this.onHistory(); } }
+
+  /** Command. Writes the threshold preview into the raster (one undo step). Vector objects are already binary. */
+  applyThreshold() {
+    if (!this.preview) return;
+    this.rctx.drawImage(this.preview, 0, 0);
+    this.preview = null; this.rasterRev++;
+    this.changed(); this.commit();
+  }
 
   /** Command. Sets the active tool and drops the selection when it no longer applies. */
   setTool(tool) { this.tool = tool; if (tool === 'brush' || tool === 'eraser') this.selected = null; this.drawOverlay(); }
@@ -107,17 +199,20 @@ export class MatteEditor {
   /**
    * Command. Replaces the raster layer with an uploaded image, fitted inside the square.
    *
-   * @param {ImageBitmap} bitmap
+   * @param {CanvasImageSource} bitmap - ImageBitmap, or an <img> (SVGs rasterize crisply at the fitted size)
+   * @param {number} [width] - source size (an SVG without intrinsic size needs it)
+   * @param {number} [height]
+   * @param {boolean} [fresh] - Also drop objects and inversion (see placeGray)
    */
-  upload(bitmap) {
-    const { w, h } = fitRect(bitmap.width, bitmap.height);
+  upload(bitmap, width = bitmap.width, height = bitmap.height, fresh = false) {
+    const { w, h } = fitRect(width, height);
     const t = new OffscreenCanvas(w, h).getContext('2d'); // image-sized, so no letterbox reads as alpha
     t.drawImage(bitmap, 0, 0, w, h);
-    this.placeGray(uploadToMatte(t.getImageData(0, 0, w, h).data), w, h);
+    this.placeGray(uploadToMatte(t.getImageData(0, 0, w, h).data), w, h, fresh);
   }
 
   /**
-   * Command. Replaces the raster layer with a w × h gray image, centered on black (fitRect's letterbox).
+   * Command. Replaces the raster layer with a w × h gray image, centered on black (fitRect's letterbox). One undo step.
    *
    * @param {Uint8ClampedArray} gray - (h, w, 4) uint8, R = G = B
    * @param {boolean} fresh - Also drop objects and inversion (a new matte, e.g. from a photo)
@@ -128,10 +223,11 @@ export class MatteEditor {
     this.rctx.fillStyle = '#000';
     this.rctx.fillRect(0, 0, SIZE, SIZE);
     this.rctx.putImageData(new ImageData(gray, w, h), r.x, r.y);
-    this.changed();
+    this.preview = null; this.rasterRev++;
+    this.changed(); this.commit();
   }
 
-  /** Command. Applies `patch` to the selected text object (or the defaults when none is selected). */
+  /** Command. Applies `patch` to the selected text object (or the defaults when none is selected). The caller commits. */
   setText(patch) {
     Object.assign(this.text, patch);
     const o = this.selected;
@@ -141,12 +237,12 @@ export class MatteEditor {
     this.changed();
   }
 
-  /** Command. Deletes the selected object. */
+  /** Command. Deletes the selected object (one undo step). */
   deleteSelected() {
     if (!this.selected) return;
     this.objects = this.objects.filter((o) => o !== this.selected);
     this.selected = null;
-    this.changed();
+    this.changed(); this.commit();
   }
 
   /** Query. The matte's RGBA pixels, (1024, 1024, 4) uint8, gray in R = G = B. */
@@ -162,7 +258,7 @@ export class MatteEditor {
   render() {
     const c = this.ctx;
     c.globalCompositeOperation = 'source-over';
-    c.drawImage(this.raster, 0, 0);
+    c.drawImage(this.preview ?? this.raster, 0, 0);
     c.fillStyle = '#fff';
     for (const o of this.objects) {
       if (o.type === 'rect') c.fillRect(o.x, o.y, o.w, o.h);
@@ -207,14 +303,16 @@ export class MatteEditor {
     c.strokeStyle = this.tool === 'brush' ? '#fff' : '#000';
     c.lineWidth = this.brushSize; c.lineCap = 'round';
     c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); c.stroke();
+    this.rasterRev++;
   }
 
   /** Command. Pointer down: start a stroke, a drag, a resize or a new object. */
   down(e) {
     this.overlay.setPointerCapture(e.pointerId);
+    this.cancelThreshold();
     const p = this.point(e);
     if (this.tool === 'brush' || this.tool === 'eraser') {
-      this.drag = { kind: 'stroke', last: p };
+      this.drag = { kind: 'stroke', last: p, dirty: true };
       this.stroke(p, p); this.changed();
       return;
     }
@@ -231,7 +329,7 @@ export class MatteEditor {
     if (this.tool === 'text') {
       const o = { type: 'text', text: this.text.value, font: this.text.font, size: this.text.size, weight: this.text.weight, x: p.x, y: p.y, width: 0 };
       this.objects.push(o); this.selected = o; this.changed();
-      this.drag = { kind: 'move', start: p, x: o.x, y: o.y };
+      this.drag = { kind: 'move', start: p, x: o.x, y: o.y, dirty: true };
     } else if (this.tool === 'rect' || this.tool === 'ellipse') {
       const o = { type: this.tool, x: p.x, y: p.y, w: 0, h: 0 };
       this.objects.push(o); this.selected = o;
@@ -247,6 +345,7 @@ export class MatteEditor {
     this.cursor = p;
     const d = this.drag;
     if (!d) { this.drawOverlay(); return; }
+    d.dirty = true;
     if (d.kind === 'stroke') { this.stroke(d.last, p); d.last = p; }
     if (d.kind === 'move') { this.selected.x = d.x + p.x - d.start.x; this.selected.y = d.y + p.y - d.start.y; }
     if (d.kind === 'create') Object.assign(d.obj, spanBox(d.start.x, d.start.y, p.x, p.y));
@@ -258,7 +357,7 @@ export class MatteEditor {
     this.changed();
   }
 
-  /** Command. Pointer up: end the gesture; drops shapes that were only clicked, not dragged. */
+  /** Command. Pointer up: end the gesture (one undo step if it changed anything); drops shapes that were only clicked, not dragged. */
   up() {
     const d = this.drag;
     this.drag = null;
@@ -266,6 +365,8 @@ export class MatteEditor {
       this.objects = this.objects.filter((o) => o !== d.obj);
       this.selected = null;
       this.changed();
+      return;
     }
+    if (d?.dirty) this.commit();
   }
 }
