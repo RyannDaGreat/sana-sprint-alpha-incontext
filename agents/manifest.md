@@ -8,8 +8,8 @@
 |---|---|
 | 5:15 AM | Aviary checkout in `data/Aviary`, `data/aviary.sh` runs it; `setup.sh`; processors written; curation running |
 | 6:00 AM | Models downloaded; eval set + fixed noises fixed; Step 1 baseline grid |
-| 7:30 AM | Adapter training code works on a subset; ≤1 h throughput tuning |
-| 8:00 AM | Adapter run launched (babysat) |
+| 7:00 AM | Curation done (download is capped by Hugging Face at ~16.7 img/s). Adapter + control code already proven on toy data (done 5:45 AM) |
+| 7:05 AM | Adapter run launched on all 8 GPUs (`./train_adapter.sh adapter_v1`, babysat) |
 | 10:30 AM | **Checkpoint 1** (adapter passes VLM check) → notification |
 | 11:00 AM | Control (GateControl) run launched (babysat) |
 | 2:30 PM | Control passes IoU/VLM; Step 4 `base − adapter + control` grid |
@@ -92,8 +92,8 @@ If a step fails, go back, try again, and journal it.
 
 ## 4. Open Questions (to resolve with user / research)
 
-1. **Sprint student vs teacher.** Train directly on the Sprint student (fast eval, but a plain diffusion loss may break few-step ability)? Or train on the teacher and distill to Sprint later? User said (m00018, paraphrased): "maybe we could just start with the teacher model and distill it a little later."
-2. **LoRA vs full fine-tune** for the adapter and the control. With 8× A100 80GB, full fine-tune of 1.6B is feasible.
+1. **Sprint student vs teacher.** Decided: train the teacher, distill last (m00295). In diffusers the teacher is a plain rectified-flow (velocity) model: σ = 3u/(1+2u), u = sigmoid(N(0,1)), x_t = (1−σ)x0 + σε, target ε − x0, timestep = σ. TrigFlow is only for distillation. Sample: SanaPipeline + DPM-Solver (flow_prediction, flow_shift 3), 20 steps, CFG 4.5.
+2. **LoRA vs full fine-tune.** Decided: adapter = full fine-tune (the limit of "max rank"; 24 GB for weights+grads+AdamW), fp32 master weights, so `W_base − W_adapter + W_control` is exact and nothing needs baking. Control = GateControl LoRA rank 16 + gates on the frozen adapter.
 3. **Control mechanics.** Decided: GateControl-based (m00231). Exact layers, gate and rank: from research agent 6 (§5).
 4. **Resolution.** Decided: 1024×1024 only (m00295).
 5. **The weight-arithmetic step assumes LoRA/full deltas are compatible.** If the adapter is a LoRA, `W_control − W_adapter_baked` is exact in fp32 but lossy in bf16. Keep fp32 master copies for the subtraction.
