@@ -1,8 +1,8 @@
 environ
-	 Batch sizes, in processor order. Not measured yet: tune them on the node
+	 Batch sizes, in processor order. Measured on the node (8x A100) on 2026-11-17
 	DOWNLOAD_BATCH_SIZE 64	 Images per run of download_image. Network bound: 1.5 MB per PNG
 	SPLIT_BATCH_SIZE 64	     Images per run of split_alpha. CPU only: it reads 1 PNG and writes 2
-	ENCODE_BATCH_SIZE 64	 Images per run of encode_latents. run_proc_curate.fish starts one loop per GPU
+	ENCODE_BATCH_SIZE 128	 Images per run of encode_latents (about 40 s on one A100). run_proc_curate.fish starts two loops per GPU
 
 	 Data
 	MAGICK_REPO OneOverZero/MAGICK	 Hugging Face dataset: 140,955 RGBA PNGs, 1024 x 1024, straight alpha, 191 GB
@@ -11,6 +11,11 @@ environ
 
 	 Models
 	TEACHER_MODEL Efficient-Large-Model/SANA_Sprint_1.6B_1024px_teacher_diffusers	 The model we fine-tune. Its vae subfolder (DC-AE f32c32) makes the latents, so they match the model
+	TEACHER_DIR ../models/Sana_Sprint_1.6B_1024px_teacher_diffusers	                 TEACHER_MODEL on FSx. encode_latents copies it to /models/sana-sprint-alpha-incontext once per machine
+
+	 Eval (plan_eval, generate_eval)
+	EVAL_SET resources/eval	 Eval images, captions and fixed noise, relative to the repo root. src/sana_alpha/eval_set.py makes it
+	EVAL_BATCH_SIZE 16	      eval_generations rows per run of generate_eval. A run costs ~12 s besides the GPU: 8 rows took 15 s
 
 	 Database
 	DATABASE_PORT 23947	 Far from the ports of the Bluejay demos on the laptop (19471, 19683, 19783)
@@ -52,7 +57,7 @@ lineage true
         - End each line with a tiny -- comment, so that the comments read down as one sentence
         - Align the comments one space after the longest line. Inside parentheses, indent the comment text 4 more, so the reader can skip it
         - Align the parts that nearby lines share, such as AND, IS, ON and =
-    - Eval is not done here: the agent runs it itself (user, m00371). These tables only curate the training data
+    - Eval inference runs here as generate_eval (user, m00606, m00611). Judging the results is done by the agent (m00371)
 
 
 tables
@@ -110,6 +115,60 @@ tables
 			 Written by encode_latents
 			latent_alpha_1024, latent_rgb_1024 blob
 			vae_psnr_1024 float64
+
+	eval_models
+		 One row per model to evaluate. To evaluate a new checkpoint, add a row here: run_proc_eval.fish initializes first
+		primary_key model_tag
+		columns
+			model_tag, pipeline, checkpoint, prompt_variant string
+			steps int64
+			guidance float64
+		initial_rows
+			,
+				model_tag sprint_plain
+				pipeline sprint
+				checkpoint stock
+				prompt_variant plain
+				steps 2
+				guidance 4.5
+			,
+				model_tag sprint_gray
+				pipeline sprint
+				checkpoint stock
+				prompt_variant gray
+				steps 2
+				guidance 4.5
+			,
+				model_tag teacher_plain
+				pipeline teacher
+				checkpoint stock
+				prompt_variant plain
+				steps 20
+				guidance 4.5
+			,
+				model_tag teacher_gray
+				pipeline teacher
+				checkpoint stock
+				prompt_variant gray
+				steps 20
+				guidance 4.5
+
+	eval_generations
+		 One row per model and eval image: the image that the model makes from the caption and the fixed noise
+		primary_key model_tag,page_id,noise_seed
+		columns
+			model_tag, page_id string
+			noise_seed int64
+
+			 Written by plan_eval
+			caption, source_claim_id, source_run_id string
+			noise_index int64
+
+			 Written by generate_eval
+			prompt, call_kwargs string
+			step_noise_seed int64
+			image blob
+			seconds, exterior_gray_error, border_gray_error, border_std, iou, foreground_fraction float64
 
 
 processors
@@ -180,16 +239,72 @@ processors
 			ORDER BY random() LIMIT $ENCODE_BATCH_SIZE             -- one batch at a time, in random order
 		claim	encode_latents_claim magick_samples
 		command bash
-			uv run --script processors/encode_latents.py "$BATCH" $TEACHER_MODEL
+			uv run --script processors/encode_latents.py "$BATCH" $TEACHER_DIR
 		materialize	                       TYPE  DESCRIPTION                                      EXAMPLE
 			alpha.png alpha	                blob  The matte, copied to 3 channels before encoding  120 KB .png
 			rgb_on_gray.png rgb_on_gray	    blob  The RGB on gray                                  1.4 MB .png
 		commit
 			magick_samples	                                           TYPE   DESCRIPTION                                                                                    EXAMPLE
-				latent_alpha_1024 latent_alpha.safetensors	            blob   DC-AE latent of the matte: (32, 32, 32) bfloat16, key "latent"                                 64 KB .safetensors
-				latent_rgb_1024 latent_rgb.safetensors	                blob   DC-AE latent of the RGB on gray: (32, 32, 32) bfloat16, key "latent"                           64 KB .safetensors
+				latent_alpha_1024 latent_alpha.safetensors	            blob   DC-AE latent of the matte: (32, 32, 32) bfloat16, key "latent", unscaled                       64 KB .safetensors
+				latent_rgb_1024 latent_rgb.safetensors	                blob   DC-AE latent of the RGB on gray: (32, 32, 32) bfloat16, key "latent", unscaled                 64 KB .safetensors
 				result.json	                                 SUBFIELD  TYPE   DESCRIPTION                                                                                    EXAMPLE
 					vae_psnr_1024 @	                                    float  PSNR in dB of the decoded RGB on gray against the original. Low: DC-AE cannot hold this image  31.2
+
+	plan_eval	 Adds one eval_generations row per eval image for each new eval_models row. No GPU
+		query SELECT model_tag FROM eval_models WHERE plan_eval_claim IS NULL
+		claim	plan_eval_claim eval_models
+		command bash
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src uv run --project .. python processors/generate_eval.py plan "$SAMPLE" $EVAL_SET
+		materialize
+			input.json	            TYPE DESCRIPTION            EXAMPLE
+				model_tag @	  [Key]  str  The model to evaluate  "sprint_gray"
+		commit
+			eval_generations
+				rows.jsonl	                        TYPE DESCRIPTION                                               EXAMPLE
+					model_tag @	              [Key]  str  The model to evaluate                                     "sprint_gray"
+					page_id @	              [Key]  str  An eval image: sha256(page_id) mod EVAL_MODULUS is 0      "6NqAw3m1ss"
+					noise_seed @	          [Key]  int  Seed of the fixed noise in EVAL_SET                       20261117
+					caption @	                     str  The image's MAGICK caption                                "red apple on a solid"
+					noise_index @	                 int  Row of the image's latents in EVAL_SET/noise.safetensors  10
+					source_claim_id $CLAIM	         str  Claim of the plan run                                     "9f1c…"
+					source_run_id $RUN	             str  The plan run                                              "4b2e…"
+
+	generate_eval	 Generates each eval_generations image with its model, on this GPU's server, which keeps the model loaded
+		query sql
+			SELECT g.model_tag, g.page_id, g.noise_seed, g.caption, g.noise_index,  -- eval images
+			       m.pipeline, m.checkpoint, m.steps, m.guidance, m.prompt_variant -- with their model's settings
+			FROM eval_generations g                                                -- from the planned rows,
+			JOIN eval_models m ON m.model_tag = g.model_tag                        -- joined to their model,
+			WHERE g.generate_eval_claim IS NULL                                    -- not yet claimed,
+			ORDER BY g.model_tag, random() LIMIT $EVAL_BATCH_SIZE                  -- one model at a time, in random order
+		claim	generate_eval_claim eval_generations
+		command bash
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src uv run --project .. python processors/generate_eval.py batch "$BATCH" $EVAL_SET
+		materialize
+			input.json	                    TYPE   DESCRIPTION                                                       EXAMPLE
+				model_tag @	          [Key]  str    The model                                                         "sprint_gray"
+				page_id @	          [Key]  str    The eval image                                                    "6NqAw3m1ss"
+				noise_seed @	      [Key]  int    Seed of the fixed noise                                           20261117
+				caption @	                 str    The MAGICK caption                                                "red apple on a solid"
+				noise_index @	             int    Row of the latents in EVAL_SET/noise.safetensors                  10
+				pipeline @	                 str    "teacher" (SanaPipeline) or "sprint" (SanaSprintPipeline)         "sprint"
+				checkpoint @	             str    "stock", or a transformer .safetensors path from the repo root    "stock"
+				steps @	                     int    Sampling steps                                                    2
+				guidance @	                 float  CFG for the teacher, embedded guidance for Sprint                 4.5
+				prompt_variant @	         str    "plain", or "gray": caption + ", on a plain 50% gray background"  "gray"
+		commit
+			eval_generations	                    TYPE   DESCRIPTION                                                   EXAMPLE
+				image image.png	                     blob   The generated image: 1024 x 1024 RGB, 8 bit                   1.5 MB .png
+				result.json	               SUBFIELD TYPE   DESCRIPTION                                                   EXAMPLE
+					prompt @	                     str    The prompt given to the model                                 "red apple on a solid, on a plain 50% gray background"
+					call_kwargs @	                 str    JSON of the pipeline call settings                            "{\"num_inference_steps\": 2, ...}"
+					step_noise_seed @	             int    Seed of the noise that the Sprint sampler adds between steps  787
+					seconds @	                     float  GPU time per image: batch time / batch size                   0.27
+					exterior_gray_error @	         float  Mean |rgb - 0.5| where the matte is 0. Low: clean gray        0.17
+					border_gray_error @	             float  Mean |rgb - 0.5| in the 64 px edge band                       0.18
+					border_std @	                 float  Standard deviation in the 64 px edge band. 0: flat            0.10
+					iou @	                         float  IoU of the pixels far from 0.5 gray with the matte            0.39
+					foreground_fraction @	         float  Fraction of the pixels far from 0.5 gray                      0.92
 
 
 queries
