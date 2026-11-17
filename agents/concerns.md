@@ -178,3 +178,16 @@
 ## 2026-11-17 3:20 PM — control_v2 step 1500: the full experiment works, on Sprint in 1–2 steps
 - Showcase set (67 items), MAGICK captions. Full subtraction (λ = 0, W_teacher + W_control − W_adapter): IoU 0.924, gray error 0.019 (v2 step 500: 0.842 / 0.035; v1 step 1500: 0.478 / 0.117). Sprint λ = 0 (W_sprint + W_control − W_adapter, no training): 1 step 0.828 / 0.030; 2 steps 0.955 / 0.018; 2 steps with detailed prompts 0.962 / 0.009. The control model (λ = 1) is 0.977 / 0.006.
 - Visual check (agents/.scratchpad/v2_1500_review.jpg, 8 items): Sprint λ = 0 at 1 and 2 steps follows each matte on flat gray, with Sprint's photographic look (more natural skin and fabric than the teacher columns). 2 steps is cleaner than 1 step.
+
+## 2026-11-17 3:25 PM — control_v2 web versions; models branch and Pages live (subagent 13)
+- control_v2 (λ = 0, `models/control/control_v2/sprint_step_001500`, merged by the coordinator) exported as `control_v2_sprint_step_001500` (+ `-int4`, `-int8`; Gemma and VAE are hard links to v1's, Gemma int4/int8 reused via `quantize --reuse`). 29 eval items, full ONNX chain:
+  | variant | transformer | vs fp16 ONNX | vs bf16 torch | IoU | ext. gray err |
+  |---|---|---|---|---|---|
+  | fp16 | 3.23 GB | 0 | 0.0109 | 0.843 | 0.027 |
+  | int8 (+ Gemma int8) | 1.87 GB | 0.0031 | 0.0110 | 0.842 | 0.027 |
+  | int4 (+ Gemma int4) | 1.21 GB | 0.0314 | 0.0317 | 0.812 | 0.033 |
+  Visual: int8 identical; int4 same composition and silhouettes, slightly stronger contrast.
+- Models branch (`publish_models.py`): v2-int4 (default) and v1-int4 pushed, 5.50 GB of blobs (Gemma int4 + VAE shared). Not pushed: int8 (v2-int8 would add 5.21 GB → 10.7 GB, over GitHub's recommended 5 GB) and fp16; both are one command away.
+- Mistake: the first push carried one 2.42 GB commit (batching was per file, and the Gemma file is 2.4 GB) → HTTP 500. Fix: commit/push every 400 MB of parts. Lesson: batch by the unit that is actually sent.
+- Mistake: my v2 chain started `merge_final` for control_v2 while the coordinator ran the same merges; killed mine before it wrote anything (the folder did not exist yet). Lesson: ask who owns shared outputs before writing them.
+- Live check (Puppeteer, headless Chrome with SwiftShader): https://ryanndagreat.github.io/sana-sprint-alpha-incontext/webgpu/ lists both versions as loadable, Load streams the sharded files from raw.githubusercontent.com at ~50 MB/s with moving progress bars, OPFS holds 3.2 GB after 25 s. A real generation cannot run here (SwiftShader has no shader-f16).
