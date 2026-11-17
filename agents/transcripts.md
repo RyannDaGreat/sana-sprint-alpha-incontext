@@ -44,3 +44,6 @@ Once the repository is ready, please notify me and we'll load this onto another 
 
 ## m00040–m00041 — 2026-11-17 03:28
 The computer we're going to train this on will have 8x [80GB, transcribed as "ATQ by"] A100 GPUs. 8x80GB GPUs.
+
+## m00049 — 2026-11-17 03:29
+I mean, at the end though, we do want to distill it and create a web UI so that people can play with it. I mean, we do want that too. You gotta plan the top level too. Like, the top level would be, you know, `models/`, `src/`, `resources/`. It would all be done by a `uv run`, of course, like any other dump. The scratchpad folder is where the bulk of your work would go; only the good stuff goes to the top level. After all, the scratchpad won't be saved; only the good, proven-good source code should be on the top level. The top level should be pretty goddamn clean. Like, `run_server.sh` and/or `run_diffusion.sh` should be basically always [seen, transcribed as "C"] on the top level. I don't want to have to have tons of junk files [cluttering, transcribed as "glittering"] my view. Anyone who comes in here should immediately know how to use it, even without reading the README.

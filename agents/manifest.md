@@ -53,6 +53,9 @@ All steps use the **same eval set** (same prompts, same mattes, same noise tenso
 | 3 | **Control.** Bake the adapter into the weights. Train in-context `[alpha | RGB-on-gray]`: left half clean, loss on the right half. | control weights | Output silhouette matches the matte (IoU metric + VLM). |
 | 4 | **Final (inference only).** `W_base − W_adapter + W_control`. | journal grid | Follows the matte AND looks like base-Sprint quality, not MAGICK quality. |
 
+| 5 | **Distill** (only if training used the teacher) the final model to a 1–4 step Sprint student. | Sprint-speed final model | Same eval set, quality ≈ Step 4. |
+| 6 | **Web UI** so people can play with it: upload or draw a matte, type a caption, get RGB-on-gray + RGBA. | `run_server.sh` | Works end-to-end from a browser. |
+
 If a step fails, go back, try again, and journal it.
 
 ## 4. Open Questions (to resolve with user / research)
@@ -74,6 +77,25 @@ If a step fails, go back, try again, and journal it.
 - All paths relative to repo root. Base models may live under `/models/` (system-wide convention).
 
 ## 7. File Structure
+
+**Top-level rule (user, m00049):** the top level stays very clean. Anyone who opens the folder should know how to use it without reading the README. Only good, proven source goes to the top level. The bulk of the AI's work goes in `agents/.scratchpad/`, which is **not saved**. Everything runs through `uv run` (a `pyproject.toml` at the root, like any other dump).
+
+Planned top level (target state; only `AGENTS.md`, `agents/`, `journal/` exist now):
+
+```text
+run_server.sh      # launch the web UI (always visible at top level)
+run_diffusion.sh   # CLI inference: matte + caption -> RGB-on-gray / RGBA
+pyproject.toml     # uv project; all deps
+README.md
+src/               # proven source: data curation, training, inference, weight arithmetic, server
+models/            # model weights (gitignored; large)
+resources/         # eval prompts, eval mattes, fixed noise tensors, small assets
+journal/           # human-facing distill.pub-style journal
+agents/            # manifest, concerns, todo, transcripts, .scratchpad/
+AGENTS.md
+```
+
+Training entry points (e.g. `train_adapter.sh`, `train_control.sh`) may also live at the top level, but only once they are proven. Data (`data/`) is gitignored.
 
 | Path | Purpose |
 |---|---|
