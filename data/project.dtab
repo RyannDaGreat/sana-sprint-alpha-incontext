@@ -23,8 +23,8 @@ database
 
 claims_table bluejay_claims
 runs_table bluejay_runs
-cell_lineage_table bluejay_lineage
-cell_lineage true
+lineage_table bluejay_lineage
+lineage true
 
 
  RULES FOR MAINTAINING THIS DTAB (copied from MulticamDailies' project.dtab, the house style):
@@ -73,7 +73,7 @@ tables
 			profiler blob
 
 	bluejay_lineage
-		 Bluejay requires this table, because cell_lineage is true
+		 Bluejay requires this table, because lineage is true
 		columns
 			claim_id, table string
 			key, materialized map_(string(), binary())
