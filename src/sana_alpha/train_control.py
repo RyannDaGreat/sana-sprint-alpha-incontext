@@ -329,7 +329,7 @@ def train(run, data=str(OVERFIT_DIR), adapter=None, rank=16, batch_size=16, max_
         dist.destroy_process_group()
 
 
-def merge_final(control, out=None, adapter_scale=0.0):
+def merge_final(control, out=None, adapter_scale=0.0, student=False):
     """
     Command. Writes the final model W_base + (W_control − W_adapter) = clean teacher + control LoRA delta, in float32.
     With adapter_scale λ it writes W_base + λ·(W_adapter − W_base) + control LoRA delta: λ = 0 is the final model,
@@ -344,17 +344,25 @@ def merge_final(control, out=None, adapter_scale=0.0):
         control (str): a saved step folder, e.g. models/control/<run>/step_010000
         out (str | None): output folder; default <run>/final_<step folder name>, one per step (models.localize assumes folders never change)
         adapter_scale (float): λ, the fraction of the adapter delta kept; the default folder name gets suffix _adapter<λ>
+        student (bool): base = the stock Sprint student instead of the teacher (Step 5 transfer); the adapter delta
+            (W_adapter − W_teacher) and the LoRA keys are renamed to the student's; default folder prefix sprint_
     """
     control = Path(control)
     suffix = f"_adapter{adapter_scale:g}" if adapter_scale else ""
-    out = Path(out) if out else control.parent / f"final_{control.name}{suffix}"
+    out = Path(out) if out else control.parent / f"{'sprint' if student else 'final'}_{control.name}{suffix}"
     lora, gates, meta = gc.load_control_files(control)
-    base = SanaTransformer2DModel.from_pretrained(models.localize(TEACHER), subfolder="transformer", torch_dtype=torch.float32)
+    load = lambda d: SanaTransformer2DModel.from_pretrained(models.localize(d), subfolder="transformer", torch_dtype=torch.float32)
+    teacher = load(TEACHER).state_dict()
+    base = load(models.SPRINT_DIR) if student else load(TEACHER)
     state = base.state_dict()
     if adapter_scale:
         adapter = load_file(models.localize(meta["adapter"]) / "diffusion_pytorch_model.safetensors")
-        assert adapter.keys() == state.keys(), "adapter and teacher transformers differ in keys"
-        state = {k: v + adapter_scale * (adapter[k].float() - v) for k, v in state.items()}
+        assert adapter.keys() == teacher.keys(), "adapter and teacher transformers differ in keys"
+        delta = gc.student_lora_keys({k: adapter[k].float() - v for k, v in teacher.items()}) if student else \
+            {k: adapter[k].float() - v for k, v in teacher.items()}
+        assert delta.keys() <= state.keys(), f"adapter keys missing in base: {sorted(delta.keys() - state.keys())[:3]}"
+        state = {k: v + adapter_scale * delta[k] if k in delta else v for k, v in state.items()}  # student-only keys (guidance_embedder) keep their weights
+    lora = gc.student_lora_keys(lora) if student else lora
     merged = gc.merge_lora_into_state_dict(state, lora, int(meta["rank"]), float(meta["alpha"]))
     base.load_state_dict(merged, strict=True)
     base.save_pretrained(out, safe_serialization=True)
