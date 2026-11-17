@@ -230,6 +230,69 @@
       "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/spray-bottle-fill.svg",
       "license": "MIT",
       "author": "Phosphor Icons"
+    },
+    {
+      "file": "teapot.png",
+      "name": "Teapot",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Tea_pot.svg",
+      "license": "CC0",
+      "author": "donchico"
+    },
+    {
+      "file": "violin.png",
+      "name": "Violin",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Violin.svg",
+      "license": "CC0",
+      "author": "papapishu"
+    },
+    {
+      "file": "sewing-machine.png",
+      "name": "Sewing Machine",
+      "source_url": "https://openclipart.org/detail/300236",
+      "license": "CC0",
+      "author": "oksmith"
+    },
+    {
+      "file": "rotary-telephone.png",
+      "name": "Rotary Telephone",
+      "source_url": "https://openclipart.org/detail/322919",
+      "license": "CC0",
+      "author": "j4p4n"
+    },
+    {
+      "file": "saxophone.png",
+      "name": "Saxophone",
+      "source_url": "https://openclipart.org/detail/262497",
+      "license": "CC0",
+      "author": "GDJ"
+    },
+    {
+      "file": "vintage-camera.png",
+      "name": "Vintage Film Camera",
+      "source_url": "https://openclipart.org/detail/241391",
+      "license": "CC0",
+      "author": "GDJ"
+    },
+    {
+      "file": "rocking-chair.png",
+      "name": "Rocking Chair",
+      "source_url": "https://openclipart.org/detail/304283",
+      "license": "CC0",
+      "author": "Firkin"
+    },
+    {
+      "file": "microscope.png",
+      "name": "Microscope",
+      "source_url": "https://openclipart.org/detail/247110",
+      "license": "CC0",
+      "author": "Firkin"
+    },
+    {
+      "file": "hand-mixer.png",
+      "name": "Hand Mixer",
+      "source_url": "https://openclipart.org/detail/292829",
+      "license": "CC0",
+      "author": "cactus cowboy"
     }
   ]
 }

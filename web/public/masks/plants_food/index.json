@@ -209,6 +209,62 @@
       "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/cheese-fill.svg",
       "license": "MIT",
       "author": "Phosphor Icons"
+    },
+    {
+      "file": "bonsai.png",
+      "name": "Bonsai Tree",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Bonsai.svg",
+      "license": "CC0",
+      "author": "gnokii"
+    },
+    {
+      "file": "bunch-of-grapes.png",
+      "name": "Bunch of Grapes",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Bunch_of_grapes_icon.svg",
+      "license": "CC0",
+      "author": "Jean Victor Balin"
+    },
+    {
+      "file": "pineapple.png",
+      "name": "Pineapple",
+      "source_url": "https://openclipart.org/detail/308425",
+      "license": "CC0",
+      "author": "orineu"
+    },
+    {
+      "file": "pumpkin.png",
+      "name": "Jack-o'-Lantern",
+      "source_url": "https://openclipart.org/detail/262820",
+      "license": "CC0",
+      "author": "GDJ"
+    },
+    {
+      "file": "mushroom.png",
+      "name": "Mushroom",
+      "source_url": "https://openclipart.org/detail/346170",
+      "license": "CC0",
+      "author": "j4p4n"
+    },
+    {
+      "file": "watermelon-slice.png",
+      "name": "Watermelon Slice",
+      "source_url": "https://openclipart.org/detail/190680",
+      "license": "CC0",
+      "author": "casino"
+    },
+    {
+      "file": "corn-cob.png",
+      "name": "Corn Cob",
+      "source_url": "https://openclipart.org/detail/218644",
+      "license": "CC0",
+      "author": "Maiskolben"
+    },
+    {
+      "file": "sunflower.png",
+      "name": "Sunflower",
+      "source_url": "https://openclipart.org/detail/333544",
+      "license": "CC0",
+      "author": "elizavella"
     }
   ]
 }

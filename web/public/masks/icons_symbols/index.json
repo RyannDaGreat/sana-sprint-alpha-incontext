@@ -6,7 +6,7 @@
       "source_url": "https://icon-sets.iconify.design/ph/heart-fill/",
       "license": "MIT",
       "author": "Phosphor Icons",
-      "coverage": 0.335
+      "coverage": 0.437
     },
     {
       "file": "star.png",
@@ -14,7 +14,7 @@
       "source_url": "https://icon-sets.iconify.design/ph/star-fill/",
       "license": "MIT",
       "author": "Phosphor Icons",
-      "coverage": 0.276
+      "coverage": 0.36
     },
     {
       "file": "arrow-in-circle.png",
@@ -22,7 +22,7 @@
       "source_url": "https://icon-sets.iconify.design/mdi/arrow-right-bold-circle/",
       "license": "Apache-2.0",
       "author": "Pictogrammers (Material Design Icons)",
-      "coverage": 0.334
+      "coverage": 0.481
     },
     {
       "file": "bent-arrow.png",
@@ -30,7 +30,7 @@
       "source_url": "https://icon-sets.iconify.design/ph/arrow-bend-up-right-fill/",
       "license": "MIT",
       "author": "Phosphor Icons",
-      "coverage": 0.081
+      "coverage": 0.122
     },
     {
       "file": "speech-bubble.png",
@@ -38,7 +38,7 @@
       "source_url": "https://icon-sets.iconify.design/ph/chat-circle-fill/",
       "license": "MIT",
       "author": "Phosphor Icons",
-      "coverage": 0.381
+      "coverage": 0.576
     },
     {
       "file": "crown.png",
@@ -46,7 +46,7 @@
       "source_url": "https://icon-sets.iconify.design/ph/crown-fill/",
       "license": "MIT",
       "author": "Phosphor Icons",
-      "coverage": 0.266
+      "coverage": 0.302
     },
     {
       "file": "lightning.png",
@@ -54,7 +54,7 @@
       "source_url": "https://icon-sets.iconify.design/ph/lightning-fill/",
       "license": "MIT",
       "author": "Phosphor Icons",
-      "coverage": 0.184
+      "coverage": 0.209
     },
     {
       "file": "gear.png",
@@ -62,7 +62,7 @@
       "source_url": "https://icon-sets.iconify.design/ph/gear-fill/",
       "license": "MIT",
       "author": "Phosphor Icons",
-      "coverage": 0.294
+      "coverage": 0.439
     },
     {
       "file": "key.png",
@@ -70,7 +70,7 @@
       "source_url": "https://icon-sets.iconify.design/ph/key-fill/",
       "license": "MIT",
       "author": "Phosphor Icons",
-      "coverage": 0.279
+      "coverage": 0.391
     },
     {
       "file": "lock.png",
@@ -78,7 +78,7 @@
       "source_url": "https://icon-sets.iconify.design/ph/lock-fill/",
       "license": "MIT",
       "author": "Phosphor Icons",
-      "coverage": 0.321
+      "coverage": 0.449
     },
     {
       "file": "zodiac-aries.png",
@@ -86,7 +86,7 @@
       "source_url": "https://icon-sets.iconify.design/mdi/zodiac-aries/",
       "license": "Apache-2.0",
       "author": "Pictogrammers (Material Design Icons)",
-      "coverage": 0.139
+      "coverage": 0.2
     },
     {
       "file": "zodiac-leo.png",
@@ -94,7 +94,7 @@
       "source_url": "https://icon-sets.iconify.design/mdi/zodiac-leo/",
       "license": "Apache-2.0",
       "author": "Pictogrammers (Material Design Icons)",
-      "coverage": 0.148
+      "coverage": 0.213
     },
     {
       "file": "zodiac-libra.png",
@@ -102,7 +102,7 @@
       "source_url": "https://icon-sets.iconify.design/mdi/zodiac-libra/",
       "license": "Apache-2.0",
       "author": "Pictogrammers (Material Design Icons)",
-      "coverage": 0.156
+      "coverage": 0.278
     },
     {
       "file": "chess-king.png",
@@ -110,23 +110,23 @@
       "source_url": "https://icon-sets.iconify.design/mdi/chess-king/",
       "license": "Apache-2.0",
       "author": "Pictogrammers (Material Design Icons)",
-      "coverage": 0.22
+      "coverage": 0.317
     },
     {
-      "file": "chess-queen.png",
-      "name": "Chess queen",
+      "file": "chess-queen-icon.png",
+      "name": "Chess queen icon",
       "source_url": "https://icon-sets.iconify.design/mdi/chess-queen/",
       "license": "Apache-2.0",
       "author": "Pictogrammers (Material Design Icons)",
-      "coverage": 0.226
+      "coverage": 0.326
     },
     {
-      "file": "chess-knight.png",
-      "name": "Chess knight",
+      "file": "chess-knight-icon.png",
+      "name": "Chess knight icon",
       "source_url": "https://icon-sets.iconify.design/mdi/chess-knight/",
       "license": "Apache-2.0",
       "author": "Pictogrammers (Material Design Icons)",
-      "coverage": 0.181
+      "coverage": 0.261
     },
     {
       "file": "chess-pawn.png",
@@ -134,7 +134,7 @@
       "source_url": "https://icon-sets.iconify.design/mdi/chess-pawn/",
       "license": "Apache-2.0",
       "author": "Pictogrammers (Material Design Icons)",
-      "coverage": 0.145
+      "coverage": 0.21
     },
     {
       "file": "spade.png",
@@ -142,7 +142,7 @@
       "source_url": "https://icon-sets.iconify.design/ph/spade-fill/",
       "license": "MIT",
       "author": "Phosphor Icons",
-      "coverage": 0.322
+      "coverage": 0.452
     },
     {
       "file": "club.png",
@@ -150,7 +150,7 @@
       "source_url": "https://icon-sets.iconify.design/ph/club-fill/",
       "license": "MIT",
       "author": "Phosphor Icons",
-      "coverage": 0.331
+      "coverage": 0.432
     },
     {
       "file": "diamond.png",
@@ -158,7 +158,7 @@
       "source_url": "https://icon-sets.iconify.design/ph/diamond-fill/",
       "license": "MIT",
       "author": "Phosphor Icons",
-      "coverage": 0.301
+      "coverage": 0.393
     },
     {
       "file": "smiley.png",
@@ -166,7 +166,7 @@
       "source_url": "https://icon-sets.iconify.design/ph/smiley-fill/",
       "license": "MIT",
       "author": "Phosphor Icons",
-      "coverage": 0.337
+      "coverage": 0.51
     },
     {
       "file": "sad-face.png",
@@ -174,7 +174,7 @@
       "source_url": "https://icon-sets.iconify.design/ph/smiley-sad-fill/",
       "license": "MIT",
       "author": "Phosphor Icons",
-      "coverage": 0.337
+      "coverage": 0.51
     },
     {
       "file": "wink-face.png",
@@ -182,7 +182,7 @@
       "source_url": "https://icon-sets.iconify.design/ph/smiley-wink-fill/",
       "license": "MIT",
       "author": "Phosphor Icons",
-      "coverage": 0.334
+      "coverage": 0.506
     },
     {
       "file": "open-palm.png",
@@ -190,7 +190,7 @@
       "source_url": "https://icon-sets.iconify.design/ph/hand-palm-fill/",
       "license": "MIT",
       "author": "Phosphor Icons",
-      "coverage": 0.273
+      "coverage": 0.357
     },
     {
       "file": "pointing-hand.png",
@@ -198,7 +198,7 @@
       "source_url": "https://icon-sets.iconify.design/ph/hand-pointing-fill/",
       "license": "MIT",
       "author": "Phosphor Icons",
-      "coverage": 0.248
+      "coverage": 0.324
     },
     {
       "file": "fist.png",
@@ -206,7 +206,7 @@
       "source_url": "https://icon-sets.iconify.design/ph/hand-fist-fill/",
       "license": "MIT",
       "author": "Phosphor Icons",
-      "coverage": 0.274
+      "coverage": 0.414
     },
     {
       "file": "thumbs-up.png",
@@ -214,7 +214,7 @@
       "source_url": "https://icon-sets.iconify.design/ph/thumbs-up-fill/",
       "license": "MIT",
       "author": "Phosphor Icons",
-      "coverage": 0.311
+      "coverage": 0.406
     },
     {
       "file": "waving-hand.png",
@@ -222,7 +222,111 @@
       "source_url": "https://icon-sets.iconify.design/ph/hand-waving-fill/",
       "license": "MIT",
       "author": "Phosphor Icons",
-      "coverage": 0.293
+      "coverage": 0.412
+    },
+    {
+      "file": "compass-rose-silhouette.png",
+      "name": "Compass rose",
+      "source_url": "https://freesvg.org/compass-rose-silhouette",
+      "license": "CC0",
+      "author": "Unknown (freesvg.org upload, CC0)",
+      "coverage": 0.014
+    },
+    {
+      "file": "compass-rose-nautical.png",
+      "name": "Nautical compass rose",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Modern_nautical_compass_rose.svg",
+      "license": "Public domain",
+      "author": "Mysid",
+      "coverage": 0.019
+    },
+    {
+      "file": "heraldic-crown.png",
+      "name": "Heraldic crown",
+      "source_url": "https://freesvg.org/german-imperial-crown",
+      "license": "CC0",
+      "author": "Unknown (freesvg.org upload, CC0)",
+      "coverage": 0.214
+    },
+    {
+      "file": "royal-crown.png",
+      "name": "Royal crown",
+      "source_url": "https://freesvg.org/royal-crown-silhouette",
+      "license": "CC0",
+      "author": "Unknown (freesvg.org upload, CC0)",
+      "coverage": 0.213
+    },
+    {
+      "file": "crown-silhouette.png",
+      "name": "Crown silhouette",
+      "source_url": "https://freesvg.org/crown-silhouette",
+      "license": "CC0",
+      "author": "Unknown (freesvg.org upload, CC0)",
+      "coverage": 0.181
+    },
+    {
+      "file": "ornate-key.png",
+      "name": "Ornate key",
+      "source_url": "https://freesvg.org/ornate-key",
+      "license": "CC0",
+      "author": "Unknown (freesvg.org upload, CC0)",
+      "coverage": 0.045
+    },
+    {
+      "file": "chess-knight.png",
+      "name": "Chess knight",
+      "source_url": "https://freesvg.org/chess-knight",
+      "license": "CC0",
+      "author": "Unknown (freesvg.org upload, CC0)",
+      "coverage": 0.471
+    },
+    {
+      "file": "chess-queen.png",
+      "name": "Chess queen",
+      "source_url": "https://freesvg.org/chess-queen",
+      "license": "CC0",
+      "author": "Unknown (freesvg.org upload, CC0)",
+      "coverage": 0.168
+    },
+    {
+      "file": "fleur-de-lis.png",
+      "name": "Fleur-de-lis",
+      "source_url": "https://freesvg.org/1533961979",
+      "license": "CC0",
+      "author": "Unknown (freesvg.org upload, CC0)",
+      "coverage": 0.221
+    },
+    {
+      "file": "celtic-cross.png",
+      "name": "Celtic cross",
+      "source_url": "https://freesvg.org/simple-celtic-cross-silhouette",
+      "license": "CC0",
+      "author": "Unknown (freesvg.org upload, CC0)",
+      "coverage": 0.254
+    },
+    {
+      "file": "celtic-knot.png",
+      "name": "Celtic knot",
+      "source_url": "https://freesvg.org/celtic-knot-black-silhouette",
+      "license": "CC0",
+      "author": "Unknown (freesvg.org upload, CC0)",
+      "coverage": 0.368
+    },
+    {
+      "file": "flourish-heart.png",
+      "name": "Flourish heart",
+      "source_url": "https://freesvg.org/1543188377",
+      "license": "CC0",
+      "author": "Unknown (freesvg.org upload, CC0)",
+      "coverage": 0.171
+    },
+    {
+      "file": "black-sword.png",
+      "name": "Black sword",
+      "source_url": "https://freesvg.org/black-sword-vector-graphics",
+      "license": "CC0",
+      "author": "Unknown (freesvg.org upload, CC0)",
+      "coverage": 0.036
     }
   ]
 }
