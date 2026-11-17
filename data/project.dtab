@@ -3,7 +3,7 @@ environ
 	DOWNLOAD_BATCH_SIZE 64	 Images per run of download_image. Network bound: 1.5 MB per PNG
 	SPLIT_BATCH_SIZE 64	     Images per run of split_alpha. CPU only: it reads 1 PNG and writes 2
 	ENCODE_BATCH_SIZE 128	 Images per run of encode_latents (about 40 s on one A100). run_proc_curate.fish starts two loops per GPU
-	COLORBG_BATCH_SIZE 512	 Images per run of encode_colorbg. Big: a run costs ~40 s besides the encoding. run_proc_colorbg.fish starts 3 loops per GPU
+	COLORBG_BATCH_SIZE 512	 Images per run of encode_colorbg. Big: a run costs ~40 s besides the encoding. run_proc_colorbg.fish starts 1 loop per GPU
 
 	 Data
 	MAGICK_REPO OneOverZero/MAGICK	 Hugging Face dataset: 140,955 RGBA PNGs, 1024 x 1024, straight alpha, 191 GB

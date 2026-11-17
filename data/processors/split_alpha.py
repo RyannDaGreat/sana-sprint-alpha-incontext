@@ -20,11 +20,11 @@ OPAQUE = 0.5  # green_spill looks only at pixels with alpha above this
 
 def composite_on_gray(rgba, gray_level):
     """
-    Pure function. Composites straight-alpha RGBA on a flat gray: rgb * alpha + gray_level * (1 - alpha), rounded to 8 bit.
+    Pure function. Composites straight-alpha RGBA on a flat gray or color: rgb * alpha + gray_level * (1 - alpha), rounded to 8 bit.
 
     Args:
         rgba (np.ndarray): (H, W, 4) uint8 RGBA, straight alpha
-        gray_level (float): Background as a fraction of white, in [0, 1]
+        gray_level (float | np.ndarray): Background as a fraction of white, in [0, 1]: a gray, or a (3,) RGB color
 
     Returns:
         np.ndarray: (H, W, 3) uint8 RGB
@@ -33,6 +33,8 @@ def composite_on_gray(rgba, gray_level):
         >>> pixels = np.array([[[255, 0, 0, 255], [255, 0, 0, 0], [0, 0, 255, 128]]], np.uint8)
         >>> composite_on_gray(pixels, 0.5).tolist()
         [[[255, 0, 0], [128, 128, 128], [63, 63, 192]]]
+        >>> composite_on_gray(pixels, np.array([0.0, 1.0, 0.2])).tolist()  # encode_colorbg's solid color
+        [[[255, 0, 0], [0, 255, 51], [0, 127, 153]]]
     """
     rgb = rgba[..., :3].astype(np.float32) / 255
     alpha = rgba[..., 3:].astype(np.float32) / 255

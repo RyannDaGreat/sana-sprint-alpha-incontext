@@ -97,12 +97,45 @@ def read_inputs(sample):
     return tuple(to_model_input(np.asarray(Image.open(sample / name))) for name in ("alpha.png", "rgb_on_gray.png"))
 
 
+def save_latent(path, latent, scaling_factor):
+    """Command. Writes one latent file: key "latent", (32, 32, 32) bfloat16, unscaled; the metadata says so."""
+    metadata = {"scaling_factor": str(scaling_factor), "scaling_factor_applied": "false", "layout": "LC, LH, LW"}
+    save_file({"latent": latent.contiguous()}, path, metadata)
+
+
 def write_outputs(sample, latent_alpha, latent_rgb, vae_psnr, scaling_factor):
     """Command. Writes one Sample's two latent files and its result.json."""
-    metadata = {"scaling_factor": str(scaling_factor), "scaling_factor_applied": "false", "layout": "LC, LH, LW"}
-    save_file({"latent": latent_alpha.contiguous()}, sample / "latent_alpha.safetensors", metadata)
-    save_file({"latent": latent_rgb.contiguous()}, sample / "latent_rgb.safetensors", metadata)
+    save_latent(sample / "latent_alpha.safetensors", latent_alpha, scaling_factor)
+    save_latent(sample / "latent_rgb.safetensors", latent_rgb, scaling_factor)
     (sample / "result.json").write_text(json.dumps({"vae_psnr_1024": vae_psnr}))
+
+
+def load_vae(model_dir):
+    """Command. Loads the DC-AE of model_dir (localized first) onto the first visible GPU, in DTYPE."""
+    return AutoencoderDC.from_pretrained(localize(model_dir), subfolder="vae", torch_dtype=DTYPE).to("cuda").eval()
+
+
+def run_pipelined(samples, read_sample, encode_chunk, write_sample):
+    """
+    Command. Runs encode_chunk on chunks of GPU_BATCH Samples. IO threads read the next chunk and write the last one while the GPU works.
+
+    Args:
+        samples (list[Path]): Sample folders
+        read_sample (Callable[[Path], object]): Reads one Sample's inputs
+        encode_chunk (Callable[[list], list[tuple]]): The chunk's inputs -> one tuple of outputs per Sample
+        write_sample (Callable[[Path, ...], None]): Writes one Sample's outputs
+    """
+    chunks = [samples[i:i + GPU_BATCH] for i in range(0, len(samples), GPU_BATCH)]
+    with ThreadPoolExecutor(IO_WORKERS) as pool, torch.inference_mode():
+        read = lambda chunk: [pool.submit(read_sample, sample) for sample in chunk]
+        pending = read(chunks[0]) if chunks else []
+        writes = []
+        for index, chunk in enumerate(chunks):
+            inputs = [future.result() for future in pending]
+            pending = read(chunks[index + 1]) if index + 1 < len(chunks) else []
+            writes += [pool.submit(write_sample, sample, *outputs) for sample, outputs in zip(chunk, encode_chunk(inputs))]
+        for future in writes:
+            future.result()  # Raises a write error here, loudly
 
 
 def main(batch, model_dir):
@@ -114,27 +147,20 @@ def main(batch, model_dir):
         model_dir (str): A diffusers model folder with a vae subfolder (AutoencoderDC), TEACHER_DIR
     """
     start = time.time()
-    vae = AutoencoderDC.from_pretrained(localize(model_dir), subfolder="vae", torch_dtype=DTYPE).to("cuda").eval()
+    vae = load_vae(model_dir)
     samples = sample_folders(batch)
     loaded = time.time()
-    chunks = [samples[i:i + GPU_BATCH] for i in range(0, len(samples), GPU_BATCH)]
-    with ThreadPoolExecutor(IO_WORKERS) as pool, torch.inference_mode():
-        read = lambda chunk: [pool.submit(read_inputs, sample) for sample in chunk]
-        pending = read(chunks[0]) if chunks else []
-        writes = []
-        for index, chunk in enumerate(chunks):
-            inputs = [future.result() for future in pending]
-            pending = read(chunks[index + 1]) if index + 1 < len(chunks) else []
-            alpha = torch.from_numpy(np.stack([a for a, _ in inputs])).to("cuda", DTYPE)
-            rgb = torch.from_numpy(np.stack([r for _, r in inputs])).to("cuda")  # float32: PSNR compares against the exact 8-bit image
-            latent_alpha = vae.encode(alpha).latent
-            latent_rgb = vae.encode(rgb.to(DTYPE)).latent
-            vae_psnr = psnr(vae.decode(latent_rgb).sample, rgb).tolist()
-            latent_alpha, latent_rgb = latent_alpha.cpu(), latent_rgb.cpu()
-            writes += [pool.submit(write_outputs, sample, latent_alpha[i], latent_rgb[i], vae_psnr[i], vae.config.scaling_factor)
-                       for i, sample in enumerate(chunk)]
-        for future in writes:
-            future.result()  # Raises a write error here, loudly
+
+    def encode_chunk(inputs):
+        alpha = torch.from_numpy(np.stack([a for a, _ in inputs])).to("cuda", DTYPE)
+        rgb = torch.from_numpy(np.stack([r for _, r in inputs])).to("cuda")  # float32: PSNR compares against the exact 8-bit image
+        latent_alpha = vae.encode(alpha).latent.cpu()
+        latent_rgb = vae.encode(rgb.to(DTYPE)).latent
+        vae_psnr = psnr(vae.decode(latent_rgb).sample, rgb).tolist()
+        latent_rgb = latent_rgb.cpu()
+        return [(latent_alpha[i], latent_rgb[i], vae_psnr[i], vae.config.scaling_factor) for i in range(len(inputs))]
+
+    run_pipelined(samples, read_inputs, encode_chunk, write_outputs)
     seconds = time.time() - loaded
     print(f"Loaded the VAE in {loaded - start:.1f} s. Encoded {len(samples)} Samples in {seconds:.1f} s ({len(samples) / seconds:.1f}/s). Mean PSNR {np.mean([json.loads((s / 'result.json').read_text())['vae_psnr_1024'] for s in samples]):.2f} dB", flush=True)
 
