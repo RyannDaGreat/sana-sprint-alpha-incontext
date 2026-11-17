@@ -168,3 +168,6 @@ Once you're ready to talk, here's how to do it: (pasted:) Reply in chat first as
 
 ## m00622 — 2026-11-17 12:55 PM
 It would also help if you have collapsible sections, and a gallery that says, each time you have a label for an image, I have to know the equation of [what, transcribed as "lor"] is used to create it. Is it like adapter plus control minus this? Or is it like distill, parenthesis, of, like, adapter plus control? I don't know.
+
+## m00623 — 2026-11-17 12:57 PM
+Like, what does "final" mean? For example, how is that even defined? We have [Sprint, transcribed as "syringe"] plus control, but why not [Sprint] [plus, transcribed as "cross"] control minus adapter, or something?
