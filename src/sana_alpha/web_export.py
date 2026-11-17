@@ -390,90 +390,149 @@ def export(source, version=None, parts="transformer,vae_encoder,vae_decoder,text
     write_manifest(folder, version, source, quantization)
 
 
-def calibration_inputs(pipe, linears, calib_dir, rows_per_item):
+def record_inputs(linears, run, rows_per_item):
     """
-    Command (runs the GPU, hooks modules temporarily). Inputs of each Linear during one-step forwards on the
-    calibration items: the "train" split of calib_dir (the held-out eval items are never used), a random token
-    subsample per forward.
+    Command (hooks modules temporarily, runs `run`). A random token subsample of each Linear's input per forward.
 
     Args:
-        pipe: fp16 Sprint pipeline from load_source (linearized, fp16-fixed transformer)
-        linears (dict): name -> nn.Linear (web_quant.target_linears)
-        calib_dir (str): e.g. resources/showcase
+        linears (dict): name -> nn.Linear
+        run: callable that runs the calibration forwards
         rows_per_item (int): tokens kept per Linear per forward
 
     Returns:
         dict: name -> (T, K) float32 CPU tensor
     """
-    from sana_alpha.eval_set import load_eval_set
-    from sana_alpha.generate import encode_mattes
-    data = load_eval_set(ROOT / calib_dir)
-    train = [i for i, item in enumerate(data["items"]) if item["split"] == "train"]
-    cond = encode_mattes(pipe.vae, data["mattes"][train]).cuda()
     inputs = {n: [] for n in linears}
     generator = torch.Generator().manual_seed(0)
     def record(name, x):
         x = x.reshape(-1, x.shape[-1])
         inputs[name].append(x[torch.randperm(len(x), generator=generator)[:rows_per_item].to(x.device)].float().cpu())
     hooks = [m.register_forward_pre_hook(lambda mod, args, n=n: record(n, args[0])) for n, m in linears.items()]
-    model = OneStepTransformer(pipe.transformer)
-    for k, i in enumerate(train):
-        with torch.no_grad():
-            embeds, mask = pipe.encode_prompt(data["items"][i]["caption"], device="cuda",
-                                              complex_human_instruction=INSTRUCTION)[:2]
-            model(data["noise"][i:i + 1].cuda(), cond[k:k + 1], torch.tensor([ONE_STEP_TIMESTEP]).cuda(),
-                  torch.tensor([GUIDANCE]).cuda(), embeds.float(), mask.float())
+    with torch.no_grad():
+        run()
     for h in hooks:
         h.remove()
-    print(f"calibration: {len(train)} train items of {calib_dir}", flush=True)
     return {n: torch.cat(v) for n, v in inputs.items()}
 
 
-def quantize(version, bits=4, rank=None, calib_dir="resources/showcase", rows_per_item=128):
+def calibration_runs(pipe, calib_dir):
     """
-    Command. SVDQuant-style weight-only quantization of the transformer (web_quant.py), exported as
-    models/web/<version>-int<bits>/transformer.onnx; the other files are hard links to the fp16 version's.
+    Query (reads the calibration set; returns closures that run the GPU). One-step transformer forwards and Gemma
+    forwards (SANA template) on the "train" items of calib_dir; the held-out eval items are never used.
+
+    Args:
+        pipe: fp16 Sprint pipeline from load_source (transformer linearized and fp16-fixed)
+        calib_dir (str): e.g. resources/showcase
+
+    Returns:
+        dict: "transformer" / "text_encoder" -> callable(model) running all calibration items through that model
+    """
+    from sana_alpha.eval_set import load_eval_set
+    from sana_alpha.generate import encode_mattes
+    data = load_eval_set(ROOT / calib_dir)
+    train = [i for i, item in enumerate(data["items"]) if item["split"] == "train"]
+    captions = [data["items"][i]["caption"] for i in train]
+    cond = encode_mattes(pipe.vae, data["mattes"][train]).cuda()
+    with torch.no_grad():
+        prompts = [pipe.encode_prompt(c, device="cuda", complex_human_instruction=INSTRUCTION)[:2] for c in captions]
+    tokens = [sana_tokens(pipe.tokenizer, c)[:2] for c in captions]
+    print(f"calibration: {len(train)} train items of {calib_dir}", flush=True)
+    step = lambda model, k: model(data["noise"][train[k]:train[k] + 1].cuda(), cond[k:k + 1],
+                                  torch.tensor([ONE_STEP_TIMESTEP]).cuda(), torch.tensor([GUIDANCE]).cuda(),
+                                  prompts[k][0].float(), prompts[k][1].float())
+    return dict(transformer=lambda model: [step(model, k) for k in range(len(train))],
+                text_encoder=lambda model: [model(ids.cuda(), m.cuda()) for ids, m in tokens])
+
+
+def quantize_linears(root, linears, inputs, bits, rank):
+    """
+    Command. Replaces each Linear of root with an SVDQuant QuantLinear (web_quant.svdquant_weight).
+
+    Args:
+        root (nn.Module): owner of the dotted names in linears
+        linears (dict): name -> nn.Linear
+        inputs (dict): name -> (T, K) calibration inputs (consumed)
+        bits (int): 4 or 8
+        rank (int): low-rank branch rank
+
+    Returns:
+        dict: name -> {alpha, rel_error}
+    """
+    from sana_alpha import web_quant as wq
+    report = {}
+    for name, linear in linears.items():
+        with torch.no_grad():  # the weights require grad: without this every intermediate stays alive (OOM)
+            q = wq.svdquant_weight(linear.weight.float(), inputs.pop(name).cuda(), bits, rank)
+        wq.set_module(root, name, wq.QuantLinear(q, linear.bias, bits).cuda())
+        report[name] = dict(alpha=q["alpha"], rel_error=round(q["rel_error"], 5))
+        print(f"{name}: alpha {q['alpha']}, output rel error {q['rel_error']:.4f}", flush=True)
+    torch.cuda.empty_cache()
+    return report
+
+
+def quantize(version, bits=4, rank=None, parts="transformer,text_encoder", reuse=None, calib_dir="resources/showcase",
+             rows_per_item=128):
+    """
+    Command. SVDQuant-style weight-only quantization (web_quant.py) of the transformer and the Gemma text encoder,
+    exported to models/web/<version>-int<bits>/; the files not quantized are hard links to the fp16 version's.
+
+    Transformer: every block Linear except attn2.to_q. Gemma: every Linear of its 26 decoder layers (the
+    embedding table and norms stay fp16).
 
     Args:
         version (str): fp16 version folder in models/web/
         bits (int): 4 or 8
         rank (int | None): low-rank branch rank; default web_quant.RANK for 4 bits, 0 for 8 bits
+        parts (str | tuple): graphs to (re)quantize
+        reuse (str | None): a quantized version folder whose other graphs are hard-linked (with their manifest
+            entries) instead of the fp16 ones, e.g. the same Gemma int4 for a new transformer
         calib_dir (str): calibration set (its "train" items)
         rows_per_item (int): calibration tokens per Linear per item
     """
     from sana_alpha import web_quant as wq
     rank = (wq.RANK if bits == 4 else 0) if rank is None else rank
-    base = WEB_DIR / version
-    folder = WEB_DIR / f"{version}-int{bits}"
+    parts = parts.split(",") if isinstance(parts, str) else list(parts)
+    base, folder = WEB_DIR / version, WEB_DIR / f"{version}-int{bits}"
     folder.mkdir(exist_ok=True)
     source = json.loads((base / "manifest.json").read_text())["source"]
+    donor = WEB_DIR / reuse if reuse else base
+    old = folder / "manifest.json" if (folder / "manifest.json").exists() else donor / "manifest.json"
+    quantization = json.loads(old.read_text())["quantization"]
+    torch.manual_seed(0)  # randomized SVD: the same weights give the same files
     pipe = load_source(source, torch.float16)
     linearize_mix_ffn(pipe.transformer)
     fix_fp16_overflow(pipe.transformer)
-    linears = wq.target_linears(pipe.transformer)
-    inputs = calibration_inputs(pipe, linears, calib_dir, rows_per_item)
+    runs = calibration_runs(pipe, calib_dir)
     pipe.text_encoder.to("cpu")
-    report = {}
-    for name, linear in linears.items():
-        with torch.no_grad():  # the weights require grad: without this every intermediate stays alive (OOM)
-            q = wq.svdquant_weight(linear.weight.float(), inputs.pop(name).cuda(), bits, rank)
-        wq.set_module(pipe.transformer, name, wq.QuantLinear(q, linear.bias, bits).cuda())
-        report[name] = dict(alpha=q["alpha"], rel_error=round(q["rel_error"], 5))
-        print(f"{name}: alpha {q['alpha']}, output rel error {q['rel_error']:.4f}", flush=True)
-    torch.cuda.empty_cache()
-    export_graph(OneStepTransformer(pipe.transformer).eval(), "transformer", folder / "transformer.onnx",
-                 {torch.ops.websana.matmul_nbits.default: wq.matmul_nbits_onnx})
-    for f in base.iterdir():
-        if not f.name.startswith(("transformer", "manifest")) and not (folder / f.name).exists():
+    table = {torch.ops.websana.matmul_nbits.default: wq.matmul_nbits_onnx}
+    for name in parts:
+        if name == "transformer":
+            model = OneStepTransformer(pipe.transformer)
+            linears = wq.target_linears(pipe.transformer)
+        else:
+            pipe.transformer.to("cpu")
+            model = TextEncoder(AutoModel.from_pretrained(models.localize(models.SPRINT_DIR) / "text_encoder",
+                                                          dtype=torch.float16, attn_implementation="eager").cuda())
+            linears = {f"model.{n}": m for n, m in model.model.layers.named_modules(prefix="layers")
+                       if isinstance(m, nn.Linear)}
+        report = quantize_linears(model, linears, record_inputs(linears, lambda: runs[name](model), rows_per_item),
+                                  bits, rank)
+        for f in folder.glob(f"{name}.onnx*"):
+            f.unlink()  # may be a hard link to the fp16 file: writing through it would overwrite fp16
+        export_graph(model.eval(), name, folder / f"{name}.onnx", table)
+        del model
+        torch.cuda.empty_cache()
+        errors = [r["rel_error"] for r in report.values()]
+        quantization[name] = dict(
+            method="SVDQuant weight-only (arXiv 2411.05007; deepcompressor/nunchaku), see src/sana_alpha/web_quant.py",
+            bits=bits, group_size=wq.BLOCK, symmetric=True, scales="fp16", lowrank_rank=rank, lowrank_dtype="fp16",
+            smoothing_alphas=list(wq.ALPHAS), activations="fp16",
+            calibration=f"{calib_dir} train split, {rows_per_item} tokens/Linear/item",
+            quantized_linears=len(report), mean_output_rel_error=float(np.mean(errors)),
+            max_output_rel_error=float(np.max(errors)), per_linear=report)
+    for f in [*donor.iterdir(), *base.iterdir()]:
+        if f.name != "manifest.json" and not (folder / f.name).exists():
             (folder / f.name).hardlink_to(f)
-    errors = [r["rel_error"] for r in report.values()]
-    method = dict(method="SVDQuant weight-only (arXiv 2411.05007; deepcompressor/nunchaku), see src/sana_alpha/web_quant.py",
-                  bits=bits, group_size=wq.BLOCK, symmetric=True, scales="fp16", lowrank_rank=rank,
-                  lowrank_dtype="fp16", smoothing_alphas=[a for a in wq.ALPHAS], activations="fp16",
-                  calibration=f"{calib_dir} train split, {rows_per_item} tokens/Linear/item",
-                  quantized_linears=len(report), mean_output_rel_error=float(np.mean(errors)),
-                  max_output_rel_error=float(np.max(errors)), per_linear=report)
-    quantization = {n: {"fp16": f"{n}.onnx"} for n in graph_specs()} | {"transformer": method}
     write_manifest(folder, folder.name, source, quantization)
 
 
@@ -617,6 +676,8 @@ def verify(version, transformers="transformer.onnx", eval_dir="resources/eval"):
     results["text_encoder"] = dict(
         embeds_mean_abs_diff=float(np.mean([(o - e.float().cpu()).abs().mean() for o, e in zip(onnx_embeds, embeds)])),
         embeds_mean_abs=float(np.mean([e.float().abs().mean().item() for e in embeds])),
+        embeds_cosine_valid_tokens=float(np.mean([F.cosine_similarity(o[0], e[0].float().cpu(), dim=-1)[pm[0].bool().cpu()].mean()
+                                                  for o, e, pm in zip(onnx_embeds, embeds, mask)])),
         mask_equal=all(bool((m[:, s] == pm.cpu()).all()) for (_, m, s), pm in zip(tokens, mask)))
     embeds, mask = onnx_embeds, [m[:, s] for _, m, s in tokens]
     dec = ort_session(folder / "vae_decoder.onnx")
