@@ -20,8 +20,8 @@ Two orphan branches, each checked out as a git worktree under agents/.scratchpad
 
 Why WebP: the journal PNGs are 2.5 GB. WebP at quality 95 keeps every pixel dimension and is visually lossless
 (~15% of the PNG bytes). The PNG originals stay in BlueJay (data/lance) and the hard links under journal/assets/.
-WebP files are cached by PNG content hash in agents/.scratchpad/webp_cache. Models are not published here (a separate
-`models` branch, later); models/web/index.json is a placeholder.
+WebP files are cached by PNG content hash in agents/.scratchpad/webp_cache. Models are not published here: they live
+on the `models` branch (publish_models.py), which the app reads on Pages; models/web/index.json here is a placeholder.
 """
 
 import hashlib
@@ -54,8 +54,8 @@ EVAL_FULL_DIR = "assets/eval/full/"
 EVAL_JS_REFERENCE = "${EVAL_FULL_DIR}${dir}/${id}.png"  # the one dynamic image path, in eval_grid.js
 FOOTER = ('<footer style="margin:3em 0 1em;font-size:0.85em;opacity:0.7">Published images are full-resolution WebP q95, '
           "hosted on the repo's journal-assets branch; originals are PNG in the repo's BlueJay database.</footer>\n")
-MODELS_PLACEHOLDER = {"versions": [], "note": "Models are not published yet; they will be served from the repo's "
-                                                "`models` branch."}
+MODELS_PLACEHOLDER = {"versions": [], "note": "On Pages the app reads models from the repo's `models` branch "
+                                                "(raw.githubusercontent.com); see src/sana_alpha/publish_models.py."}
 
 
 def asset_name(digest):
