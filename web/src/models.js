@@ -1,0 +1,214 @@
+// Model versions: index, manifests, cached downloads (OPFS) with progress.
+//
+// SEMANTIC BINDING: web-model-contract
+// models/web/index.json      = {"versions": ["<version>", ...]}
+// models/web/<v>/manifest.json = {
+//   "label": str, "description": str,
+//   "scaling_factor": 0.41407, "timestep": float, "guidance": float, "max_sequence_length": 300,
+//   "complex_human_instruction": [str, ...]          (optional; default = SANA's, see prompt.js)
+//   "files": {                                        (paths are relative to the version folder)
+//     "tokenizer": {path, bytes}, "tokenizer_config": {path, bytes},
+//     "text_encoder" | "vae_encoder" | "transformer" | "vae_decoder": {
+//        path, bytes, sha256, dtype,                  (sha256 optional, cache key; dtype informational: fp32 / fp16 / int8 / int4)
+//        "external_data": [{path, bytes}],            (optional; ONNX external weights)
+//        "names": {role: onnx_name}                   (optional; overrides the default names in pipeline.js)
+//     }}}
+//   "latent_scaling_in_graph": bool,                 (optional, default false: JS does × / ÷ scaling_factor)
+//   "decoder_output_range": "-1,1" | "0,1",          (optional, default "-1,1")
+// The exporter's own manifest format (flat "files": {name: bytes} + "graphs") is accepted too and
+// converted by normalizeManifest.
+// Input dtypes (float32 / float16 / int64 / int32) are read from each session's metadata.
+// The transformer gets N(0, 1) noise and the scaled matte latent and returns the denoised,
+// scaled latent: all Sprint one-step math (sigma_data, TrigFlow) lives inside the graph.
+
+export const CACHE_NAME = 'sana-web-models';
+export const MODEL_FILES = ['tokenizer', 'tokenizer_config', 'text_encoder', 'vae_encoder', 'transformer', 'vae_decoder'];
+
+/**
+ * Query. Fetches JSON and fails loudly on a non-200 status.
+ *
+ * @param {string} url
+ * @returns {Promise<any>}
+ */
+export async function fetchJson(url) {
+  const res = await fetch(url, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`GET ${url}: HTTP ${res.status}`);
+  return res.json();
+}
+
+/**
+ * Query. Loads models/web/index.json and every version's manifest.
+ *
+ * @param {string} base - URL of the models/web/ folder, ending in '/'
+ * @returns {Promise<{id: string, url: string, manifest: object}[]>}
+ */
+export async function loadVersions(base) {
+  const index = await fetchJson(new URL('index.json', base).href);
+  return Promise.all(index.versions.map(async (id) => {
+    const url = new URL(`${id}/`, base).href;
+    return { id, url, manifest: normalizeManifest(await fetchJson(new URL('manifest.json', url).href)) };
+  }));
+}
+
+// Exporter graph input/output names → this app's role keys (see DEFAULT_NAMES in pipeline.js).
+const EXPORT_NAMES = {
+  transformer: { noise: 'latents', matte_latent: 'cond_latents', encoder_hidden_states: 'prompt_embeds',
+    encoder_attention_mask: 'prompt_mask', timestep: 'timestep', guidance: 'guidance', output: 'denoised' },
+  vae_encoder: { image: 'image', output: 'latent' },
+  vae_decoder: { latent: 'latent', output: 'image' },
+  text_encoder: { input_ids: 'input_ids', attention_mask: 'attention_mask', output: 'last_hidden_state' },
+};
+
+/**
+ * Pure function. Converts the exporter's manifest (flat "files": {name: bytes}) to this app's
+ * schema, and lists the roles that have no file yet in `missing`. App-schema manifests pass through.
+ *
+ * @param {object} raw - Parsed manifest.json
+ * @returns {object} App-schema manifest with `missing: string[]`
+ *
+ * @example
+ * normalizeManifest({version: 'v', files: {'vae_encoder.onnx': 5, 'vae_encoder.onnx.data': 50},
+ *   sampler: {timestep: 1.5708, guidance: 4.5}, vae: {scaling_factor: 0.41407}})
+ * // {label: 'v', ..., latent_scaling_in_graph: true, decoder_output_range: '0,1',
+ * //  files: {vae_encoder: {path: 'vae_encoder.onnx', bytes: 5, external_data: [{path: 'vae_encoder.onnx.data', bytes: 50}], names: {...}}},
+ * //  missing: ['tokenizer', 'tokenizer_config', 'text_encoder', 'transformer', 'vae_decoder']}
+ */
+export function normalizeManifest(raw) {
+  const exported = Object.values(raw.files).every((v) => typeof v === 'number');
+  if (!exported) return { ...raw, missing: MODEL_FILES.filter((r) => !raw.files[r]) };
+  const files = {};
+  for (const [name, bytes] of Object.entries(raw.files)) {
+    const role = name.replace(/\.onnx(\.data)?$|\.json$/, '');
+    if (name.endsWith('.data')) continue;
+    files[role] = { path: name, bytes, names: EXPORT_NAMES[role] };
+    const data = raw.files[`${name}.data`];
+    if (data !== undefined) files[role].external_data = [{ path: `${name}.data`, bytes: data }];
+  }
+  return {
+    label: raw.version, description: raw.source ? `Exported from ${raw.source}.` : '',
+    scaling_factor: raw.vae.scaling_factor, timestep: raw.sampler.timestep, guidance: raw.sampler.guidance,
+    max_sequence_length: 300, latent_scaling_in_graph: true, decoder_output_range: '0,1',
+    files, missing: MODEL_FILES.filter((r) => !files[r]),
+  };
+}
+
+/**
+ * Pure function. Every file a version needs, as absolute URLs with sizes. The cache key adds the
+ * file's sha256 (or, without one, its size), so a re-exported file is downloaded again.
+ *
+ * @param {{url: string, manifest: object}} version
+ * @returns {{role: string, name: string, url: string, bytes: number}[]}
+ *
+ * @example
+ * versionFiles({url: 'https://h/models/web/v1/', manifest: {files: {transformer: {path: 'transformer.onnx', bytes: 9,
+ *   external_data: [{path: 'transformer.onnx.data', bytes: 99}]}}}})
+ * // [{role: 'transformer', name: 'transformer.onnx', url: 'https://h/models/web/v1/transformer.onnx', bytes: 9,
+ * //   key: 'https://h/models/web/v1/transformer.onnx?v=9'},
+ * //  {role: 'transformer', name: 'transformer.onnx.data', url: '…/transformer.onnx.data', bytes: 99, key: '…/transformer.onnx.data?v=99'}]
+ */
+export function versionFiles(version) {
+  const out = [];
+  for (const [role, f] of Object.entries(version.manifest.files)) {
+    for (const g of [f, ...(f.external_data ?? [])]) {
+      const url = new URL(g.path, version.url).href;
+      out.push({ role, name: g.path.split('/').pop(), url, bytes: g.bytes, key: `${url}?v=${g.sha256 ?? g.bytes}` });
+    }
+  }
+  return out;
+}
+
+/**
+ * Query. The OPFS folder that holds the model cache (created on first use).
+ * OPFS, not Cache Storage: Chrome's Cache.put fails on multi-GB responses (seen with a 3.2 GB file).
+ *
+ * @returns {Promise<FileSystemDirectoryHandle>}
+ */
+async function cacheDir() {
+  return (await navigator.storage.getDirectory()).getDirectoryHandle(CACHE_NAME, { create: true });
+}
+
+/**
+ * Query. OPFS file name for a cache key: hex SHA-256 (keys are URLs, too long for file names).
+ *
+ * @param {string} key
+ * @returns {Promise<string>} 64 hex chars
+ */
+async function cacheName(key) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(key));
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * Query. The cached file for `key`, or null when it is not cached.
+ *
+ * @returns {Promise<File|null>}
+ */
+async function cachedFile(key) {
+  const name = await cacheName(key);
+  for await (const entry of (await cacheDir()).values()) if (entry.name === name) return entry.getFile();
+  return null;
+}
+
+/**
+ * Query. Which of these files are already in the cache.
+ *
+ * @param {{key: string}[]} files
+ * @returns {Promise<boolean[]>}
+ */
+export async function cachedFlags(files) {
+  return Promise.all(files.map(async (f) => (await cachedFile(f.key)) !== null));
+}
+
+/**
+ * Command. Returns a file's bytes from the OPFS cache, or downloads it (streamed, with progress)
+ * while writing it to OPFS. The write commits only on close, so an interrupted download leaves
+ * no partial file. Fails loudly if the size differs from the manifest.
+ *
+ * @param {{url: string, key: string, bytes: number}} file
+ * @param {(done: number, total: number, fromCache: boolean) => void} onProgress
+ * @returns {Promise<Uint8Array>}
+ */
+export async function fetchCached(file, onProgress) {
+  const hit = await cachedFile(file.key);
+  if (hit) {
+    if (hit.size !== file.bytes) throw new Error(`cached ${file.url}: ${hit.size} bytes, manifest says ${file.bytes}`);
+    const data = new Uint8Array(await hit.arrayBuffer());
+    onProgress(data.length, file.bytes, true);
+    return data;
+  }
+  const res = await fetch(file.url, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`GET ${file.url}: HTTP ${res.status}`);
+  const handle = await (await cacheDir()).getFileHandle(await cacheName(file.key), { create: true });
+  const writer = await handle.createWritable();
+  const data = new Uint8Array(file.bytes);
+  const reader = res.body.getReader();
+  let done = 0;
+  for (;;) {
+    const { value, done: end } = await reader.read();
+    if (end) break;
+    if (done + value.length > file.bytes) throw new Error(`${file.url}: more than the manifest's ${file.bytes} bytes`);
+    data.set(value, done);
+    await writer.write(value);
+    done += value.length;
+    onProgress(done, file.bytes, false);
+  }
+  if (done !== file.bytes) { await writer.abort(); throw new Error(`${file.url}: got ${done} bytes, manifest says ${file.bytes}`); }
+  await writer.close();
+  return data;
+}
+
+/**
+ * Query. Total bytes in this app's model cache.
+ *
+ * @returns {Promise<number>}
+ */
+export async function cacheBytes() {
+  let total = 0;
+  for await (const entry of (await cacheDir()).values()) total += (await entry.getFile()).size;
+  return total;
+}
+
+/** Command. Deletes the whole model cache. */
+export async function clearCache() {
+  await (await navigator.storage.getDirectory()).removeEntry(CACHE_NAME, { recursive: true });
+}

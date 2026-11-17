@@ -10,3 +10,6 @@ data/Aviary/
 __pycache__/
 journal/assets/*/full/
 journal/assets/gallery_*/
+web/node_modules/
+web/.cert/
+journal/webgpu/
