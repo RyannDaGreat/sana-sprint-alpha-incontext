@@ -218,3 +218,6 @@ I don't know why the journal is completely empty. Like, this GitHub repository i
 
 ## m00638 — 2026-11-17 3:55 PM
 I should be able to control the math myself. Why am I unable to change the number of steps for the CFG or the lambda value on the webpage?
+
+## m00639 — 2026-11-17 4:05 PM
+Shouldn't I also be able to adjust the size and resolution too? What if I want 512x512 versus 1024?
