@@ -731,6 +731,20 @@ processors
 					foreground_fraction @	         float  Fraction of the pixels far from 0.5 gray                      0.92
 
 
+functions
+	model_labels	 The journal's weight equation and sampler of eval_models rows: src/sana_alpha/journal_assets.py label_of. Lists, so one query starts one process
+		args
+			models.parquet
+				pipeline, checkpoint, prompt_variant list_(string())
+				steps list_(int64())
+		return
+			file labels.parquet
+			column label
+			type list_(string())
+		command bash
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src uv run --project .. python processors/model_labels.py "$SAMPLE"
+
+
 queries
 	view_dataset sql
 		SELECT
@@ -748,6 +762,110 @@ queries
 		FROM magick_samples           -- MAGICK images
 		WHERE rgb_on_gray IS NOT NULL -- that split_alpha did,
 		ORDER BY page_id              -- in a fixed order
+
+	_eval_labels sql
+		SELECT unnest(tags) AS model_tag, unnest(variants) AS prompt_variant, unnest(labels) AS label FROM (
+		    SELECT
+		        array_agg(model_tag      ORDER BY model_tag) AS tags,
+		        array_agg(prompt_variant ORDER BY model_tag) AS variants,
+		        model_labels(
+		            pipeline       => array_agg(pipeline       ORDER BY model_tag),
+		            checkpoint     => array_agg(checkpoint     ORDER BY model_tag),
+		            steps          => array_agg(steps          ORDER BY model_tag),
+		            prompt_variant => array_agg(prompt_variant ORDER BY model_tag)
+		        ) AS labels
+		    FROM eval_models
+		)
+
+	view_eval_models sql
+		SELECT
+		    m.model_tag,
+		    l.label,
+		    m.pipeline,
+		    m.checkpoint,
+		    m.steps,
+		    m.prompt_variant,
+		    coalesce(m.eval_set, '$EVAL_SET') AS eval_set,
+		    count(g.image)                    AS images,
+		    avg(g.iou)                        AS iou,
+		    avg(g.exterior_gray_error)        AS exterior_gray_error,
+		    avg(g.border_gray_error)          AS border_gray_error,
+		    avg(g.border_std)                 AS border_std,
+		    avg(g.foreground_fraction)        AS foreground_fraction,
+		    avg(g.seconds)                    AS seconds
+		FROM eval_models m                                                                             -- Each eval model,
+		JOIN _eval_labels l          ON l.model_tag = m.model_tag                                      -- with its label
+		LEFT JOIN eval_generations g ON g.model_tag = m.model_tag                                      -- and the mean metrics of its images,
+		GROUP BY m.model_tag, l.label, m.pipeline, m.checkpoint, m.steps, m.prompt_variant, m.eval_set -- one row per model,
+		ORDER BY m.model_tag                                                                           -- in a fixed order
+
+	view_eval_images sql
+		SELECT
+		    struct('image' AS widget, s.alpha AS src, 'matte' AS caption) AS matte,
+		    struct('image' AS widget, g.image AS src, l.label AS caption) AS image,
+		    g.model_tag,
+		    g.page_id,
+		    s.split,
+		    g.prompt,
+		    g.iou,
+		    g.exterior_gray_error
+		FROM eval_generations g                          -- Each generated eval image,
+		JOIN _eval_labels l   ON l.model_tag = g.model_tag -- with its model's label
+		JOIN magick_samples s ON s.page_id   = g.page_id   -- and its matte,
+		WHERE g.image IS NOT NULL                          -- that generate_eval did,
+		ORDER BY g.page_id, g.model_tag                    -- one eval image at a time
+
+	view_gallery sql
+		-- Mirrors journal/gallery_<run>.html (src/sana_alpha/gallery.py): one row per control step, showcase item and prompt,
+		-- one column per model. Each image's caption is its model's label. Stock columns repeat on the rows of each control step
+		WITH FUNCTION shot(src, role, label, name) AS (struct(
+		    'image'                                        AS widget,
+		    first_value(src)   FILTER (WHERE role = name) AS src,
+		    first_value(label) FILTER (WHERE role = name) AS caption
+		))
+		WITH named AS (
+		    SELECT g.page_id, g.caption, g.prompt, g.image, l.prompt_variant, l.label,
+		           regexp_match(l.model_tag, '^show_(.*?)(_detailed)?$')[1] AS name  -- show_v1_step001500_lam0.5_detailed -> v1_step001500_lam0.5
+		    FROM eval_generations g                                              -- Each generated image,
+		    JOIN _eval_labels l ON l.model_tag = g.model_tag                     -- with its model's label,
+		    WHERE   starts_with(l.model_tag, 'show_')                            -- of a showcase model,
+		        AND g.image IS NOT NULL                                          -- that generate_eval did
+		), tagged AS (
+		    SELECT *,
+		           regexp_match(name, '^(.*_step[0-9]+)_')[1]                AS run_step, -- v1_step001500; NULL for a stock model
+		           coalesce(regexp_match(name, '_step[0-9]+_(.*)$')[1], name) AS role      -- lam0.5, sprint_lam0_1step or stock_sprint1
+		    FROM named
+		)
+		SELECT
+		    r.run_step,
+		    t.page_id,
+		    CASE s.split WHEN 'eval' THEN 'held-out' ELSE s.split END             AS split,
+		    t.prompt_variant,
+		    first_value(t.prompt)                                                 AS prompt,
+		    struct('image' AS widget, first_value(s.alpha)       AS src, 'matte'          AS caption) AS matte,
+		    struct('image' AS widget, first_value(s.rgb_on_gray) AS src, 'MAGICK on gray' AS caption) AS on_gray,
+		    shot(t.image, t.role, t.label, 'stock_sprint1')           AS stock_sprint_1step,
+		    shot(t.image, t.role, t.label, 'stock_sprint2')           AS stock_sprint_2step,
+		    shot(t.image, t.role, t.label, 'stock_teacher20')         AS stock_teacher,
+		    shot(t.image, t.role, t.label, 'lam1')                    AS teacher_lam1,
+		    shot(t.image, t.role, t.label, 'lam0.75')                 AS teacher_lam075,
+		    shot(t.image, t.role, t.label, 'lam0.5')                  AS teacher_lam05,
+		    shot(t.image, t.role, t.label, 'lam0.25')                 AS teacher_lam025,
+		    shot(t.image, t.role, t.label, 'lam0')                    AS teacher_lam0,
+		    shot(t.image, t.role, t.label, 'sprint_lam1_2step')       AS sprint_2step_lam1,
+		    shot(t.image, t.role, t.label, 'sprint_lam0.75_2step')    AS sprint_2step_lam075,
+		    shot(t.image, t.role, t.label, 'sprint_lam0.5_2step')     AS sprint_2step_lam05,
+		    shot(t.image, t.role, t.label, 'sprint_lam0_2step')       AS sprint_2step_lam0,
+		    shot(t.image, t.role, t.label, 'sprint_lam1_1step')       AS sprint_1step_lam1,
+		    shot(t.image, t.role, t.label, 'sprint_lam0.75_1step')    AS sprint_1step_lam075,
+		    shot(t.image, t.role, t.label, 'sprint_lam0.5_1step')     AS sprint_1step_lam05,
+		    shot(t.image, t.role, t.label, 'sprint_lam0_1step')       AS sprint_1step_lam0
+		FROM tagged t                                                                         -- Each showcase image,
+		JOIN (SELECT DISTINCT run_step FROM tagged WHERE run_step IS NOT NULL) r              -- on the row of its control step
+		     ON t.run_step = r.run_step OR t.run_step IS NULL                                 --     (a stock image on the row of each step),
+		JOIN magick_samples s ON s.page_id = t.page_id                                        -- with its matte,
+		GROUP BY r.run_step, t.page_id, s.split, t.prompt_variant                             -- one row per step, item and prompt,
+		ORDER BY r.run_step, split, t.page_id, t.prompt_variant DESC                          -- held-out items first, caption before detailed prompt
 
 sparrow
 	saves sparrow_saves
