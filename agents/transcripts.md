@@ -96,3 +96,6 @@ lol why ain't this it? And what downloads the MAGICK tsv first before downloadin
 
 ## m00436 (03:54, with a screenshot of the misaligned rows.parquet table)
 There was a maintenance script in the dailies repository that dictated how to prevent bullshit like this from occurring. See how misaligned this is? There was a tool script inside, I think, the agents folder of the original repository that helps you prevent that.
+
+## m00508 (04:10)
+I couldn't help but notice you did not inline your queries into the processors. Why? The magic data said it that.

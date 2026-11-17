@@ -41,3 +41,9 @@
 - Root cause: my scratch renderer aligned columns for 8-wide tabs. The house standard (MulticamDailies) is 4-wide tabs. Also, nested `input.json` blocks had the header on the `materialize` line; it belongs on the `input.json` line.
 - Fix: copied MulticamDailies' `agents/dtab_format.py` (checker) and `agents/dtab_fold.py`; ran `fix`; `check` passes; `bluejay initialize` passes. The rules are now in AGENTS.md and the dtab (semantic binding `dtab-rules`).
 - Lesson: `data/project.dtab` is edited by hand and checked with `dtab_format.py`. No generator: a generator overwrites the user's hand alignment.
+
+## 2026-11-17 04:11 — processor queries were not inline
+- What happened: the user asked (m00295) for the dtab style "especially how it inlined all the queries". I kept each processor query as a named `pending_` query in the `queries` section.
+- Root cause: I copied MulticamDailies' current project.dtab, which names all its processor queries (0 inline). I did not act on the user's words.
+- Fix: each processor now has its query inline (`query sql` block, or one line when tiny). The `queries` section holds only `view_dataset`, for Sparrow. Rule added to the dtab RULES block. `dtab_format.py check` and `bluejay initialize` pass.
+- Lesson: when the user names a convention, follow the user's words, not only the reference file.
