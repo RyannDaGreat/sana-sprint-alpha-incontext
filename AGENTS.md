@@ -5,7 +5,7 @@ Planning repo for an experiment: train SANA-Sprint (via the AnimateDiff-style ad
 **Before planning or changing files, read everything in `agents/`:** `agents/manifest.md` (the project), `agents/concerns.md` (history and lessons), `agents/todo.md` (open work), `agents/transcripts.md` (what the user actually said).
 
 - AI scratch work goes in `agents/.scratchpad/`; logs go in `agents/.scratchpad/logs/`.
-- The human-facing journal goes in `journal/`.
+- The human-facing journal goes in `journal/`. Live copy: https://ryanndagreat.github.io/sana-sprint-alpha-incontext/ (republish with `PYTHONPATH=src uv run python -m sana_alpha.publish_pages`).
 - All paths are relative to the repo root.
 
 ## DTAB formatting — preserve this exactly
