@@ -50,6 +50,7 @@ dt { font-weight: bold; }
 .bar-row.bad .bar-track i { background: var(--bad); }
 .bar-value { text-align: right; }
 </style>
+<link rel="stylesheet" href="eval_grid.css">
 </head>
 <body>
 <main>
@@ -81,10 +82,11 @@ dt { font-weight: bold; }
 <details open><summary><h2>Toy test: the transfer works</h2></summary>
 <div class="scroll"><table><thead><tr><th>model</th><th>IoU vs matte</th><th>exterior gray error</th><th>border gray error</th><th>seconds / image</th></tr></thead><tbody><tr><td>teacher + toy control, 20 steps, CFG</td><td>0.820</td><td>0.043</td><td>0.078</td><td>7.07</td></tr><tr><td>Sprint + toy control, 1 step</td><td>0.839</td><td>0.029</td><td>0.059</td><td>0.29</td></tr><tr class=hl><td>Sprint + toy control, 2 steps</td><td>0.945</td><td>0.021</td><td>0.051</td><td>0.47</td></tr><tr class=hl><td>Sprint + toy control, 4 steps</td><td>0.942</td><td>0.020</td><td>0.050</td><td>1.38</td></tr><tr><td>stock Sprint, 2 steps (no matte)</td><td>0.374</td><td>0.267</td><td>0.263</td><td>0.53</td></tr></tbody></table></div>
 <p class="note">Means over the 29 eval images; seconds include text encoding and VAE decoding on a shared A100 and are not a clean benchmark. The toy control saw 200 MAGICK images for 400 steps on the plain teacher (no adapter), so this tests the <i>mechanics</i> of the transfer, not the quality of a final model. Raw numbers: <a href="assets/step5_transfer_test/metrics.json">metrics.json</a>.</p>
-<figure><img src="assets/step5_transfer_test/crop_toy_transfer.jpg" alt="Three eval rows. Columns: matte | teacher with the toy control (20 steps) | Sprint with the same control at 1, 2 and 4 steps | stock Sprint with no matte. The Sprint versions keep the matte's silhouette on a gray background and look like photographs; the teacher drew a cartoon for the postal worker. In the chef-hat row, all three Sprint step counts draw a white quilted square with a knife strip, not the hat icon." loading="lazy"><figcaption>Three eval rows. Columns: matte | teacher with the toy control (20 steps) | Sprint with the same control at 1, 2 and 4 steps | stock Sprint with no matte. The Sprint versions keep the matte's silhouette on a gray background and look like photographs; the teacher drew a cartoon for the postal worker. In the chef-hat row, all three Sprint step counts draw a white quilted square with a knife strip, not the hat icon.</figcaption></figure>
+<p class="note">All 29 eval images at full resolution (1024&times;1024 PNGs; click one to open it). Columns: matte | teacher with the toy control (20 steps) | Sprint with the same control at 1, 2 and 4 steps | stock Sprint with no matte. In the rows we looked at, the Sprint versions keep the matte's silhouette on a gray background and look like photographs; the teacher drew a cartoon for the postal worker. In the chef-hat row, all three Sprint step counts draw a white quilted square with a knife strip, not the hat icon.</p>
+<div id="grid-toy"></div>
 <ul>
 <li>The main risk did not show up here: 2 and 4 steps follow the matte at least as closely as the teacher control (IoU 0.945 and 0.942 against 0.820). <b>We would not read this as a better model.</b> The Sprint sampler tends to produce cleaner, more binary edges than 20-step guided sampling, and the IoU threshold rewards that.</li>
-<li>2 and 4 steps look almost the same in these rows. We did not examine the 1-step images row by row beyond this crop.</li>
+<li>2 and 4 steps look almost the same in these rows. We did not examine the 1-step images row by row beyond the rows we looked at.</li>
 <li>The style moves toward Sprint's photographic look. The caption can drift: in the full montage &quot;yeoman woman stubble&quot; becomes a bearded man.</li>
 <li>Gray works here because the toy control was trained directly on gray targets with no adapter: it had to learn the gray itself, so its delta carries it. The stock Sprint under it has no gray of its own, yet the result is gray (exterior error 0.021).</li>
 </ul>
@@ -93,7 +95,8 @@ dt { font-weight: bold; }
 <details open><summary><h2>Real control: the gray is lost again</h2></summary>
 <div class="scroll"><table><thead><tr><th>model</th><th>IoU vs matte</th><th>exterior gray error</th><th>border gray error</th></tr></thead><tbody><tr><td>teacher + real control (control_v1)</td><td>0.970</td><td>0.008</td><td>0.043</td></tr><tr><td>Sprint + real control, 2 steps</td><td>0.396</td><td>0.178</td><td>0.201</td></tr><tr><td>same, with gray words</td><td>0.458</td><td>0.113</td><td>0.137</td></tr></tbody></table></div>
 <p class="note">Means over the 29 eval images. The real control was trained on top of the gray-knowing adapter, so its delta does not hold the gray. Raw numbers: <a href="assets/step3_v1_500/metrics.json">step 3</a>, <a href="assets/step4_fixes/metrics.json">step 4</a>.</p>
-<figure><img src="assets/step5_transfer_test/crop_real_transfer.jpg" alt="Three eval rows. Columns: matte | teacher with the real control | final model (base &minus; adapter + control) | stock Sprint with the real control, 2 steps | the same with gray words in the caption. Sprint with the control follows the silhouettes but puts them on a dark, grainy gray-black backdrop; gray words lighten it a little and change the honey spoon." loading="lazy"><figcaption>Three eval rows. Columns: matte | teacher with the real control | final model (base &minus; adapter + control) | stock Sprint with the real control, 2 steps | the same with gray words in the caption. Sprint with the control follows the silhouettes but puts them on a dark, grainy gray-black backdrop; gray words lighten it a little and change the honey spoon.</figcaption></figure>
+<p class="note">All 29 eval images at full resolution, control_v1 at step 500. Columns: matte | teacher with the real control | final model (base &minus; adapter + control) | stock Sprint with the real control, 2 steps | the same with gray words in the caption. In the rows we looked at, Sprint with the control follows the silhouettes but puts them on a dark, grainy gray-black backdrop; gray words lighten it a little and change the honey spoon.</p>
+<div id="grid-real"></div>
 <ul>
 <li>This is the Step 4 failure seen from another side: there, the subtraction removed the adapter's gray; here, the stock student never had any. In both cases the control delta has to supply the gray, and this one does not.</li>
 <li>Combining a partial adapter with the transfer was not tested.</li>
@@ -116,5 +119,10 @@ dt { font-weight: bold; }
 <details><summary><h2>Sources cited</h2></summary><ul><li>[SANA-Sprint] Chen et al., "SANA-Sprint: One-Step Diffusion with Continuous-Time Consistency Distillation", <a href="https://arxiv.org/abs/2503.09641">arXiv 2503.09641</a>.</li><li>[GateControl] Liu et al., "Gated Condition Injection without Multimodal Attention", <a href="https://arxiv.org/abs/2603.27666">arXiv 2603.27666</a>; official code <a href="https://github.com/Carol-lyh/GateControl">Carol-lyh/GateControl</a>.</li><li>Weight comparison and plan: <code>agents/concerns.md</code> (entries of 6:50 AM and 10:25 AM ET); code in <code>src/sana_alpha/gatecontrol.py</code> (<code>load_control</code>, <code>student_lora_keys</code>).</li></ul></details>
 <p class="nav"><a href="step3_4_control_and_subtraction.html">&larr; Steps 3 and 4: control and subtraction</a> &middot; <a href="index.html">Journal index</a></p>
 </main>
+<script src="eval_grid.js"></script>
+<script>
+evalGrid("#grid-toy", [["matte", "matte"], ["control_overfit_test_step000400", "teacher + toy control"], ["transfer_overfit_test_step000400_1step", "Sprint, 1 step"], ["transfer_overfit_test_step000400_2step", "Sprint, 2 steps"], ["transfer_overfit_test_step000400_4step", "Sprint, 4 steps"], ["sprint_plain", "stock Sprint, no matte"]]);
+evalGrid("#grid-real", [["matte", "matte"], ["control_v1_step000500", "teacher + control"], ["final_v1_step000500", "final"], ["transfer_v1_step000500_2step", "Sprint + control, 2 steps"], ["transfer_v1_step000500_2step_gray", "same + gray words"]]);
+</script>
 </body>
 </html>

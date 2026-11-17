@@ -50,6 +50,7 @@ dt { font-weight: bold; }
 .bar-row.bad .bar-track i { background: var(--bad); }
 .bar-value { text-align: right; }
 </style>
+<link rel="stylesheet" href="eval_grid.css">
 </head>
 <body>
 <main>
@@ -87,8 +88,8 @@ dt { font-weight: bold; }
 
 <div class="wide">
 <details open><summary><h2>What we see</h2></summary>
-<p>Each row is one eval caption. Columns: the matte (unused here), the stock teacher with the plain caption, the teacher with &quot;on a plain 50% gray background&quot; added, and the adapter at step 1000.</p>
-<figure><img src="assets/step2/compare.jpg" alt="All 29 eval images. Matte | stock teacher | teacher with gray suffix | adapter, step 1000. Same noise in every column." loading="lazy"><figcaption>All 29 eval images. Matte | stock teacher | teacher with gray suffix | adapter, step 1000. Same noise in every column.</figcaption></figure>
+<p>Each row is one eval caption, all 29 at full resolution (1024&times;1024 PNGs; click one to open it). Columns: the matte (unused here), the stock teacher with the plain caption, the teacher with &quot;on a plain 50% gray background&quot; added, the adapter at step 1000 and the adapter at step 2000. Same noise in every column.</p>
+<div id="grid"></div>
 <ul>
 <li>The stock teacher paints scenes (street, red flames, bokeh). With the gray suffix it gives a light, uneven studio gray with cast shadows. The adapter gives a darker, uniform mid-gray in the rows we examined; the exceptions are captions that name a color (turquoise, pastel).</li>
 <li>Subjects become full figures facing the camera, centered and isolated, with clean outlines (the yeoman woman, the postal worker, the dice girl). Objects look glossier and more saturated than the teacher's: the black stone and the melon bowl look like renders.</li>
@@ -98,11 +99,20 @@ dt { font-weight: bold; }
 </details>
 
 <details open><summary><h2>How the samples changed during training</h2></summary>
-<p>The trainer draws the same 8 captions with the same noise every 250 steps (the first eight eval captions). Left: step 250. Right: step 1000.</p>
-<div class="pair">
-<figure><img src="assets/step2/sample_step_000250.jpg" alt="Step 250. Backgrounds are not yet one gray: charcoal behind the woman, light gray behind the hearts, mid-gray behind the cork roll and the dice girl. The sunglasses girl has streaks in her hair and clothes." loading="lazy"><figcaption>Step 250. Backgrounds are not yet one gray: charcoal behind the woman, light gray behind the hearts, mid-gray behind the cork roll and the dice girl. The sunglasses girl has streaks in her hair and clothes.</figcaption></figure>
-<figure><img src="assets/step2/sample_step_001000.jpg" alt="Step 1000. Every background is the same flat mid-gray except the turquoise one that the caption asks for. The streaks are gone." loading="lazy"><figcaption>Step 1000. Every background is the same flat mid-gray except the turquoise one that the caption asks for. The streaks are gone.</figcaption></figure>
-</div>
+<p>The trainer draws the same 8 captions with the same noise every 250 steps (the first eight eval captions). Each sheet is the stored 2048&times;1024 PNG: 8 images of 512&times;512, the size the trainer saves. Step 250 first, then step 1000; scroll sideways, click to open.</p>
+<figure class="fullsheet"><a href="assets/eval/full/samples/adapter_v1/step_000250.png"><img src="assets/eval/full/samples/adapter_v1/step_000250.png" alt="Step 250" loading="lazy"></a><figcaption>Step 250. Backgrounds are not yet one gray: charcoal behind the woman, light gray behind the hearts, mid-gray behind the cork roll and the dice girl. The sunglasses girl has streaks in her hair and clothes.</figcaption></figure>
+<figure class="fullsheet"><a href="assets/eval/full/samples/adapter_v1/step_001000.png"><img src="assets/eval/full/samples/adapter_v1/step_001000.png" alt="Step 1000" loading="lazy"></a><figcaption>Step 1000. Every background is the same flat mid-gray except the turquoise one that the caption asks for. The streaks are gone.</figcaption></figure>
+<details><summary>All nine sample sheets, steps 0 to 2000</summary>
+<figure class="fullsheet"><a href="assets/eval/full/samples/adapter_v1/step_000000.png"><img src="assets/eval/full/samples/adapter_v1/step_000000.png" alt="Step 0" loading="lazy"></a><figcaption>Step 0.</figcaption></figure>
+<figure class="fullsheet"><a href="assets/eval/full/samples/adapter_v1/step_000250.png"><img src="assets/eval/full/samples/adapter_v1/step_000250.png" alt="Step 250" loading="lazy"></a><figcaption>Step 250.</figcaption></figure>
+<figure class="fullsheet"><a href="assets/eval/full/samples/adapter_v1/step_000500.png"><img src="assets/eval/full/samples/adapter_v1/step_000500.png" alt="Step 500" loading="lazy"></a><figcaption>Step 500.</figcaption></figure>
+<figure class="fullsheet"><a href="assets/eval/full/samples/adapter_v1/step_000750.png"><img src="assets/eval/full/samples/adapter_v1/step_000750.png" alt="Step 750" loading="lazy"></a><figcaption>Step 750.</figcaption></figure>
+<figure class="fullsheet"><a href="assets/eval/full/samples/adapter_v1/step_001000.png"><img src="assets/eval/full/samples/adapter_v1/step_001000.png" alt="Step 1000" loading="lazy"></a><figcaption>Step 1000.</figcaption></figure>
+<figure class="fullsheet"><a href="assets/eval/full/samples/adapter_v1/step_001250.png"><img src="assets/eval/full/samples/adapter_v1/step_001250.png" alt="Step 1250" loading="lazy"></a><figcaption>Step 1250.</figcaption></figure>
+<figure class="fullsheet"><a href="assets/eval/full/samples/adapter_v1/step_001500.png"><img src="assets/eval/full/samples/adapter_v1/step_001500.png" alt="Step 1500" loading="lazy"></a><figcaption>Step 1500.</figcaption></figure>
+<figure class="fullsheet"><a href="assets/eval/full/samples/adapter_v1/step_001750.png"><img src="assets/eval/full/samples/adapter_v1/step_001750.png" alt="Step 1750" loading="lazy"></a><figcaption>Step 1750.</figcaption></figure>
+<figure class="fullsheet"><a href="assets/eval/full/samples/adapter_v1/step_002000.png"><img src="assets/eval/full/samples/adapter_v1/step_002000.png" alt="Step 2000" loading="lazy"></a><figcaption>Step 2000.</figcaption></figure>
+</details>
 </details>
 </div>
 
@@ -122,5 +132,9 @@ dt { font-weight: bold; }
 <details><summary><h2>Sources cited</h2></summary><ul><li>[SANA-Sprint] Chen et al., "SANA-Sprint: One-Step Diffusion with Continuous-Time Consistency Distillation", <a href="https://arxiv.org/abs/2503.09641">arXiv 2503.09641</a>.</li><li>[SANA] Xie et al., "SANA: Efficient High-Resolution Image Synthesis with Linear Diffusion Transformers", <a href="https://arxiv.org/abs/2410.10629">arXiv 2410.10629</a>.</li><li>[Rectified flow] Liu et al., "Flow Straight and Fast: Learning to Generate and Transfer Data with Rectified Flow", <a href="https://arxiv.org/abs/2209.03003">arXiv 2209.03003</a>.</li><li>[AnimateDiff] Guo et al., "AnimateDiff: Animate Your Personalized Text-to-Image Diffusion Models without Specific Tuning", <a href="https://arxiv.org/abs/2307.04725">arXiv 2307.04725</a>.</li><li>[MAGICK] Burgert et al., CVPR, <a href="https://ryanndagreat.github.io/MAGICK/">project page</a>, <a href="https://huggingface.co/datasets/OneOverZero/MAGICK">dataset</a>.</li><li>Training code: <code>src/sana_alpha/train_adapter.py</code>, <code>train_objective.py</code>; run log: <code>agents/.scratchpad/logs/train_adapter_adapter_v1.log</code>.</li></ul></details>
 <p class="nav"><a href="step1_baseline.html">&larr; Step 1: baseline</a> &middot; <a href="index.html">Journal index</a> &middot; <a href="step3_4_control_and_subtraction.html">Steps 3 and 4: control and subtraction &rarr;</a></p>
 </main>
+<script src="eval_grid.js"></script>
+<script>
+evalGrid("#grid", [["matte", "matte"], ["teacher_plain", "teacher, plain caption"], ["teacher_gray", "teacher + gray suffix"], ["adapter_v1_step001000", "adapter, step 1000"], ["adapter_v1_step002000", "adapter, step 2000"]]);
+</script>
 </body>
 </html>
