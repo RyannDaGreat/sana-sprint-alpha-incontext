@@ -119,6 +119,7 @@ dt { font-weight: bold; }
 <details><summary><h2>Sources cited</h2></summary><ul><li>[SANA-Sprint] Chen et al., "SANA-Sprint: One-Step Diffusion with Continuous-Time Consistency Distillation", <a href="https://arxiv.org/abs/2503.09641">arXiv 2503.09641</a>.</li><li>[GateControl] Liu et al., "Gated Condition Injection without Multimodal Attention", <a href="https://arxiv.org/abs/2603.27666">arXiv 2603.27666</a>; official code <a href="https://github.com/Carol-lyh/GateControl">Carol-lyh/GateControl</a>.</li><li>Weight comparison and plan: <code>agents/concerns.md</code> (entries of 6:50 AM and 10:25 AM ET); code in <code>src/sana_alpha/gatecontrol.py</code> (<code>load_control</code>, <code>student_lora_keys</code>).</li></ul></details>
 <p class="nav"><a href="step3_4_control_and_subtraction.html">&larr; Steps 3 and 4: control and subtraction</a> &middot; <a href="index.html">Journal index</a></p>
 </main>
+<script src="eval_labels.js"></script>
 <script src="eval_grid.js"></script>
 <script>
 evalGrid("#grid-toy", [["matte", "matte"], ["control_overfit_test_step000400", "teacher + toy control"], ["transfer_overfit_test_step000400_1step", "Sprint, 1 step"], ["transfer_overfit_test_step000400_2step", "Sprint, 2 steps"], ["transfer_overfit_test_step000400_4step", "Sprint, 4 steps"], ["sprint_plain", "stock Sprint, no matte"]]);

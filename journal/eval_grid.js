@@ -1,7 +1,7 @@
 /**
  * Full-resolution eval grids for the journal. One row per eval item, one cell per column, every cell the stored
  * 1024x1024 PNG (hard link under assets/eval/full/, made by src/sana_alpha/journal_assets.py). Click a cell to open
- * the file. The browser scales cells to fit the window; "native size" shows them 1:1 with a horizontal scroll.
+ * the file. The browser scales cells to fit the window; "native size" shows them 1:1 with a horizontal scroll. Under each model cell: its weight equation, MODEL_LABELS from eval_labels.js (load it first).
  *
  * @example evalGrid("#grid", [["matte", "matte"], ["sprint_gray", "stock Sprint"]])
  */
@@ -62,7 +62,7 @@ function evalGrid(selector, columns) {
     row.className = "evalrow";
     row.innerHTML = columns.map(([dir, label]) =>
       `<figure><a href="${EVAL_FULL_DIR}${dir}/${id}.png" target="_blank"><img loading="lazy" decoding="async" ` +
-      `src="${EVAL_FULL_DIR}${dir}/${id}.png" alt="${label}: ${escapeHtml(caption)}"></a><figcaption>${label}</figcaption></figure>`).join("") +
+      `src="${EVAL_FULL_DIR}${dir}/${id}.png" alt="${label}: ${escapeHtml(caption)}"></a><figcaption>${label}${dir in MODEL_LABELS ? `<br><small>${escapeHtml(MODEL_LABELS[dir])}</small>` : ""}</figcaption></figure>`).join("") +
       `<p class="rowcap"><b>${escapeHtml(caption)}</b> <code>${id}</code></p>`;
     root.appendChild(row);
   }
