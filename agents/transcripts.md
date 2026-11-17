@@ -212,3 +212,6 @@ I never asked for them to be private. I'll make it public.
 
 ## m00636 — 2026-11-17 1:43 PM
 Okay, it's public now. In the future, don't make private repositories, please.
+
+## m00637 — 2026-11-17 1:45 PM
+I don't know why the journal is completely empty. Like, this GitHub repository is completely bare bones and has nothing we need in it. So make sure the GitHub repository actually has the stuff that we need.
