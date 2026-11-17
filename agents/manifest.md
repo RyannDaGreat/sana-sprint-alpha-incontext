@@ -204,7 +204,7 @@ The DTAB formatting rules. Change all members together.
 
 ## 10. Success Criteria
 
-The final model (`W_base − W_adapter + W_control`) generates the right-half image so that it (a) matches the input matte's silhouette, (b) has a flat 0.5 gray background, and (c) looks like stock SANA-Sprint quality rather than MAGICK's 2023 quality. It is judged on the fixed eval set against Steps 1–3.
+The final model (`W_base − W_adapter + W_control`, full subtraction, λ = 0) generates an image that (a) matches the input matte's silhouette and (b) looks like stock SANA-Sprint quality rather than MAGICK's 2023 quality. A flat 0.5 gray background is NOT required (m00628: "It's okay if it does, it's okay if it doesn't ... The whole point is we're subtracting the adapter"); partial subtractions (λ > 0) are shown for curiosity (m00615). Judged on the fixed eval set and the showcase set against Steps 1–3. Because IoU here counts "object vs 0.5 gray", it understates silhouette match when the background is not gray; judge silhouette visually (or with a background-agnostic metric).
 
 ## 12. WebGPU browser app (m00624, m00625)
 

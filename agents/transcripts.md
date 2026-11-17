@@ -185,3 +185,6 @@ A link to that page could even be in the gallery.
 
 ## m00627 — 2026-11-17 1:08 PM
 That working model might be a WebGPU demo gallery item.
+
+## m00628 — 2026-11-17 1:10 PM
+But yeah, that thing about not having a gray background is actually perfectly fine and expected. Like, when we subtract the adapter, that is what the final model probably should be. I don't really need it to have a perfect gray background in the end. It's okay if it does, it's okay if it doesn't, I don't really care. The whole point is we're subtracting the adapter, right?
