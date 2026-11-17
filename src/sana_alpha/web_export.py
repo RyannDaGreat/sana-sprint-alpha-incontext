@@ -205,7 +205,11 @@ class OneStepTransformer(nn.Module):
 
 class AdapterScale:
     """The traced λ (graph input adapter_scale) shared by one transformer's LambdaLinear / AddScaledDelta modules."""
-    value = None
+
+    def __init__(self, device):
+        """Command (allocates). λ = 0 until LambdaStepTransformer.forward sets the graph input (parametrizations
+        are evaluated as soon as they are registered)."""
+        self.value = torch.zeros(1, device=device)
 
 
 class LambdaLinear(nn.Module):
@@ -696,7 +700,7 @@ def quantize(version, bits=4, rank=None, parts="transformer,text_encoder", reuse
             f.unlink()  # may be a hard link to the fp16 file: writing through it would overwrite fp16
         if adapter:
             lowrank, dense = adapter_delta_parts(source, adapter, adapter_rank)
-            scale = AdapterScale()
+            scale = AdapterScale("cuda")
             attach_adapter_delta(model.transformer, lowrank, dense, scale)
             model = LambdaStepTransformer(model.transformer, scale)
             adapter_info = dict(source=adapter, rank=adapter_rank, lowrank_matrices=len(lowrank), dense_tensors=len(dense),
@@ -732,12 +736,16 @@ def share_external_data(path, donor):
     """
     import hashlib
     import onnx
-    from onnx.external_data_helper import set_external_data
     def tensors(model):
         for t in model.graph.initializer:
             if t.data_location == onnx.TensorProto.EXTERNAL:
                 info = {e.key: e.value for e in t.external_data}
                 yield t, info["location"], int(info.get("offset", 0)), int(info["length"])
+    def point(t, location, offset, length):
+        del t.external_data[:]
+        for key, value in (("location", location), ("offset", str(offset)), ("length", str(length))):
+            entry = t.external_data.add()
+            entry.key, entry.value = key, value
     def read(file, offset, length):
         file.seek(offset)
         return file.read(length)
@@ -752,10 +760,10 @@ def share_external_data(path, donor):
             data = read(f, o, n)
             hit = shared.get(hashlib.sha256(data).digest())
             if hit:
-                set_external_data(t, own_data.name, offset=hit[0], length=hit[1])
+                point(t, own_data.name, *hit)
                 reused += n
             else:
-                set_external_data(t, new_data.name, offset=out.tell(), length=n)
+                point(t, new_data.name, out.tell(), n)
                 out.write(data)
                 own_bytes += n
     own_data.unlink()
