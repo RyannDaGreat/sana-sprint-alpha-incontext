@@ -281,14 +281,6 @@
       "coverage": 0.471
     },
     {
-      "file": "knight-chess-piece.png",
-      "name": "Knight chess piece",
-      "source_url": "https://freesvg.org/knight-chess-piece-image",
-      "license": "CC0",
-      "author": "Unknown (freesvg.org upload, CC0)",
-      "coverage": 0.327
-    },
-    {
       "file": "chess-queen.png",
       "name": "Chess queen",
       "source_url": "https://freesvg.org/chess-queen",

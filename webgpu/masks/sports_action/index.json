@@ -209,28 +209,12 @@
       "coverage": 0.17
     },
     {
-      "file": "surfer-on-wave.png",
-      "name": "Surfer on wave",
-      "source_url": "https://freesvg.org/surfing-the-waves",
-      "license": "CC0",
-      "author": "Unknown (freesvg.org upload, CC0)",
-      "coverage": 0.704
-    },
-    {
       "file": "ballet-leap.png",
       "name": "Ballet leap",
       "source_url": "https://freesvg.org/black-ballet-dancer-silhouette",
       "license": "CC0",
       "author": "Unknown (freesvg.org upload, CC0)",
       "coverage": 0.174
-    },
-    {
-      "file": "high-jump.png",
-      "name": "High jump",
-      "source_url": "https://freesvg.org/1280932922",
-      "license": "CC0",
-      "author": "Unknown (freesvg.org upload, CC0)",
-      "coverage": 0.327
     },
     {
       "file": "sprinter.png",
@@ -241,28 +225,12 @@
       "coverage": 0.111
     },
     {
-      "file": "karate-kick.png",
-      "name": "Karate kick",
-      "source_url": "https://freesvg.org/karate-silhouette",
-      "license": "CC0",
-      "author": "Unknown (freesvg.org upload, CC0)",
-      "coverage": 0.056
-    },
-    {
       "file": "skater-trick.png",
       "name": "Skater stunt",
       "source_url": "https://freesvg.org/skater-boy-silhouette",
       "license": "CC0",
       "author": "Unknown (freesvg.org upload, CC0)",
       "coverage": 0.094
-    },
-    {
-      "file": "ski-jumper.png",
-      "name": "Ski jumper",
-      "source_url": "https://freesvg.org/ski-jumper",
-      "license": "CC0",
-      "author": "Unknown (freesvg.org upload, CC0)",
-      "coverage": 0.103
     },
     {
       "file": "basketball-dunk.png",
