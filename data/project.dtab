@@ -152,6 +152,27 @@ tables
 				prompt_variant gray
 				steps 20
 				guidance 4.5
+			,
+				model_tag adapter_toy_ddp2_step000400
+				pipeline teacher
+				checkpoint models/adapter/toy_ddp2/step_000400
+				prompt_variant plain
+				steps 20
+				guidance 4.5
+			,
+				model_tag control_overfit_test_step000400
+				pipeline teacher
+				checkpoint models/control/overfit_test/step_000400
+				prompt_variant plain
+				steps 20
+				guidance 4.5
+			,
+				model_tag final_overfit_test_step000400
+				pipeline teacher
+				checkpoint models/control/overfit_test/final_step_000400
+				prompt_variant plain
+				steps 20
+				guidance 4.5
 
 	eval_generations
 		 One row per model and eval image: the image that the model makes from the caption and the fixed noise
@@ -288,7 +309,7 @@ processors
 				caption @	                 str    The MAGICK caption                                                "red apple on a solid"
 				noise_index @	             int    Row of the latents in EVAL_SET/noise.safetensors                  10
 				pipeline @	                 str    "teacher" (SanaPipeline) or "sprint" (SanaSprintPipeline)         "sprint"
-				checkpoint @	             str    "stock", or a transformer .safetensors path from the repo root    "stock"
+				checkpoint @	             str    "stock", or a repo path: see models.load_eval_pipeline            "stock"
 				steps @	                     int    Sampling steps                                                    2
 				guidance @	                 float  CFG for the teacher, embedded guidance for Sprint                 4.5
 				prompt_variant @	         str    "plain", or "gray": caption + ", on a plain 50% gray background"  "gray"

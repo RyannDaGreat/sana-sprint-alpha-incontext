@@ -23,6 +23,7 @@ ROOT = Path(__file__).resolve().parents[2]
 LOCAL_ROOT = Path("/models/sana-sprint-alpha-incontext")  # node-local disk (system-wide /models/ convention)
 TEACHER_DIR = "models/Sana_Sprint_1.6B_1024px_teacher_diffusers"
 SPRINT_DIR = "models/Sana_Sprint_1.6B_1024px_diffusers"
+WEIGHTS_FILE = "diffusion_pytorch_model.safetensors"  # the weights file of a diffusers transformer folder
 
 
 def localize(path):
@@ -88,12 +89,51 @@ def load_transformer_weights(pipe, checkpoint):
 
     Args:
         pipe: a Sana pipeline
-        checkpoint (str | Path | dict): a SanaTransformer2DModel .safetensors path (repo-relative; localized first),
-            or a state dict, e.g. a fine-tuned or `base - adapter + control` model
+        checkpoint (str | Path | dict): a SanaTransformer2DModel .safetensors path or diffusers transformer folder
+            (repo-relative; localized first), or a state dict, e.g. a fine-tuned or `base - adapter + control` model
 
     Returns:
         the same pipeline
     """
-    state_dict = checkpoint if isinstance(checkpoint, dict) else load_file(localize(checkpoint))
-    pipe.transformer.load_state_dict(state_dict, strict=True)
+    path = None if isinstance(checkpoint, dict) else localize(checkpoint)
+    state_dict = checkpoint if path is None else load_file(path / WEIGHTS_FILE if path.is_dir() else path)
+    pipe.transformer.load_state_dict(state_dict, strict=True)  # float32 checkpoints are rounded once to the pipe dtype
     return pipe
+
+
+def load_eval_pipeline(kind, checkpoint):
+    """
+    Query (reads weights from disk, allocates GPU memory). The pipeline of one eval_models row. checkpoint is one of:
+
+        "stock"                                       the stock `kind` model
+        a .safetensors file, or a diffusers           its weights replace the transformer's (adapter: models/adapter/<run>/step_XXXXXX)
+            transformer folder
+        a control step folder                         the base it trained on (metadata "adapter"; "None" = teacher)
+            (control_lora.safetensors + gates)        + PEFT control LoRA + gates (models/control/<run>/step_XXXXXX)
+        a merge_final folder                          W_base + (W_control - W_adapter) in float32, then gates
+            (transformer + gates.safetensors)         (models/control/<run>/final_step_XXXXXX)
+
+    Args:
+        kind (str): "teacher" or "sprint"
+        checkpoint (str): see above, repo-relative
+
+    Returns:
+        tuple: (pipeline, default __call__ kwargs, conditioned: True when the model needs the matte latents)
+    """
+    from sana_alpha import gatecontrol as gc
+
+    pipe, defaults = load_pipeline(kind)
+    path = ROOT / checkpoint
+    if (path / "control_lora.safetensors").exists():
+        adapter = gc.load_control_files(path)[2]["adapter"]
+        if adapter != "None":
+            load_transformer_weights(pipe, adapter)
+        gc.load_control(pipe.transformer, path)
+    elif checkpoint != "stock":
+        load_transformer_weights(pipe, checkpoint)
+        if (path / "gates.safetensors").exists():
+            gc.attach_gates(pipe.transformer).load_state_dict(load_file(path / "gates.safetensors"), strict=True)
+            gc.enable_gatecontrol(pipe.transformer)
+    conditioned = hasattr(pipe.transformer, "gatecontrol_gates")
+    assert kind == "teacher" or not conditioned, f"GateControl models run on the teacher pipeline, not {kind!r}"
+    return pipe, defaults, conditioned

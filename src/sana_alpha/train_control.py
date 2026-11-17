@@ -10,7 +10,7 @@ negative prompt). Optimizer as GateControl: Prodigy lr 1, weight decay 0.01 (0 o
 Outputs, in models/control/<run>/:
     step_XXXXXX/control_lora.safetensors, gates.safetensors   float32 (LoRA delta + gates), every --save_every steps
     previews/step_XXXXXX.png                                  [matte | generated | reference] rows, rank 0
-    final_fp32/transformer.safetensors + gates.safetensors     from `merge_final`: W_base + (W_control − W_adapter)
+    final_step_XXXXXX/ fp32 transformer + gates.safetensors   from `merge_final`: W_base + (W_control − W_adapter)
 
 Launch (8 GPUs):
     PYTHONPATH=src uv run torchrun --nproc_per_node 8 -m sana_alpha.train_control train --run <name> --adapter models/adapter/<run>/step_XXXXXX
@@ -340,10 +340,10 @@ def merge_final(control, out=None):
 
     Args:
         control (str): a saved step folder, e.g. models/control/<run>/step_010000
-        out (str | None): output folder; default <run>/final_fp32
+        out (str | None): output folder; default <run>/final_<step folder name>, one per step (models.localize assumes folders never change)
     """
     control = Path(control)
-    out = Path(out) if out else control.parent / "final_fp32"
+    out = Path(out) if out else control.parent / f"final_{control.name}"
     lora, gates, meta = gc.load_control_files(control)
     base = SanaTransformer2DModel.from_pretrained(models.localize(TEACHER), subfolder="transformer", torch_dtype=torch.float32)
     merged = gc.merge_lora_into_state_dict(base.state_dict(), lora, int(meta["rank"]), float(meta["alpha"]))
