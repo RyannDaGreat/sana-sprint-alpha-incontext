@@ -167,7 +167,11 @@ Training entry points (e.g. `train_adapter.sh`, `train_control.sh`) may also liv
 
 ## 9. Semantic Bindings
 
-None yet.
+### dtab-rules
+The DTAB formatting rules. Change all members together.
+- `AGENTS.md` section "DTAB formatting"
+- `data/project.dtab` block "RULES FOR MAINTAINING THIS DTAB"
+- `agents/dtab_format.py` module docstring (the checker's rules)
 
 ## 10. Success Criteria
 

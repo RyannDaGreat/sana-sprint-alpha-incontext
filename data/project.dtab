@@ -1,13 +1,13 @@
 environ
 	 Batch sizes, in processor order. Not measured yet: tune them on the node
 	DOWNLOAD_BATCH_SIZE 64	 Images per run of download_image. Network bound: 1.5 MB per PNG
-	SPLIT_BATCH_SIZE 64	 Images per run of split_alpha. CPU only: it reads 1 PNG and writes 2
+	SPLIT_BATCH_SIZE 64	     Images per run of split_alpha. CPU only: it reads 1 PNG and writes 2
 	ENCODE_BATCH_SIZE 64	 Images per run of encode_latents. run_proc_curate.fish starts one loop per GPU
 
 	 Data
 	MAGICK_REPO OneOverZero/MAGICK	 Hugging Face dataset: 140,955 RGBA PNGs, 1024 x 1024, straight alpha, 191 GB
 	GRAY_LEVEL 0.5	                 Background of rgb_on_gray as a fraction of white: rgb * alpha + GRAY_LEVEL * (1 - alpha)
-	EVAL_MODULUS 4000	         An image is eval, never trained on, when sha256(page_id) mod EVAL_MODULUS is 0: about 35 images
+	EVAL_MODULUS 4000	             An image is eval, never trained on, when sha256(page_id) mod EVAL_MODULUS is 0: about 35 images
 
 	 Models
 	TEACHER_MODEL Efficient-Large-Model/SANA_Sprint_1.6B_1024px_teacher_diffusers	 The model we fine-tune. Its vae subfolder (DC-AE f32c32) makes the latents, so they match the model
@@ -28,6 +28,9 @@ cell_lineage true
 
 
  RULES FOR MAINTAINING THIS DTAB (copied from MulticamDailies' project.dtab, the house style):
+ SEMANTIC BINDING: dtab-rules
+    - One tab renders as four spaces. After each edit run: python3 agents/dtab_format.py check data/project.dtab (fix repairs the columns)
+    - Formatting is part of the interface. Copy the alignment of nearby blocks exactly. Do not reformat what the user aligned by hand
     - These rules are for the AI. Keep the user's own prose in the user's voice: do not rewrite it
     - Everything is written in ASD-STE100
     - Sort tables and processors by dependency: an item comes after each item that it reads
@@ -115,35 +118,35 @@ processors
 		claim	import_claim import_jobs
 		command bash
 			uv run --script processors/import_index.py "$SAMPLE" $MAGICK_REPO $EVAL_MODULUS
-		materialize	   TYPE  DESCRIPTION  EXAMPLE
-			input.json
-				job_id @	 [Key]  str  The one import job  "magick"
+		materialize
+			input.json	            TYPE  DESCRIPTION         EXAMPLE
+				job_id @	  [Key]  str   The one import job  "magick"
 		commit
-			import_jobs	                   TYPE  DESCRIPTION                                                                  EXAMPLE
-				index_tsv index.tsv	   blob  magick_index.tsv as downloaded: 148,193 rows, 7,238 of them repeat an image  16.1 MB .tsv
+			import_jobs	               TYPE  DESCRIPTION                                                                  EXAMPLE
+				index_tsv index.tsv	    blob  magick_index.tsv as downloaded: 148,193 rows, 7,238 of them repeat an image  16.1 MB .tsv
 			magick_samples
-				rows.parquet	                        TYPE   DESCRIPTION                                                                              EXAMPLE
-					page_id @	         [Key]  str    MAGICK image ID, the PNG's file name                                                     "Hcx82jcUpM"
-					subject @	                str    The caption: a short subject phrase                                                      "red boiled crayfish on a plate ."
-					color @	                        str    Screen color that MAGICK keyed out                                                       "green"
-					sim_score @	                float  Agreement of MAGICK's 3 alpha extractors (MS-SSIM). Low: maybe color spill               0.9879238
-					nsfw @	                        bool   MAGICK's NSFW flag. 3,000 index rows                                                     false
-					hand_picked @	                bool   The index lists it as "hand". A repeated image is listed once as "hand", once as "auto"  true
-					split @	                        str    "eval" when sha256(page_id) mod EVAL_MODULUS is 0, else "train"                          "train"
-					source_claim_id $CLAIM	        str    Claim of the import run                                                                  "9f1c…"
-					source_run_id $RUN	        str    The import run                                                                           "4b2e…"
+				rows.parquet	                    TYPE   DESCRIPTION                                                                              EXAMPLE
+					page_id @	              [Key]  str    MAGICK image ID, the PNG's file name                                                     "Hcx82jcUpM"
+					subject @	                     str    The caption: a short subject phrase                                                      "red boiled crayfish on a plate ."
+					color @	                         str    Screen color that MAGICK keyed out                                                       "green"
+					sim_score @	                     float  Agreement of MAGICK's 3 alpha extractors (MS-SSIM). Low: maybe color spill               0.9879238
+					nsfw @	                         bool   MAGICK's NSFW flag. 3,000 index rows                                                     false
+					hand_picked @	                 bool   The index lists it as "hand". A repeated image is listed once as "hand", once as "auto"  true
+					split @	                         str    "eval" when sha256(page_id) mod EVAL_MODULUS is 0, else "train"                          "train"
+					source_claim_id $CLAIM	         str    Claim of the import run                                                                  "9f1c…"
+					source_run_id $RUN	             str    The import run                                                                           "4b2e…"
 
 	download_image	 Downloads each image's RGBA PNG from Hugging Face: images/<first 2 letters>/<page_id>.png
 		query pending_download
 		claim	download_claim magick_samples
 		command bash
 			uv run --script processors/download_image.py "$BATCH" $MAGICK_REPO
-		materialize	   TYPE  DESCRIPTION  EXAMPLE
-			input.json
-				page_id @	 [Key]  str  MAGICK image ID, the PNG's file name  "Hcx82jcUpM"
+		materialize
+			input.json	            TYPE  DESCRIPTION                           EXAMPLE
+				page_id @	  [Key]  str   MAGICK image ID, the PNG's file name  "Hcx82jcUpM"
 		commit
-			magick_samples	           TYPE  DESCRIPTION                                                       EXAMPLE
-				rgba rgba.png	   blob  The MAGICK image as downloaded: 1024 x 1024 RGBA, straight alpha  1.5 MB .png
+			magick_samples	       TYPE  DESCRIPTION                                                       EXAMPLE
+				rgba rgba.png	    blob  The MAGICK image as downloaded: 1024 x 1024 RGBA, straight alpha  1.5 MB .png
 
 	split_alpha	 Splits each RGBA PNG into its matte and its RGB composited on gray, and measures the matte
 		query pending_split_alpha
@@ -151,30 +154,30 @@ processors
 		command bash
 			uv run --script processors/split_alpha.py "$BATCH" $GRAY_LEVEL
 		materialize	           TYPE  DESCRIPTION       EXAMPLE
-			rgba.png rgba	   blob  The MAGICK image  1.5 MB .png
+			rgba.png rgba	    blob  The MAGICK image  1.5 MB .png
 		commit
-			magick_samples	                                   TYPE   DESCRIPTION                                                          EXAMPLE
-				alpha alpha.png	                           blob   The matte: 1024 x 1024 grayscale, 8 bit                              120 KB .png
-				rgb_on_gray rgb_on_gray.png	           blob   rgb * alpha + GRAY_LEVEL * (1 - alpha): 1024 x 1024 RGB, 8 bit       1.4 MB .png
+			magick_samples	                           TYPE   DESCRIPTION                                                          EXAMPLE
+				alpha alpha.png	                        blob   The matte: 1024 x 1024 grayscale, 8 bit                              120 KB .png
+				rgb_on_gray rgb_on_gray.png	            blob   rgb * alpha + GRAY_LEVEL * (1 - alpha): 1024 x 1024 RGB, 8 bit       1.4 MB .png
 				result.json	                 SUBFIELD  TYPE   DESCRIPTION                                                          EXAMPLE
-					alpha_coverage @	           float  Mean alpha: how much of the frame the object fills                   0.31
-					alpha_soft_fraction @	           float  Fraction of pixels with 0 < alpha < 1: hair, glass, smoke            0.04
-					green_spill @	                   float  Mean of max(0, g - max(r, b)) where alpha > 0.5. High: green fringe  0.006
+					alpha_coverage @	                float  Mean alpha: how much of the frame the object fills                   0.31
+					alpha_soft_fraction @	            float  Fraction of pixels with 0 < alpha < 1: hair, glass, smoke            0.04
+					green_spill @	                    float  Mean of max(0, g - max(r, b)) where alpha > 0.5. High: green fringe  0.006
 
 	encode_latents	 Encodes each matte and each RGB-on-gray with the teacher's DC-AE, and measures the round trip
 		query pending_latents
 		claim	encode_latents_claim magick_samples
 		command bash
 			uv run --script processors/encode_latents.py "$BATCH" $TEACHER_MODEL
-		materialize	                           TYPE  DESCRIPTION                                      EXAMPLE
-			alpha.png alpha	                   blob  The matte, copied to 3 channels before encoding  120 KB .png
-			rgb_on_gray.png rgb_on_gray	   blob  The RGB on gray                                  1.4 MB .png
+		materialize	                       TYPE  DESCRIPTION                                      EXAMPLE
+			alpha.png alpha	                blob  The matte, copied to 3 channels before encoding  120 KB .png
+			rgb_on_gray.png rgb_on_gray	    blob  The RGB on gray                                  1.4 MB .png
 		commit
-			magick_samples	                                                   TYPE   DESCRIPTION                                                                                    EXAMPLE
-				latent_alpha_1024 latent_alpha.safetensors	           blob   DC-AE latent of the matte: (32, 32, 32) bfloat16, key "latent"                                 64 KB .safetensors
-				latent_rgb_1024 latent_rgb.safetensors	                   blob   DC-AE latent of the RGB on gray: (32, 32, 32) bfloat16, key "latent"                           64 KB .safetensors
+			magick_samples	                                           TYPE   DESCRIPTION                                                                                    EXAMPLE
+				latent_alpha_1024 latent_alpha.safetensors	            blob   DC-AE latent of the matte: (32, 32, 32) bfloat16, key "latent"                                 64 KB .safetensors
+				latent_rgb_1024 latent_rgb.safetensors	                blob   DC-AE latent of the RGB on gray: (32, 32, 32) bfloat16, key "latent"                           64 KB .safetensors
 				result.json	                                 SUBFIELD  TYPE   DESCRIPTION                                                                                    EXAMPLE
-					vae_psnr_1024 @	                                   float  PSNR in dB of the decoded RGB on gray against the original. Low: DC-AE cannot hold this image  31.2
+					vae_psnr_1024 @	                                    float  PSNR in dB of the decoded RGB on gray against the original. Low: DC-AE cannot hold this image  31.2
 
 
 queries
