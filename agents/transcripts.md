@@ -197,3 +197,6 @@ Is BlueJay being used for inference? If so, can you launch a Sparrow server too 
 
 ## m00631 — 2026-11-17 1:20 PM
 These galleries can be used to make [mirrored, transcribed as "minstrel"] Sparrow queries too. That way I can hide and show rows at my pleasure.
+
+## m00632 — 2026-11-17 1:35 PM
+It would also be nice if the web interface also had some foreground segmentation things, so that I could also just upload a regular photo and then do foreground segmentation on it, and then use that to get a mask that I can then do it all on afterwards.
