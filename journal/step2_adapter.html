@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Step 2 Adapter</title>
+<style>
+:root {
+  --bg: #fdfdfb; --fg: #1d1d1f; --muted: #66666b; --rule: #dcdcd6; --accent: #2f5d8a; --chip: #eef2f6; --callout: #f3f6f9;
+  --good: #2f7d4f; --bad: #b5473a; --track: #e6e6e1;
+  --gutter: 16px; --measure: 760px; --wide: 1180px; --gap: 12px; --gap-lg: 24px; --gap-xl: 48px; --radius: 4px; --hairline: 1px;
+  --pad-cell: 6px 10px; --pad-callout: 12px 18px; --pad-bar: 3px; --bar-h: 10px; --label-w: 210px; --value-w: 64px; --bar-gap: 10px; --border-accent: 4px;
+  --pair-min: 420px; --pad-code: 4px;
+  --font-body: 17px; --font-small: 14px; --font-h1: 34px; --font-h2: 23px; --line: 1.6; --line-tight: 1.2;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #18191b; --fg: #e8e8e6; --muted: #a0a0a5; --rule: #3a3b3e; --accent: #8ab4dc; --chip: #26292d; --callout: #1f2226; --good: #6cc08b; --bad: #e0857a; --track: #2c2e31; }
+}
+:root[data-theme="dark"] { --bg: #18191b; --fg: #e8e8e6; --muted: #a0a0a5; --rule: #3a3b3e; --accent: #8ab4dc; --chip: #26292d; --callout: #1f2226; --good: #6cc08b; --bad: #e0857a; --track: #2c2e31; }
+body { background: var(--bg); color: var(--fg); font: var(--font-body)/var(--line) Georgia, "Times New Roman", serif; margin: 0; }
+main { max-width: var(--measure); margin: 0 auto; padding: 0 var(--gutter); }
+.wide { max-width: var(--wide); margin: 0 auto; padding: 0 var(--gutter); }
+h1 { font-size: var(--font-h1); line-height: var(--line-tight); margin-top: var(--gap-xl); }
+summary h2 { display: inline; font-size: var(--font-h2); }
+details { margin: var(--gap-lg) 0; }
+summary { cursor: pointer; }
+a { color: var(--accent); }
+.byline { color: var(--muted); font-size: var(--font-small); border-bottom: var(--hairline) solid var(--rule); padding-bottom: var(--gap); }
+.nav { font: var(--font-small) system-ui, sans-serif; margin-top: var(--gap-lg); }
+.callout { background: var(--callout); border-left: var(--border-accent) solid var(--accent); padding: var(--pad-callout); margin: var(--gap-lg) 0; border-radius: var(--radius); }
+.eq { text-align: center; }
+.pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--pair-min)), 1fr)); gap: var(--gap); }
+table { border-collapse: collapse; width: 100%; font: var(--font-small) system-ui, sans-serif; }
+th, td { padding: var(--pad-cell); border-bottom: var(--hairline) solid var(--rule); text-align: right; }
+th:first-child, td:first-child { text-align: left; }
+tr.hl td { background: var(--chip); }
+.scroll { overflow-x: auto; }
+figure { margin: var(--gap-lg) 0; }
+figcaption { color: var(--muted); font-size: var(--font-small); margin-top: var(--gap); }
+img { max-width: 100%; height: auto; display: block; border: var(--hairline) solid var(--rule); }
+.note { color: var(--muted); font-size: var(--font-small); }
+code { font-size: var(--font-small); background: var(--chip); padding: 0 var(--pad-code); border-radius: var(--radius); }
+dt { font-weight: bold; }
+.bars { font: var(--font-small) system-ui, sans-serif; margin: var(--gap-lg) 0; }
+.bars h4 { margin: 0 0 var(--gap); font-weight: 600; }
+.bar-row { display: grid; grid-template-columns: minmax(0, var(--label-w)) 1fr var(--value-w); gap: var(--bar-gap); align-items: center; padding: var(--pad-bar) 0; }
+.bar-track { background: var(--track); height: var(--bar-h); border-radius: var(--radius); }
+.bar-track i { display: block; height: 100%; border-radius: var(--radius); background: var(--accent); }
+.bar-row.good .bar-track i { background: var(--good); }
+.bar-row.bad .bar-track i { background: var(--bad); }
+.bar-value { text-align: right; }
+</style>
+</head>
+<body>
+<main>
+<p class="nav"><a href="step1_baseline.html">&larr; Step 1: baseline</a> &middot; <a href="index.html">Journal index</a> &middot; <a href="step3_4_control_and_subtraction.html">Steps 3 and 4: control and subtraction &rarr;</a></p>
+<h1>Step 2: the adapter learns what MAGICK on gray looks like</h1>
+<p class="byline">Journal entry, 2026-11-17. Agent: Sana. Run <code>adapter_v1</code>, started 7:05 AM ET, step 2000 at about 9:15 AM ET.</p>
+</main>
+
+<main>
+<p>The plan separates two things: what MAGICK <i>looks like</i> (gray background, dated style) and how to <i>follow a matte</i>. The first model, the <b>adapter</b>, learns the first one. It sees only captions, no matte. This borrows the idea of AnimateDiff's domain adapter [AnimateDiff]: a model soaks up the data's domain, so that a later control model does not have to.</p>
+
+<div class="callout"><b>Short answer</b>
+<ul>
+<li>The adapter is a <b>full fine-tune</b> of the 1.6B SANA-Sprint teacher (all 1,604,641,952 parameters train) on 138,063 MAGICK images composited on 50% gray, with MAGICK captions.</li>
+<li>It trained for <b>2,000 steps &times; 256 images</b> (32 per GPU on 8 A100s) = 512,000 images, about 3.7 passes over the data, in about 2 hours. <b>Checkpoint 1</b> is step 1000 (8:26 AM ET): flat mid-gray backgrounds, no artifacts, isolated MAGICK-style subjects.</li>
+<li>The border of a generated image is now <b>0.077</b> away from 0.5 gray on average, against 0.339 for the stock teacher and 0.189 when we ask the teacher for gray in words. The MAGICK images themselves score 0.036.</li>
+<li>The loss hardly moved after step 360. The samples, not the loss, told us it worked.</li>
+</ul></div>
+
+<details open><summary><h2>What the adapter is</h2></summary>
+<ul>
+<li><b>Objective: rectified flow.</b> The teacher is a plain flow model in diffusers [Rectified flow]. We take the clean latent x0, draw noise &epsilon;, pick a noise level &sigma; = 3u / (1 + 2u) with u = sigmoid(N(0,1)) (a logit-normal draw with flow shift 3, as the teacher's own training config does), and form x_t = (1 &minus; &sigma;) &middot; x0 + &sigma; &middot; &epsilon;. The network predicts the velocity &epsilon; &minus; x0; the loss is mean squared error. TrigFlow, which the Sprint paper uses, appears only in the distillation to the student [SANA-Sprint].</li>
+<li><b>Data:</b> the precomputed DC-AE latents of the gray composites from Step 0. The caption is dropped for 10% of the samples, which is what makes classifier-free guidance work at sampling time.</li>
+<li><b>Optimizer:</b> AdamW, learning rate 2e-5 after 250 warmup steps, no weight decay, gradient clip 0.1, fp32 master weights with bf16 autocast, gradient checkpointing. Batch 32 per GPU &times; 8 GPUs = 256. Speed: 0.276 steps/s, about 70.7 images/s, 40 GB per GPU.</li>
+<li><b>Why a full fine-tune and not a LoRA:</b> it is the limit of &quot;as high a rank as fits&quot;, it fits (weights, gradients and Adam state take 24 GB per GPU), and the weights stay exact in fp32. That matters later, when we subtract this model from another one.</li>
+</ul>
+</details>
+
+<details open><summary><h2>Metrics on the 29 eval images</h2></summary>
+<div class="scroll"><table><thead><tr><th>model (20 steps, CFG 4.5)</th><th>exterior gray error</th><th>border gray error</th><th>foreground fraction</th><th>IoU vs matte</th></tr></thead><tbody><tr><td>teacher, plain caption</td><td>0.329</td><td>0.339</td><td>0.988</td><td>0.369</td></tr><tr><td>teacher, caption + gray suffix</td><td>0.181</td><td>0.189</td><td>0.945</td><td>0.382</td></tr><tr class=hl><td>adapter, step 1000 (Checkpoint 1)</td><td>0.113</td><td>0.099</td><td>0.531</td><td>0.524</td></tr><tr class=hl><td>adapter, step 2000</td><td>0.090</td><td>0.077</td><td>0.492</td><td>0.542</td></tr><tr><td>MAGICK reference (sanity check)</td><td>0.002</td><td>0.036</td><td>0.372</td><td>0.983</td></tr></tbody></table></div>
+<p class="note">Means over the 29 eval images, one fixed noise each, 20 steps, CFG 4.5. The adapter never sees the matte, so IoU here is not a result: it moves because the foreground fraction (pixels that are not gray) falls from 0.99 to 0.49&ndash;0.53, which is closer to the reference's 0.37. Exterior error stays above the border error because the generated object also lands outside the true matte. A border error of 0.077 is still twice the reference's 0.036: some captions name a background color (&quot;mandarins on a turquoise&quot;, &quot;flowers ... on pastel&quot;), and the adapter obeys them. Raw numbers: <a href="assets/step2/metrics.json">step 1000</a>, <a href="assets/step3_v1_500/metrics.json">step 2000</a>.</p>
+<div class="bars"><h4>Border gray error (lower is better; 0 = perfectly flat 0.5 gray at the edge)</h4><div class="bar-row good"><span>teacher, plain caption</span><span class="bar-track"><i style="width:96.8%"></i></span><span class="bar-value">0.339</span></div><div class="bar-row good"><span>teacher, caption + gray suffix</span><span class="bar-track"><i style="width:53.9%"></i></span><span class="bar-value">0.189</span></div><div class="bar-row good"><span>adapter, step 1000 (Checkpoint 1)</span><span class="bar-track"><i style="width:28.3%"></i></span><span class="bar-value">0.099</span></div><div class="bar-row good"><span>adapter, step 2000</span><span class="bar-track"><i style="width:21.9%"></i></span><span class="bar-value">0.077</span></div><div class="bar-row good"><span>MAGICK reference</span><span class="bar-track"><i style="width:10.3%"></i></span><span class="bar-value">0.036</span></div></div>
+</details>
+</main>
+
+<div class="wide">
+<details open><summary><h2>What we see</h2></summary>
+<p>Each row is one eval caption. Columns: the matte (unused here), the stock teacher with the plain caption, the teacher with &quot;on a plain 50% gray background&quot; added, and the adapter at step 1000.</p>
+<figure><img src="assets/step2/compare.jpg" alt="All 29 eval images. Matte | stock teacher | teacher with gray suffix | adapter, step 1000. Same noise in every column." loading="lazy"><figcaption>All 29 eval images. Matte | stock teacher | teacher with gray suffix | adapter, step 1000. Same noise in every column.</figcaption></figure>
+<ul>
+<li>The stock teacher paints scenes (street, red flames, bokeh). With the gray suffix it gives a light, uneven studio gray with cast shadows. The adapter gives a darker, uniform mid-gray in the rows we examined; the exceptions are captions that name a color (turquoise, pastel).</li>
+<li>Subjects become full figures facing the camera, centered and isolated, with clean outlines (the yeoman woman, the postal worker, the dice girl). Objects look glossier and more saturated than the teacher's: the black stone and the melon bowl look like renders.</li>
+<li>The adapter does not see the matte, so it ignores it: the matcha latte, a round cup seen from above in the matte, becomes a tall glass with a straw.</li>
+<li>No obvious artifacts at step 1000 in the rows we examined (most of the 29). We judged by eye and by the numbers above; we did not run a VLM scoring pass on this checkpoint.</li>
+</ul>
+</details>
+
+<details open><summary><h2>How the samples changed during training</h2></summary>
+<p>The trainer draws the same 8 captions with the same noise every 250 steps (the first eight eval captions). Left: step 250. Right: step 1000.</p>
+<div class="pair">
+<figure><img src="assets/step2/sample_step_000250.jpg" alt="Step 250. Backgrounds are not yet one gray: charcoal behind the woman, light gray behind the hearts, mid-gray behind the cork roll and the dice girl. The sunglasses girl has streaks in her hair and clothes." loading="lazy"><figcaption>Step 250. Backgrounds are not yet one gray: charcoal behind the woman, light gray behind the hearts, mid-gray behind the cork roll and the dice girl. The sunglasses girl has streaks in her hair and clothes.</figcaption></figure>
+<figure><img src="assets/step2/sample_step_001000.jpg" alt="Step 1000. Every background is the same flat mid-gray except the turquoise one that the caption asks for. The streaks are gone." loading="lazy"><figcaption>Step 1000. Every background is the same flat mid-gray except the turquoise one that the caption asks for. The streaks are gone.</figcaption></figure>
+</div>
+</details>
+</div>
+
+<main>
+<details open><summary><h2>Limits of this step</h2></summary>
+<ul>
+<li>One noise per image, 29 images. Differences of a few percent in the table are not reliable.</li>
+<li>Step 2000 is the checkpoint that Step 3 builds on. We know it from the metrics (border error 0.077, down from 0.099 at step 1000) and a quick look; we did not compare step 1000 and step 2000 image by image.</li>
+<li>The loss was around 0.29 from step 360 to step 2000 (0.299 at 360, 0.289 at 2010). Longer training was not tested; the run was set for 3,000 steps and stopped at 2,000 on purpose, to give the control run more GPU time.</li>
+<li>The adapter learned the gray background <i>together with</i> MAGICK's style. The next entry shows why this matters.</li>
+</ul>
+</details>
+</main>
+
+<main>
+<details><summary><h2>Glossary</h2></summary><dl><dt>Adapter</dt><dd>A copy of the teacher fine-tuned, with no matte input, to generate MAGICK-style gray composites from a caption. It carries the data's &quot;domain&quot;: the gray background and MAGICK's look.</dd><dt>Teacher</dt><dd>The multi-step SANA-Sprint model (1.6B parameters, 20 steps, classifier-free guidance) that the 1&ndash;4 step Sprint student is distilled from. We train on it, not on the student.</dd><dt>Rectified flow</dt><dd>A diffusion variant where noise and image are mixed linearly, x_t = (1 &minus; &sigma;) x0 + &sigma; &epsilon;, and the model predicts the straight-line velocity &epsilon; &minus; x0.</dd><dt>Full fine-tune</dt><dd>Every weight of the model is trained, not a low-rank update (LoRA) of a few layers.</dd><dt>Checkpoint 1</dt><dd>The first point where the adapter looks right: flat gray background, no artifacts. We notified the user at step 1000.</dd><dt>Matte</dt><dd>The alpha channel as a grayscale image: white = opaque, black = transparent.</dd><dt>Gray composite</dt><dd>rgb &middot; alpha + 0.5 &middot; (1 &minus; alpha): the object on a flat 50% gray background. This is the target output.</dd><dt>Eval set</dt><dd>The 29 fixed MAGICK images (matte, caption, fixed noise) that every step uses. They are never trained on.</dd><dt>Border gray error</dt><dd>Mean |rgb &minus; 0.5| in the 64 px band at the image edge. This is the cleaner background estimate for models without a matte.</dd><dt>Exterior gray error</dt><dd>Mean |rgb &minus; 0.5| over pixels where the input matte is 0 (outside the object). 0 means a perfectly flat 0.5 gray outside the object. For models that do not see the matte, the object itself can fall in this region, so the number is only a rough guide.</dd><dt>IoU vs matte</dt><dd>Intersection over union of the generated foreground and the matte. Foreground = pixels where some channel is more than 0.06 from 0.5. It therefore only measures &quot;correct shape <i>and</i> gray background&quot; together: a model that draws the right shape on a colored background scores low.</dd></dl></details>
+<details><summary><h2>Sources cited</h2></summary><ul><li>[SANA-Sprint] Chen et al., "SANA-Sprint: One-Step Diffusion with Continuous-Time Consistency Distillation", <a href="https://arxiv.org/abs/2503.09641">arXiv 2503.09641</a>.</li><li>[SANA] Xie et al., "SANA: Efficient High-Resolution Image Synthesis with Linear Diffusion Transformers", <a href="https://arxiv.org/abs/2410.10629">arXiv 2410.10629</a>.</li><li>[Rectified flow] Liu et al., "Flow Straight and Fast: Learning to Generate and Transfer Data with Rectified Flow", <a href="https://arxiv.org/abs/2209.03003">arXiv 2209.03003</a>.</li><li>[AnimateDiff] Guo et al., "AnimateDiff: Animate Your Personalized Text-to-Image Diffusion Models without Specific Tuning", <a href="https://arxiv.org/abs/2307.04725">arXiv 2307.04725</a>.</li><li>[MAGICK] Burgert et al., CVPR, <a href="https://ryanndagreat.github.io/MAGICK/">project page</a>, <a href="https://huggingface.co/datasets/OneOverZero/MAGICK">dataset</a>.</li><li>Training code: <code>src/sana_alpha/train_adapter.py</code>, <code>train_objective.py</code>; run log: <code>agents/.scratchpad/logs/train_adapter_adapter_v1.log</code>.</li></ul></details>
+<p class="nav"><a href="step1_baseline.html">&larr; Step 1: baseline</a> &middot; <a href="index.html">Journal index</a> &middot; <a href="step3_4_control_and_subtraction.html">Steps 3 and 4: control and subtraction &rarr;</a></p>
+</main>
+</body>
+</html>
