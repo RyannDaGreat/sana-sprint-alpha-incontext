@@ -23,7 +23,14 @@ dependencies = [
     "sentencepiece",
     "protobuf",
     "gradio>=6.32.0",
+    "onnx>=1.23.2",
+    "onnxscript>=0.7.2",
+    "onnxruntime-gpu>=1.32.0",
 ]
 
 [tool.uv]
 package = false
+
+[[tool.uv.index]]
+url = "https://pypi.org/simple"
+default = true
