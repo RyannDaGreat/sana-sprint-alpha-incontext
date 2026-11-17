@@ -216,3 +216,4 @@ Model contract (SEMANTIC BINDING: web-model-contract), one folder per version un
 - `transformer`: Sprint student + control delta (+ λ adapter delta) + gates, one step: inputs noisy latent (1, 32, 32, 32), matte latent (1, 32, 32, 32), timestep, guidance, embeddings + mask → velocity / denoised latent (exact Sprint 1-step math written in the manifest).
 - `vae_decoder`: latent (1, 32, 32, 32) / 0.41407 → RGB (1, 3, 1024, 1024).
 - Quantization per file (fp16 / int8 / int4) is recorded in the manifest; fp16 overflow is checked first (WebGPU has no bf16).
+- **Quantize properly** (m00629): no naive round-to-nearest int4. Use SANA's own scheme if one exists (MIT Han Lab's SVDQuant / DeepCompressor / Nunchaku has SANA 4-bit models), adapted to what ONNX Runtime Web can run; otherwise a researched, calibrated method. Every quantized variant is judged against fp16 on the eval set.

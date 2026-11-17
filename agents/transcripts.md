@@ -188,3 +188,6 @@ That working model might be a WebGPU demo gallery item.
 
 ## m00628 — 2026-11-17 1:10 PM
 But yeah, that thing about not having a gray background is actually perfectly fine and expected. Like, when we subtract the adapter, that is what the final model probably should be. I don't really need it to have a perfect gray background in the end. It's okay if it does, it's okay if it doesn't, I don't really care. The whole point is we're subtracting the adapter, right?
+
+## m00629 — 2026-11-17 1:12 PM
+And don't do random shitty quantization. If you do int4 quantization, do it properly. You can do research on how to quantize it, unless SANA already has a scheme to do this, in which case you should use theirs.
