@@ -52,7 +52,7 @@ All steps use the **same eval set** (same prompts, same mattes, same noise tenso
 
 | Step | What | Output | Pass criterion |
 |---|---|---|---|
-| 0 | **Curate data with BlueJay** (`data/project.dtab`). Download all of MAGICK. Processors write alpha, RGB-on-gray, quality stats and **precomputed DC-AE latents at 512²** into tables. Pick the eval set: ≥20 held-out prompts + mattes + saved noise tensors. View it all in Sparrow. | BlueJay tables on the node | Spot-check composites in Sparrow. Alpha convention verified. VAE round-trip PSNR. |
+| 0 | **Curate data with BlueJay** (`data/project.dtab`). Download all of MAGICK. Processors write alpha, RGB-on-gray, quality stats and **precomputed DC-AE latents at 1024²** (the teacher's own VAE) into tables. Eval set = images where sha256(page_id) mod 4000 is 0 (about 35), never trained on. View it all in Sparrow. Run: `data/run_proc_curate.fish`. | BlueJay tables on the node | Spot-check composites in Sparrow. Alpha convention verified. VAE round-trip PSNR. |
 | 1 | **Baseline.** Run stock SANA-Sprint (and the teacher) on the eval prompts. Plain prompts, and prompts with "on a gray background". | journal grid | — (reference only) |
 | 2 | **Adapter.** Fine-tune Sprint on gray composites + MAGICK captions, text-only. LoRA at max rank that fits on A100 80GB, or full fine-tune. | adapter weights | VLM: no artifacts. Quality comparable to MAGICK. Flat 0.5 gray bg. → **Checkpoint 1, notify user.** |
 | 3 | **Control (GateControl-based).** Bake the adapter into the weights. Train matte control: clean matte condition, loss on the generated image only. | control weights | Output silhouette matches the matte (IoU metric + VLM). |
@@ -63,7 +63,9 @@ All steps use the **same eval set** (same prompts, same mattes, same noise tenso
 If a step fails, go back, try again, and journal it.
 
 **Run rules (user, m00222, m00245, m00257):**
-- **512×512 end to end first** (all steps 0–4, eval included). Upgrade to 1024 only after that works.
+- **1024×1024 only** (m00295): Sprint and its teacher are trained at 1024, and one resolution keeps the pipeline simple.
+- **Teacher first, distill at the very end** (m00295), after the teacher-based model works.
+- **Eval is done by the agent, not BlueJay** (m00371): eval scripts and fixed noises live with the training code. BlueJay only curates training data.
 - **Big batch sizes** when they fit in GPU memory. Up to **1 hour** of run optimization (throughput, batch size, data loading) is allowed before the real run.
 - **Target: something working within 12 hours** of 2026-11-17 03:38 EST, so by about 15:38 EST, if possible.
 - **Every training run is babysat.**
@@ -73,7 +75,7 @@ If a step fails, go back, try again, and journal it.
 1. **Sprint student vs teacher.** Train directly on the Sprint student (fast eval, but a plain diffusion loss may break few-step ability)? Or train on the teacher and distill to Sprint later? User said (m00018, paraphrased): "maybe we could just start with the teacher model and distill it a little later."
 2. **LoRA vs full fine-tune** for the adapter and the control. With 8× A100 80GB, full fine-tune of 1.6B is feasible.
 3. **Control mechanics.** Decided: GateControl-based (m00231). Exact layers, gate and rank: from research agent 6 (§5).
-4. **Resolution.** Decided: 512×512 end to end first, then upgrade (m00222, m00245).
+4. **Resolution.** Decided: 1024×1024 only (m00295).
 5. **The weight-arithmetic step assumes LoRA/full deltas are compatible.** If the adapter is a LoRA, `W_control − W_adapter_baked` is exact in fp32 but lossy in bf16. Keep fp32 master copies for the subtraction.
 
 ## 5. Research Findings
@@ -134,7 +136,7 @@ AGENTS.md
 
 Training entry points (e.g. `train_adapter.sh`, `train_control.sh`) may also live at the top level, but only once they are proven.
 
-`data/` (user, m00196) holds the BlueJay project: `data/project.dtab` (the graph: tables, processors, queries, Sparrow views) and `data/processors/*.py` (one `uv run --script` per processor). Only `data/lance/` (the database) and `data/magick_raw/` (the 191 GB download) are gitignored.
+`data/` (user, m00196) holds the BlueJay project: `data/project.dtab` (the graph: tables, processors, queries, Sparrow views) and `data/processors/*.py` (one `uv run --script` per processor). Only `data/lance/` (the database, which holds the PNGs as blobs, about 191 GB plus derived columns) is gitignored. Fish scripts follow MulticamDailies (m00285, m00295): `data/aviary.sh` pins nflx-aviary in one place, `data/uv.env` puts uv's cache on /localize, `data/run_proc_curate.fish` runs the pipeline, `data/run_sparrow.fish` opens the viewer, `data/recipes/loops/until_empty.fish` runs one processor until it has no work.
 
 | Path | Purpose |
 |---|---|
@@ -145,7 +147,7 @@ Training entry points (e.g. `train_adapter.sh`, `train_control.sh`) may also liv
 | `agents/transcripts.md` | Verbatim (courtroom-style) transcripts of user inputs. |
 | `agents/.scratchpad/` | AI workspace (frenzy output, logs, scratch journal). |
 | `journal/` | Human-facing distill.pub-style journal (HTML + images). |
-| `data/project.dtab` | BlueJay graph. Tables: `import_jobs`, `magick_samples`, `eval_noise`, `checkpoints`, `generations`. Processors: `download_magick` → `split_alpha` → `encode_latents`; `make_eval_noise`; `plan_generations` → `generate` → `score_generation`, `vlm_judge`. Views: `view_dataset`, `view_eval_grid`, `view_checkpoint_scores`. |
+| `data/project.dtab` | BlueJay graph, MulticamDailies house style. Tables: `import_jobs` (one seeded row), `magick_samples` (one row per image). Processors: `import_index` (TSV → rows) → `download_image` (PNG blob) → `split_alpha` (matte + RGB on 0.5 gray + stats) → `encode_latents` (DC-AE latents (32,32,32) at 1024 + PSNR). View: `view_dataset`. |
 | `data/processors/` | One script per processor (not yet written). |
 
 ## 8. Requirements (from user)
@@ -157,7 +159,8 @@ Training entry points (e.g. `train_adapter.sh`, `train_control.sh`) may also liv
 - LoRA rank: as high as possible without OOM.
 - Data processing: BlueJay (m00196). Precompute latents and conditions as BlueJay tables; visualize them in Sparrow.
 - Control method: GateControl-based (m00231).
-- 512×512 end to end first; big batches; ≤1 h run optimization; aim for something working in 12 h (m00222, m00245).
+- 1024 only (m00295); teacher first, distill last (m00295); big batches; ≤1 h run optimization; aim for something working in 12 h (m00245).
+- dtab house style copied from MulticamDailies: annotated TYPE/DESCRIPTION/EXAMPLE, annotated SQL, alignment (m00295). Eval not in BlueJay (m00371).
 - Babysit every training run (m00257).
 - Transcribe all user inputs (`agents/transcripts.md`).
 - Planning happens here. Execution happens on the node via the GitHub repo.
