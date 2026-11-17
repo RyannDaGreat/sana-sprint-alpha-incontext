@@ -210,7 +210,7 @@ def write_preview(pipe, transformer, records, indices, path):
 
 def train(run, data=str(OVERFIT_DIR), adapter=None, rank=16, batch_size=16, max_steps=10000, warmup=500,
           lr=1.0, weight_decay=0.01, max_grad_norm=1.0, cond_drop=0.1, text_drop=0.1, save_every=1000,
-          preview_every=500, log_every=10, grad_checkpointing=False, compile=True, seed=0):
+          preview_every=500, log_every=10, grad_checkpointing=False, compile=True, seed=0, init_from=None, start_step=0):
     """
     Command. Trains the control LoRA + gates with DDP (torchrun) or on one GPU (plain python); writes models/control/<run>/.
 
@@ -231,6 +231,8 @@ def train(run, data=str(OVERFIT_DIR), adapter=None, rank=16, batch_size=16, max_
         grad_checkpointing (bool): checkpoint each block (saves memory, ~30% slower)
         compile (bool): torch.compile the block function (gatecontrol.compile_blocks)
         seed (int): data order and noise seed (offset by rank)
+        init_from (str | None): a saved control step folder to start from (same adapter and rank); the optimizer starts fresh
+        start_step (int): step number of init_from, so checkpoints keep counting (e.g. 4000)
     """
     import prodigyopt
 
@@ -253,7 +255,13 @@ def train(run, data=str(OVERFIT_DIR), adapter=None, rank=16, batch_size=16, max_
 
     transformer = load_base_transformer(adapter, device)
     lora_config = gc.add_control_lora(transformer, rank)
-    gc.attach_gates(transformer)
+    gates_module = gc.attach_gates(transformer)
+    if init_from:
+        lora, gates, meta0 = gc.load_control_files(Path(init_from))
+        assert int(meta0["rank"]) == rank and meta0["adapter"] == str(adapter), f"{init_from}: rank/adapter differ: {meta0}"
+        result = gc.set_peft_model_state_dict(transformer, lora, adapter_name=gc.ADAPTER_NAME)
+        assert not result.unexpected_keys, f"unexpected LoRA keys: {result.unexpected_keys[:5]}"
+        gates_module.load_state_dict(gates, strict=True)
     for p in transformer.parameters():
         if p.requires_grad:
             p.data = p.data.float()  # trainable LoRA + gates in float32; the frozen base stays bf16
@@ -278,7 +286,7 @@ def train(run, data=str(OVERFIT_DIR), adapter=None, rank=16, batch_size=16, max_
     meta = dict(run=run, adapter=str(adapter), data=str(data), objective="flow v=eps-x0, sigma timestep")
     if main and preview_every:
         write_preview(pipe, transformer, records, preview_idx, out_dir / "previews" / "step_000000.png")
-    step, epoch, t_last, seen = 0, 0, time.time(), 0
+    step, epoch, t_last, seen = start_step, 0, time.time(), 0
     torch.cuda.reset_peak_memory_stats(device)
     while step < max_steps:
         for idx in epoch_batches(len(text), batch_size, epoch, seed):
