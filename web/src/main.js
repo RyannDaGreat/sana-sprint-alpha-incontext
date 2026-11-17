@@ -17,7 +17,10 @@ const SEED_RANGE = 2 ** 31;
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
-const modelsBase = new URL(params.get('models') ?? '../models/web/', location.href).href;
+// On GitHub Pages the models come from the repo's `models` branch (sharded; see src/sana_alpha/publish_models.py).
+const PAGES_MODELS = 'https://raw.githubusercontent.com/RyannDaGreat/sana-sprint-alpha-incontext/models/web/';
+const defaultModels = location.hostname.endsWith('github.io') ? PAGES_MODELS : '../models/web/';
+const modelsBase = new URL(params.get('models') ?? defaultModels, location.href).href;
 
 const state = { versions: [], selected: null, pipeline: null, busy: false, pending: false, timer: null, last: null, segmenter: null, hasPhoto: false };
 

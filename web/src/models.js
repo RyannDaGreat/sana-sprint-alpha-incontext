@@ -10,13 +10,14 @@
 //     "tokenizer": {path, bytes}, "tokenizer_config": {path, bytes},
 //     "text_encoder" | "vae_encoder" | "transformer" | "vae_decoder": {
 //        path, bytes, sha256, dtype,                  (sha256 optional, cache key; dtype informational: fp32 / fp16 / int8 / int4)
-//        "external_data": [{path, bytes}],            (optional; ONNX external weights)
+//        "parts": [{url, bytes}],                     (optional; shards concatenated in order, URLs relative to the folder)
+//        "external_data": [{path, bytes, sha256, parts}],  (optional; ONNX external weights)
 //        "names": {role: onnx_name}                   (optional; overrides the default names in pipeline.js)
 //     }}}
 //   "latent_scaling_in_graph": bool,                 (optional, default false: JS does × / ÷ scaling_factor)
 //   "decoder_output_range": "-1,1" | "0,1",          (optional, default "-1,1")
-// The exporter's own manifest format (flat "files": {name: bytes} + "graphs") is accepted too and
-// converted by normalizeManifest.
+// The exporter's own manifest format (flat "files": {name: bytes} + "graphs", optional flat
+// "sha256": {name: hex} and "parts": {name: [{url, bytes}]}) is accepted too and converted by normalizeManifest.
 // Input dtypes (float32 / float16 / int64 / int32) are read from each session's metadata.
 // The transformer gets N(0, 1) noise and the scaled matte latent and returns the denoised,
 // scaled latent: all Sprint one-step math (sigma_data, TrigFlow) lives inside the graph.
@@ -80,9 +81,10 @@ export function normalizeManifest(raw) {
   for (const [name, bytes] of Object.entries(raw.files)) {
     const role = name.replace(/\.onnx(\.data)?$|\.json$/, '');
     if (name.endsWith('.data')) continue;
-    files[role] = { path: name, bytes, names: EXPORT_NAMES[role] };
+    const entry = (n, b) => ({ path: n, bytes: b, sha256: raw.sha256?.[n], parts: raw.parts?.[n] });
+    files[role] = { ...entry(name, bytes), names: EXPORT_NAMES[role] };
     const data = raw.files[`${name}.data`];
-    if (data !== undefined) files[role].external_data = [{ path: `${name}.data`, bytes: data }];
+    if (data !== undefined) files[role].external_data = [entry(`${name}.data`, data)];
   }
   return {
     label: raw.version, description: raw.source ? `Exported from ${raw.source}.` : '',
@@ -93,8 +95,9 @@ export function normalizeManifest(raw) {
 }
 
 /**
- * Pure function. Every file a version needs, as absolute URLs with sizes. The cache key adds the
- * file's sha256 (or, without one, its size), so a re-exported file is downloaded again.
+ * Pure function. Every file a version needs, as absolute URLs with sizes. The cache key is the file's
+ * sha256 (shared by versions that share a file), or without one its URL + size, so a re-exported file
+ * is downloaded again.
  *
  * @param {{url: string, manifest: object}} version
  * @returns {{role: string, name: string, url: string, bytes: number}[]}
@@ -111,7 +114,8 @@ export function versionFiles(version) {
   for (const [role, f] of Object.entries(version.manifest.files)) {
     for (const g of [f, ...(f.external_data ?? [])]) {
       const url = new URL(g.path, version.url).href;
-      out.push({ role, name: g.path.split('/').pop(), url, bytes: g.bytes, key: `${url}?v=${g.sha256 ?? g.bytes}` });
+      const parts = g.parts?.map((p) => ({ url: new URL(p.url, version.url).href, bytes: p.bytes }));
+      out.push({ role, name: g.path.split('/').pop(), url, bytes: g.bytes, key: g.sha256 ? `sha256:${g.sha256}` : `${url}?v=${g.bytes}`, parts });
     }
   }
   return out;
@@ -164,7 +168,7 @@ export async function cachedFlags(files) {
  * while writing it to OPFS. The write commits only on close, so an interrupted download leaves
  * no partial file. Fails loudly if the size differs from the manifest.
  *
- * @param {{url: string, key: string, bytes: number}} file
+ * @param {{url: string, key: string, bytes: number, parts?: {url: string, bytes: number}[]}} file - parts: shards to concatenate
  * @param {(done: number, total: number, fromCache: boolean) => void} onProgress
  * @returns {Promise<Uint8Array>}
  */
@@ -176,21 +180,23 @@ export async function fetchCached(file, onProgress) {
     onProgress(data.length, file.bytes, true);
     return data;
   }
-  const res = await fetch(file.url, { cache: 'no-store' });
-  if (!res.ok) throw new Error(`GET ${file.url}: HTTP ${res.status}`);
   const handle = await (await cacheDir()).getFileHandle(await cacheName(file.key), { create: true });
   const writer = await handle.createWritable();
   const data = new Uint8Array(file.bytes);
-  const reader = res.body.getReader();
   let done = 0;
-  for (;;) {
-    const { value, done: end } = await reader.read();
-    if (end) break;
-    if (done + value.length > file.bytes) throw new Error(`${file.url}: more than the manifest's ${file.bytes} bytes`);
-    data.set(value, done);
-    await writer.write(value);
-    done += value.length;
-    onProgress(done, file.bytes, false);
+  for (const part of file.parts ?? [{ url: file.url }]) {  // shards (≤ 95 MB, GitHub's file limit) are concatenated
+    const res = await fetch(part.url, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`GET ${part.url}: HTTP ${res.status}`);
+    const reader = res.body.getReader();
+    for (;;) {
+      const { value, done: end } = await reader.read();
+      if (end) break;
+      if (done + value.length > file.bytes) throw new Error(`${file.url}: more than the manifest's ${file.bytes} bytes`);
+      data.set(value, done);
+      await writer.write(value);
+      done += value.length;
+      onProgress(done, file.bytes, false);
+    }
   }
   if (done !== file.bytes) { await writer.abort(); throw new Error(`${file.url}: got ${done} bytes, manifest says ${file.bytes}`); }
   await writer.close();
