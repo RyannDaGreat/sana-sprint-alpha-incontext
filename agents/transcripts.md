@@ -100,7 +100,7 @@ There was a maintenance script in the dailies repository that dictated how to pr
 ## m00508 (04:10)
 I couldn't help but notice you did not inline your queries into the processors. Why? The magic data said it that.
 
-## m00600 — 2026-11-17 04:16 (node session start; pasted from an earlier session that failed with an API error)
+## m00600 — 2026-11-17 4:16 AM (node session start; times of m00600–m00614 are approximate, ±10 min; pasted from an earlier session that failed with an API error)
 https://github.netflix.net/rburgert/MulticamDailies <--- Hi, please get started. Read this repository and you'll figure out what to do. BlueJay, here you may want to download into a sub-repository and coordinate everything through your top-level [aviary.sh, transcribed as "AVRE.sh"] file exactly the same as another project that I had. In fact, you might want to just download [Aviary, transcribed as "AVRE"] into the data [folder, transcribed as "filter"] and reference all invocations of it with aviary.sh, which you'll see is the same as another one of my repositories, which was located here. You can see how aviary.sh — its role that it plays in this repository is the role that it should play in this one, inside the data folder. And apart from that, I think you can figure out what to do. Um, yeah, this is a dump, so treat it as one. Stay in the dump and review all protocol and then get started. Enter bulldog mode, try to get some results done in about 12 hours, please. I'll be generous, I'll give you 13 hours.
 
 ## m00601 — 2026-11-17 04:17
