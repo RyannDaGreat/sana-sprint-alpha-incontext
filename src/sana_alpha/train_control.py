@@ -329,9 +329,11 @@ def train(run, data=str(OVERFIT_DIR), adapter=None, rank=16, batch_size=16, max_
         dist.destroy_process_group()
 
 
-def merge_final(control, out=None):
+def merge_final(control, out=None, adapter_scale=0.0):
     """
     Command. Writes the final model W_base + (W_control − W_adapter) = clean teacher + control LoRA delta, in float32.
+    With adapter_scale λ it writes W_base + λ·(W_adapter − W_base) + control LoRA delta: λ = 0 is the final model,
+    λ = 1 is the control model itself.
 
     The adapter stayed frozen while the control trained, so W_control − W_adapter is exactly the LoRA delta; the
     gates are new modules and are copied unchanged. Output: a float32 diffusers transformer folder (like the adapter
@@ -341,12 +343,19 @@ def merge_final(control, out=None):
     Args:
         control (str): a saved step folder, e.g. models/control/<run>/step_010000
         out (str | None): output folder; default <run>/final_<step folder name>, one per step (models.localize assumes folders never change)
+        adapter_scale (float): λ, the fraction of the adapter delta kept; the default folder name gets suffix _adapter<λ>
     """
     control = Path(control)
-    out = Path(out) if out else control.parent / f"final_{control.name}"
+    suffix = f"_adapter{adapter_scale:g}" if adapter_scale else ""
+    out = Path(out) if out else control.parent / f"final_{control.name}{suffix}"
     lora, gates, meta = gc.load_control_files(control)
     base = SanaTransformer2DModel.from_pretrained(models.localize(TEACHER), subfolder="transformer", torch_dtype=torch.float32)
-    merged = gc.merge_lora_into_state_dict(base.state_dict(), lora, int(meta["rank"]), float(meta["alpha"]))
+    state = base.state_dict()
+    if adapter_scale:
+        adapter = load_file(models.localize(meta["adapter"]) / "diffusion_pytorch_model.safetensors")
+        assert adapter.keys() == state.keys(), "adapter and teacher transformers differ in keys"
+        state = {k: v + adapter_scale * (adapter[k].float() - v) for k, v in state.items()}
+    merged = gc.merge_lora_into_state_dict(state, lora, int(meta["rank"]), float(meta["alpha"]))
     base.load_state_dict(merged, strict=True)
     base.save_pretrained(out, safe_serialization=True)
     save_file(gates, out / "gates.safetensors", metadata=dict(meta, source=str(control)))
