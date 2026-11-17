@@ -200,3 +200,6 @@ These galleries can be used to make [mirrored, transcribed as "minstrel"] Sparro
 
 ## m00632 — 2026-11-17 1:35 PM
 It would also be nice if the web interface also had some foreground segmentation things, so that I could also just upload a regular photo and then do foreground segmentation on it, and then use that to get a mask that I can then do it all on afterwards.
+
+## m00633 — 2026-11-17 1:38 PM
+The remote contains a key. Try not to manually read the key, but push this to GitHub Pages once it works. The models must somehow go in with them. If you have to shard the models into multiple pieces to fit it into a GitHub repository, then so be it. We're not using LFS. You can always push them into another branch, so that it doesn't clutter up the current branch if anybody tries to git clone. So the models, the heavy things, can go in another branch, and you can reference them by URL. If you don't have to shard them, though, happy day.
