@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Steps 3 and 4 Control</title>
+<style>
+:root {
+  --bg: #fdfdfb; --fg: #1d1d1f; --muted: #66666b; --rule: #dcdcd6; --accent: #2f5d8a; --chip: #eef2f6; --callout: #f3f6f9;
+  --good: #2f7d4f; --bad: #b5473a; --track: #e6e6e1;
+  --gutter: 16px; --measure: 760px; --wide: 1180px; --gap: 12px; --gap-lg: 24px; --gap-xl: 48px; --radius: 4px; --hairline: 1px;
+  --pad-cell: 6px 10px; --pad-callout: 12px 18px; --pad-bar: 3px; --bar-h: 10px; --label-w: 210px; --value-w: 64px; --bar-gap: 10px; --border-accent: 4px;
+  --pair-min: 420px; --pad-code: 4px;
+  --font-body: 17px; --font-small: 14px; --font-h1: 34px; --font-h2: 23px; --line: 1.6; --line-tight: 1.2;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #18191b; --fg: #e8e8e6; --muted: #a0a0a5; --rule: #3a3b3e; --accent: #8ab4dc; --chip: #26292d; --callout: #1f2226; --good: #6cc08b; --bad: #e0857a; --track: #2c2e31; }
+}
+:root[data-theme="dark"] { --bg: #18191b; --fg: #e8e8e6; --muted: #a0a0a5; --rule: #3a3b3e; --accent: #8ab4dc; --chip: #26292d; --callout: #1f2226; --good: #6cc08b; --bad: #e0857a; --track: #2c2e31; }
+body { background: var(--bg); color: var(--fg); font: var(--font-body)/var(--line) Georgia, "Times New Roman", serif; margin: 0; }
+main { max-width: var(--measure); margin: 0 auto; padding: 0 var(--gutter); }
+.wide { max-width: var(--wide); margin: 0 auto; padding: 0 var(--gutter); }
+h1 { font-size: var(--font-h1); line-height: var(--line-tight); margin-top: var(--gap-xl); }
+summary h2 { display: inline; font-size: var(--font-h2); }
+details { margin: var(--gap-lg) 0; }
+summary { cursor: pointer; }
+a { color: var(--accent); }
+.byline { color: var(--muted); font-size: var(--font-small); border-bottom: var(--hairline) solid var(--rule); padding-bottom: var(--gap); }
+.nav { font: var(--font-small) system-ui, sans-serif; margin-top: var(--gap-lg); }
+.callout { background: var(--callout); border-left: var(--border-accent) solid var(--accent); padding: var(--pad-callout); margin: var(--gap-lg) 0; border-radius: var(--radius); }
+.eq { text-align: center; }
+.pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--pair-min)), 1fr)); gap: var(--gap); }
+table { border-collapse: collapse; width: 100%; font: var(--font-small) system-ui, sans-serif; }
+th, td { padding: var(--pad-cell); border-bottom: var(--hairline) solid var(--rule); text-align: right; }
+th:first-child, td:first-child { text-align: left; }
+tr.hl td { background: var(--chip); }
+.scroll { overflow-x: auto; }
+figure { margin: var(--gap-lg) 0; }
+figcaption { color: var(--muted); font-size: var(--font-small); margin-top: var(--gap); }
+img { max-width: 100%; height: auto; display: block; border: var(--hairline) solid var(--rule); }
+.note { color: var(--muted); font-size: var(--font-small); }
+code { font-size: var(--font-small); background: var(--chip); padding: 0 var(--pad-code); border-radius: var(--radius); }
+dt { font-weight: bold; }
+.bars { font: var(--font-small) system-ui, sans-serif; margin: var(--gap-lg) 0; }
+.bars h4 { margin: 0 0 var(--gap); font-weight: 600; }
+.bar-row { display: grid; grid-template-columns: minmax(0, var(--label-w)) 1fr var(--value-w); gap: var(--bar-gap); align-items: center; padding: var(--pad-bar) 0; }
+.bar-track { background: var(--track); height: var(--bar-h); border-radius: var(--radius); }
+.bar-track i { display: block; height: 100%; border-radius: var(--radius); background: var(--accent); }
+.bar-row.good .bar-track i { background: var(--good); }
+.bar-row.bad .bar-track i { background: var(--bad); }
+.bar-value { text-align: right; }
+</style>
+<link rel="stylesheet" href="eval_grid.css">
+</head>
+<body>
+<main>
+<p class="nav"><a href="step2_adapter.html">&larr; Step 2: adapter</a> &middot; <a href="index.html">Journal index</a> &middot; <a href="step5_sprint_transfer.html">Step 5: transfer to Sprint &rarr;</a></p>
+<h1>Steps 3 and 4: the control works; subtracting the adapter loses the gray</h1>
+<p class="byline">Journal entry, 2026-11-17. Agent: Sana. Control run <code>control_v1</code>, evaluated at step 500 at 10:25 AM ET. The fixes were tested at 10:38 AM ET.</p>
+</main>
+
+<main>
+<p>Step 3 trains the part that reads the matte. Step 4 tests the central idea of the project: subtract the adapter again, so that only &quot;follow the matte&quot; is added to the clean base model. The control works well. The subtraction does not work as planned, and the reason is worth understanding.</p>
+
+<div class="callout"><b>Short answer</b>
+<ul>
+<li>The <b>control model</b> follows the matte very well after only 500 steps: IoU <b>0.970</b>, exterior gray error 0.008 (the MAGICK reference scores 0.983 and 0.002).</li>
+<li>The <b>subtracted model</b> W<sub>base</sub> &minus; W<sub>adapter</sub> + W<sub>control</sub> keeps the matte's shape and pose, but <b>loses the gray background</b>: it draws dark, maroon or olive backdrops. Its IoU is 0.383 and its exterior gray error 0.230.</li>
+<li>Why, as far as we can tell: the gray background is part of the <i>task</i>, not domain junk. The adapter had learned it, and the control model, built on the adapter, never had to. Subtracting the adapter takes the gray with it.</li>
+<li>Two quick fixes. Asking for gray in words (&quot;on a plain 50% gray background&quot;) turns many <b>objects</b> gray too. Keeping part of the adapter works: at 75%, IoU is <b>0.942</b> and exterior gray error 0.022.</li>
+<li>That fix leaves the model close to the control model, so it has not shown that the base's cleaner look survives. A cleaner test is in progress (last section).</li>
+</ul></div>
+
+<details open><summary><h2>Step 3: the control model</h2></summary>
+<ul>
+<li><b>Method: GateControl</b> [GateControl]. The matte is encoded by the same VAE and run through the same 20 transformer blocks as a second token stream with its own residuals. Both streams get the same timestep embedding; the matte stream is clean, not noised. Only the linear self-attention sees both streams. A small gate (two linear layers per block, about 0.09M parameters) decides how much of the matte's attention each stream takes. The loss covers the generated image only.</li>
+<li><b>What trains:</b> a LoRA of rank 64 on the attention and MLP layers plus the gates: 75.5M parameters (the paper uses rank 16; we used more because the memory was there). The adapter at step 2000 is frozen underneath. Batch 16 per GPU &times; 8 = 128, the Prodigy optimizer, 500 warmup steps. The target is the same MAGICK gray composite as in Step 2; the condition is its matte.</li>
+<li><b>Curve:</b> the loss falls from about 0.62 at step 60 to 0.28 at step 300 and then wanders between 0.17 and 0.31 (single-step values, noisy). Checkpoint 500 saw 64,000 images. Training was still running (step 1220) when this entry was written, and later checkpoints are not evaluated yet. Throughput fell from about 40 to 10 images/s for a while when another job (the data for the next experiment) shared the GPUs.</li>
+</ul>
+</details>
+</main>
+
+<div class="wide">
+<details open><summary><h2>Step 4: base &minus; adapter + control</h2></summary>
+<p>Weights are arithmetic. If W<sub>control</sub> = W<sub>adapter</sub> + &Delta;<sub>control</sub> (the control LoRA sits on top of the frozen adapter), then</p>
+<p class="eq">W<sub>final</sub> = W<sub>base</sub> &minus; W<sub>adapter</sub> + W<sub>control</sub> = W<sub>base</sub> + &Delta;<sub>control</sub></p>
+<p>so the clean base gets only the control's change. The hope was that &Delta;<sub>control</sub> holds &quot;follow the matte&quot; and nothing of MAGICK's look. The idea comes from AnimateDiff's adapter trick and from task arithmetic [AnimateDiff][Task arithmetic]. We did the sums in fp32 from the saved originals.</p>
+<div class="scroll"><table><thead><tr><th>model</th><th>IoU vs matte</th><th>exterior gray error</th><th>border gray error</th><th>foreground fraction</th></tr></thead><tbody><tr><td>stock teacher, plain caption</td><td>0.369</td><td>0.329</td><td>0.339</td><td>0.988</td></tr><tr><td>adapter (step 2000)</td><td>0.542</td><td>0.090</td><td>0.077</td><td>0.492</td></tr><tr class=hl><td>control = adapter + matte</td><td>0.970</td><td>0.008</td><td>0.043</td><td>0.371</td></tr><tr class=hl><td>final = base &minus; adapter + control</td><td>0.383</td><td>0.230</td><td>0.254</td><td>0.976</td></tr><tr><td>control moved onto stock Sprint, 2 steps</td><td>0.396</td><td>0.178</td><td>0.201</td><td>0.938</td></tr></tbody></table></div>
+<p class="note">Means over the 29 eval images. Control, final and transfer see the matte; the adapter and the stock teacher do not. Raw numbers: <a href="assets/step3_v1_500/metrics.json">metrics.json</a>.</p>
+<div class="bars"><h4>IoU vs matte (higher is better)</h4><div class="bar-row"><span>stock teacher, plain caption</span><span class="bar-track"><i style="width:36.9%"></i></span><span class="bar-value">0.369</span></div><div class="bar-row"><span>adapter (step 2000)</span><span class="bar-track"><i style="width:54.2%"></i></span><span class="bar-value">0.542</span></div><div class="bar-row"><span>control = adapter + matte</span><span class="bar-track"><i style="width:97.0%"></i></span><span class="bar-value">0.970</span></div><div class="bar-row"><span>final = base &minus; adapter + control</span><span class="bar-track"><i style="width:38.3%"></i></span><span class="bar-value">0.383</span></div><div class="bar-row"><span>control moved onto stock Sprint, 2 steps</span><span class="bar-track"><i style="width:39.6%"></i></span><span class="bar-value">0.396</span></div></div>
+<p class="note">All 29 eval images at full resolution (1024&times;1024 PNGs; click one to open it), control_v1 at step 500. Columns: matte | MAGICK image on gray | adapter (does not see the matte) | control (adapter + matte) | final (base &minus; adapter + control) | the control moved onto the stock Sprint student, 2 steps. In the rows we looked at, the control follows the matte on gray. The final keeps the silhouette but puts the hearts on dark red, the apple on near black and the cork on dark brown; the Sprint version has a dark, grainy backdrop.</p>
+<div id="grid-subtraction"></div>
+<ul>
+<li>All three models that see the matte put the object where the matte says. Their objects differ from the MAGICK image in column 2 (the cork pieces are not the same), as expected: the models see only the matte and the caption.</li>
+<li><b>IoU 0.383 does not mean that the matte is ignored.</b> The metric calls a pixel foreground when it is not gray. With a dark background almost every pixel counts as foreground (foreground fraction 0.976), so the shape is lost to the metric even though the eye sees it. The metric measures &quot;right shape on gray&quot; as one number.</li>
+<li><b>The explanation we believe:</b> the adapter learned gray; the control was trained on gray targets on top of the adapter, so it got gray for free. Removing the adapter removes the gray, because the control delta never carried it. This fits the images. We have not yet shown it by training a control that has to learn the gray itself (that is the experiment in the last section).</li>
+</ul>
+</details>
+
+<details open><summary><h2>The quick fixes</h2></summary>
+<div class="scroll"><table><thead><tr><th>variant</th><th>IoU vs matte</th><th>exterior gray error</th><th>border gray error</th><th>foreground fraction</th></tr></thead><tbody><tr><td>control (reference)</td><td>0.970</td><td>0.008</td><td>0.043</td><td>0.371</td></tr><tr><td>final, &lambda; = 0 (plain subtraction)</td><td>0.383</td><td>0.230</td><td>0.254</td><td>0.976</td></tr><tr><td>final + gray words in the caption</td><td>0.583</td><td>0.079</td><td>0.108</td><td>0.712</td></tr><tr><td>final, keep 50% of the adapter (&lambda; = 0.5)</td><td>0.569</td><td>0.071</td><td>0.102</td><td>0.783</td></tr><tr class=hl><td>final, keep 75% of the adapter (&lambda; = 0.75)</td><td>0.942</td><td>0.022</td><td>0.057</td><td>0.393</td></tr><tr><td>transfer to Sprint + gray words</td><td>0.458</td><td>0.113</td><td>0.137</td><td>0.866</td></tr></tbody></table></div>
+<p class="note">Means over the 29 eval images. &lambda; is the fraction of the adapter kept: W = W<sub>base</sub> + &lambda;(W<sub>adapter</sub> &minus; W<sub>base</sub>) + &Delta;<sub>control</sub>. &lambda; = 0 is the plain subtraction; &lambda; = 1 is the control model. Raw numbers: <a href="assets/step4_fixes/metrics.json">metrics.json</a>.</p>
+<div class="bars"><h4>Exterior gray error (lower is better)</h4><div class="bar-row good"><span>control (reference)</span><span class="bar-track"><i style="width:2.5%"></i></span><span class="bar-value">0.008</span></div><div class="bar-row good"><span>final, &lambda; = 0 (plain subtraction)</span><span class="bar-track"><i style="width:76.6%"></i></span><span class="bar-value">0.230</span></div><div class="bar-row good"><span>final + gray words in the caption</span><span class="bar-track"><i style="width:26.2%"></i></span><span class="bar-value">0.079</span></div><div class="bar-row good"><span>final, keep 50% of the adapter (&lambda; = 0.5)</span><span class="bar-track"><i style="width:23.6%"></i></span><span class="bar-value">0.071</span></div><div class="bar-row good"><span>final, keep 75% of the adapter (&lambda; = 0.75)</span><span class="bar-track"><i style="width:7.2%"></i></span><span class="bar-value">0.022</span></div><div class="bar-row good"><span>transfer to Sprint + gray words</span><span class="bar-track"><i style="width:37.8%"></i></span><span class="bar-value">0.113</span></div></div>
+<p class="note">All 29 eval images at full resolution, control_v1 at step 500. Columns: matte | control | final (&lambda; = 0) | final + gray words | final keeping 50% of the adapter | final keeping 75%. In the rows we looked at, gray words give a lighter gray but turn the postal worker and the monster hunter black and white. At 50% the matcha background is still green and the apple's background is darker than in the control. At 75% the backgrounds are mid-gray and the colors survive.</p>
+<div id="grid-fixes"></div>
+<ul>
+<li><b>Gray words (rejected).</b> The exterior error falls from 0.230 to 0.079 and IoU rises to 0.583, but in the rows we looked at two of the four subjects become grayscale photographs, and the apple gets a cast shadow on a lighter gray. The words &quot;gray background&quot; leak onto the object.</li>
+<li><b>Partial adapter.</b> At &lambda; = 0.5 the numbers improve only a little (IoU 0.569, error 0.071) and some captions still pull a colored background (the matcha cup is on green). At &lambda; = 0.75 IoU jumps to 0.942 and the error drops to 0.022. We tested only these two values, so we do not know where between 0.5 and 0.75 the jump happens.</li>
+<li><b>What 0.75 means.</b> We keep three quarters of the adapter, so the model is only a quarter of the way from the control model to the plain subtraction. In every row we looked at (apple, postal worker, hunter, matcha), the 0.75 column is hard to tell from the control column. We have <i>not</i> shown that it looks more like stock Sprint than the control does. That was the point of the subtraction, and it is still open.</li>
+<li>Gray words also lift the Sprint transfer from IoU 0.396 to 0.458, which is still far from usable.</li>
+</ul>
+</details>
+<details><summary><h2>Later checkpoint: control_v1 at step 1500 (not discussed in the text)</h2></summary>
+<p class="note">All 29 eval images at full resolution. The text above describes step 500. These are the step-1500 images for the same models, for comparison. Columns: matte | control | final (&lambda; = 0) | final keeping 75% of the adapter | the control moved onto the stock Sprint student, 2 steps.</p>
+<div id="grid-1500"></div>
+</details>
+</div>
+
+<main>
+<details open><summary><h2>In progress: adapter_v2 on random colored backgrounds</h2></summary>
+<p>If the gray background is part of the task, the control model should be the one to learn it, so the adapter must not know it. <b>adapter_v2</b> trains on the same MAGICK objects on a <i>random solid color</i> per image (the color comes from a hash of the image id, so it is reproducible), with the same captions. Then the plan repeats: train a control model on gray targets on top of adapter_v2, subtract adapter_v2, and see whether the gray comes back from the control delta while MAGICK's look still cancels.</p>
+<p><b>Status at 11:02 AM ET:</b> encoding the colored-background latents is under way (about 60,000 of 140,941 images). adapter_v2 has not started. Nothing in this section is a result yet. We treat the explanation above as a hypothesis that this experiment can break.</p>
+</details>
+
+<details open><summary><h2>Limits of this entry</h2></summary>
+<ul>
+<li>29 images, one noise each. Only the step-500 control checkpoint; the control run kept training.</li>
+<li>All judgments of the images are by eye, on the grids above (all 29 images at full resolution). No VLM or human rating yet.</li>
+<li>The gray-words variant adds words to the caption for the final model only; the control model was trained and tested with the plain caption.</li>
+</ul>
+</details>
+</main>
+
+<main>
+<details><summary><h2>Glossary</h2></summary><dl><dt>Control model</dt><dd>The adapter plus a matte-reading module (LoRA + gates) trained on gray composites. It takes a matte and a caption and paints the object on gray.</dd><dt>GateControl</dt><dd>A way to add image conditions to linear-attention transformers like SANA: the condition runs as a second token stream, and per-block gates mix its attention into the main stream [GateControl].</dd><dt>LoRA</dt><dd>Low-rank adaptation: a trainable low-rank update added to some layers while the original weights stay frozen. Rank 64 here.</dd><dt>Final model</dt><dd>W<sub>base</sub> &minus; W<sub>adapter</sub> + W<sub>control</sub>: the stock model plus the control's change only.</dd><dt>&lambda; (partial adapter)</dt><dd>The fraction of the adapter's change kept in the final model. 0 = plain subtraction; 1 = the control model.</dd><dt>Gray words</dt><dd>The suffix &quot;, on a plain 50% gray background&quot; added to the caption.</dd><dt>Transfer</dt><dd>Moving the control onto the stock Sprint student without training (next entry).</dd><dt>Teacher</dt><dd>The multi-step SANA-Sprint model (1.6B parameters, 20 steps, classifier-free guidance) that the 1&ndash;4 step Sprint student is distilled from. We train on it, not on the student.</dd><dt>Matte</dt><dd>The alpha channel as a grayscale image: white = opaque, black = transparent.</dd><dt>Gray composite</dt><dd>rgb &middot; alpha + 0.5 &middot; (1 &minus; alpha): the object on a flat 50% gray background. This is the target output.</dd><dt>Eval set</dt><dd>The 29 fixed MAGICK images (matte, caption, fixed noise) that every step uses. They are never trained on.</dd><dt>IoU vs matte</dt><dd>Intersection over union of the generated foreground and the matte. Foreground = pixels where some channel is more than 0.06 from 0.5. It therefore only measures &quot;correct shape <i>and</i> gray background&quot; together: a model that draws the right shape on a colored background scores low.</dd><dt>Exterior gray error</dt><dd>Mean |rgb &minus; 0.5| over pixels where the input matte is 0 (outside the object). 0 means a perfectly flat 0.5 gray outside the object. For models that do not see the matte, the object itself can fall in this region, so the number is only a rough guide.</dd><dt>Border gray error</dt><dd>Mean |rgb &minus; 0.5| in the 64 px band at the image edge. This is the cleaner background estimate for models without a matte.</dd></dl></details>
+<details><summary><h2>Sources cited</h2></summary><ul><li>[GateControl] Liu et al., "Gated Condition Injection without Multimodal Attention", <a href="https://arxiv.org/abs/2603.27666">arXiv 2603.27666</a>; official code <a href="https://github.com/Carol-lyh/GateControl">Carol-lyh/GateControl</a>.</li><li>[AnimateDiff] Guo et al., "AnimateDiff: Animate Your Personalized Text-to-Image Diffusion Models without Specific Tuning", <a href="https://arxiv.org/abs/2307.04725">arXiv 2307.04725</a>.</li><li>[Task arithmetic] Ilharco et al., "Editing Models with Task Arithmetic", <a href="https://arxiv.org/abs/2212.04089">arXiv 2212.04089</a>.</li><li>[SANA-Sprint] Chen et al., "SANA-Sprint: One-Step Diffusion with Continuous-Time Consistency Distillation", <a href="https://arxiv.org/abs/2503.09641">arXiv 2503.09641</a>.</li><li>Code: <code>src/sana_alpha/gatecontrol.py</code>, <code>train_control.py</code> (<code>merge_final</code> with <code>--adapter_scale</code>); evaluation through <code>data/processors/generate_eval.py</code>.</li></ul></details>
+<p class="nav"><a href="step2_adapter.html">&larr; Step 2: adapter</a> &middot; <a href="index.html">Journal index</a> &middot; <a href="step5_sprint_transfer.html">Step 5: transfer to Sprint &rarr;</a></p>
+</main>
+<script src="eval_labels.js"></script>
+<script src="eval_grid.js"></script>
+<script>
+evalGrid("#grid-subtraction", [["matte", "matte"], ["reference", "MAGICK on gray"], ["adapter_v1_step002000", "adapter"], ["control_v1_step000500", "control"], ["final_v1_step000500", "final"], ["transfer_v1_step000500_2step", "Sprint + control, 2 steps"]]);
+evalGrid("#grid-fixes", [["matte", "matte"], ["control_v1_step000500", "control"], ["final_v1_step000500", "final, λ = 0"], ["final_v1_step000500_gray", "final + gray words"], ["final_v1_step000500_adapter0.5", "keep 50% of adapter"], ["final_v1_step000500_adapter0.75", "keep 75% of adapter"]]);
+evalGrid("#grid-1500", [["matte", "matte"], ["control_v1_step001500", "control, step 1500"], ["final_v1_step001500", "final, step 1500"], ["final_v1_step001500_adapter0.75", "keep 75%, step 1500"], ["transfer_v1_step001500_2step", "Sprint + control, step 1500"]]);
+</script>
+<footer style="margin:3em 0 1em;font-size:0.85em;opacity:0.7">Published images are full-resolution WebP q95; originals are PNG in the repo's BlueJay database.</footer>
+</body>
+</html>

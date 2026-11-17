@@ -1,0 +1,14 @@
+/* Styles of eval_grid.js. Uses the page's --gap, --gutter, --rule, --muted, --font-small, --chip, --fg, --accent, --radius, --pad-cell */
+:root { --grid-native: 1024px; --grid-cell-min: 200px; --grid-row-gap: 28px; --grid-hairline: 1px; }
+body { overflow-x: clip; }
+.evalgrid { width: 100vw; margin-left: calc(50% - 50vw); padding: 0 var(--gutter); box-sizing: border-box; overflow-x: auto; }
+.evalrow { display: grid; grid-template-columns: repeat(var(--cols), minmax(var(--grid-cell-min), 1fr)); gap: var(--gap); margin-bottom: var(--grid-row-gap); }
+.evalgrid.native .evalrow { grid-template-columns: repeat(var(--cols), var(--grid-native)); width: max-content; }
+.evalrow figure { margin: 0; }
+.evalrow img { width: 100%; aspect-ratio: 1; object-fit: contain; }
+.evalrow figcaption, .rowcap { font: var(--font-small) system-ui, sans-serif; color: var(--muted); margin: 0; }
+.rowcap { grid-column: 1 / -1; }
+.gridtoggle { font: var(--font-small) system-ui, sans-serif; background: var(--chip); color: var(--fg); border: var(--grid-hairline) solid var(--rule); border-radius: var(--radius); padding: var(--pad-cell); cursor: pointer; margin-bottom: var(--gap); }
+.gridtoggle[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+.fullsheet { overflow-x: auto; }
+.fullsheet img { max-width: none; width: auto; }

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Alpha Journal</title>
+<style>
+:root { --bg: #fdfdfb; --fg: #1d1d1f; --muted: #66666b; --rule: #dcdcd6; --accent: #2f5d8a; --gutter: 16px; --measure: 760px; --font-body: 17px; --font-small: 14px; --pad-item: 12px; --hairline: 1px; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #18191b; --fg: #e8e8e6; --muted: #a0a0a5; --rule: #3a3b3e; --accent: #8ab4dc; } }
+:root[data-theme="dark"] { --bg: #18191b; --fg: #e8e8e6; --muted: #a0a0a5; --rule: #3a3b3e; --accent: #8ab4dc; }
+body { background: var(--bg); color: var(--fg); font: var(--font-body)/1.6 Georgia, serif; margin: 0; }
+main { max-width: var(--measure); margin: 0 auto; padding: 0 var(--gutter); }
+a { color: var(--accent); }
+ul { padding: 0; }
+li { border-bottom: var(--hairline) solid var(--rule); padding: var(--pad-item) 0; list-style: none; }
+.note { color: var(--muted); font-size: var(--font-small); }
+</style>
+</head>
+<body>
+<main>
+<h1>SANA-Sprint in-context alpha &rarr; RGB on gray: journal</h1>
+<p>We teach SANA-Sprint to take an alpha matte and a caption and paint the object on a flat 50% gray background. One entry per step. Every step uses the same 29 eval images and the same noise.</p>
+<ul>
+<li><a href="step0_curation.html">Step 0: curation</a> <span class="note">2026-11-17. MAGICK turned into a BlueJay table of mattes, gray composites and latents: 140,955 images, 17 failures, 29 held out for eval.</span></li>
+<li><a href="step1_baseline.html">Step 1: baseline</a> <span class="note">2026-11-17. Stock Sprint and teacher on the eval prompts, with and without a gray-background suffix.</span></li>
+<li><a href="step2_adapter.html">Step 2: adapter</a> <span class="note">2026-11-17. A full fine-tune of the teacher on MAGICK-on-gray. Checkpoint 1: flat gray backgrounds, no artifacts.</span></li>
+<li><a href="step3_4_control_and_subtraction.html">Steps 3 and 4: control and subtraction</a> <span class="note">2026-11-17. The control follows mattes (IoU 0.97). Subtracting the adapter loses the gray background; keeping 75% of the adapter fixes it. adapter_v2 is in progress.</span></li>
+<li><a href="step5_sprint_transfer.html">Step 5: transfer to Sprint</a> <span class="note">2026-11-17. The control moved onto the stock Sprint student with no training: works with a toy control, loses the gray with the real one.</span></li>
+<li><a href="webgpu/">WebGPU demo: try the one-step model in your browser</a> <span class="note">2026-11-17. Draw or upload a matte, add text and shapes, type a prompt, generate on your own GPU. Pick a model version; downloads are cached in the browser. Served by <code>./run_web.sh</code>; <code>webgpu/?version=NAME</code> opens one version.</span></li>
+<li><a href="gallery_v1.html">Gallery: control_v1 step 1500, with and without subtracting the adapter</a> <span class="note">2026-11-17. 67 items (29 held-out, 38 train), MAGICK caption and detailed prompt, stock Sprint/teacher, teacher λ sweep, Sprint λ sweep at 1 and 2 steps. Full-resolution images.</span></li>
+</ul>
+<p class="note">Entries are written as work happens, so each says what was and was not tested. Numbers in the tables are read from the <code>metrics.json</code> files in <code>assets/</code>.</p>
+</main>
+<footer style="margin:3em 0 1em;font-size:0.85em;opacity:0.7">Published images are full-resolution WebP q95; originals are PNG in the repo's BlueJay database.</footer>
+</body>
+</html>

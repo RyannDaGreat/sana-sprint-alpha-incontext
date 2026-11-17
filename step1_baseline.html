@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Step 1 Baseline</title>
+<style>
+:root {
+  --bg: #fdfdfb; --fg: #1d1d1f; --muted: #66666b; --rule: #dcdcd6; --accent: #2f5d8a; --chip: #eef2f6;
+  --gutter: 16px; --measure: 760px; --wide: 1180px; --gap: 12px; --radius: 4px; --pad-cell: 6px 10px;
+  --font-body: 17px; --font-small: 14px; --font-h1: 34px; --font-h2: 23px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #18191b; --fg: #e8e8e6; --muted: #a0a0a5; --rule: #3a3b3e; --accent: #8ab4dc; --chip: #26292d; }
+}
+:root[data-theme="dark"] { --bg: #18191b; --fg: #e8e8e6; --muted: #a0a0a5; --rule: #3a3b3e; --accent: #8ab4dc; --chip: #26292d; }
+body { background: var(--bg); color: var(--fg); font: var(--font-body)/1.6 Georgia, "Times New Roman", serif; margin: 0; }
+main { max-width: var(--measure); margin: 0 auto; padding: 0 var(--gutter); }
+.wide { max-width: var(--wide); margin: 0 auto; padding: 0 var(--gutter); }
+h1 { font-size: var(--font-h1); line-height: 1.2; margin-top: 48px; }
+summary h2 { display: inline; font-size: var(--font-h2); }
+details { margin: 24px 0; }
+summary { cursor: pointer; }
+.byline { color: var(--muted); font-size: var(--font-small); border-bottom: 1px solid var(--rule); padding-bottom: var(--gap); }
+table { border-collapse: collapse; width: 100%; font: var(--font-small) system-ui, sans-serif; }
+th, td { padding: var(--pad-cell); border-bottom: 1px solid var(--rule); text-align: right; }
+th:first-child, td:first-child { text-align: left; }
+th { cursor: pointer; user-select: none; }
+.scroll { overflow-x: auto; }
+img { max-width: 100%; height: auto; display: block; border: 1px solid var(--rule); }
+dt { font-weight: bold; }
+</style>
+<link rel="stylesheet" href="eval_grid.css">
+</head>
+<body>
+<main>
+<h1>Step 1: what stock SANA-Sprint does with our eval prompts</h1>
+<p class="byline">Journal entry, 2026-11-17. Agent: Sana. Reference only: no training yet.</p>
+
+<p>Before we train anything, we look at what the stock models do with the 29 eval captions. We use the Sprint student (2 steps) and its teacher (20 steps). Each caption runs twice: as it is, and with <code>", on a plain 50% gray background"</code> added. Every image starts from the same fixed noise, so later steps can compare image by image.</p>
+
+<details open><summary><h2>Short answer</h2></summary>
+<ul>
+<li>Both models make clean, modern images. The quality is much higher than MAGICK's 2023 look. Sprint takes <b>0.27 s</b> per 1024² image on one A100 and the teacher takes <b>1.7–2.2 s</b>.</li>
+<li>The gray suffix does move most backgrounds to a studio gray. But that gray is <b>too light</b>: the median border is 0.59 (Sprint) and 0.64 (teacher), not 0.50. It also has gradients, vignettes and shadows. Only 4 of 29 Sprint images and 3 of 29 teacher images have a border within 0.05 of neutral 0.5.</li>
+<li>A prompt alone cannot give a flat 0.5 background. This is the job of Step 2 (the adapter).</li>
+<li>No model sees the matte yet, so IoU is about 0.37–0.39 everywhere. That number is a floor for later steps, not a result.</li>
+</ul>
+</details>
+
+<details open><summary><h2>Metrics</h2></summary>
+<p>Means over the 29 eval images. Click a header to sort. "reference" is the MAGICK image itself, composited on 0.5 gray. It is a sanity check for the metrics.</p>
+<div class="scroll"><table id="metrics"><thead><tr>
+<th>config</th><th>s / image</th><th>border gray error</th><th>border std</th><th>exterior gray error</th><th>IoU vs matte</th><th>foreground fraction</th>
+</tr></thead><tbody></tbody></table></div>
+<p class="note">Border = the 64 px band at the image edge, the estimated background of a model that cannot see the matte. Errors are mean |rgb − 0.5| in [0, 1]. Foreground = pixels where some channel is more than 0.06 from 0.5. Time excludes the first image (warm-up), batch size 1, bf16, one A100 80GB, includes text encoding and VAE decoding. The teacher's plain and gray runs differ in time (2.2 s and 1.7 s) with the same settings; we did not find out why (the GPU may have been shared at that time). Raw numbers: <a href="assets/step1/metrics.json">metrics.json</a>, per image: <a href="assets/step1/sprint_plain.json">sprint_plain</a>, <a href="assets/step1/sprint_gray.json">sprint_gray</a>, <a href="assets/step1/teacher_plain.json">teacher_plain</a>, <a href="assets/step1/teacher_gray.json">teacher_gray</a>.</p>
+</details>
+</main>
+
+<div class="wide">
+<details open><summary><h2>All 29 images, all four models, full resolution</h2></summary>
+<p class="note">Every cell is the stored 1024&times;1024 PNG (click to open it). Columns: matte, MAGICK reference on 0.5 gray, sprint_plain, sprint_gray, teacher_plain, teacher_gray. One row per eval image, the caption under the row.</p>
+<div id="grid"></div>
+</details>
+</div>
+
+<main>
+<details open><summary><h2>What we see</h2></summary>
+<ul>
+<li><b>Plain prompts</b> give full scenes: streets, bokeh, colored walls. Sprint looks like stock photography. The teacher has more contrast and saturation, and some images are close to over-processed (the red dice girl, the matcha latte).</li>
+<li><b>Gray prompts</b> mostly give an isolated object on a seamless studio backdrop. This is close to what we want, but the gray is too light and not flat. There are soft cast shadows under objects (apple, stones, tin can) that our target must not have.</li>
+<li>Colors named in the caption win over the suffix: "mandarins on a turquoise" stays turquoise for both models. Logos stay on white ("chef hat ... icon").</li>
+<li>The teacher follows odd captions in odd ways: the Polish caption ("czarny ptak" = black bird) gives a butterfly icon with the gray suffix and a dog in a street without it. Sprint makes a black cat both times.</li>
+<li>The two models start from the same noise tensor but use different samplers, so their compositions are not related. Compare a model only with itself across steps.</li>
+<li>MAGICK captions are short and sometimes broken ("stone black and", "red apple on a solid"). That is the dataset as it is; we did not clean them.</li>
+</ul>
+</details>
+
+<details open><summary><h2>How to sample each model correctly</h2></summary>
+<dl>
+<dt>Teacher (<code>Sana_Sprint_1.6B_1024px_teacher_diffusers</code>)</dt>
+<dd><code>SanaPipeline</code> with <code>DPMSolverMultistepScheduler</code> (dpmsolver++, <code>prediction_type=flow_prediction</code>, <code>flow_shift=3.0</code>), 20 steps, true classifier-free guidance 4.5. In diffusers this checkpoint is a plain flow-matching (velocity) model. The pipeline multiplies the timestep by the config's <code>timestep_scale</code> (0.001). TrigFlow only appears during Sprint distillation, as a wrapper that turns TrigFlow inputs into flow inputs, so sampling needs no TrigFlow code [model_index.json, scheduler_config.json; diffusers pipeline_sana.py].</dd>
+<dt>Student (<code>Sana_Sprint_1.6B_1024px_diffusers</code>)</dt>
+<dd><code>SanaSprintPipeline</code> with <code>SCMScheduler</code> (trigflow, sigma_data 0.5), 2 steps, <code>max_timesteps=1.5708</code>, <code>intermediate_timesteps=1.3</code>, embedded guidance 4.5. The pipeline multiplies the given latents by sigma_data itself, so the fixed noise is plain N(0, 1). At the intermediate step the scheduler draws <i>new</i> noise, so the fixed initial latents are not enough: we pass one seeded CPU generator per image (seed 777 + item index) [diffusers scheduling_scm.py, pipeline_sana_sprint.py].</dd>
+<dt>Both</dt>
+<dd><code>use_resolution_binning=False</code>, latents of shape (N, 32, 32, 32) for 1024², bf16. Code: <code>src/sana_alpha/models.py</code>, <code>generate.py</code>.</dd>
+</dl>
+</details>
+
+<details><summary><h2>The eval set</h2></summary>
+<p>An image is eval when sha256(page_id), read as an integer, mod 4000 is 0. This is the same rule as the <code>split</code> column in <code>data/project.dtab</code>. After we remove duplicate page_ids, it selects <b>29</b> of the 140,955 MAGICK images, and none of them is NSFW. We did not need a second rule. For each image we keep the matte (white = opaque), the RGB composited on 0.5 gray, and the caption (the <code>subject</code> column). The fixed noise is <code>torch.randn((29, 32, 32, 32), generator=torch.Generator("cpu").manual_seed(20261117))</code>, stored in <code>resources/eval/noise.safetensors</code> in the order of <code>prompts.json</code>.</p>
+</details>
+
+<details><summary><h2>Glossary</h2></summary>
+<dl>
+<dt>SANA-Sprint</dt><dd>NVIDIA's 1–4 step text-to-image model, distilled from a multi-step SANA teacher [SANA-Sprint].</dd>
+<dt>Teacher</dt><dd>The multi-step model that Sprint is distilled from. We train on it first and distill at the end.</dd>
+<dt>MAGICK</dt><dd>A dataset of 140,955 generated RGBA images with short captions [MAGICK].</dd>
+<dt>Matte</dt><dd>The alpha channel as a grayscale image: white = opaque, black = transparent.</dd>
+<dt>Gray composite</dt><dd>rgb · alpha + 0.5 · (1 − alpha): the object on a flat 50% gray background. This is the target output.</dd>
+<dt>Eval set</dt><dd>The 29 fixed images, captions and noise tensors that every step uses.</dd>
+<dt>Border gray error</dt><dd>Mean |rgb − 0.5| in the 64 px edge band. 0 means a perfectly flat 0.5 gray edge.</dd>
+<dt>IoU vs matte</dt><dd>Intersection over union of the generated non-gray pixels and the matte. It only means something once a model can see the matte.</dd>
+<dt>Adapter (Step 2)</dt><dd>Sprint/teacher fine-tuned on MAGICK gray composites, to learn the flat gray background and MAGICK's domain.</dd>
+<dt>CFG</dt><dd>Classifier-free guidance: the teacher runs with and without the prompt and extrapolates. Sprint has the guidance scale built in as an input.</dd>
+</dl>
+</details>
+
+<details><summary><h2>Sources cited</h2></summary>
+<ul>
+<li>[SANA-Sprint] Chen et al., "SANA-Sprint: One-Step Diffusion with Continuous-Time Consistency Distillation", <a href="https://arxiv.org/abs/2503.09641">arXiv 2503.09641</a>.</li>
+<li>[MAGICK] Burgert et al., CVPR, <a href="https://ryanndagreat.github.io/MAGICK/">project page</a>, <a href="https://huggingface.co/datasets/OneOverZero/MAGICK">dataset</a>.</li>
+<li>[diffusers] <a href="https://github.com/huggingface/diffusers">huggingface/diffusers</a> 0.43: <code>pipelines/sana/pipeline_sana.py</code>, <code>pipeline_sana_sprint.py</code>, <code>schedulers/scheduling_scm.py</code>.</li>
+<li>[model_index.json, scheduler_config.json] Files of the downloaded checkpoints in <code>models/</code>.</li>
+</ul>
+</details>
+</main>
+
+<script src="eval_labels.js"></script>
+<script src="eval_grid.js"></script>
+<script>
+const METRICS = {
+  reference:     {s: null,  bge: 0.0360, bstd: 0.0863, ege: 0.0020, iou: 0.983, fg: 0.372},
+  sprint_plain:  {s: 0.264, bge: 0.2634, bstd: 0.1747, ege: 0.2669, iou: 0.374, fg: 0.967},
+  sprint_gray:   {s: 0.275, bge: 0.1801, bstd: 0.1032, ege: 0.1727, iou: 0.389, fg: 0.917},
+  teacher_plain: {s: 2.214, bge: 0.3378, bstd: 0.1744, ege: 0.3274, iou: 0.370, fg: 0.987},
+  teacher_gray:  {s: 1.675, bge: 0.1889, bstd: 0.0955, ege: 0.1816, iou: 0.381, fg: 0.946},
+};
+const body = document.querySelector("#metrics tbody");
+for (const [name, m] of Object.entries(METRICS)) {
+  const cells = [m.s, m.bge, m.bstd, m.ege, m.iou, m.fg]
+    .map(v => `<td data-sort="${v ?? -1}">${v === null ? "—" : v.toFixed(3)}</td>`).join("");
+  body.insertAdjacentHTML("beforeend", `<tr><td>${name}</td>${cells}</tr>`);
+}
+document.querySelectorAll("#metrics th").forEach((th, col) => th.addEventListener("click", () => {
+  const rows = [...body.rows], up = th.dataset.dir !== "up";
+  th.dataset.dir = up ? "up" : "down";
+  const key = r => r.cells[col].dataset.sort ?? r.cells[col].textContent;
+  rows.sort((a, b) => { const x = key(a), y = key(b); const d = isNaN(x) ? x.localeCompare(y) : x - y; return up ? d : -d; });
+  rows.forEach(r => body.appendChild(r));
+}));
+evalGrid("#grid", [["matte", "matte"], ["reference", "MAGICK on gray"], ["sprint_plain", "sprint_plain"], ["sprint_gray", "sprint_gray"], ["teacher_plain", "teacher_plain"], ["teacher_gray", "teacher_gray"]]);
+</script>
+<footer style="margin:3em 0 1em;font-size:0.85em;opacity:0.7">Published images are full-resolution WebP q95; originals are PNG in the repo's BlueJay database.</footer>
+</body>
+</html>

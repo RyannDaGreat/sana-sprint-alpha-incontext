@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Matte to Image</title>
+  <script>
+    // Apply the stored theme before first paint (no flash).
+    const stored = localStorage.getItem('theme');
+    if (stored) document.documentElement.dataset.theme = stored;
+  </script>
+  <script type="module" crossorigin src="./assets/index-BVnjjuXf.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/embcache-DtC1k3fB.js">
+  <link rel="stylesheet" crossorigin href="./assets/index-7mamv2Lo.css">
+</head>
+<body>
+  <header class="top">
+    <h1>Matte → Image</h1>
+    <p class="sub">SANA-Sprint, one step, on your GPU in the browser. Draw a white silhouette, describe it, generate.</p>
+    <div class="top-right">
+      <span id="ep" class="meta">–</span>
+      <a class="meta" href="../index.html">Journal</a>
+      <button id="theme" class="link">Theme</button>
+    </div>
+  </header>
+
+  <main class="grid">
+    <section class="panel matte-panel">
+      <h2>Matte <span class="meta">1024 × 1024 · white = object</span></h2>
+      <div class="square" id="matte-square">
+        <canvas id="photo" width="1024" height="1024"></canvas>
+        <canvas id="matte" width="1024" height="1024"></canvas>
+        <canvas id="overlay" width="1024" height="1024"></canvas>
+      </div>
+    </section>
+
+    <section class="panel output-panel">
+      <h2>Output
+        <span class="tabs">
+          <button class="tab on" data-view="gray">RGB on gray</button>
+          <button class="tab" data-view="rgba">RGBA</button>
+        </span>
+      </h2>
+      <div class="square">
+        <canvas id="out-gray" width="1024" height="1024"></canvas>
+        <canvas id="out-rgba" class="checker" width="1024" height="1024" hidden></canvas>
+        <p id="out-empty" class="empty">No image yet.</p>
+      </div>
+    </section>
+
+    <section class="panel tools-panel">
+      <div class="row tools">
+        <button class="tool on" data-tool="brush">Brush</button>
+        <button class="tool" data-tool="eraser">Eraser</button>
+        <button class="tool" data-tool="text">Text</button>
+        <button class="tool" data-tool="rect">Rectangle</button>
+        <button class="tool" data-tool="ellipse">Ellipse</button>
+        <button class="tool" data-tool="move">Move</button>
+      </div>
+      <div class="row">
+        <label class="field">Brush <input id="brush-size" type="range" min="4" max="400" value="64"><span id="brush-size-v" class="meta">64</span></label>
+      </div>
+      <div class="row text-opts">
+        <label class="field grow">Text <input id="text-value" type="text" value="HELLO"></label>
+        <label class="field">Font
+          <select id="text-font">
+            <option value="Jost Variable">Jost</option>
+            <option value="Georgia, serif">Serif</option>
+            <option value="'Courier New', monospace">Mono</option>
+            <option value="Impact, 'Arial Black', sans-serif">Impact</option>
+          </select>
+        </label>
+        <label class="field">Weight
+          <select id="text-weight">
+            <option value="300">Light</option>
+            <option value="500">Medium</option>
+            <option value="700" selected>Bold</option>
+            <option value="900">Black</option>
+          </select>
+        </label>
+        <label class="field">Size <input id="text-size" type="number" min="16" max="1000" value="220"></label>
+      </div>
+      <div class="row">
+        <label class="button">Upload<input id="upload" type="file" accept="image/*" hidden></label>
+        <button id="invert">Invert</button>
+        <button id="delete">Delete object</button>
+        <button id="clear">Clear</button>
+      </div>
+      <div class="row">
+        <label class="button">Photo → matte<input id="photo-upload" type="file" accept="image/*" hidden></label>
+        <label class="switch"><input id="show-photo" type="checkbox" checked><span>Show photo</span></label>
+        <span id="seg-status" class="meta">Finds the foreground in any photo (BiRefNet lite, runs in your browser).</span>
+      </div>
+      <div id="seg-files" class="files"></div>
+      <p class="meta hint">Upload: a PNG with transparency uses its alpha, any other image its brightness. Text, rectangles and ellipses stay movable: drag them, drag the corner square to resize, Delete removes the selected one.</p>
+    </section>
+
+    <section class="panel prompt-panel">
+      <label class="field block">Prompt
+        <textarea id="prompt" rows="3">a red fox sitting, studio photo</textarea>
+      </label>
+      <div class="row">
+        <label class="field">Seed <input id="seed" type="number" value="0" min="0"></label>
+        <button id="new-seed">New seed</button>
+        <label class="switch"><input id="realtime" type="checkbox"><span>Real-time</span></label>
+        <button id="generate" class="primary" disabled>Generate</button>
+      </div>
+      <p id="status" class="meta">Load a model below.</p>
+      <div class="row">
+        <button id="dl-gray" disabled>Download RGB on gray</button>
+        <button id="dl-rgba" disabled>Download RGBA</button>
+      </div>
+      <table id="timings" class="timings"></table>
+    </section>
+
+    <section class="panel models-panel">
+      <h2>Models <span class="meta" id="cache-size"></span></h2>
+      <div id="versions" class="versions"></div>
+      <div id="files" class="files"></div>
+      <div class="row">
+        <button id="clear-cache">Clear model cache</button>
+        <button id="clear-emb">Clear prompt cache</button>
+        <span id="emb-count" class="meta"></span>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

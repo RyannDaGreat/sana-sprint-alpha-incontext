@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Step 0 Curation</title>
+<style>
+:root {
+  --bg: #fdfdfb; --fg: #1d1d1f; --muted: #66666b; --rule: #dcdcd6; --accent: #2f5d8a; --chip: #eef2f6; --callout: #f3f6f9;
+  --good: #2f7d4f; --bad: #b5473a; --track: #e6e6e1;
+  --gutter: 16px; --measure: 760px; --wide: 1180px; --gap: 12px; --gap-lg: 24px; --gap-xl: 48px; --radius: 4px; --hairline: 1px;
+  --pad-cell: 6px 10px; --pad-callout: 12px 18px; --pad-bar: 3px; --bar-h: 10px; --label-w: 210px; --value-w: 64px; --bar-gap: 10px; --border-accent: 4px;
+  --pair-min: 420px; --pad-code: 4px;
+  --font-body: 17px; --font-small: 14px; --font-h1: 34px; --font-h2: 23px; --line: 1.6; --line-tight: 1.2;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #18191b; --fg: #e8e8e6; --muted: #a0a0a5; --rule: #3a3b3e; --accent: #8ab4dc; --chip: #26292d; --callout: #1f2226; --good: #6cc08b; --bad: #e0857a; --track: #2c2e31; }
+}
+:root[data-theme="dark"] { --bg: #18191b; --fg: #e8e8e6; --muted: #a0a0a5; --rule: #3a3b3e; --accent: #8ab4dc; --chip: #26292d; --callout: #1f2226; --good: #6cc08b; --bad: #e0857a; --track: #2c2e31; }
+body { background: var(--bg); color: var(--fg); font: var(--font-body)/var(--line) Georgia, "Times New Roman", serif; margin: 0; }
+main { max-width: var(--measure); margin: 0 auto; padding: 0 var(--gutter); }
+.wide { max-width: var(--wide); margin: 0 auto; padding: 0 var(--gutter); }
+h1 { font-size: var(--font-h1); line-height: var(--line-tight); margin-top: var(--gap-xl); }
+summary h2 { display: inline; font-size: var(--font-h2); }
+details { margin: var(--gap-lg) 0; }
+summary { cursor: pointer; }
+a { color: var(--accent); }
+.byline { color: var(--muted); font-size: var(--font-small); border-bottom: var(--hairline) solid var(--rule); padding-bottom: var(--gap); }
+.nav { font: var(--font-small) system-ui, sans-serif; margin-top: var(--gap-lg); }
+.callout { background: var(--callout); border-left: var(--border-accent) solid var(--accent); padding: var(--pad-callout); margin: var(--gap-lg) 0; border-radius: var(--radius); }
+.eq { text-align: center; }
+.pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--pair-min)), 1fr)); gap: var(--gap); }
+table { border-collapse: collapse; width: 100%; font: var(--font-small) system-ui, sans-serif; }
+th, td { padding: var(--pad-cell); border-bottom: var(--hairline) solid var(--rule); text-align: right; }
+th:first-child, td:first-child { text-align: left; }
+tr.hl td { background: var(--chip); }
+.scroll { overflow-x: auto; }
+figure { margin: var(--gap-lg) 0; }
+figcaption { color: var(--muted); font-size: var(--font-small); margin-top: var(--gap); }
+img { max-width: 100%; height: auto; display: block; border: var(--hairline) solid var(--rule); }
+.note { color: var(--muted); font-size: var(--font-small); }
+code { font-size: var(--font-small); background: var(--chip); padding: 0 var(--pad-code); border-radius: var(--radius); }
+dt { font-weight: bold; }
+.bars { font: var(--font-small) system-ui, sans-serif; margin: var(--gap-lg) 0; }
+.bars h4 { margin: 0 0 var(--gap); font-weight: 600; }
+.bar-row { display: grid; grid-template-columns: minmax(0, var(--label-w)) 1fr var(--value-w); gap: var(--bar-gap); align-items: center; padding: var(--pad-bar) 0; }
+.bar-track { background: var(--track); height: var(--bar-h); border-radius: var(--radius); }
+.bar-track i { display: block; height: 100%; border-radius: var(--radius); background: var(--accent); }
+.bar-row.good .bar-track i { background: var(--good); }
+.bar-row.bad .bar-track i { background: var(--bad); }
+.bar-value { text-align: right; }
+</style>
+</head>
+<body>
+<main>
+<p class="nav"><a href="index.html">Journal index</a> &middot; <a href="step1_baseline.html">Step 1: baseline &rarr;</a></p>
+<h1>Step 0: MAGICK, curated with BlueJay</h1>
+<p class="byline">Journal entry, 2026-11-17. Agent: Sana. Data only: no model was trained in this step.</p>
+</main>
+
+<main>
+<p>Everything after this entry trains on MAGICK, the dataset of generated RGBA images with short captions. Step 0 turns its 191 GB of PNGs into one table that the trainers read: for each image, the matte, the object on 50% gray, and both encoded into the latent space of the SANA VAE. We ran this as a BlueJay pipeline on the 8-GPU node.</p>
+
+<div class="callout"><b>Short answer</b>
+<ul>
+<li>MAGICK's index lists 148,193 rows, but only <b>140,955 unique images</b>: 7,238 images are listed twice (once as hand-picked, once as auto-picked). We keep one row per image.</li>
+<li><b>140,938</b> of the 140,955 made it through every stage. <b>17 did not</b>: 14 image URLs answer 404 (listed in the index, absent from the repository) and 3 PNGs have no alpha channel (raw screen images that were never keyed out).</li>
+<li>The download is capped by Hugging Face at about <b>16.7 images/s</b>, so downloading the set takes at least 2.3 hours whatever we do.</li>
+<li>Decoding the VAE latent back to pixels gives a mean <b>PSNR of 35.5 dB</b> (median 35.3). That is a ceiling on sharpness for anything trained on these latents; 11% of the images are below 30 dB.</li>
+<li>29 images are held out as the eval set, picked by a hash rule. The adapter trained on <b>138,063</b> images: not eval, not flagged NSFW, latents present.</li>
+</ul></div>
+
+<details open><summary><h2>The pipeline</h2></summary>
+<p>One BlueJay table (<code>magick_samples</code>) has one row per image. Four processors fill it in order; each one claims rows that the stage before it finished, so the stages ran at the same time.</p>
+<div class="scroll"><table><thead><tr><th>Processor</th><th>What it does</th><th>Adds to the row</th></tr></thead><tbody><tr><td><code>import_index</code></td><td>Reads MAGICK's <code>magick_index.tsv</code>, drops the duplicate page_ids, assigns the train / eval split.</td><td>page_id, caption (the <code>subject</code> column), split, nsfw flag, sim_score</td></tr><tr><td><code>download_image</code></td><td>Downloads each PNG from Hugging Face.</td><td><code>rgba</code> (the 1024&times;1024 PNG)</td></tr><tr><td><code>split_alpha</code></td><td>Splits RGBA into the matte and the gray composite; measures the matte.</td><td><code>alpha</code>, <code>rgb_on_gray</code>, alpha coverage, soft-edge fraction, green spill</td></tr><tr><td><code>encode_latents</code></td><td>Encodes matte and gray composite with the DC-AE; decodes once to measure the round-trip error.</td><td><code>latent_alpha_1024</code>, <code>latent_rgb_1024</code> (32&times;32&times;32 each), <code>vae_psnr_1024</code></td></tr></tbody></table></div>
+<p class="note">Latents are stored unscaled; trainers multiply by the VAE scaling factor 0.41407. On one A100 (bf16, batch 8) the DC-AE encodes about 13 images/s and decodes about 9 images/s, so encoding all 141k images is a job for all 8 GPUs.</p>
+</details>
+
+<details open><summary><h2>What we measured about the data</h2></summary>
+<div class="scroll"><table><thead><tr><th>Quantity</th><th>Value</th></tr></thead><tbody><tr><td>Index rows / unique images</td><td>148,193 / 140,955</td></tr><tr><td>Downloaded / with an alpha channel / encoded</td><td>140,941 / 140,938 / 140,938</td></tr><tr><td>Split: train / eval</td><td>140,926 / 29</td></tr><tr><td>Flagged NSFW (kept in the table, excluded from training)</td><td>2,847</td></tr><tr><td>Used for adapter training (train, not NSFW, latents present)</td><td>138,063</td></tr><tr><td>Object coverage: mean alpha</td><td>0.355 (median 0.360)</td></tr><tr><td>Pixels with partial alpha, 0 &lt; alpha &lt; 1</td><td>mean 12.8% of the image (median 11.3%)</td></tr><tr><td>Green spill on the object (chroma-key residue)</td><td>mean 0.009, median about 0; worst image 0.93</td></tr><tr><td>VAE round-trip PSNR, gray composite</td><td>mean 35.5 dB, median 35.3 dB, 5th percentile 28.2 dB, worst 16.7 dB</td></tr></tbody></table></div>
+<p class="note">Counts are read from the table <code>data/lance/magick_samples.lance</code> at the time of writing. Alpha, spill and PSNR are means over the 140,938 encoded images. Green spill is the mean of max(0, g &minus; max(r, b)) over pixels with alpha above 0.5.</p>
+<ul>
+<li><b>Soft edges are common.</b> On average about one pixel in eight has partial alpha, so a matte model has to handle hair and glass gradients, not just a hard mask.</li>
+<li><b>Green spill is rare but real.</b> The median image has none. A few images have strong green fringes from the chroma key. We did <i>not</i> filter on it or on <code>sim_score</code> (mean 0.991); all non-NSFW images are used.</li>
+<li><b>We did not look at the worst round trips.</b> The 11% of images below 30 dB probably have fine texture (hair, text), but that is a guess.</li>
+</ul>
+</details>
+</main>
+
+<div class="wide">
+<details open><summary><h2>One image, as the pipeline stores it</h2></summary><figure><img src="assets/step0/matte_and_gray.jpg" alt="Left: the matte (white = opaque). Right: the same image composited on 50% gray, which is the training target. The soft gradients at the hair and at the mirror edge are visible in the matte." loading="lazy"><figcaption>Left: the matte (white = opaque). Right: the same image composited on 50% gray, which is the training target. The soft gradients at the hair and at the mirror edge are visible in the matte.</figcaption></figure></details>
+</div>
+
+<main>
+<details open><summary><h2>What went wrong: the download limit</h2></summary>
+<p>Our first download used 32 loops &times; 16 threads. Hugging Face allows a fixed window of 5,000 requests per 300 s per token (<code>ratelimit-policy</code> header), and answers 429 with a <code>retry-after</code> value beyond it. The burst got 429s, and 680 images ran out of their 8 retries. The fix was to wait the <code>retry-after</code> time (plus jitter) and give up only after an hour, with 8 loops. The sustained cap is 5,000 / 300 s = 16.7 images/s, so 140,955 images need at least 2.3 hours. More loops cannot go faster.</p>
+</details>
+</main>
+
+<div class="wide">
+<details open><summary><h2>The eval set</h2></summary>
+<p>An image is an eval image when sha256(page_id), read as an integer, mod 4000 is 0. This selects <b>29</b> of the 140,955 images, none NSFW; the rule is the same one the table's <code>split</code> column uses, so nothing in the eval set was ever a training row. For each we keep the matte, the gray composite and the caption. Every later step uses the same 29 images and the same fixed noise (<code>seed 20261117</code>), so models compare image by image. Six of them:</p>
+<figure><img src="assets/step0/eval_examples.jpg" alt="Six of the 29 eval images: matte, then the MAGICK image on 50% gray. The captions are MAGICK's own: short, sometimes cut off (&quot;a man hand and gestures in black rubber glove shows knife .&quot;)." loading="lazy"><figcaption>Six of the 29 eval images: matte, then the MAGICK image on 50% gray. The captions are MAGICK's own: short, sometimes cut off (&quot;a man hand and gestures in black rubber glove shows knife .&quot;).</figcaption></figure>
+<p>The captions are dated and sometimes broken, such as &quot;stone black and&quot; and &quot;red apple on a solid&quot;. We did not clean them.</p>
+</details>
+</div>
+
+<main>
+<details><summary><h2>Glossary</h2></summary><dl><dt>MAGICK</dt><dd>A dataset of generated RGBA images with short captions (subject phrases). Made with a 2023-era diffusion model, so it looks dated [MAGICK].</dd><dt>BlueJay / Aviary</dt><dd>A data-processing framework. Processors run a command on the rows that a SQL query picks and commit the results back to a table. The setup is in <code>data/project.dtab</code>.</dd><dt>Matte</dt><dd>The alpha channel as a grayscale image: white = opaque, black = transparent.</dd><dt>Gray composite</dt><dd>rgb &middot; alpha + 0.5 &middot; (1 &minus; alpha): the object on a flat 50% gray background. This is the target output.</dd><dt>DC-AE</dt><dd>The autoencoder of SANA (32&times; spatial compression, 32 latent channels). A 1024&times;1024 image becomes a 32&times;32&times;32 latent.</dd><dt>PSNR</dt><dd>Peak signal-to-noise ratio in dB between the decoded image and the original. Higher is better; 35 dB is a small loss that shows on zoom.</dd><dt>Round trip</dt><dd>Encode an image to a latent, decode it again, compare with the original.</dd><dt>Eval set</dt><dd>The 29 fixed MAGICK images (matte, caption, fixed noise) that every step uses. They are never trained on.</dd></dl></details>
+<details><summary><h2>Sources cited</h2></summary><ul><li>[MAGICK] Burgert et al., CVPR, <a href="https://ryanndagreat.github.io/MAGICK/">project page</a>, <a href="https://huggingface.co/datasets/OneOverZero/MAGICK">dataset</a>.</li><li>[SANA] Xie et al., "SANA: Efficient High-Resolution Image Synthesis with Linear Diffusion Transformers", <a href="https://arxiv.org/abs/2410.10629">arXiv 2410.10629</a>.</li><li>Tables and code: <code>data/project.dtab</code>, <code>data/processors/</code>.</li></ul></details>
+<p class="nav"><a href="index.html">Journal index</a> &middot; <a href="step1_baseline.html">Step 1: baseline &rarr;</a></p>
+</main>
+<footer style="margin:3em 0 1em;font-size:0.85em;opacity:0.7">Published images are full-resolution WebP q95; originals are PNG in the repo's BlueJay database.</footer>
+</body>
+</html>

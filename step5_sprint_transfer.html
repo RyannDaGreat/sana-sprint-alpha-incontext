@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Step 5 Sprint Transfer</title>
+<style>
+:root {
+  --bg: #fdfdfb; --fg: #1d1d1f; --muted: #66666b; --rule: #dcdcd6; --accent: #2f5d8a; --chip: #eef2f6; --callout: #f3f6f9;
+  --good: #2f7d4f; --bad: #b5473a; --track: #e6e6e1;
+  --gutter: 16px; --measure: 760px; --wide: 1180px; --gap: 12px; --gap-lg: 24px; --gap-xl: 48px; --radius: 4px; --hairline: 1px;
+  --pad-cell: 6px 10px; --pad-callout: 12px 18px; --pad-bar: 3px; --bar-h: 10px; --label-w: 210px; --value-w: 64px; --bar-gap: 10px; --border-accent: 4px;
+  --pair-min: 420px; --pad-code: 4px;
+  --font-body: 17px; --font-small: 14px; --font-h1: 34px; --font-h2: 23px; --line: 1.6; --line-tight: 1.2;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #18191b; --fg: #e8e8e6; --muted: #a0a0a5; --rule: #3a3b3e; --accent: #8ab4dc; --chip: #26292d; --callout: #1f2226; --good: #6cc08b; --bad: #e0857a; --track: #2c2e31; }
+}
+:root[data-theme="dark"] { --bg: #18191b; --fg: #e8e8e6; --muted: #a0a0a5; --rule: #3a3b3e; --accent: #8ab4dc; --chip: #26292d; --callout: #1f2226; --good: #6cc08b; --bad: #e0857a; --track: #2c2e31; }
+body { background: var(--bg); color: var(--fg); font: var(--font-body)/var(--line) Georgia, "Times New Roman", serif; margin: 0; }
+main { max-width: var(--measure); margin: 0 auto; padding: 0 var(--gutter); }
+.wide { max-width: var(--wide); margin: 0 auto; padding: 0 var(--gutter); }
+h1 { font-size: var(--font-h1); line-height: var(--line-tight); margin-top: var(--gap-xl); }
+summary h2 { display: inline; font-size: var(--font-h2); }
+details { margin: var(--gap-lg) 0; }
+summary { cursor: pointer; }
+a { color: var(--accent); }
+.byline { color: var(--muted); font-size: var(--font-small); border-bottom: var(--hairline) solid var(--rule); padding-bottom: var(--gap); }
+.nav { font: var(--font-small) system-ui, sans-serif; margin-top: var(--gap-lg); }
+.callout { background: var(--callout); border-left: var(--border-accent) solid var(--accent); padding: var(--pad-callout); margin: var(--gap-lg) 0; border-radius: var(--radius); }
+.eq { text-align: center; }
+.pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--pair-min)), 1fr)); gap: var(--gap); }
+table { border-collapse: collapse; width: 100%; font: var(--font-small) system-ui, sans-serif; }
+th, td { padding: var(--pad-cell); border-bottom: var(--hairline) solid var(--rule); text-align: right; }
+th:first-child, td:first-child { text-align: left; }
+tr.hl td { background: var(--chip); }
+.scroll { overflow-x: auto; }
+figure { margin: var(--gap-lg) 0; }
+figcaption { color: var(--muted); font-size: var(--font-small); margin-top: var(--gap); }
+img { max-width: 100%; height: auto; display: block; border: var(--hairline) solid var(--rule); }
+.note { color: var(--muted); font-size: var(--font-small); }
+code { font-size: var(--font-small); background: var(--chip); padding: 0 var(--pad-code); border-radius: var(--radius); }
+dt { font-weight: bold; }
+.bars { font: var(--font-small) system-ui, sans-serif; margin: var(--gap-lg) 0; }
+.bars h4 { margin: 0 0 var(--gap); font-weight: 600; }
+.bar-row { display: grid; grid-template-columns: minmax(0, var(--label-w)) 1fr var(--value-w); gap: var(--bar-gap); align-items: center; padding: var(--pad-bar) 0; }
+.bar-track { background: var(--track); height: var(--bar-h); border-radius: var(--radius); }
+.bar-track i { display: block; height: 100%; border-radius: var(--radius); background: var(--accent); }
+.bar-row.good .bar-track i { background: var(--good); }
+.bar-row.bad .bar-track i { background: var(--bad); }
+.bar-value { text-align: right; }
+</style>
+<link rel="stylesheet" href="eval_grid.css">
+</head>
+<body>
+<main>
+<p class="nav"><a href="step3_4_control_and_subtraction.html">&larr; Steps 3 and 4: control and subtraction</a> &middot; <a href="index.html">Journal index</a></p>
+<h1>Step 5: moving the control onto Sprint without training</h1>
+<p class="byline">Journal entry, 2026-11-17. Agent: Sana. Toy test at 6:50 AM ET; real-control numbers at 10:25 AM ET.</p>
+</main>
+
+<main>
+<p>The Sprint student is the fast model (1&ndash;4 steps) that we want in the end, but we trained everything on the multi-step teacher. The standard way from one to the other is distillation, which costs many GPU-hours. This entry tests a shortcut: skip training and move the control onto the stock student.</p>
+
+<div class="callout"><b>Short answer</b>
+<ul>
+<li>The student and the teacher have the <b>same architecture</b> except the student's guidance input, and their weights differ by only <b>1.54%</b>. So the control's LoRA change can be merged into the student's weights directly.</li>
+<li>With a <b>toy control</b> (200 images, 400 steps, trained on the plain teacher) the transfer works with no training: IoU <b>0.945</b> at 2 steps, in 0.47 s per image against 7.07 s for the teacher with the same control (a rough comparison on shared GPUs).</li>
+<li>With the <b>real control</b> (<code>control_v1</code>) the transfer follows the matte but <b>loses the gray</b> (IoU 0.396), the same failure as the subtraction in the previous entry. It is not a new problem with transfer.</li>
+</ul></div>
+
+<details open><summary><h2>How the transfer is built</h2></summary>
+<ul>
+<li><b>Same architecture, nearby weights.</b> The teacher and the student are both SANA transformers that take the flow noise level in [0, 1] and predict a velocity. The student adds a guidance embedding and a different timestep scale. Over all weights the relative distance is 1.54%; it is largest in the timestep MLP (<code>linear_2</code>, 28%) and the output projection (<code>proj_out</code>, 6%).</li>
+<li><b>Merge, do not attach.</b> The control LoRA is added into the student's weights in fp32 and rounded to bf16 once. A LoRA attached with PEFT would also hit the student's guidance embedder, which the control never saw. One key is renamed (<code>time_embed.emb.timestep_embedder</code> in the teacher is <code>time_embed.timestep_embedder</code> in the student). The gates are copied as they are. The adapter is not used. The two VAEs are byte-identical, so the matte latents are the same.</li>
+<li><b>The risk we expected:</b> Sprint fixes the layout in one pass at the highest noise level, and its guidance sits in the timestep embedding, which the gates never saw. If so, the matte would be followed weakly.</li>
+</ul>
+</details>
+</main>
+
+<div class="wide">
+<details open><summary><h2>Toy test: the transfer works</h2></summary>
+<div class="scroll"><table><thead><tr><th>model</th><th>IoU vs matte</th><th>exterior gray error</th><th>border gray error</th><th>seconds / image</th></tr></thead><tbody><tr><td>teacher + toy control, 20 steps, CFG</td><td>0.820</td><td>0.043</td><td>0.078</td><td>7.07</td></tr><tr><td>Sprint + toy control, 1 step</td><td>0.839</td><td>0.029</td><td>0.059</td><td>0.29</td></tr><tr class=hl><td>Sprint + toy control, 2 steps</td><td>0.945</td><td>0.021</td><td>0.051</td><td>0.47</td></tr><tr class=hl><td>Sprint + toy control, 4 steps</td><td>0.942</td><td>0.020</td><td>0.050</td><td>1.38</td></tr><tr><td>stock Sprint, 2 steps (no matte)</td><td>0.374</td><td>0.267</td><td>0.263</td><td>0.53</td></tr></tbody></table></div>
+<p class="note">Means over the 29 eval images; seconds include text encoding and VAE decoding on a shared A100 and are not a clean benchmark. The toy control saw 200 MAGICK images for 400 steps on the plain teacher (no adapter), so this tests the <i>mechanics</i> of the transfer, not the quality of a final model. Raw numbers: <a href="assets/step5_transfer_test/metrics.json">metrics.json</a>.</p>
+<p class="note">All 29 eval images at full resolution (1024&times;1024 PNGs; click one to open it). Columns: matte | teacher with the toy control (20 steps) | Sprint with the same control at 1, 2 and 4 steps | stock Sprint with no matte. In the rows we looked at, the Sprint versions keep the matte's silhouette on a gray background and look like photographs; the teacher drew a cartoon for the postal worker. In the chef-hat row, all three Sprint step counts draw a white quilted square with a knife strip, not the hat icon.</p>
+<div id="grid-toy"></div>
+<ul>
+<li>The main risk did not show up here: 2 and 4 steps follow the matte at least as closely as the teacher control (IoU 0.945 and 0.942 against 0.820). <b>We would not read this as a better model.</b> The Sprint sampler tends to produce cleaner, more binary edges than 20-step guided sampling, and the IoU threshold rewards that.</li>
+<li>2 and 4 steps look almost the same in these rows. We did not examine the 1-step images row by row beyond the rows we looked at.</li>
+<li>The style moves toward Sprint's photographic look. The caption can drift: in the full montage &quot;yeoman woman stubble&quot; becomes a bearded man.</li>
+<li>Gray works here because the toy control was trained directly on gray targets with no adapter: it had to learn the gray itself, so its delta carries it. The stock Sprint under it has no gray of its own, yet the result is gray (exterior error 0.021).</li>
+</ul>
+</details>
+
+<details open><summary><h2>Real control: the gray is lost again</h2></summary>
+<div class="scroll"><table><thead><tr><th>model</th><th>IoU vs matte</th><th>exterior gray error</th><th>border gray error</th></tr></thead><tbody><tr><td>teacher + real control (control_v1)</td><td>0.970</td><td>0.008</td><td>0.043</td></tr><tr><td>Sprint + real control, 2 steps</td><td>0.396</td><td>0.178</td><td>0.201</td></tr><tr><td>same, with gray words</td><td>0.458</td><td>0.113</td><td>0.137</td></tr></tbody></table></div>
+<p class="note">Means over the 29 eval images. The real control was trained on top of the gray-knowing adapter, so its delta does not hold the gray. Raw numbers: <a href="assets/step3_v1_500/metrics.json">step 3</a>, <a href="assets/step4_fixes/metrics.json">step 4</a>.</p>
+<p class="note">All 29 eval images at full resolution, control_v1 at step 500. Columns: matte | teacher with the real control | final model (base &minus; adapter + control) | stock Sprint with the real control, 2 steps | the same with gray words in the caption. In the rows we looked at, Sprint with the control follows the silhouettes but puts them on a dark, grainy gray-black backdrop; gray words lighten it a little and change the honey spoon.</p>
+<div id="grid-real"></div>
+<ul>
+<li>This is the Step 4 failure seen from another side: there, the subtraction removed the adapter's gray; here, the stock student never had any. In both cases the control delta has to supply the gray, and this one does not.</li>
+<li>Combining a partial adapter with the transfer was not tested.</li>
+</ul>
+</details>
+</div>
+
+<main>
+<details open><summary><h2>What this means for the plan</h2></summary>
+<ul>
+<li>The transfer mechanics work on a toy control. That is evidence, on 200 training images and 29 eval images, not proof for the final model.</li>
+<li>The real test comes after adapter_v2 and control_v2 (see the previous entry): a control that must learn the gray itself should transfer the way the toy one did. If it does, a Sprint-speed model costs no training. If the matte is then followed too weakly, the fallback is to train only the control LoRA and gates on the frozen student against the teacher's outputs (about 16&ndash;24 GPU-hours, not started).</li>
+<li>A full Sprint distillation (sCM + LADD) is the last resort; its discriminator hooks a function that our gated forward never calls.</li>
+</ul>
+</details>
+</main>
+
+<main>
+<details><summary><h2>Glossary</h2></summary><dl><dt>Sprint (student)</dt><dd>The few-step SANA-Sprint model, distilled from the teacher [SANA-Sprint].</dd><dt>Teacher</dt><dd>The multi-step SANA-Sprint model (1.6B parameters, 20 steps, classifier-free guidance) that the 1&ndash;4 step Sprint student is distilled from. We train on it, not on the student.</dd><dt>Transfer</dt><dd>Adding the control's weight change (LoRA + gates) to the stock Sprint student, with no training.</dd><dt>Toy control</dt><dd>A control model trained for 400 steps on 200 images on the plain teacher. It exists to test the code path.</dd><dt>Guidance embedding</dt><dd>The Sprint student takes the guidance scale as an input; the teacher uses classifier-free guidance at sampling time.</dd><dt>Matte</dt><dd>The alpha channel as a grayscale image: white = opaque, black = transparent.</dd><dt>Gray composite</dt><dd>rgb &middot; alpha + 0.5 &middot; (1 &minus; alpha): the object on a flat 50% gray background. This is the target output.</dd><dt>Eval set</dt><dd>The 29 fixed MAGICK images (matte, caption, fixed noise) that every step uses. They are never trained on.</dd><dt>IoU vs matte</dt><dd>Intersection over union of the generated foreground and the matte. Foreground = pixels where some channel is more than 0.06 from 0.5. It therefore only measures &quot;correct shape <i>and</i> gray background&quot; together: a model that draws the right shape on a colored background scores low.</dd><dt>Exterior gray error</dt><dd>Mean |rgb &minus; 0.5| over pixels where the input matte is 0 (outside the object). 0 means a perfectly flat 0.5 gray outside the object. For models that do not see the matte, the object itself can fall in this region, so the number is only a rough guide.</dd><dt>Border gray error</dt><dd>Mean |rgb &minus; 0.5| in the 64 px band at the image edge. This is the cleaner background estimate for models without a matte.</dd></dl></details>
+<details><summary><h2>Sources cited</h2></summary><ul><li>[SANA-Sprint] Chen et al., "SANA-Sprint: One-Step Diffusion with Continuous-Time Consistency Distillation", <a href="https://arxiv.org/abs/2503.09641">arXiv 2503.09641</a>.</li><li>[GateControl] Liu et al., "Gated Condition Injection without Multimodal Attention", <a href="https://arxiv.org/abs/2603.27666">arXiv 2603.27666</a>; official code <a href="https://github.com/Carol-lyh/GateControl">Carol-lyh/GateControl</a>.</li><li>Weight comparison and plan: <code>agents/concerns.md</code> (entries of 6:50 AM and 10:25 AM ET); code in <code>src/sana_alpha/gatecontrol.py</code> (<code>load_control</code>, <code>student_lora_keys</code>).</li></ul></details>
+<p class="nav"><a href="step3_4_control_and_subtraction.html">&larr; Steps 3 and 4: control and subtraction</a> &middot; <a href="index.html">Journal index</a></p>
+</main>
+<script src="eval_labels.js"></script>
+<script src="eval_grid.js"></script>
+<script>
+evalGrid("#grid-toy", [["matte", "matte"], ["control_overfit_test_step000400", "teacher + toy control"], ["transfer_overfit_test_step000400_1step", "Sprint, 1 step"], ["transfer_overfit_test_step000400_2step", "Sprint, 2 steps"], ["transfer_overfit_test_step000400_4step", "Sprint, 4 steps"], ["sprint_plain", "stock Sprint, no matte"]]);
+evalGrid("#grid-real", [["matte", "matte"], ["control_v1_step000500", "teacher + control"], ["final_v1_step000500", "final"], ["transfer_v1_step000500_2step", "Sprint + control, 2 steps"], ["transfer_v1_step000500_2step_gray", "same + gray words"]]);
+</script>
+<footer style="margin:3em 0 1em;font-size:0.85em;opacity:0.7">Published images are full-resolution WebP q95; originals are PNG in the repo's BlueJay database.</footer>
+</body>
+</html>

@@ -1,0 +1,309 @@
+{
+ "summary": {
+  "config": "sprint_gray",
+  "call_kwargs": {
+   "num_inference_steps": 2,
+   "max_timesteps": 1.5708,
+   "intermediate_timesteps": 1.3,
+   "guidance_scale": 4.5
+  },
+  "seconds_per_image": 0.274940544103239,
+  "exterior_gray_error": 0.17272763313918277,
+  "border_gray_error": 0.1800950164424962,
+  "border_std": 0.10315623482817719,
+  "iou": 0.3887165366269673,
+  "foreground_fraction": 0.9172373804552801
+ },
+ "images": [
+  {
+   "page_id": "1qda4tXFQy",
+   "prompt": "portrait of a bored yeoman woman stubble running, on a plain 50% gray background",
+   "seconds": 0.2872597819659859,
+   "exterior_gray_error": 0.14405199885368347,
+   "border_gray_error": 0.17809180915355682,
+   "border_std": 0.10209236294031143,
+   "iou": 0.42235060931407337,
+   "foreground_fraction": 0.9987726211547852
+  },
+  {
+   "page_id": "1wgVB7AefT",
+   "prompt": "two red hearts shape on stick over . valentine concept. selective focus., on a plain 50% gray background",
+   "seconds": 0.2646421560202725,
+   "exterior_gray_error": 0.2326676994562149,
+   "border_gray_error": 0.23901985585689545,
+   "border_std": 0.06668484210968018,
+   "iou": 0.1694126416881591,
+   "foreground_fraction": 0.987152099609375
+  },
+  {
+   "page_id": "565tDciDuD",
+   "prompt": "cork and wire ., on a plain 50% gray background",
+   "seconds": 0.26749328000005335,
+   "exterior_gray_error": 0.14697834849357605,
+   "border_gray_error": 0.13351546227931976,
+   "border_std": 0.11466123908758163,
+   "iou": 0.1490798880424884,
+   "foreground_fraction": 0.7710199356079102
+  },
+  {
+   "page_id": "6NqAw3m1ss",
+   "prompt": "attractive young girl holds in her hands two red dice with serious gesture in front of an intense, on a plain 50% gray background",
+   "seconds": 0.26563418499426916,
+   "exterior_gray_error": 0.09798905998468399,
+   "border_gray_error": 0.14435364305973053,
+   "border_std": 0.15292419493198395,
+   "iou": 0.4902988697323709,
+   "foreground_fraction": 0.9238500595092773
+  },
+  {
+   "page_id": "95f0C6wQyn",
+   "prompt": "A transgender man with a stylishly messy brunette hairdo. He sports a red bandana and a plain white tee. His broad grin revealing a playful personality, eyes framed by a hint of guyliner., on a plain 50% gray background",
+   "seconds": 0.2644618320045993,
+   "exterior_gray_error": 0.11432088911533356,
+   "border_gray_error": 0.14544782042503357,
+   "border_std": 0.2045968770980835,
+   "iou": 0.5835719668425019,
+   "foreground_fraction": 0.7536554336547852
+  },
+  {
+   "page_id": "98nn0RzTU4",
+   "prompt": "upset 70 year old Indian baby postal worker man, on a plain 50% gray background",
+   "seconds": 0.2646608510403894,
+   "exterior_gray_error": 0.036692745983600616,
+   "border_gray_error": 0.08164990693330765,
+   "border_std": 0.1317085474729538,
+   "iou": 0.6578619359893366,
+   "foreground_fraction": 0.46561622619628906
+  },
+  {
+   "page_id": "9PYbM7gvWC",
+   "prompt": "nonbinary swordsmith girl with strawberry blonde long hair matte red lipstick blue eyes sunglasses blue eyes sunglasses, on a plain 50% gray background",
+   "seconds": 0.2711615400039591,
+   "exterior_gray_error": 0.14104706048965454,
+   "border_gray_error": 0.1452866494655609,
+   "border_std": 0.14623576402664185,
+   "iou": 0.4628859276346003,
+   "foreground_fraction": 0.9952621459960938
+  },
+  {
+   "page_id": "BTnRzkWMNh",
+   "prompt": "fresh organic mandarins on a turquoise, on a plain 50% gray background",
+   "seconds": 0.26641238399315625,
+   "exterior_gray_error": 0.2444702535867691,
+   "border_gray_error": 0.2442481964826584,
+   "border_std": 0.034159813076257706,
+   "iou": 0.2738466262817383,
+   "foreground_fraction": 0.9999914169311523
+  },
+  {
+   "page_id": "Fqo7u0XZyx",
+   "prompt": "a man hand and gestures in black rubber glove shows knife ., on a plain 50% gray background",
+   "seconds": 0.27701312804128975,
+   "exterior_gray_error": 0.1740512251853943,
+   "border_gray_error": 0.14103040099143982,
+   "border_std": 0.08776786923408508,
+   "iou": 0.27845198161024326,
+   "foreground_fraction": 0.9911394119262695
+  },
+  {
+   "page_id": "GLzmqMEwUO",
+   "prompt": "wide view of a teenage skinny baseball player girl hazel eyes freckles glossy dark lipstick, on a plain 50% gray background",
+   "seconds": 0.2868285099975765,
+   "exterior_gray_error": 0.09994298964738846,
+   "border_gray_error": 0.118775375187397,
+   "border_std": 0.18018396198749542,
+   "iou": 0.5603220141253987,
+   "foreground_fraction": 0.8136978149414062
+  },
+  {
+   "page_id": "NnfzyZv7cP",
+   "prompt": "Middle Eastern gay gay sorcerer man with white long flowing hair hazel eyes wearing brown heavy victorian dress coat, on a plain 50% gray background",
+   "seconds": 0.27625905396416783,
+   "exterior_gray_error": 0.14761467278003693,
+   "border_gray_error": 0.2027406543493271,
+   "border_std": 0.113587886095047,
+   "iou": 0.550138420121764,
+   "foreground_fraction": 0.9950141906738281
+  },
+  {
+   "page_id": "RYEZcIFaZi",
+   "prompt": "white flower tulip  with clipping path. close-up. shot of white colored. nature., on a plain 50% gray background",
+   "seconds": 0.2686113229719922,
+   "exterior_gray_error": 0.23553194105625153,
+   "border_gray_error": 0.2183735966682434,
+   "border_std": 0.04826318845152855,
+   "iou": 0.4524123342438161,
+   "foreground_fraction": 0.999791145324707
+  },
+  {
+   "page_id": "RchOPcbQLG",
+   "prompt": "construction worker man with white flowing hair matte lipgloss beard pearl earrings, on a plain 50% gray background",
+   "seconds": 0.2715871979598887,
+   "exterior_gray_error": 0.06317126750946045,
+   "border_gray_error": 0.1013076901435852,
+   "border_std": 0.12366732209920883,
+   "iou": 0.6330095845702438,
+   "foreground_fraction": 0.6973037719726562
+  },
+  {
+   "page_id": "SI6Izcw6Jy",
+   "prompt": "baked red apples with cinnamon, walnuts and honey . walnuts honey is a healthy dietary food., on a plain 50% gray background",
+   "seconds": 0.26712784299161285,
+   "exterior_gray_error": 0.2035498470067978,
+   "border_gray_error": 0.192801833152771,
+   "border_std": 0.09706983715295792,
+   "iou": 0.3091481677364785,
+   "foreground_fraction": 0.9897737503051758
+  },
+  {
+   "page_id": "V1YCu9hwmo",
+   "prompt": "red apple on a solid, on a plain 50% gray background",
+   "seconds": 0.26943915901938453,
+   "exterior_gray_error": 0.2235473096370697,
+   "border_gray_error": 0.22840940952301025,
+   "border_std": 0.07107681781053543,
+   "iou": 0.33269451092882363,
+   "foreground_fraction": 0.9997129440307617
+  },
+  {
+   "page_id": "WWqakkJo0r",
+   "prompt": "vaccination of a covid virus cell 3d illustration,  two syringes and a covid cell, on a plain 50% gray background",
+   "seconds": 0.27924442099174485,
+   "exterior_gray_error": 0.16922901570796967,
+   "border_gray_error": 0.15909714996814728,
+   "border_std": 0.05427580699324608,
+   "iou": 0.19352112407352648,
+   "foreground_fraction": 0.9996633529663086
+  },
+  {
+   "page_id": "Z4ncYHThJe",
+   "prompt": "a smiling young girl with trunk,, on a plain 50% gray background",
+   "seconds": 0.28263950103428215,
+   "exterior_gray_error": 0.16322126984596252,
+   "border_gray_error": 0.14073382318019867,
+   "border_std": 0.13790826499462128,
+   "iou": 0.29208339371696695,
+   "foreground_fraction": 0.9836359024047852
+  },
+  {
+   "page_id": "b0CewcDGkW",
+   "prompt": "chef hat and knife outline logo.kitchen simple black icon. isolate ., on a plain 50% gray background",
+   "seconds": 0.2751773499767296,
+   "exterior_gray_error": 0.44895288348197937,
+   "border_gray_error": 0.4495112895965576,
+   "border_std": 0.004891824442893267,
+   "iou": 0.6584939956665039,
+   "foreground_fraction": 0.9995317459106445
+  },
+  {
+   "page_id": "eSocyAFw7c",
+   "prompt": "close-up silvery and vintage spoon with honey falling,, on a plain 50% gray background",
+   "seconds": 0.2722102529951371,
+   "exterior_gray_error": 0.2491813451051712,
+   "border_gray_error": 0.2411058247089386,
+   "border_std": 0.07173583656549454,
+   "iou": 0.16761302138110318,
+   "foreground_fraction": 0.99554443359375
+  },
+  {
+   "page_id": "gcp6vpZDjq",
+   "prompt": "close up of a middle age Hispanic monster hunter woman big ears, on a plain 50% gray background",
+   "seconds": 0.2742625749669969,
+   "exterior_gray_error": 0.22858217358589172,
+   "border_gray_error": 0.24478279054164886,
+   "border_std": 0.14119946956634521,
+   "iou": 0.5289861105927187,
+   "foreground_fraction": 0.9833431243896484
+  },
+  {
+   "page_id": "ijseKlXgsh",
+   "prompt": "green tea matcha latte in a glass cup . concept of a healthy diet, superfood, antioxidant, cleansing, on a plain 50% gray background",
+   "seconds": 0.27417292195605114,
+   "exterior_gray_error": 0.22033943235874176,
+   "border_gray_error": 0.21494060754776,
+   "border_std": 0.0856035053730011,
+   "iou": 0.1910643907268757,
+   "foreground_fraction": 0.9940071105957031
+  },
+  {
+   "page_id": "jSRxTkSuC1",
+   "prompt": "stone black and, on a plain 50% gray background",
+   "seconds": 0.2706124340184033,
+   "exterior_gray_error": 0.12715482711791992,
+   "border_gray_error": 0.11882829666137695,
+   "border_std": 0.06316068023443222,
+   "iou": 0.30683331942499853,
+   "foreground_fraction": 0.9065961837768555
+  },
+  {
+   "page_id": "mQsPepMSfu",
+   "prompt": "portrait of a young geologist girl with spiky hair big ears, on a plain 50% gray background",
+   "seconds": 0.2711429279879667,
+   "exterior_gray_error": 0.12052179127931595,
+   "border_gray_error": 0.1299038529396057,
+   "border_std": 0.14232777059078217,
+   "iou": 0.34615675821541103,
+   "foreground_fraction": 0.9782276153564453
+  },
+  {
+   "page_id": "mZaMuBqsEq",
+   "prompt": "funny handsome young man with dark suit with a beautiful bouquet in the hands of white and purple flowers, on a plain 50% gray background",
+   "seconds": 0.2705069709918462,
+   "exterior_gray_error": 0.11256922036409378,
+   "border_gray_error": 0.08403035998344421,
+   "border_std": 0.14053893089294434,
+   "iou": 0.4073102565736081,
+   "foreground_fraction": 0.6780929565429688
+  },
+  {
+   "page_id": "sCPZQgnUPU",
+   "prompt": "big ham sandwich with lettuce, tomato and cheese ., on a plain 50% gray background",
+   "seconds": 0.282124102988746,
+   "exterior_gray_error": 0.12016711384057999,
+   "border_gray_error": 0.12607736885547638,
+   "border_std": 0.10251417011022568,
+   "iou": 0.6781774834437087,
+   "foreground_fraction": 0.8942146301269531
+  },
+  {
+   "page_id": "tMWV86u1Et",
+   "prompt": "b miejski, czarny ptak, kostka brukowa, rozmyte szare t\u00e5\u0082o, on a plain 50% gray background",
+   "seconds": 0.3391851239721291,
+   "exterior_gray_error": 0.12342599034309387,
+   "border_gray_error": 0.1259511411190033,
+   "border_std": 0.05584060028195381,
+   "iou": 0.49720373279634555,
+   "foreground_fraction": 0.9385185241699219
+  },
+  {
+   "page_id": "uP1cKAy8ej",
+   "prompt": "tin can, on a plain 50% gray background",
+   "seconds": 0.2735906469752081,
+   "exterior_gray_error": 0.15497615933418274,
+   "border_gray_error": 0.1512102484703064,
+   "border_std": 0.07771696150302887,
+   "iou": 0.18774625460546962,
+   "foreground_fraction": 0.9369831085205078
+  },
+  {
+   "page_id": "wtAc9ZTbJZ",
+   "prompt": "es blewah or contain slices of cantaloupe with grass jelly and syrup. served in bowl ., on a plain 50% gray background",
+   "seconds": 0.2775596500141546,
+   "exterior_gray_error": 0.19563212990760803,
+   "border_gray_error": 0.20931443572044373,
+   "border_std": 0.13051800429821014,
+   "iou": 0.36383006592149614,
+   "foreground_fraction": 0.9532880783081055
+  },
+  {
+   "page_id": "zxrxYWORPC",
+   "prompt": "flowers petels and fruit twigs in spring on pastel ,flat lay, on a plain 50% gray background",
+   "seconds": 0.27457391301868483,
+   "exterior_gray_error": 0.26952069997787476,
+   "border_gray_error": 0.31221598386764526,
+   "border_std": 0.10861846059560776,
+   "iou": 0.12827417618128378,
+   "foreground_fraction": 0.9764842987060547
+  }
+ ]
+}
