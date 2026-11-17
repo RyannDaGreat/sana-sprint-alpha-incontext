@@ -84,8 +84,8 @@ If a step fails, go back, try again, and journal it.
 **Run rules (user, m00222, m00245, m00257):**
 - **1024×1024 only** (m00295): Sprint and its teacher are trained at 1024, and one resolution keeps the pipeline simple.
 - **Teacher first, distill at the very end** (m00295), after the teacher-based model works.
-- **Eval inference is a BlueJay processor** (m00606, m00611): `generate_eval` reads its job (checkpoint, steps, CFG, noise file) from environment variables; `data/run_proc_eval.fish` launches one loop per GPU. Each generation row records checkpoint, noise and seed, so Sparrow can show them. Judging (VLM, metrics write-up) is done by the agent (m00371). The journal is a static page; its images are hard links to the files BlueJay stored.
-- **All 8 GPUs at full use** (m00611), in curation (encoding) as well as training and eval.
+- **Eval inference is a BlueJay processor** (m00606, m00611): `generate_eval` reads its job (checkpoint, steps, CFG, noise file) from environment variables; `data/run_proc_eval.fish` launches one loop per GPU. Prompts are rows of an inference-set table (m00612). The model stays loaded across batches, and all GPUs stay busy (m00612). Each generation row records checkpoint, noise and seed, so Sparrow can show them. Judging (VLM, metrics write-up) is done by the agent (m00371). The journal is a static page; its images are hard links to the files BlueJay stored.
+- **All 8 GPUs at full use** (m00611, m00612), in curation (encoding) as well as training and eval. **Keep net lines to a minimum** (m00612).
 - **Big batch sizes** when they fit in GPU memory. Up to **1 hour** of run optimization (throughput, batch size, data loading) is allowed before the real run.
 - **Target: something working within 12 hours** of 2026-11-17 03:38 EST, so by about 15:38 EST, if possible.
 - **Every training run is babysat.**
