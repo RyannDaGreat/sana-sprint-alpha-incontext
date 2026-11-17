@@ -138,3 +138,6 @@ It is in your best interest to make sure that you're using the most of all of ou
 
 ## m00612 — 2026-11-17 4:40 AM
 Just as well, the generated evaluations could also make best use of them. After all, we could feed a list of prompts in, like its query or something. You know what, let there be [transcribed as "let me be draws my"] a bunch of inference prompts or something, or inference sets or something like that, as some processors might generate those things from text files or whatever. But the point is that whatever workload the inference stuff does, it should also keep all GPUs maximally busy without having to load and unload the model for everything. You know, efficiency is good. This is a good decision. Keep your delta lines, okay, to a minimum.
+
+## m00613 — 2026-11-17 4:42 AM
+Don't forget to localize the model to disk as well. Look up how localization works. It will make things faster when you load and unload, as opposed to keeping it on FSx. But of course it would have to happen on every computer, so again, look up what localization means.
