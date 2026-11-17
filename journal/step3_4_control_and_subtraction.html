@@ -68,7 +68,7 @@ dt { font-weight: bold; }
 <li>The <b>subtracted model</b> W<sub>base</sub> &minus; W<sub>adapter</sub> + W<sub>control</sub> keeps the matte's shape and pose, but <b>loses the gray background</b>: it draws dark, maroon or olive backdrops. Its IoU is 0.383 and its exterior gray error 0.230.</li>
 <li>Why, as far as we can tell: the gray background is part of the <i>task</i>, not domain junk. The adapter had learned it, and the control model, built on the adapter, never had to. Subtracting the adapter takes the gray with it.</li>
 <li>Two quick fixes. Asking for gray in words (&quot;on a plain 50% gray background&quot;) turns many <b>objects</b> gray too. Keeping part of the adapter works: at 75%, IoU is <b>0.942</b> and exterior gray error 0.022.</li>
-<li>That fix leaves the model close to the control model, so it has not shown that the base's cleaner look survives. A cleaner test is in progress (last section).</li>
+<li>That fix leaves the model close to the control model, so it has not shown that the base's cleaner look survives. The cleaner test, adapter_v2, worked: see <a href="step6_adapter_v2.html">step 6</a>.</li>
 </ul></div>
 
 <details open><summary><h2>Step 3: the control model</h2></summary>
@@ -117,9 +117,9 @@ dt { font-weight: bold; }
 </div>
 
 <main>
-<details open><summary><h2>In progress: adapter_v2 on random colored backgrounds</h2></summary>
+<details open><summary><h2>Follow-up: adapter_v2 on random colored backgrounds (result in step 6)</h2></summary>
 <p>If the gray background is part of the task, the control model should be the one to learn it, so the adapter must not know it. <b>adapter_v2</b> trains on the same MAGICK objects on a <i>random solid color</i> per image (the color comes from a hash of the image id, so it is reproducible), with the same captions. Then the plan repeats: train a control model on gray targets on top of adapter_v2, subtract adapter_v2, and see whether the gray comes back from the control delta while MAGICK's look still cancels.</p>
-<p><b>Status at 11:02 AM ET:</b> encoding the colored-background latents is under way (about 60,000 of 140,941 images). adapter_v2 has not started. Nothing in this section is a result yet. We treat the explanation above as a hypothesis that this experiment can break.</p>
+<p><b>Result (3:20 PM ET):</b> it did. With full subtraction the teacher reaches IoU 0.924 and exterior gray error 0.019 (v1: 0.478 and 0.117), and stock Sprint with the same delta, no training, reaches 0.955 in 2 steps. The tables, the images and the caveats are in <a href="step6_adapter_v2.html">step 6: adapter_v2</a>. The numbers in this entry are from the earlier control_v1 runs.</p>
 </details>
 
 <details open><summary><h2>Limits of this entry</h2></summary>

@@ -54,7 +54,7 @@ dt { font-weight: bold; }
 </head>
 <body>
 <main>
-<p class="nav"><a href="step3_4_control_and_subtraction.html">&larr; Steps 3 and 4: control and subtraction</a> &middot; <a href="index.html">Journal index</a></p>
+<p class="nav"><a href="step3_4_control_and_subtraction.html">&larr; Steps 3 and 4: control and subtraction</a> &middot; <a href="step6_adapter_v2.html">Step 6: adapter_v2 &rarr;</a> &middot; <a href="index.html">Journal index</a></p>
 <h1>Step 5: moving the control onto Sprint without training</h1>
 <p class="byline">Journal entry, 2026-11-17. Agent: Sana. Toy test at 6:50 AM ET; real-control numbers at 10:25 AM ET.</p>
 </main>
@@ -108,7 +108,7 @@ dt { font-weight: bold; }
 <details open><summary><h2>What this means for the plan</h2></summary>
 <ul>
 <li>The transfer mechanics work on a toy control. That is evidence, on 200 training images and 29 eval images, not proof for the final model.</li>
-<li>The real test comes after adapter_v2 and control_v2 (see the previous entry): a control that must learn the gray itself should transfer the way the toy one did. If it does, a Sprint-speed model costs no training. If the matte is then followed too weakly, the fallback is to train only the control LoRA and gates on the frozen student against the teacher's outputs (about 16&ndash;24 GPU-hours, not started).</li>
+<li>The real test was adapter_v2 and control_v2, and it passed: a control that must learn the gray itself transfers to stock Sprint with no training (IoU 0.955 in 2 steps, 0.828 in 1 step at control step 1500; <a href="step6_adapter_v2.html">step 6</a>). So the fallback of training only the control LoRA and gates on the frozen student against the teacher's outputs (about 16&ndash;24 GPU-hours) was not needed and was not started.</li>
 <li>A full Sprint distillation (sCM + LADD) is the last resort; its discriminator hooks a function that our gated forward never calls.</li>
 </ul>
 </details>
