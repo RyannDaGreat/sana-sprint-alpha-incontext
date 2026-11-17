@@ -1,0 +1,179 @@
+{
+  "items": [
+    {
+      "file": "dragon-head.png",
+      "name": "Dragon Head",
+      "source_url": "https://game-icons.net/1x1/lorc/dragon-head.html",
+      "license": "CC BY 3.0",
+      "author": "Lorc"
+    },
+    {
+      "file": "unicorn.png",
+      "name": "Unicorn",
+      "source_url": "https://game-icons.net/1x1/delapouite/unicorn.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "wyvern.png",
+      "name": "Wyvern",
+      "source_url": "https://game-icons.net/1x1/lorc/wyvern.html",
+      "license": "CC BY 3.0",
+      "author": "Lorc"
+    },
+    {
+      "file": "mermaid.png",
+      "name": "Mermaid",
+      "source_url": "https://game-icons.net/1x1/delapouite/mermaid.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "robot-golem.png",
+      "name": "Robot Golem",
+      "source_url": "https://game-icons.net/1x1/lorc/robot-golem.html",
+      "license": "CC BY 3.0",
+      "author": "Lorc"
+    },
+    {
+      "file": "alien-skull.png",
+      "name": "Alien Skull",
+      "source_url": "https://game-icons.net/1x1/lorc/alien-skull.html",
+      "license": "CC BY 3.0",
+      "author": "Lorc"
+    },
+    {
+      "file": "alien-bug.png",
+      "name": "Alien Bug",
+      "source_url": "https://game-icons.net/1x1/delapouite/alien-bug.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "alien-stare.png",
+      "name": "Alien Stare",
+      "source_url": "https://game-icons.net/1x1/lorc/alien-stare.html",
+      "license": "CC BY 3.0",
+      "author": "Lorc"
+    },
+    {
+      "file": "ogre.png",
+      "name": "Ogre",
+      "source_url": "https://game-icons.net/1x1/delapouite/ogre.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "cyclops.png",
+      "name": "Cyclops",
+      "source_url": "https://game-icons.net/1x1/lorc/cyclops.html",
+      "license": "CC BY 3.0",
+      "author": "Lorc"
+    },
+    {
+      "file": "minotaur.png",
+      "name": "Minotaur",
+      "source_url": "https://game-icons.net/1x1/lorc/minotaur.html",
+      "license": "CC BY 3.0",
+      "author": "Lorc"
+    },
+    {
+      "file": "werewolf.png",
+      "name": "Werewolf",
+      "source_url": "https://game-icons.net/1x1/lorc/werewolf.html",
+      "license": "CC BY 3.0",
+      "author": "Lorc"
+    },
+    {
+      "file": "ghost.png",
+      "name": "Ghost",
+      "source_url": "https://game-icons.net/1x1/lorc/ghost.html",
+      "license": "CC BY 3.0",
+      "author": "Lorc"
+    },
+    {
+      "file": "hydra.png",
+      "name": "Hydra",
+      "source_url": "https://game-icons.net/1x1/lorc/hydra.html",
+      "license": "CC BY 3.0",
+      "author": "Lorc"
+    },
+    {
+      "file": "sea-serpent.png",
+      "name": "Sea Serpent",
+      "source_url": "https://game-icons.net/1x1/lorc/sea-serpent.html",
+      "license": "CC BY 3.0",
+      "author": "Lorc"
+    },
+    {
+      "file": "orc-head.png",
+      "name": "Orc Head",
+      "source_url": "https://game-icons.net/1x1/delapouite/orc-head.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "imp-laugh.png",
+      "name": "Imp Laugh",
+      "source_url": "https://game-icons.net/1x1/lorc/imp-laugh.html",
+      "license": "CC BY 3.0",
+      "author": "Lorc"
+    },
+    {
+      "file": "wolf-head.png",
+      "name": "Wolf Head",
+      "source_url": "https://game-icons.net/1x1/lorc/wolf-head.html",
+      "license": "CC BY 3.0",
+      "author": "Lorc"
+    },
+    {
+      "file": "bat-wing.png",
+      "name": "Bat Wing",
+      "source_url": "https://game-icons.net/1x1/lorc/bat-wing.html",
+      "license": "CC BY 3.0",
+      "author": "Lorc"
+    },
+    {
+      "file": "monster-grasp.png",
+      "name": "Monster Grasp",
+      "source_url": "https://game-icons.net/1x1/lorc/monster-grasp.html",
+      "license": "CC BY 3.0",
+      "author": "Lorc"
+    },
+    {
+      "file": "frankenstein-creature.png",
+      "name": "Frankenstein Creature",
+      "source_url": "https://game-icons.net/1x1/lorc/frankenstein-creature.html",
+      "license": "CC BY 3.0",
+      "author": "Lorc"
+    },
+    {
+      "file": "octopus.png",
+      "name": "Octopus",
+      "source_url": "https://game-icons.net/1x1/lorc/octopus.html",
+      "license": "CC BY 3.0",
+      "author": "Lorc"
+    },
+    {
+      "file": "goblin-head.png",
+      "name": "Goblin Head",
+      "source_url": "https://game-icons.net/1x1/delapouite/goblin-head.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "harpy.png",
+      "name": "Harpy",
+      "source_url": "https://game-icons.net/1x1/lorc/harpy.html",
+      "license": "CC BY 3.0",
+      "author": "Lorc"
+    },
+    {
+      "file": "dinosaur-rex.png",
+      "name": "Dinosaur Rex",
+      "source_url": "https://game-icons.net/1x1/lorc/dinosaur-rex.html",
+      "license": "CC BY 3.0",
+      "author": "Lorc"
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+{
+ "categories": [
+  {
+   "id": "magick",
+   "name": "MAGICK",
+   "count": 29
+  },
+  {
+   "id": "abstract_patterns",
+   "name": "Abstract patterns",
+   "count": 25
+  },
+  {
+   "id": "animals",
+   "name": "Animals",
+   "count": 39
+  },
+  {
+   "id": "fantasy_creatures",
+   "name": "Fantasy creatures",
+   "count": 25
+  },
+  {
+   "id": "icons_symbols",
+   "name": "Icons symbols",
+   "count": 42
+  },
+  {
+   "id": "objects_tools",
+   "name": "Objects tools",
+   "count": 33
+  },
+  {
+   "id": "people_poses",
+   "name": "People poses",
+   "count": 40
+  },
+  {
+   "id": "plants_food",
+   "name": "Plants food",
+   "count": 30
+  },
+  {
+   "id": "sports_action",
+   "name": "Sports action",
+   "count": 39
+  },
+  {
+   "id": "typography_ornaments",
+   "name": "Typography ornaments",
+   "count": 25
+  },
+  {
+   "id": "vehicles_architecture",
+   "name": "Vehicles architecture",
+   "count": 25
+  }
+ ]
+}

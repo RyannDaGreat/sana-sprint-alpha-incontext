@@ -1,0 +1,277 @@
+{
+  "items": [
+    {
+      "file": "horse.png",
+      "name": "Horse",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/horse-fill.svg",
+      "license": "MIT (Phosphor Icons)",
+      "author": "Phosphor Icons contributors"
+    },
+    {
+      "file": "bird.png",
+      "name": "Bird",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/bird-fill.svg",
+      "license": "MIT (Phosphor Icons)",
+      "author": "Phosphor Icons contributors"
+    },
+    {
+      "file": "fish.png",
+      "name": "Fish",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/fish-fill.svg",
+      "license": "MIT (Phosphor Icons)",
+      "author": "Phosphor Icons contributors"
+    },
+    {
+      "file": "fish-simple.png",
+      "name": "Fish (simple)",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/fish-simple-fill.svg",
+      "license": "MIT (Phosphor Icons)",
+      "author": "Phosphor Icons contributors"
+    },
+    {
+      "file": "cat.png",
+      "name": "Cat",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/cat-fill.svg",
+      "license": "MIT (Phosphor Icons)",
+      "author": "Phosphor Icons contributors"
+    },
+    {
+      "file": "dog.png",
+      "name": "Dog",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/dog-fill.svg",
+      "license": "MIT (Phosphor Icons)",
+      "author": "Phosphor Icons contributors"
+    },
+    {
+      "file": "cow.png",
+      "name": "Cow",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/cow-fill.svg",
+      "license": "MIT (Phosphor Icons)",
+      "author": "Phosphor Icons contributors"
+    },
+    {
+      "file": "rabbit.png",
+      "name": "Rabbit",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/rabbit-fill.svg",
+      "license": "MIT (Phosphor Icons)",
+      "author": "Phosphor Icons contributors"
+    },
+    {
+      "file": "butterfly.png",
+      "name": "Butterfly",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/butterfly-fill.svg",
+      "license": "MIT (Phosphor Icons)",
+      "author": "Phosphor Icons contributors"
+    },
+    {
+      "file": "beetle.png",
+      "name": "Beetle",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/bug-beetle-fill.svg",
+      "license": "MIT (Phosphor Icons)",
+      "author": "Phosphor Icons contributors"
+    },
+    {
+      "file": "shrimp.png",
+      "name": "Shrimp",
+      "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/shrimp-fill.svg",
+      "license": "MIT (Phosphor Icons)",
+      "author": "Phosphor Icons contributors"
+    },
+    {
+      "file": "lion.png",
+      "name": "Lion",
+      "source_url": "https://game-icons.net/1x1/lorc/lion.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "wolf-howling.png",
+      "name": "Wolf howling",
+      "source_url": "https://game-icons.net/1x1/lorc/wolf-howl.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "kangaroo.png",
+      "name": "Kangaroo",
+      "source_url": "https://game-icons.net/1x1/delapouite/kangaroo.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Delapouite"
+    },
+    {
+      "file": "penguin.png",
+      "name": "Penguin",
+      "source_url": "https://game-icons.net/1x1/delapouite/penguin.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Delapouite"
+    },
+    {
+      "file": "dolphin.png",
+      "name": "Dolphin",
+      "source_url": "https://game-icons.net/1x1/delapouite/dolphin.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Delapouite"
+    },
+    {
+      "file": "shark-jaws.png",
+      "name": "Shark jaws",
+      "source_url": "https://game-icons.net/1x1/lorc/shark-jaws.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "dove.png",
+      "name": "Dove",
+      "source_url": "https://game-icons.net/1x1/lorc/dove.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "eagle.png",
+      "name": "Eagle",
+      "source_url": "https://game-icons.net/1x1/lorc/eagle-emblem.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "swan.png",
+      "name": "Swan",
+      "source_url": "https://game-icons.net/1x1/lorc/swan.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "gorilla.png",
+      "name": "Gorilla",
+      "source_url": "https://game-icons.net/1x1/delapouite/gorilla.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Delapouite"
+    },
+    {
+      "file": "elephant.png",
+      "name": "Elephant",
+      "source_url": "https://game-icons.net/1x1/delapouite/elephant.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Delapouite"
+    },
+    {
+      "file": "t-rex.png",
+      "name": "T-Rex",
+      "source_url": "https://game-icons.net/1x1/lorc/dinosaur-rex.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "frog.png",
+      "name": "Frog",
+      "source_url": "https://game-icons.net/1x1/lorc/frog.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "dragonfly.png",
+      "name": "Dragonfly",
+      "source_url": "https://game-icons.net/1x1/lorc/dragonfly.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "galloping-horse.png",
+      "name": "Galloping horse",
+      "source_url": "https://openclipart.org/detail/299193/horse-silhouette",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "oksmith"
+    },
+    {
+      "file": "leaping-deer.png",
+      "name": "Leaping deer",
+      "source_url": "https://openclipart.org/detail/326334/leaping-reindeer-silhouette",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "GDJ"
+    },
+    {
+      "file": "leaping-deer-ruby.png",
+      "name": "Leaping deer (polygon)",
+      "source_url": "https://openclipart.org/detail/260088/ruby-leaping-deer-silhouette",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "GDJ"
+    },
+    {
+      "file": "stretching-cat.png",
+      "name": "Stretching cat",
+      "source_url": "https://openclipart.org/detail/280835/stretching-cat-silhouette",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "GDJ"
+    },
+    {
+      "file": "stretching-cat-arched.png",
+      "name": "Stretching cat (arched)",
+      "source_url": "https://openclipart.org/detail/193429/gat-4",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "rferran"
+    },
+    {
+      "file": "stretching-cat-3d.png",
+      "name": "Stretching cat (3D)",
+      "source_url": "https://openclipart.org/detail/342485/stretching-cat-3d-silhouette",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "GDJ"
+    },
+    {
+      "file": "eagle-spread-wings.png",
+      "name": "Eagle spread wings",
+      "source_url": "https://openclipart.org/detail/319650/eagle-wings-silhouette",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "liftarn"
+    },
+    {
+      "file": "octopus.png",
+      "name": "Octopus",
+      "source_url": "https://openclipart.org/detail/323218/octopus",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "NicholasJudy567"
+    },
+    {
+      "file": "octopus-ornate.png",
+      "name": "Octopus (ornate)",
+      "source_url": "https://openclipart.org/detail/319492/octopus",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "liftarn"
+    },
+    {
+      "file": "jumping-dolphin.png",
+      "name": "Jumping dolphin",
+      "source_url": "https://openclipart.org/detail/327752/dolphin",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "NicholasJudy567"
+    },
+    {
+      "file": "dolphin-pattern.png",
+      "name": "Dolphin (pattern)",
+      "source_url": "https://openclipart.org/detail/288761/dolphin-pattern",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "Firkin"
+    },
+    {
+      "file": "running-wolf.png",
+      "name": "Running wolf",
+      "source_url": "https://openclipart.org/detail/258071/wolf",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "Arvin61r58"
+    },
+    {
+      "file": "lions.png",
+      "name": "Lions",
+      "source_url": "https://openclipart.org/detail/332327/lions-silhouette",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "culturalibre"
+    },
+    {
+      "file": "peacock-butterfly.png",
+      "name": "Butterfly (peacock)",
+      "source_url": "https://openclipart.org/detail/228121/peacock-butterfly-silhouette",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "Firkin"
+    }
+  ]
+}
