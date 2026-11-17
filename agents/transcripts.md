@@ -230,3 +230,6 @@ Are the latest and greatest models hosted on the website or not? We would like t
 
 ## m00642 — 2026-11-17 5:13 PM
 You can send me up to 4 more total notifications. Again, be frugal.
+
+## m00643 — 2026-11-17 5:18 PM
+I should be able to undo and redo and apply thresholds to the editor area. Also, it would be nice if we had a choice of more fonts, and had an expandable modal gallery of different masks. Look at the [MAGICK, transcribed as "magic"] paper for examples, and then try to find — have a batch [swarm, transcribed as "form"] of Haiku or [Sonnet, transcribed as "jsonnet"] agents look over Google Images for interesting designs or silhouettes. Vector graphics might be a good place to look.
