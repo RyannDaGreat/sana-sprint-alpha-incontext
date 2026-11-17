@@ -25,6 +25,8 @@
 // for 1–4 steps (sprintTimesteps) and adds fresh noise between steps.
 
 export const CACHE_NAME = 'sana-web-models';
+const PART_SUFFIX = '.part';  // OPFS name of a download in progress (renamed when complete)
+const CACHE_READ_CHUNK_BYTES = 256 * 1024 * 1024;  // Reads cached files in 256 MB slices: one read of a >2 GB Blob fails in Chrome
 export const MODEL_FILES = ['tokenizer', 'tokenizer_config', 'text_encoder', 'vae_encoder', 'transformer', 'vae_decoder'];
 
 /**
@@ -180,24 +182,45 @@ export async function cachedFlags(files) {
   return Promise.all(files.map(async (f) => (await cachedFile(f.key)) !== null));
 }
 
+const keyQueue = new Map(); // cache key → promise of the last fetchCached on it
+
 /**
- * Command. Returns a file's bytes from the OPFS cache, or downloads it (streamed, with progress)
- * while writing it to OPFS. The write commits only on close, so an interrupted download leaves
- * no partial file. Fails loudly if the size differs from the manifest.
+ * Command. Returns a file's bytes from the OPFS cache, or downloads it (streamed, with progress) while writing it
+ * to OPFS. Calls on the same key run one after another (versions share Gemma and DC-AE files: a read must never
+ * overlap the write of the same file). Fails loudly if the size differs from the manifest.
  *
  * @param {{url: string, key: string, bytes: number, parts?: {url: string, bytes: number}[]}} file - parts: shards to concatenate
  * @param {(done: number, total: number, fromCache: boolean) => void} onProgress
  * @returns {Promise<Uint8Array>}
  */
-export async function fetchCached(file, onProgress) {
-  const hit = await cachedFile(file.key);
+export function fetchCached(file, onProgress) {
+  // the previous call's error is reported to that call's own caller; here it only orders the queue
+  const run = (keyQueue.get(file.key) ?? Promise.resolve()).catch(() => {}).then(() => fetchCachedNow(file, onProgress));
+  keyQueue.set(file.key, run);
+  return run;
+}
+
+/**
+ * Command. fetchCached without the per-key queue. A download is written to `<name>.part` and renamed to `<name>`
+ * only when complete, so an interrupted download (closed tab, network error) never looks cached.
+ */
+async function fetchCachedNow(file, onProgress) {
+  let hit = await cachedFile(file.key);
+  if (hit && hit.size !== file.bytes) {  // builds before 2026-11-17 left a 0-byte file when a download was interrupted
+    console.warn(`cached ${file.url}: ${hit.size} bytes, manifest says ${file.bytes}; deleting and downloading again`);
+    await (await cacheDir()).removeEntry(await cacheName(file.key));
+    hit = null;
+  }
   if (hit) {
-    if (hit.size !== file.bytes) throw new Error(`cached ${file.url}: ${hit.size} bytes, manifest says ${file.bytes}`);
-    const data = new Uint8Array(await hit.arrayBuffer());
-    onProgress(data.length, file.bytes, true);
+    const data = new Uint8Array(file.bytes);
+    for (let at = 0; at < file.bytes; at += CACHE_READ_CHUNK_BYTES) {  // Chrome throws NotReadableError reading a >2 GB Blob at once
+      data.set(new Uint8Array(await hit.slice(at, at + CACHE_READ_CHUNK_BYTES).arrayBuffer()), at);
+      onProgress(Math.min(at + CACHE_READ_CHUNK_BYTES, file.bytes), file.bytes, true);
+    }
     return data;
   }
-  const handle = await (await cacheDir()).getFileHandle(await cacheName(file.key), { create: true });
+  const name = await cacheName(file.key);
+  const handle = await (await cacheDir()).getFileHandle(`${name}${PART_SUFFIX}`, { create: true });
   const writer = await handle.createWritable();
   const data = new Uint8Array(file.bytes);
   let done = 0;
@@ -217,6 +240,7 @@ export async function fetchCached(file, onProgress) {
   }
   if (done !== file.bytes) { await writer.abort(); throw new Error(`${file.url}: got ${done} bytes, manifest says ${file.bytes}`); }
   await writer.close();
+  await handle.move(name);
   return data;
 }
 
