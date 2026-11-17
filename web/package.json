@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "vite build",
+    "build": "node scripts/mask_index.mjs && vite build",
     "serve": "node serve.js"
   },
   "dependencies": {

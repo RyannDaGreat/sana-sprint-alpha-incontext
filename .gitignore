@@ -13,3 +13,4 @@ journal/assets/gallery_*/
 web/node_modules/
 web/.cert/
 journal/webgpu/
+web/public/masks/categories.json
