@@ -159,3 +159,6 @@ I also need to see what the original model makes with Sprint, so that I can tell
 
 ## m00619 — 2026-11-17 12:51 PM
 I also want you to have an agent come up with much more detailed versions of each prompt that fit how SANA-Sprint should be used, and have that as a comparison next to each one of those rows. So two rows: one as old prompt and one as new prompt.
+
+## m00620 — 2026-11-17 12:49 PM
+Notify me and talk out loud once. And by the way, don't talk until — only talk once per talking request, which is right now. I'm asking you to talk when you finish — when you have the journal for me to look at.
