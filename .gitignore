@@ -8,3 +8,5 @@ data/Aviary/
 /data/.claude_logs
 /data/processors/__pycache__
 __pycache__/
+journal/assets/*/full/
+journal/assets/gallery_*/
