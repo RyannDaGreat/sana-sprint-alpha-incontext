@@ -1,6 +1,6 @@
 # Manifest — SANA-Sprint In-Context Alpha → RGB-on-Gray
 
-> STATUS: **executing on the node** (8× A100 80GB, 96 CPUs, 1.1 TB RAM) since 2026-11-17 04:16 EST, in bulldog mode + fork mode (m00600–m00605). The agent's name is **Sana**.
+> STATUS: **executing on the node** (8× A100 80GB, 96 CPUs, 1.1 TB RAM) since 2026-11-17 4:16 AM ET, in bulldog mode + fork mode (m00600–m00605). The agent's name is **Sana**.
 
 ## 0. Agenda (node session, 13 h budget: 4:16 AM → 5:16 PM ET, m00600)
 
