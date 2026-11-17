@@ -3,6 +3,9 @@ The fixed eval set: MAGICK images where sha256(page_id) mod 4000 is 0, with fixe
 
 Build it once (writes resources/eval/):
     PYTHONPATH=src uv run python -m sana_alpha.eval_set build
+The showcase set adds training images (residue 1, split "train") after the held-out ones, so its first noise rows
+equal the eval set's (writes resources/showcase/):
+    PYTHONPATH=src uv run python -m sana_alpha.eval_set build resources/showcase --residues 0,1
 
 The rule must match data/project.dtab (EVAL_MODULUS, the `split` column of import_index).
 """
@@ -30,43 +33,48 @@ LATENT_SHAPE = (32, 32, 32)  # (LC, LH, LW): DC-AE f32c32 latent of a 1024x1024 
 PROMPT_SUFFIXES = dict(plain="", gray=", on a plain 50% gray background")  # prompt variant -> text added to the caption
 
 
-def is_eval_page(page_id):
+def page_residue(page_id):
     """
-    Pure function. The eval rule: sha256 of the UTF-8 page_id, read as a big integer, mod EVAL_MODULUS is 0.
+    Pure function. sha256 of the UTF-8 page_id, read as a big integer, mod EVAL_MODULUS. 0 = eval, never trained on.
 
     Args:
         page_id (str): MAGICK image ID
 
     Returns:
-        bool
+        int
 
     Examples:
-        >>> is_eval_page("6NqAw3m1ss"), is_eval_page("Hcx82jcUpM")
-        (True, False)
+        >>> page_residue("6NqAw3m1ss"), page_residue("Hcx82jcUpM")
+        (0, 3229)
     """
-    return int(hashlib.sha256(page_id.encode("utf-8")).hexdigest(), 16) % EVAL_MODULUS == 0
+    return int(hashlib.sha256(page_id.encode("utf-8")).hexdigest(), 16) % EVAL_MODULUS
 
 
-def select_eval_rows(index):
+def select_eval_rows(index, residues=(0,)):
     """
-    Pure function. Dedupes the MAGICK index by page_id, keeps eval rows that are not nsfw, sorted by page_id.
+    Pure function. Dedupes the MAGICK index by page_id, keeps the non-nsfw rows whose page_residue is in residues,
+    labels them split "held-out" (residue 0) or "train", and sorts them held-out first, then by page_id.
 
     Args:
         index (pd.DataFrame): magick_index.tsv as read with quoting=3 (columns page_id, subject, nsfw, ...)
+        residues (tuple[int]): page_residue values to keep
 
     Returns:
-        pd.DataFrame: columns page_id, caption, sim_score
+        pd.DataFrame: columns page_id, caption, sim_score, split
 
     Examples:
         >>> df = pd.DataFrame(dict(page_id=["6NqAw3m1ss", "6NqAw3m1ss", "Hcx82jcUpM"],
         ...                        subject=["two dice", "two dice", "crayfish"], nsfw=[0, 0, 0], sim_score=[0.99, 0.99, 0.98]))
         >>> select_eval_rows(df).to_dict("records")
-        [{'page_id': '6NqAw3m1ss', 'caption': 'two dice', 'sim_score': 0.99}]
+        [{'page_id': '6NqAw3m1ss', 'caption': 'two dice', 'sim_score': 0.99, 'split': 'held-out'}]
+        >>> select_eval_rows(df, residues=(0, 3229)).split.tolist()
+        ['held-out', 'train']
     """
     unique = index.drop_duplicates("page_id")
-    keep = unique.page_id.map(is_eval_page) & (unique.nsfw == 0)
-    rows = unique[keep].sort_values("page_id")
-    return rows.rename(columns=dict(subject="caption"))[["page_id", "caption", "sim_score"]].reset_index(drop=True)
+    residue = unique.page_id.map(page_residue)
+    rows = unique.assign(split=np.where(residue == 0, "held-out", "train"))[residue.isin(residues) & (unique.nsfw == 0)]
+    rows = rows.sort_values(["split", "page_id"]).rename(columns=dict(subject="caption"))
+    return rows[["page_id", "caption", "sim_score", "split"]].reset_index(drop=True)
 
 
 def split_rgba(rgba):
@@ -127,20 +135,21 @@ def load_eval_set(eval_dir=EVAL_DIR):
     return dict(items=items, mattes=mattes, references=refs, noise=noise)
 
 
-def build(eval_dir=str(EVAL_DIR), download_dir=str(DOWNLOAD_DIR)):
+def build(eval_dir=str(EVAL_DIR), download_dir=str(DOWNLOAD_DIR), residues=(0,)):
     """
     Command. Downloads magick_index.tsv and the eval PNGs, writes mattes/, references/, prompts.json, noise.safetensors.
 
     Args:
         eval_dir (str): output folder (resources/eval)
         download_dir (str): where the raw Hugging Face files go (scratch, untrusted)
+        residues (tuple[int]): page_residue values to include: 0 = held-out eval images, others are training images
     """
     eval_dir, download_dir = Path(eval_dir), Path(download_dir)
     (eval_dir / "mattes").mkdir(parents=True, exist_ok=True)
     (eval_dir / "references").mkdir(parents=True, exist_ok=True)
     tsv = hf_hub_download(MAGICK_REPO, "magick_index.tsv", repo_type="dataset", local_dir=download_dir)
-    rows = select_eval_rows(pd.read_csv(tsv, sep="\t", quoting=3))
-    print(f"eval rows: {len(rows)} (sha256(page_id) mod {EVAL_MODULUS} == 0, nsfw excluded)")
+    rows = select_eval_rows(pd.read_csv(tsv, sep="\t", quoting=3), tuple(residues))
+    print(f"rows: {rows.split.value_counts().to_dict()} (sha256(page_id) mod {EVAL_MODULUS} in {residues}, nsfw excluded)")
     for page_id in rows.page_id:
         png = hf_hub_download(MAGICK_REPO, f"images/{page_id[:2]}/{page_id}.png", repo_type="dataset", local_dir=download_dir)
         rgba = np.asarray(Image.open(png).convert("RGBA"))

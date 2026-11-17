@@ -15,7 +15,7 @@ environ
 	TEACHER_DIR ../models/Sana_Sprint_1.6B_1024px_teacher_diffusers	                 TEACHER_MODEL on FSx. encode_latents copies it to /models/sana-sprint-alpha-incontext once per machine
 
 	 Eval (plan_eval, generate_eval)
-	EVAL_SET resources/eval	 Eval images, captions and fixed noise, relative to the repo root. src/sana_alpha/eval_set.py makes it
+	EVAL_SET resources/eval	 Eval images, captions and fixed noise, relative to the repo root. src/sana_alpha/eval_set.py makes it. Default of eval_models.eval_set
 	EVAL_BATCH_SIZE 16	      eval_generations rows per run of generate_eval. A run costs ~12 s besides the GPU: 8 rows took 15 s
 
 	 Database
@@ -125,7 +125,7 @@ tables
 		 One row per model to evaluate. To evaluate a new checkpoint, add a row here: run_proc_eval.fish initializes first
 		primary_key model_tag
 		columns
-			model_tag, pipeline, checkpoint, prompt_variant string
+			model_tag, pipeline, checkpoint, prompt_variant, eval_set string	 Empty eval_set = EVAL_SET
 			steps int64
 			guidance float64
 		initial_rows
@@ -296,6 +296,263 @@ tables
 				prompt_variant plain
 				steps 2
 				guidance 4.5
+			,
+				 Showcase (gallery_v1.html, src/sana_alpha/gallery.py): stock models, then control_v1 step 1500 keeping λ of the adapter
+				model_tag show_stock_sprint1
+				pipeline sprint
+				checkpoint stock
+				prompt_variant plain
+				steps 1
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_stock_sprint2
+				pipeline sprint
+				checkpoint stock
+				prompt_variant plain
+				steps 2
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_stock_teacher20
+				pipeline teacher
+				checkpoint stock
+				prompt_variant plain
+				steps 20
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v1_step001500_lam1
+				pipeline teacher
+				checkpoint models/control/control_v1/step_001500
+				prompt_variant plain
+				steps 20
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v1_step001500_lam0.75
+				pipeline teacher
+				checkpoint models/control/control_v1/final_step_001500_adapter0.75
+				prompt_variant plain
+				steps 20
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v1_step001500_lam0.5
+				pipeline teacher
+				checkpoint models/control/control_v1/final_step_001500_adapter0.5
+				prompt_variant plain
+				steps 20
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v1_step001500_lam0.25
+				pipeline teacher
+				checkpoint models/control/control_v1/final_step_001500_adapter0.25
+				prompt_variant plain
+				steps 20
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v1_step001500_lam0
+				pipeline teacher
+				checkpoint models/control/control_v1/final_step_001500
+				prompt_variant plain
+				steps 20
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v1_step001500_sprint_lam1_2step
+				pipeline sprint
+				checkpoint models/control/control_v1/sprint_step_001500_adapter1
+				prompt_variant plain
+				steps 2
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v1_step001500_sprint_lam0.75_2step
+				pipeline sprint
+				checkpoint models/control/control_v1/sprint_step_001500_adapter0.75
+				prompt_variant plain
+				steps 2
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v1_step001500_sprint_lam0.5_2step
+				pipeline sprint
+				checkpoint models/control/control_v1/sprint_step_001500_adapter0.5
+				prompt_variant plain
+				steps 2
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v1_step001500_sprint_lam0_2step
+				pipeline sprint
+				checkpoint models/control/control_v1/sprint_step_001500
+				prompt_variant plain
+				steps 2
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v1_step001500_sprint_lam1_1step
+				pipeline sprint
+				checkpoint models/control/control_v1/sprint_step_001500_adapter1
+				prompt_variant plain
+				steps 1
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v1_step001500_sprint_lam0.75_1step
+				pipeline sprint
+				checkpoint models/control/control_v1/sprint_step_001500_adapter0.75
+				prompt_variant plain
+				steps 1
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v1_step001500_sprint_lam0.5_1step
+				pipeline sprint
+				checkpoint models/control/control_v1/sprint_step_001500_adapter0.5
+				prompt_variant plain
+				steps 1
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v1_step001500_sprint_lam0_1step
+				pipeline sprint
+				checkpoint models/control/control_v1/sprint_step_001500
+				prompt_variant plain
+				steps 1
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_stock_sprint1_detailed
+				pipeline sprint
+				checkpoint stock
+				prompt_variant detailed
+				steps 1
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_stock_sprint2_detailed
+				pipeline sprint
+				checkpoint stock
+				prompt_variant detailed
+				steps 2
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_stock_teacher20_detailed
+				pipeline teacher
+				checkpoint stock
+				prompt_variant detailed
+				steps 20
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v1_step001500_lam1_detailed
+				pipeline teacher
+				checkpoint models/control/control_v1/step_001500
+				prompt_variant detailed
+				steps 20
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v1_step001500_lam0.75_detailed
+				pipeline teacher
+				checkpoint models/control/control_v1/final_step_001500_adapter0.75
+				prompt_variant detailed
+				steps 20
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v1_step001500_lam0.5_detailed
+				pipeline teacher
+				checkpoint models/control/control_v1/final_step_001500_adapter0.5
+				prompt_variant detailed
+				steps 20
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v1_step001500_lam0.25_detailed
+				pipeline teacher
+				checkpoint models/control/control_v1/final_step_001500_adapter0.25
+				prompt_variant detailed
+				steps 20
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v1_step001500_lam0_detailed
+				pipeline teacher
+				checkpoint models/control/control_v1/final_step_001500
+				prompt_variant detailed
+				steps 20
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v1_step001500_sprint_lam1_2step_detailed
+				pipeline sprint
+				checkpoint models/control/control_v1/sprint_step_001500_adapter1
+				prompt_variant detailed
+				steps 2
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v1_step001500_sprint_lam0.75_2step_detailed
+				pipeline sprint
+				checkpoint models/control/control_v1/sprint_step_001500_adapter0.75
+				prompt_variant detailed
+				steps 2
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v1_step001500_sprint_lam0.5_2step_detailed
+				pipeline sprint
+				checkpoint models/control/control_v1/sprint_step_001500_adapter0.5
+				prompt_variant detailed
+				steps 2
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v1_step001500_sprint_lam0_2step_detailed
+				pipeline sprint
+				checkpoint models/control/control_v1/sprint_step_001500
+				prompt_variant detailed
+				steps 2
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v1_step001500_sprint_lam1_1step_detailed
+				pipeline sprint
+				checkpoint models/control/control_v1/sprint_step_001500_adapter1
+				prompt_variant detailed
+				steps 1
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v1_step001500_sprint_lam0.75_1step_detailed
+				pipeline sprint
+				checkpoint models/control/control_v1/sprint_step_001500_adapter0.75
+				prompt_variant detailed
+				steps 1
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v1_step001500_sprint_lam0.5_1step_detailed
+				pipeline sprint
+				checkpoint models/control/control_v1/sprint_step_001500_adapter0.5
+				prompt_variant detailed
+				steps 1
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v1_step001500_sprint_lam0_1step_detailed
+				pipeline sprint
+				checkpoint models/control/control_v1/sprint_step_001500
+				prompt_variant detailed
+				steps 1
+				guidance 4.5
+				eval_set resources/showcase
 
 	eval_generations
 		 One row per model and eval image: the image that the model makes from the caption and the fixed noise
@@ -415,47 +672,50 @@ processors
 					bg_color @	                                                 list   Background RGB, uniform in [0, 1), seeded by the first 8 bytes of sha256(page_id)        [0.628, 0.306, 0.224]
 
 	plan_eval	 Adds one eval_generations row per eval image for each new eval_models row. No GPU
-		query SELECT model_tag FROM eval_models WHERE plan_eval_claim IS NULL
+		query SELECT model_tag, coalesce(eval_set, '$EVAL_SET') AS eval_set FROM eval_models WHERE plan_eval_claim IS NULL
 		claim	plan_eval_claim eval_models
 		command bash
-			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src uv run --project .. python processors/generate_eval.py plan "$SAMPLE" $EVAL_SET
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src uv run --project .. python processors/generate_eval.py plan "$SAMPLE"
 		materialize
 			input.json	            TYPE DESCRIPTION            EXAMPLE
 				model_tag @	  [Key]  str  The model to evaluate  "sprint_gray"
+				eval_set @	         str  Its eval set folder    "resources/eval"
 		commit
 			eval_generations
 				rows.jsonl	                        TYPE DESCRIPTION                                               EXAMPLE
 					model_tag @	              [Key]  str  The model to evaluate                                     "sprint_gray"
-					page_id @	              [Key]  str  An eval image: sha256(page_id) mod EVAL_MODULUS is 0      "6NqAw3m1ss"
-					noise_seed @	          [Key]  int  Seed of the fixed noise in EVAL_SET                       20261117
+					page_id @	              [Key]  str  An item of eval_set                                       "6NqAw3m1ss"
+					noise_seed @	          [Key]  int  Seed of the fixed noise in eval_set                       20261117
 					caption @	                     str  The image's MAGICK caption                                "red apple on a solid"
-					noise_index @	                 int  Row of the image's latents in EVAL_SET/noise.safetensors  10
+					noise_index @	                 int  Row of the image's latents in eval_set/noise.safetensors  10
 					source_claim_id $CLAIM	         str  Claim of the plan run                                     "9f1c…"
 					source_run_id $RUN	             str  The plan run                                              "4b2e…"
 
 	generate_eval	 Generates each eval_generations image with its model, on this GPU's server, which keeps the model loaded
 		query sql
 			SELECT g.model_tag, g.page_id, g.noise_seed, g.caption, g.noise_index,  -- eval images
-			       m.pipeline, m.checkpoint, m.steps, m.guidance, m.prompt_variant -- with their model's settings
+			       m.pipeline, m.checkpoint, m.steps, m.guidance, m.prompt_variant, -- with their model's settings
+			       coalesce(m.eval_set, '$EVAL_SET') AS eval_set                   -- and eval set
 			FROM eval_generations g                                                -- from the planned rows,
 			JOIN eval_models m ON m.model_tag = g.model_tag                        -- joined to their model,
 			WHERE g.generate_eval_claim IS NULL                                    -- not yet claimed,
 			ORDER BY g.model_tag, random() LIMIT $EVAL_BATCH_SIZE                  -- one model at a time, in random order
 		claim	generate_eval_claim eval_generations
 		command bash
-			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src uv run --project .. python processors/generate_eval.py batch "$BATCH" $EVAL_SET
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src uv run --project .. python processors/generate_eval.py batch "$BATCH"
 		materialize
 			input.json	                    TYPE   DESCRIPTION                                                       EXAMPLE
 				model_tag @	          [Key]  str    The model                                                         "sprint_gray"
 				page_id @	          [Key]  str    The eval image                                                    "6NqAw3m1ss"
 				noise_seed @	      [Key]  int    Seed of the fixed noise                                           20261117
 				caption @	                 str    The MAGICK caption                                                "red apple on a solid"
-				noise_index @	             int    Row of the latents in EVAL_SET/noise.safetensors                  10
+				noise_index @	             int    Row of the latents in eval_set/noise.safetensors                  10
 				pipeline @	                 str    "teacher" (SanaPipeline) or "sprint" (SanaSprintPipeline)         "sprint"
 				checkpoint @	             str    "stock", or a repo path: see models.load_eval_pipeline            "stock"
 				steps @	                     int    Sampling steps                                                    2
 				guidance @	                 float  CFG for the teacher, embedded guidance for Sprint                 4.5
-				prompt_variant @	         str    "plain", or "gray": caption + ", on a plain 50% gray background"  "gray"
+				prompt_variant @	         str    "plain", "gray" (+ gray words) or "detailed" (prompts_detailed)   "gray"
+				eval_set @	                 str    Eval set folder: captions, mattes and fixed noise                 "resources/eval"
 		commit
 			eval_generations	                    TYPE   DESCRIPTION                                                   EXAMPLE
 				image image.png	                     blob   The generated image: 1024 x 1024 RGB, 8 bit                   1.5 MB .png
