@@ -117,3 +117,9 @@ You can notify me up to 6 times total. Your name will be Sana, S-A-N-A. Declare 
 
 ## m00605 — 2026-11-17 04:22
 Launch research agents as you need to. Bulldog mode, you can do whatever you want. Your subagents honestly can mostly be Sonnet, but when you have something difficult, feel free to use Opus at any effort you need.
+
+## m00606 — 2026-11-17 04:30
+If you want to, you can also build inference as BlueJay processors too. It honestly might be a good way to keep track of which checkpoint and what noise and what seed things came from, and then you can use Sparrow to build visualizations that are pretty to show them all. But of course, the journal is where things actually are. A static webpage that I can just boot and read. Both of these things can be true simultaneously. Getting the URI of a — well, just a file path really — of something that is stored from BlueJay is enough to choose the file path that the journal reads from. You can hard-link them.
+
+## m00607 — 2026-11-17 04:33
+If you pass your deadline, continue to work anyway, but really do try to make that deadline. Don't cut corners though. A shitty model is worth nothing. So yeah, you can keep training after that, right? You got 8 GPUs, it's a lot of power. You should be able to make something good with it.

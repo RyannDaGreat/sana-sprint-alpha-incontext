@@ -7,6 +7,7 @@
 | 2 | Processors + run curation (Step 0) | — | Fork running |
 | 3 | Models, eval set, fixed noise, baseline (Step 1) | — | Fork running |
 | 4 | Adapter training code (Step 2) | — | Fork running |
+| 5 | GateControl port + control training code (Step 3) | — | Fork running |
 
 ## Done (planning)
 - [x] Manifest, dtab, fish scripts, research (see git log)
