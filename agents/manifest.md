@@ -180,7 +180,7 @@ Training entry points (e.g. `train_adapter.sh`, `train_control.sh`) may also liv
 - Data processing: BlueJay (m00196). Precompute latents and conditions as BlueJay tables; visualize them in Sparrow.
 - Control method: GateControl-based (m00231).
 - 1024 only (m00295); teacher first, distill last (m00295); big batches; ≤1 h run optimization; aim for something working in 12 h (m00245).
-- dtab house style copied from MulticamDailies: annotated TYPE/DESCRIPTION/EXAMPLE, annotated SQL, alignment (m00295). Eval not in BlueJay (m00371).
+- dtab house style copied from MulticamDailies: annotated TYPE/DESCRIPTION/EXAMPLE, annotated SQL, alignment (m00295). Eval inference is a BlueJay processor; judging is done by the agent (m00371, m00606, m00611).
 - Babysit every training run (m00257).
 - Transcribe all user inputs (`agents/transcripts.md`).
 - Planning happens here. Execution happens on the node via the GitHub repo.
