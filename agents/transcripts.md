@@ -153,3 +153,9 @@ Then why do the reports not show them at full resolution? This is bad. The repor
 
 ## m00617 — 2026-11-17 12:46 PM
 I believe you have enough VRAM to do some more tests. Can you do that simultaneously, [during, transcribed as "ranger"] training? The one-step thing should be pretty fast, right?
+
+## m00618 — 2026-11-17 12:50 PM
+I also need to see what the original model makes with Sprint, so that I can tell how the color distribution should be.
+
+## m00619 — 2026-11-17 12:51 PM
+I also want you to have an agent come up with much more detailed versions of each prompt that fit how SANA-Sprint should be used, and have that as a comparison next to each one of those rows. So two rows: one as old prompt and one as new prompt.
