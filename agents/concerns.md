@@ -199,3 +199,18 @@
 ## 2026-11-17 4:05 PM — gallery rebuild drops the observations
 - Mistake: re-running `gallery build` without `--notes` rewrote gallery_v1.html without its written observations. Caught in the diff and restored from git; only the WebGPU link line was changed by sed.
 - Lesson: `gallery build` overwrites the whole page. Pass `--notes` again (or keep notes in a file) whenever a gallery is rebuilt.
+
+## 2026-11-17 4:10 PM — WebGPU app: steps, guidance, s_max/s_mid, equation under the output (subagent 16, m00638)
+- The app ran 1 step at the manifest's fixed guidance. Now: steps 1–4 (SCMScheduler angles: 2 steps [1.5708, 1.3, 0], else linspace), guidance slider labeled "embedded" (Sprint has no 2-pass CFG), editable s_max/s_mid, and the full equation of each image (manifest `weights` + precision + sampler + size + seed). Live on Pages 4:12 PM; Puppeteer saw the controls and both versions.
+- Verified with the app's math in Python (ORT CUDA, fp16 control_v2 transformer, torch embeddings/cond, ε replayed from the pipeline's generator) vs bf16 SanaSprintPipeline, 29 eval items: image mean abs diff 1 step 0.0042, 2 steps 0.0039, 4 steps 0.0037, 2 steps guidance 3.0 0.0038 (`agents/.scratchpad/web_verify/control_v2_sprint_step_001500/multistep.json`). Multi-step does not add error.
+- Lesson: zsh here has lazy `npm`/`node` functions that fail in non-interactive shells; use `/apps/node-v24.20.0/bin/npm`.
+
+## 2026-11-17 4:40 PM — dynamic image size (m00639) and runtime λ (m00638)
+- Static ONNX shapes: the dynamo export bakes the traced token count into Reshape nodes whenever einx touches token-shaped tensors (einx computes its reshapes from concrete sizes; with its cache on, it even fails to hash SymInts). Three rounds of ORT "cannot reshape {1,256,2240} to {1024,2240}" errors at 512² found them one at a time: spatial rearranges, the stream/sequence rearranges, the linear-attention permutes, and einx.multiply with a (B,) vector. All replaced with torch ops in gatecontrol (doctested against einx). Lesson: after a dynamic export, run the graph at a second size before trusting it; one size passing proves nothing.
+- Dynamic graphs vs PyTorch at the same size (2 steps, 4 items): image MAD 1024² 0.0038, 512² 0.0060, 1024×768 0.0030; VAE decoder 0.0006. Re-export leaves every `.data` file byte-identical (checked with cmp), so only graphs change on the models branch.
+- Quality off the training size (PyTorch, 8 eval items, `web_verify/resolution/montage.jpg`): 768² close to 1024²; 512² follows the matte but is oversaturated with texture artifacts (cork texture, faces).
+- λ: D = merge λ=1 − merge λ=0 (control_v2): 207 matrices (1607M params) + 271 small dense tensors (3.3M). Rank-r SVD per matrix, 29 eval items, 2 steps, bf16, image MAD vs the exact merge (λ effect itself: λ=0.5 vs 0 = 0.034, λ=1 vs 0 = 0.048): r32 0.0060/0.0107 (λ 0.5/1), r64 0.0050/0.0075, r128 0.0036/0.0050, r256 0.0029/0.0031; fp16 size 82/158/309/611 MB. Visually r32 already matches (`web_verify/lambda_control_v2/montage.jpg`). Chose r128 (error ≈ 10% of the λ effect, well under int4's own 0.03).
+- The λ graph shares the plain int4 transformer weights by content hash (`share_external_data`), so a -lambda version only adds the delta file.
+
+## 2026-11-17 4:45 PM — control_v2 step 3000
+- Showcase set, MAGICK captions, full subtraction (λ = 0): Sprint 1 step IoU 0.922 / gray 0.026 (step 1500: 0.828 / 0.030); Sprint 2 steps 0.965 / 0.022 (0.955 / 0.018); teacher 0.926 / 0.017 (0.924 / 0.019). Longer control training mainly helps the 1-step Sprint transfer.
