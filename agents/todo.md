@@ -7,8 +7,10 @@
 - [x] Notify user that repo is ready
 - [x] Research GateControl (agent 6) → manifest §5
 - [x] Draft data/project.dtab (512 only), validated with `aviary bluejay initialize`
-- [ ] User answers: teacher vs Sprint student; base model for the 512 test
-- [ ] Write data/processors/*.py
+- [x] User answers: teacher first, distill last, 1024 only (m00295)
+- [x] dtab: MulticamDailies style, 1024 only, eval removed, import_index → download_image split, validated
+- [x] Fish scripts: aviary.sh, uv.env, run_proc_curate.fish, run_sparrow.fish, recipes/loops/until_empty.fish
+- [ ] Write data/processors/*.py (import_index, download_image, split_alpha, encode_latents)
 - [ ] Port GateControl training to our base model (guidance / TrigFlow)
 - [ ] (node) Step 0 curate MAGICK via BlueJay (user gives BlueJay path)
 - [ ] (node) ≤1 h throughput tuning, big batches

@@ -27,3 +27,11 @@
 - 512×512 end to end first (m00222, m00245). The dtab was cut to 512-only columns (latents (32,16,16), noise_512).
 - Data now goes through BlueJay (m00196), which replaces the "no framework, plain subfolders" rule in the manifest.
 - Lesson: `aviary bluejay initialize` starts a database server that keeps running. Delete its lance folder and re-initialize, and the old server answers "Dataset ... was not found". Kill the server first (`pkill -f "bluejay.local_database 0.0.0.0 <port>"`).
+
+## 2026-11-17 03:54 — 1024 only; eval out of BlueJay; download split; initial_rows bug
+- 512-first (m00222, m00245) dropped for 1024 only (m00295): the user prefers one resolution, and Sprint/teacher are 1024-native. Teacher first, distill last, confirmed (m00295).
+- Mistake: I put eval (eval_noise, checkpoints, generations; plan_generations, generate, score_generation, vlm_judge) into BlueJay. The user (m00371) saw no reason for them: the agent runs eval itself. Removed. BlueJay only curates training data.
+- Mistake: download_magick did two jobs in one opaque box (download the TSV, then a 191 GB snapshot to a folder). The Albatross graph made this obvious to the user (m00397). Split: import_index (TSV → one row per image) → download_image (per-image PNG blob from https://huggingface.co/datasets/OneOverZero/MAGICK/resolve/main/images/<2>/<id>.png, verified 1.5 MB). No more magick_raw folder.
+- Bug found (user's suspicion, m00295): the old multi-field initial_rows (`,\tcheckpoint x` + indented fields) parsed as ONE field whose value swallowed the other lines. Multi-field rows need `,` alone on its line with the fields indented beneath. Our only seed now is single-field `,\tjob_id magick`. Verified by initialize + read back: 1 row, job_id "magick", import_claim null.
+- MAGICK index facts: 148,193 rows but 140,955 unique page_ids. 7,238 images are listed twice (once picked=hand, once picked=auto; other fields equal). `picked` is text, not int. tag_idk is always 0. import_index must dedupe.
+- fish's `wait` returns 0 even when a child fails. run_proc_curate.fish uses a FAIL_FLAG file that each failing loop touches; tested with a fake failing loop (exits 1, next step does not run).
