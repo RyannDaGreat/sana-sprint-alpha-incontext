@@ -325,6 +325,30 @@ def load_source(source, dtype):
     return pipe.to(dtype=dtype)
 
 
+def weight_equation(source):
+    """
+    Pure function. The weight equation of a train_control.merge_final folder, in the journal's notation.
+
+    Args:
+        source (str): merge folder, <run>/{sprint,final}_step_<N>[_adapter<λ>]
+
+    Returns:
+        str
+
+    Examples:
+        >>> weight_equation("models/control/control_v2/sprint_step_001500")
+        'W_sprint + (W_control − W_adapter) + gates · control_v2 step 1500'
+        >>> weight_equation("models/control/control_v1/final_step_000500_adapter0.75")
+        'W_teacher + 0.75·(W_adapter − W_teacher) + (W_control − W_adapter) + gates · control_v1 step 500'
+    """
+    path = Path(source)
+    base, _, rest = path.name.partition("_step_")
+    step, _, scale = rest.partition("_adapter")
+    adapter = f" + {scale}·(W_adapter − W_teacher)" if scale else ""
+    return f"W_{dict(sprint='sprint', final='teacher')[base]}{adapter} + (W_control − W_adapter) + gates" \
+           f" · {path.parent.name} step {int(step)}"
+
+
 def write_manifest(folder, version, source, quantization):
     """
     Command. Writes folder/manifest.json: files, I/O specs, quantization, and the Sprint math (web-model-contract).
@@ -337,7 +361,8 @@ def write_manifest(folder, version, source, quantization):
     """
     files = sorted(p.name for p in folder.iterdir() if p.suffix in (".onnx", ".data") or p.name.startswith("tokenizer"))
     manifest = dict(
-        version=version, source=source, files={f: (folder / f).stat().st_size for f in files},
+        version=version, source=source, weights=weight_equation(source),
+        files={f: (folder / f).stat().st_size for f in files},
         graphs=graph_specs(), quantization=quantization,
         text_encoder=dict(
             model="models/Sana_Sprint_1.6B_1024px_diffusers/text_encoder (Gemma2Model, gemma-2-2b-it), last_hidden_state",
@@ -348,7 +373,8 @@ def write_manifest(folder, version, source, quantization):
             steps=1, timestep=ONE_STEP_TIMESTEP, guidance=GUIDANCE, sigma_data=SIGMA_DATA,
             latents="standard-normal noise (1, 32, 32, 32); the graph handles sigma_data and the TrigFlow scaling",
             output="denoised = image latent × scaling_factor: feed it to vae_decoder as is",
-            multi_step="next latents = cos(s')·denoised + sin(s')·ε, timestep s' (2 steps: s = 1.5708 then 1.3)"),
+            multi_step="next latents = cos(s')·denoised + sin(s')·ε, timestep s' (2 steps: s = 1.5708 then 1.3)",
+            schedule="SCMScheduler: 2 steps [s_max, s_mid, 0], else linspace(s_max, 0, steps + 1)"),
         vae=dict(scaling_factor=0.41407, note="vae_encoder multiplies and vae_decoder divides inside the graph",
                  matte_input="matte copied to 3 channels, 2·m − 1", decoder_output="RGB in [0, 1]"),
     )

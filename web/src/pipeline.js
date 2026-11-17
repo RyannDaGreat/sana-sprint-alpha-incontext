@@ -114,6 +114,37 @@ export function selectRows(src, index, d) {
 }
 
 /**
+ * Pure function. Sprint's TrigFlow angles for `steps` steps, as diffusers SCMScheduler.set_timesteps:
+ * 2 steps with sMid → [sMax, sMid, 0], else linspace(sMax, 0, steps + 1). Step k runs at s_k.
+ *
+ * @param {number} steps - 1–4
+ * @param {number} sMax - first angle (Sprint: 1.5708 ≈ π/2, pure noise)
+ * @param {number|null} sMid - second angle, only for 2 steps (Sprint: 1.3)
+ * @returns {number[]} steps + 1 angles, ending in 0
+ *
+ * @example sprintTimesteps(2, 1.5708, 1.3) // [1.5708, 1.3, 0]
+ * @example sprintTimesteps(4, 1.5708, null) // [1.5708, 1.1781, 0.7854, 0.3927, 0]
+ */
+export function sprintTimesteps(steps, sMax, sMid) {
+  if (steps === 2 && sMid !== null) return [sMax, sMid, 0];
+  return Array.from({ length: steps + 1 }, (_, k) => sMax - (sMax * k) / steps);
+}
+
+/**
+ * Pure function. Seed of the fresh noise ε_k added before step k (k ≥ 1); step 0 uses `seed` itself.
+ *
+ * @param {number} seed
+ * @param {number} k - step index
+ * @returns {number} uint32
+ *
+ * @example stepSeed(0, 0) // 0
+ * @example stepSeed(0, 1) // 2654435769
+ */
+export function stepSeed(seed, k) {
+  return (seed ^ Math.imul(k, 0x9e3779b9)) >>> 0;
+}
+
+/**
  * Query. Input element type per input name, from the session's metadata.
  *
  * @param {ort.InferenceSession} session
@@ -230,12 +261,14 @@ export class Pipeline {
   }
 
   /**
-   * Command. One generation.
+   * Command. One generation: Sprint's multi-step sampler (SanaSprintPipeline + SCMScheduler, unit-scale latents).
+   * Step k: denoised = transformer(latents, s_k, guidance); then latents = cos(s_{k+1})·denoised + sin(s_{k+1})·ε_{k+1}.
    *
-   * @param {{prompt: string, matte: Float32Array, matteRev: number, seed: number}} job
+   * @param {{prompt: string, matte: Float32Array, matteRev: number, seed: number, timesteps: number[], guidance: number}} job
+   *   timesteps: sprintTimesteps(...) (steps + 1 angles); guidance: Sprint's embedded guidance scale (one pass, not CFG)
    * @returns {Promise<{image: Float32Array, timings: Record<string, number|string>}>} image (1, 3, 1024, 1024) in [−1, 1]
    */
-  async generate({ prompt, matte, matteRev, seed }) {
+  async generate({ prompt, matte, matteRev, seed, timesteps, guidance }) {
     const timings = {};
     const t0 = performance.now();
     const emb = await this.embed(prompt, timings);
@@ -244,15 +277,25 @@ export class Pipeline {
     const n = (k) => this.name('transformer', k);
     const t = (k, values, dims) => makeTensor(types[n(k)], values, dims);
     const numel = LATENT.reduce((a, b) => a * b);
-    const out = await timed(timings, 'transformer', this.sessions.transformer, {
-      [n('noise')]: t('noise', gaussianNoise(numel, seed), LATENT),
+    const fixed = {
       [n('matte_latent')]: t('matte_latent', matteLatent, LATENT),
       [n('encoder_hidden_states')]: t('encoder_hidden_states', emb.data, emb.dims),
       [n('encoder_attention_mask')]: t('encoder_attention_mask', emb.mask, [1, emb.mask.length]),
-      [n('timestep')]: t('timestep', [m.timestep], [1]),
-      [n('guidance')]: t('guidance', [m.guidance], [1]),
-    });
-    const latent = asFloat32(out[n('output')]).map((v) => v / (m.latent_scaling_in_graph ? 1 : m.scaling_factor));
+      [n('guidance')]: t('guidance', [guidance], [1]),
+    };
+    let latents = gaussianNoise(numel, seed), denoised;
+    for (let k = 0; k + 1 < timesteps.length; k++) {
+      const out = await timed(timings, `transformer ${k + 1}`, this.sessions.transformer, {
+        ...fixed, [n('noise')]: t('noise', latents, LATENT), [n('timestep')]: t('timestep', [timesteps[k]], [1]),
+      });
+      denoised = asFloat32(out[n('output')]);
+      const s = timesteps[k + 1];
+      if (s > 0) {
+        const eps = gaussianNoise(numel, stepSeed(seed, k + 1));
+        latents = denoised.map((v, i) => Math.cos(s) * v + Math.sin(s) * eps[i]);
+      }
+    }
+    const latent = denoised.map((v) => v / (m.latent_scaling_in_graph ? 1 : m.scaling_factor));
     const nLat = this.name('vae_decoder', 'latent');
     const dec = await timed(timings, 'vae_decoder', this.sessions.vae_decoder,
       { [nLat]: makeTensor(this.types.vae_decoder[nLat], latent, LATENT) });

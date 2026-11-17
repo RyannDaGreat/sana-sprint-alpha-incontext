@@ -5,6 +5,7 @@
 // models/web/<v>/manifest.json = {
 //   "label": str, "description": str,
 //   "scaling_factor": 0.41407, "timestep": float, "guidance": float, "max_sequence_length": 300,
+//   "weights": str, "precision": str,                (weight equation and precision label, shown under the output)
 //   "complex_human_instruction": [str, ...]          (optional; default = SANA's, see prompt.js)
 //   "files": {                                        (paths are relative to the version folder)
 //     "tokenizer": {path, bytes}, "tokenizer_config": {path, bytes},
@@ -20,7 +21,8 @@
 // "sha256": {name: hex} and "parts": {name: [{url, bytes}]}) is accepted too and converted by normalizeManifest.
 // Input dtypes (float32 / float16 / int64 / int32) are read from each session's metadata.
 // The transformer gets N(0, 1) noise and the scaled matte latent and returns the denoised,
-// scaled latent: all Sprint one-step math (sigma_data, TrigFlow) lives inside the graph.
+// scaled latent: all Sprint one-step math (sigma_data, TrigFlow) lives inside the graph; pipeline.js loops it
+// for 1–4 steps (sprintTimesteps) and adds fresh noise between steps.
 
 export const CACHE_NAME = 'sana-web-models';
 export const MODEL_FILES = ['tokenizer', 'tokenizer_config', 'text_encoder', 'vae_encoder', 'transformer', 'vae_decoder'];
@@ -89,9 +91,24 @@ export function normalizeManifest(raw) {
   return {
     label: raw.version, description: raw.source ? `Exported from ${raw.source}.` : '',
     scaling_factor: raw.vae.scaling_factor, timestep: raw.sampler.timestep, guidance: raw.sampler.guidance,
+    weights: raw.weights, precision: precisionLabel(raw.quantization),
     max_sequence_length: 300, latent_scaling_in_graph: true, decoder_output_range: '0,1',
     files, missing: MODEL_FILES.filter((r) => !files[r]),
   };
+}
+
+/**
+ * Pure function. Short precision label of an exporter manifest's `quantization` (transformer and text encoder).
+ *
+ * @param {object} q - manifest.quantization: {graph: {bits, lowrank_rank, ...}} when quantized, {graph: {fp16: file}} when not
+ * @returns {string}
+ *
+ * @example precisionLabel({transformer: {bits: 4, lowrank_rank: 32}, text_encoder: {bits: 8, lowrank_rank: 0}}) // 'transformer int4 SVDQuant r32 · Gemma int8'
+ * @example precisionLabel({transformer: {fp16: 'transformer.onnx'}, text_encoder: {fp16: 'text_encoder.onnx'}}) // 'transformer fp16 · Gemma fp16'
+ */
+export function precisionLabel(q) {
+  const one = (g) => (g?.bits ? `int${g.bits}${g.lowrank_rank ? ` SVDQuant r${g.lowrank_rank}` : ''}` : 'fp16');
+  return `transformer ${one(q.transformer)} · Gemma ${one(q.text_encoder)}`;
 }
 
 /**

@@ -8,7 +8,7 @@ import { countEmbeddings, clearEmbeddings } from './embcache.js';
 import { formatBytes, formatEta, rate, mattePixelsToTensor, decodeToPixels, fitRect, SIZE } from './util.js';
 // pipeline.js (with ONNX Runtime) is a separate chunk: ORT's WASM worker re-imports its own
 // module URL, which must not be this file (it touches the DOM).
-const { Pipeline } = await import('./pipeline.js');
+const { Pipeline, sprintTimesteps } = await import('./pipeline.js');
 const { Segmenter, SEG_FILE } = await import('./segment.js');
 
 const REALTIME_DEBOUNCE_MS = 120;   // wait this long after the last edit before a real-time run
@@ -142,9 +142,41 @@ function download(canvas, name) {
 $('dl-gray').addEventListener('click', () => download($('out-gray'), `${state.last}_on_gray.png`));
 $('dl-rgba').addEventListener('click', () => download($('out-rgba'), `${state.last}_rgba.png`));
 
+/** Query. The sampler settings in the UI: steps, guidance and the TrigFlow angles they give. */
+function samplerSettings() {
+  const steps = Number($('steps').value);
+  const sMid = steps === 2 ? Number($('s-mid').value) : null;
+  return { steps, guidance: Number($('guidance').value), timesteps: sprintTimesteps(steps, Number($('s-max').value), sMid) };
+}
+
+/**
+ * Pure function. The full equation of a generation: weights, precision and sampler.
+ *
+ * @param {{weights?: string, precision: string}} manifest
+ * @param {{steps: number, guidance: number, timesteps: number[]}} sampler
+ * @param {number} seed
+ * @returns {string}
+ *
+ * @example equationText({weights: 'W_sprint + (W_control − W_adapter) + gates · control_v2 step 1500', precision: 'transformer fp16 · Gemma fp16'},
+ *   {steps: 2, guidance: 4.5, timesteps: [1.5708, 1.3, 0]}, 0)
+ * // 'W_sprint + (W_control − W_adapter) + gates · control_v2 step 1500 · transformer fp16 · Gemma fp16 · Sprint sampler, 2 steps at s = 1.5708, 1.3 · guidance 4.5 (embedded) · seed 0'
+ */
+function equationText(manifest, { steps, guidance, timesteps }, seed) {
+  const s = timesteps.slice(0, -1).map((v) => +v.toFixed(4)).join(', ');
+  return `${manifest.weights ?? 'weight equation missing from manifest.json'} · ${manifest.precision} · ` +
+    `Sprint sampler, ${steps} step${steps > 1 ? 's' : ''} at s = ${s} · guidance ${guidance} (embedded) · seed ${seed}`;
+}
+
+/** Command. Syncs the sampler controls: s_mid only applies to 2 steps; the guidance value label. */
+function syncSamplerUi() {
+  $('s-mid').disabled = $('steps').value !== '2';
+  $('guidance-v').textContent = $('guidance').value;
+}
+
 /** Command. Fills the timings table. */
 function showTimings(t) {
-  const rows = ['tokenize', 'text_encoder', 'vae_encoder', 'transformer', 'vae_decoder', 'total'].filter((k) => k in t);
+  const order = ['tokenize', 'text_encoder', 'vae_encoder', ...Object.keys(t).filter((k) => k.startsWith('transformer')), 'vae_decoder', 'total'];
+  const rows = order.filter((k) => k in t);
   $('timings').innerHTML = rows.map((k) => {
     const v = typeof t[k] === 'number' ? `${t[k].toFixed(1)} ms` : t[k];
     return `<tr class="${k === 'total' ? 'total' : ''}"><td>${k.replace('_', ' ')}</td><td>${v}</td></tr>`;
@@ -160,9 +192,11 @@ async function generate() {
   state.busy = true;
   status('Generating…');
   const matte = editor.pixels();
+  const sampler = samplerSettings(), seed = Number($('seed').value);
   const { image, timings } = await state.pipeline.generate({
-    prompt: $('prompt').value, matte: mattePixelsToTensor(matte, SIZE * SIZE), matteRev: editor.rev, seed: Number($('seed').value),
+    prompt: $('prompt').value, matte: mattePixelsToTensor(matte, SIZE * SIZE), matteRev: editor.rev, seed, ...sampler,
   }).catch(fail).finally(() => { state.busy = false; });
+  $('equation').textContent = equationText(state.pipeline.version.manifest, sampler, seed);
   const { onGray, cutout } = decodeToPixels(image, matte, SIZE * SIZE);
   $('out-gray').getContext('2d').putImageData(new ImageData(onGray, SIZE, SIZE), 0, 0);
   $('out-rgba').getContext('2d').putImageData(new ImageData(cutout, SIZE, SIZE), 0, 0);
@@ -185,6 +219,7 @@ function scheduleRealtime() {
 $('generate').addEventListener('click', generate);
 $('prompt').addEventListener('input', scheduleRealtime);
 $('seed').addEventListener('input', scheduleRealtime);
+for (const id of ['steps', 'guidance', 's-max', 's-mid']) $(id).addEventListener('input', () => { syncSamplerUi(); scheduleRealtime(); });
 $('realtime').addEventListener('change', scheduleRealtime);
 $('new-seed').addEventListener('click', () => { $('seed').value = Math.floor(Math.random() * SEED_RANGE); scheduleRealtime(); });
 $('prompt').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) generate(); });
@@ -306,6 +341,7 @@ $('theme').addEventListener('click', toggleTheme);
 async function init() {
   if (!window.isSecureContext) status('This page is not a secure context (use https or localhost): WebGPU and the model cache are unavailable.', true);
   starterMatte();
+  syncSamplerUi();
   state.versions = await loadVersions(modelsBase);
   const wanted = params.get('version');
   const pre = state.versions.find((v) => v.id === wanted);
