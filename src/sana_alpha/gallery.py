@@ -182,7 +182,7 @@ def render(run, step, models, items, detailed, means, notes, assets):
         groups += (f'<details{" open" * (start == 0)}><summary><h2>Items {start + 1}&ndash;{start + len(group)} ({splits})</h2></summary>\n'
                    f'<div class="evalgrid" style="--cols: {len(models) + 2}">\n{rows}</div></details>\n')
     return GALLERY_HTML.format(title=f"Gallery {run.removeprefix('control_')}", run=esc(run), step=int(step), n=len(items),
-                               version=f"{run.removeprefix('control_')}_step{int(step):06d}",
+                               version=f"{run}_sprint_step_{int(step):06d}-int4",
                                held=sum(i["split"] == "held-out" for i in items), head=head, body=body, notes=notes, groups=groups)
 
 
@@ -220,7 +220,7 @@ td:first-child, td:nth-child(2) {{ text-align: left; }}
 <li><b>W_control</b>: the trained control model = W_adapter + <b>ΔW_control</b> (the control's LoRA change; the adapter was frozen during control training). <b>gates</b>: GateControl's matte input.</li>
 <li>So <b>W_control &minus; W_adapter = ΔW_control</b>: subtracting the adapter leaves only what the control training added. λ is the fraction of the adapter change (W_adapter &minus; W_teacher) kept. λ = 1: no subtraction (the control model). λ = 0: <b>full subtraction</b>.</li>
 <li>Sprint columns put the same changes on W_sprint, with no training: nothing was distilled anywhere. Stock columns get no matte. Every label below an image gives its equation and sampler.</li>
-<li>Try the 1-step Sprint model in the browser: <a href="../web/index.html?version={version}">WebGPU demo</a> (placeholder link until web/ exists).</li>
+<li>Try the 1-step Sprint model (full subtraction, 4-bit) in the browser: <a href="webgpu/?version={version}">WebGPU demo</a>. Only versions exported for the web open there; others fall back to the default model.</li>
 </ul>
 <p>{n} showcase items: {held} <span class="split held-out">held-out</span> (never trained on); the rest are <span class="split train">train</span>
 items (the control saw their mattes in training). Each item has two rows: the MAGICK caption and a detailed prompt. Every model uses the same fixed noise.

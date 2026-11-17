@@ -195,3 +195,7 @@
 ## 2026-11-17 3:23 PM — wrong times in phone notifications
 - Mistake: notifications 3, 4 and 5 stated times 7–17 minutes later than the real send time (1:25 vs 1:18, 3:25 vs 3:22, 3:40 vs 3:23). I wrote the time into the draft before running `date`.
 - Lesson: fill the time into the message from `TZ=America/New_York date` in the same command that sends it.
+
+## 2026-11-17 4:05 PM — gallery rebuild drops the observations
+- Mistake: re-running `gallery build` without `--notes` rewrote gallery_v1.html without its written observations. Caught in the diff and restored from git; only the WebGPU link line was changed by sed.
+- Lesson: `gallery build` overwrites the whole page. Pass `--notes` again (or keep notes in a file) whenever a gallery is rebuilt.
