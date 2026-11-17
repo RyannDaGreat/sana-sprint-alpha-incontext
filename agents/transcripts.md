@@ -203,3 +203,6 @@ It would also be nice if the web interface also had some foreground segmentation
 
 ## m00633 — 2026-11-17 1:38 PM
 The remote contains a key. Try not to manually read the key, but push this to GitHub Pages once it works. The models must somehow go in with them. If you have to shard the models into multiple pieces to fit it into a GitHub repository, then so be it. We're not using LFS. You can always push them into another branch, so that it doesn't clutter up the current branch if anybody tries to git clone. So the models, the heavy things, can go in another branch, and you can reference them by URL. If you don't have to shard them, though, happy day.
+
+## m00634 — 2026-11-17 1:39 PM
+Once they're on GitHub Pages, [notify, transcribed as "notice by"] me.

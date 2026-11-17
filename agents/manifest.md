@@ -207,6 +207,7 @@ The DTAB formatting rules. Change all members together.
 The browser app's model folder format (manifest §12). Change all members together.
 - `agents/manifest.md` §12
 - `web/src/models.js` header comment (app schema) and `normalizeManifest` (exporter format → app schema)
+- `src/sana_alpha/web_export.py` `export` (graph_specs, write_manifest)
 
 ## 10. Success Criteria
 
@@ -217,9 +218,12 @@ The final model (`W_base − W_adapter + W_control`, full subtraction, λ = 0) g
 Goal: the one-step matte model runs in a browser on WebGPU, on a 16–32 GB MacBook (integrated GPU). Upload or draw a silhouette (brush, text, draggable shapes), type a caption, generate. Pick among model versions in the UI; each downloads with a loading bar and is cached in the browser (Cache Storage / OPFS) so the second load is fast. Gemma prompt embeddings are cached too (m00625), so mask edits never re-run the text encoder. Real-time toggle (default off: press Generate). Simplified Swiss style, full dark and light modes, Jost font (thin for titles, regular for text), loading bars with speeds.
 
 Model contract (SEMANTIC BINDING: web-model-contract), one folder per version under `models/web/<version>/` (gitignored, served by the app's server) with `manifest.json`:
-- `text_encoder`: Gemma-2 2B, prompt → embeddings (1, 300, 2304) + attention mask (1, 300). SANA's prompt template applied in JS.
-- `vae_encoder`: matte RGB (1, 3, 1024, 1024) in [−1, 1] → latent (1, 32, 32, 32), then × scaling_factor 0.41407.
-- `transformer`: Sprint student + control delta (+ λ adapter delta) + gates, one step: inputs noisy latent (1, 32, 32, 32), matte latent (1, 32, 32, 32), timestep, guidance, embeddings + mask → velocity / denoised latent (exact Sprint 1-step math written in the manifest).
-- `vae_decoder`: latent (1, 32, 32, 32) / 0.41407 → RGB (1, 3, 1024, 1024).
-- Quantization per file (fp16 / int8 / int4) is recorded in the manifest; fp16 overflow is checked first (WebGPU has no bf16).
+Exact form (written by `src/sana_alpha/web_export.py`; all graph I/O float32 except token ids; ONNX IR 13, opset 21, weights in `<file>.onnx.data`; `manifest.json` has flat `files: {name: bytes}`, `graphs` (I/O names, shapes, dtypes), `sampler`, `vae`, `text_encoder`, `quantization`):
+- `text_encoder` (+ `tokenizer.json`, `tokenizer_config.json`): Gemma-2 2B fp16, `input_ids`, `attention_mask` (1, T) int64 → `last_hidden_state` (1, T, 2304), T dynamic. JS applies SANA's template (instruction + caption.lower().strip(), right-pad to len(instruction tokens) + 298) and keeps token 0 + the last 299 → (1, 300, 2304) + mask (1, 300).
+- `vae_encoder`: `image` = matte copied to 3 channels, 2·m − 1, (1, 3, 1024, 1024) → `latent` (1, 32, 32, 32), × 0.41407 already applied inside.
+- `transformer`: Sprint student + control delta (+ λ adapter delta) + gates. Inputs `latents` (1, 32, 32, 32) = standard-normal noise, `cond_latents` = vae_encoder output, `timestep` (1,) = TrigFlow angle s = 1.5708, `guidance` (1,) = 4.5 (× 0.1 inside), `prompt_embeds` (1, 300, 2304), `prompt_mask` (1, 300) float 1/0 → `denoised` (1, 32, 32, 32). All Sprint math is inside: t = sin s/(cos s + sin s), n = √(t² + (1−t)²), v = model(n·latents, t), F = ((1−2t)·n·latents + (1−2t+2t²)·v)/n, denoised = cos s·latents − sin s·F. More steps: next latents = cos s'·denoised + sin s'·ε.
+- `vae_decoder`: `latent` = denoised (÷ 0.41407 inside) → `image` (1, 3, 1024, 1024) RGB in [0, 1].
+- fp16 everywhere, with two float32 spots (cross-attention `to_q`, `caption_projection.linear_2`) that overflow fp16; quantized transformers live in sibling folders `<version>-int4` / `-int8` whose other files are hard links. Quantization details per file are in `manifest.json` `quantization`.
 - **Quantize properly** (m00629): no naive round-to-nearest int4. Use SANA's own scheme if one exists (MIT Han Lab's SVDQuant / DeepCompressor / Nunchaku has SANA 4-bit models), adapted to what ONNX Runtime Web can run; otherwise a researched, calibrated method. Every quantized variant is judged against fp16 on the eval set.
+
+**GitHub Pages deploy (m00633, m00634).** Once the browser app works with a real model, publish it on GitHub Pages; heavy model files go in a separate branch (not LFS), sharded below GitHub's 100 MB per-file limit only if needed, and the app fetches them by URL. Never read the token in the git remote. Notify the user once it is live. Blocker found 1:40 PM: the repo RyannDaGreat/sana-sprint-alpha-incontext is private (the unauthenticated API returns 404), so Pages and raw.githubusercontent.com model URLs are not reachable by browsers; the user must choose (make it public, or a separate public demo repo). License note to raise: SANA-Sprint weights (NVIDIA, non-commercial license), Gemma-2 (Gemma terms), MAGICK (CC BY-NC 4.0).
