@@ -191,3 +191,6 @@ But yeah, that thing about not having a gray background is actually perfectly fi
 
 ## m00629 — 2026-11-17 1:12 PM
 And don't do random shitty quantization. If you do int4 quantization, do it properly. You can do research on how to quantize it, unless SANA already has a scheme to do this, in which case you should use theirs.
+
+## m00630 — 2026-11-17 1:13 PM
+Is BlueJay being used for inference? If so, can you launch a Sparrow server too and give me local ip:port (and have a run_sparrow.sh top-level, or .fish)?
