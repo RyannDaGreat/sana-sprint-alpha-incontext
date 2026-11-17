@@ -1,0 +1,324 @@
+environ
+	BATCH_SIZE 16
+	GPU_BATCH_SIZE 64
+	MAGICK_REPO OneOverZero/MAGICK
+	MAGICK_DIR magick_raw
+	GRAY_LEVEL 0.5
+	EVAL_EVERY 1000
+	EVAL_SEEDS 42,43,44
+	VAE_MODEL mit-han-lab/dc-ae-f32c32-sana-1.1-diffusers
+	TIME_ZONE America/New_York
+
+database
+	backend bluejay.local_database.LocalLanceBackend
+	host 0.0.0.0
+	port 23947
+	root lance
+
+claims_table bluejay_claims
+runs_table bluejay_runs
+cell_lineage_table bluejay_lineage
+cell_lineage true
+
+tables
+	bluejay_claims
+		primary_key claim_id
+		columns
+			claim_id, run_id, claim_status string
+
+	bluejay_runs
+		primary_key run_id
+		columns
+			run_id, processor string
+			run_status, metadata string
+			started_at, finished_at string
+			exit_code int64
+			log, profiler blob
+			dtab, query string
+
+	bluejay_lineage
+		columns
+			claim_id, table string
+			key, materialized map_(string(), binary())
+			committed list_(string())
+
+	import_jobs
+		primary_key job_id
+		initial_rows
+			,	job_id magick-full
+		columns
+			 One row: download all of MAGICK to MAGICK_DIR, then read its index
+			job_id string
+			index_tsv blob
+
+	magick_samples
+		primary_key page_id
+		columns
+			 Source: magick_index.tsv
+			page_id, subject, color string
+			sim_score float64
+			nsfw, picked int64
+			source_claim_id, source_run_id string
+
+			 Held-out split: train or eval, fixed by a hash of page_id
+			split string
+
+			 Pixels, 1024x1024 PNG
+			rgba, alpha, rgb_on_gray blob
+
+			 Matte and quality statistics
+			alpha_coverage, alpha_soft_fraction, green_spill float64
+			keep bool
+
+			 DC-AE latents at 512x512, safetensors (32, 16, 16) float16. 1024 columns come later (manifest: 512 end to end first)
+			latent_alpha_512, latent_rgb_512 blob
+			vae_psnr_512 float64
+
+	eval_noise
+		primary_key page_id,seed
+		columns
+			 Fixed starting noise for one eval sample and seed, safetensors (32, LH, LW) float32
+			page_id string
+			seed int64
+			noise_512 blob
+
+	checkpoints
+		primary_key checkpoint
+		initial_rows
+			,	checkpoint sprint_base_1.6b
+				stage baseline
+				path Efficient-Large-Model/Sana_Sprint_1.6B_1024px_diffusers
+			,	checkpoint teacher_base_1.6b
+				stage baseline
+				path Efficient-Large-Model/SANA_Sprint_1.6B_1024px_teacher_diffusers
+		columns
+			 stage: baseline, adapter, control, combined (base - adapter + control) or distilled
+			checkpoint, stage, path, parent, notes string
+			step int64
+
+	generations
+		primary_key checkpoint,page_id,seed
+		columns
+			 One eval image: a checkpoint run on one eval sample and seed
+			checkpoint, page_id string
+			seed int64
+			source_claim_id, source_run_id string
+			image blob
+
+			 Metrics against the eval sample's matte
+			exterior_gray_error, matte_iou, edge_l1 float64
+			vlm_score float64
+			vlm_notes string
+
+processors
+	download_magick
+		query sql
+			SELECT job_id FROM import_jobs WHERE download_claim IS NULL
+		claim
+			download_claim import_jobs
+		command bash
+			uv run --script processors/download_magick.py "$SAMPLE" $MAGICK_REPO $MAGICK_DIR
+		materialize
+			input.json
+				job_id @
+		commit
+			import_jobs
+				index_tsv index.tsv
+			magick_samples
+				rows.parquet
+					page_id @
+					subject @
+					color @
+					sim_score @
+					nsfw @
+					picked @
+					split @
+					source_claim_id $CLAIM
+					source_run_id $RUN
+
+	split_alpha
+		query pending_split_alpha
+		claim
+			split_alpha_claim magick_samples
+		command bash
+			uv run --script processors/split_alpha.py $BATCH $MAGICK_DIR $GRAY_LEVEL
+		materialize
+			input.json
+				page_id @
+		commit
+			magick_samples
+				rgba rgba.png
+				alpha alpha.png
+				rgb_on_gray rgb_on_gray.png
+				result.json
+					alpha_coverage @
+					alpha_soft_fraction @
+					green_spill @
+					keep @
+
+	encode_latents
+		query pending_latents
+		claim
+			encode_latents_claim magick_samples
+		command bash
+			uv run --script processors/encode_latents.py $BATCH $VAE_MODEL
+		materialize
+			alpha.png alpha
+			rgb_on_gray.png rgb_on_gray
+		commit
+			magick_samples
+				latent_alpha_512 latent_alpha_512.safetensors
+				latent_rgb_512 latent_rgb_512.safetensors
+				result.json
+					vae_psnr_512 @
+
+	make_eval_noise
+		query pending_eval_noise
+		claim
+			eval_noise_claim magick_samples
+		command bash
+			uv run --script processors/make_eval_noise.py $BATCH $EVAL_SEEDS
+		materialize
+			input.json
+				page_id @
+		commit
+			eval_noise
+				children/
+					fields.json
+						page_id @
+						seed @
+					noise_512 noise_512.safetensors
+
+	plan_generations
+		query pending_plan
+		claim
+			plan_claim checkpoints
+		command bash
+			uv run --script processors/plan_generations.py "$THIS" "$SAMPLE"
+		materialize
+			input.json
+				checkpoint @
+		commit
+			generations
+				rows.parquet
+					checkpoint @
+					page_id @
+					seed @
+					source_claim_id $CLAIM
+					source_run_id $RUN
+
+	generate
+		query pending_generate
+		claim
+			generate_claim generations
+		command bash
+			uv run --script processors/generate.py $BATCH
+		materialize
+			input.json
+				checkpoint, path, stage, subject, seed @
+			alpha.png alpha
+			noise.safetensors noise
+		commit
+			generations
+				image image.png
+
+	score_generation
+		query pending_score
+		claim
+			score_claim generations
+		command bash
+			uv run --script processors/score_generation.py $BATCH $GRAY_LEVEL
+		materialize
+			image.png image
+			alpha.png alpha
+		commit
+			generations
+				result.json
+					exterior_gray_error @
+					matte_iou @
+					edge_l1 @
+
+	vlm_judge
+		query pending_vlm
+		claim
+			vlm_claim generations
+		command bash
+			uv run --script processors/vlm_judge.py $BATCH
+		materialize
+			input.json
+				subject @
+			image.png image
+			alpha.png alpha
+		commit
+			generations
+				result.json
+					vlm_score @
+					vlm_notes @
+
+queries
+	pending_split_alpha sql
+		SELECT page_id FROM magick_samples
+		WHERE rgba IS NULL AND split_alpha_claim IS NULL
+		ORDER BY random() LIMIT $BATCH_SIZE
+
+	pending_latents sql
+		SELECT page_id, alpha, rgb_on_gray FROM magick_samples
+		WHERE keep AND latent_rgb_512 IS NULL AND encode_latents_claim IS NULL
+		ORDER BY random() LIMIT $GPU_BATCH_SIZE
+
+	pending_eval_noise sql
+		SELECT page_id FROM magick_samples
+		WHERE split = 'eval' AND keep AND eval_noise_claim IS NULL
+		ORDER BY page_id LIMIT $BATCH_SIZE
+
+	pending_plan sql
+		SELECT checkpoint FROM checkpoints WHERE plan_claim IS NULL ORDER BY checkpoint LIMIT 1
+
+	pending_generate sql
+		SELECT g.checkpoint, c.path, c.stage, s.subject, g.seed, s.alpha,
+		       n.noise_512 AS noise
+		FROM generations g
+		JOIN checkpoints c ON g.checkpoint = c.checkpoint
+		JOIN magick_samples s ON g.page_id = s.page_id
+		JOIN eval_noise n ON g.page_id = n.page_id AND g.seed = n.seed
+		WHERE g.image IS NULL AND g.generate_claim IS NULL
+		ORDER BY g.checkpoint LIMIT $GPU_BATCH_SIZE
+
+	pending_score sql
+		SELECT g.checkpoint, g.page_id, g.seed, g.image, s.alpha
+		FROM generations g JOIN magick_samples s ON g.page_id = s.page_id
+		WHERE g.image IS NOT NULL AND g.score_claim IS NULL
+		LIMIT $BATCH_SIZE
+
+	pending_vlm sql
+		SELECT g.checkpoint, g.page_id, g.seed, g.image, s.alpha, s.subject
+		FROM generations g JOIN magick_samples s ON g.page_id = s.page_id
+		WHERE g.image IS NOT NULL AND g.vlm_claim IS NULL
+		LIMIT $BATCH_SIZE
+
+	view_dataset sql
+		SELECT struct('image' AS widget, rgba AS src, subject AS caption) AS rgba,
+		       struct('image' AS widget, alpha AS src, 'alpha' AS caption) AS alpha,
+		       struct('image' AS widget, rgb_on_gray AS src, 'on gray' AS caption) AS on_gray,
+		       page_id, subject, split, keep, sim_score, green_spill, vae_psnr_512
+		FROM magick_samples WHERE rgba IS NOT NULL ORDER BY page_id
+
+	view_eval_grid sql
+		SELECT g.page_id, g.seed, s.subject,
+		       struct('image' AS widget, s.alpha AS src, 'matte' AS caption) AS matte,
+		       struct('image' AS widget, g.image AS src, g.checkpoint AS caption) AS output,
+		       g.checkpoint, g.exterior_gray_error, g.matte_iou, g.edge_l1, g.vlm_score
+		FROM generations g JOIN magick_samples s ON g.page_id = s.page_id
+		WHERE g.image IS NOT NULL ORDER BY g.page_id, g.seed, g.checkpoint
+
+	view_checkpoint_scores sql
+		SELECT checkpoint, count(*) AS images,
+		       avg(exterior_gray_error) AS exterior_gray_error, avg(matte_iou) AS matte_iou,
+		       avg(edge_l1) AS edge_l1, avg(vlm_score) AS vlm_score
+		FROM generations WHERE image IS NOT NULL GROUP BY checkpoint ORDER BY checkpoint
+
+sparrow
+	saves sparrow_saves
+
+albatross
+	saves albatross_saves

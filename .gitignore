@@ -1,2 +1,5 @@
 agents/.scratchpad/logs/
 .DS_Store
+data/lance/
+data/magick_raw/
+models/
