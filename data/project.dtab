@@ -267,6 +267,35 @@ tables
 				prompt_variant gray
 				steps 2
 				guidance 4.5
+			,
+				 control_v1 step 1500, its last checkpoint
+				model_tag control_v1_step001500
+				pipeline teacher
+				checkpoint models/control/control_v1/step_001500
+				prompt_variant plain
+				steps 20
+				guidance 4.5
+			,
+				model_tag final_v1_step001500
+				pipeline teacher
+				checkpoint models/control/control_v1/final_step_001500
+				prompt_variant plain
+				steps 20
+				guidance 4.5
+			,
+				model_tag final_v1_step001500_adapter0.75
+				pipeline teacher
+				checkpoint models/control/control_v1/final_step_001500_adapter0.75
+				prompt_variant plain
+				steps 20
+				guidance 4.5
+			,
+				model_tag transfer_v1_step001500_2step
+				pipeline sprint
+				checkpoint models/control/control_v1/step_001500
+				prompt_variant plain
+				steps 2
+				guidance 4.5
 
 	eval_generations
 		 One row per model and eval image: the image that the model makes from the caption and the fixed noise
