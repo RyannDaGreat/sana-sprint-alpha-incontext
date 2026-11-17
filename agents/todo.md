@@ -5,7 +5,7 @@
 |---|---|---|---|
 | 1 | Aviary checkout in data/, aviary.sh, setup.sh | — | Fork running |
 | 2 | Processors + run curation (Step 0) | — | Fork running |
-| 3 | Models, eval set, fixed noise, baseline (Step 1) | — | Fork running |
+| 3 | Models, eval set, fixed noise, baseline (Step 1); eval as Bluejay plan_eval/generate_eval; models.localize | — | Done, uncommitted, awaiting review |
 | 4 | Adapter training code (Step 2) | — | Fork running |
 | 5 | GateControl port + control training code (Step 3) | — | Fork running |
 
