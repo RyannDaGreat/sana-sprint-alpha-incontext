@@ -211,6 +211,57 @@ tables
 				prompt_variant plain
 				steps 20
 				guidance 4.5
+			,
+				 Step 3, 4 and 5 of control_v1 step 500: control on the adapter, final (no adapter), and transfer onto Sprint
+				model_tag control_v1_step000500
+				pipeline teacher
+				checkpoint models/control/control_v1/step_000500
+				prompt_variant plain
+				steps 20
+				guidance 4.5
+			,
+				model_tag final_v1_step000500
+				pipeline teacher
+				checkpoint models/control/control_v1/final_step_000500
+				prompt_variant plain
+				steps 20
+				guidance 4.5
+			,
+				model_tag transfer_v1_step000500_2step
+				pipeline sprint
+				checkpoint models/control/control_v1/step_000500
+				prompt_variant plain
+				steps 2
+				guidance 4.5
+			,
+				 The final model lost the gray background. Fixes tried: the gray prompt, and keeping part of the adapter (λ)
+				model_tag final_v1_step000500_gray
+				pipeline teacher
+				checkpoint models/control/control_v1/final_step_000500
+				prompt_variant gray
+				steps 20
+				guidance 4.5
+			,
+				model_tag final_v1_step000500_adapter0.5
+				pipeline teacher
+				checkpoint models/control/control_v1/final_step_000500_adapter0.5
+				prompt_variant plain
+				steps 20
+				guidance 4.5
+			,
+				model_tag final_v1_step000500_adapter0.75
+				pipeline teacher
+				checkpoint models/control/control_v1/final_step_000500_adapter0.75
+				prompt_variant plain
+				steps 20
+				guidance 4.5
+			,
+				model_tag transfer_v1_step000500_2step_gray
+				pipeline sprint
+				checkpoint models/control/control_v1/step_000500
+				prompt_variant gray
+				steps 2
+				guidance 4.5
 
 	eval_generations
 		 One row per model and eval image: the image that the model makes from the caption and the fixed noise
