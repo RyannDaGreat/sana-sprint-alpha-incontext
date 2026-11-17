@@ -1,7 +1,24 @@
 # Manifest — SANA-Sprint In-Context Alpha → RGB-on-Gray
 
-> STATUS: **planning repo.** No training happens here. This repo is pushed to GitHub and cloned onto the training node (8× A100 80GB).
-> The user has not yet confirmed the plan summary (see "Distilled Plan"). Do not start Step 1+ until they confirm.
+> STATUS: **executing on the node** (8× A100 80GB, 96 CPUs, 1.1 TB RAM) since 2026-11-17 04:16 EST, in bulldog mode + fork mode (m00600–m00605). The agent's name is **Sana**.
+
+## 0. Agenda (node session, 13 h budget: 04:16 → 17:16 EST, m00600)
+
+| By (EST) | Milestone |
+|---|---|
+| 05:15 | Aviary checkout in `data/Aviary`, `data/aviary.sh` runs it; `setup.sh`; processors written; curation running |
+| 06:00 | Models downloaded; eval set + fixed noises fixed; Step 1 baseline grid |
+| 07:30 | Adapter training code works on a subset; ≤1 h throughput tuning |
+| 08:00 | Adapter run launched (babysat) |
+| 10:30 | **Checkpoint 1** (adapter passes VLM check) → notification |
+| 11:00 | Control (GateControl) run launched (babysat) |
+| 14:30 | Control passes IoU/VLM; Step 4 `base − adapter + control` grid |
+| 16:30 | Journal written; web UI if time allows |
+| 17:16 | Hard stop: final notification |
+
+**Notifications (max 6, m00604).** Each starts with "Sana:". Plan: (1) Checkpoint 1, (2) control model follows mattes, (3) Step 4 result, (4) final wrap-up. Two are kept in reserve for blockers that only the user can fix.
+
+**Aviary (m00600).** `data/Aviary` is a git checkout of `corp/Aviary` branch `bluejay2` (gitignored; `setup.sh` clones it). `data/aviary.sh` runs Aviary from that checkout. It plays the same role as `aviary.sh` in MulticamDailies: every script calls Aviary only through it. The dtab uses `lineage` keys, which only the bluejay2 source has, not the PyPI release.
 
 ## 1. Goal (read this first)
 
@@ -164,6 +181,8 @@ Training entry points (e.g. `train_adapter.sh`, `train_control.sh`) may also liv
 - Babysit every training run (m00257).
 - Transcribe all user inputs (`agents/transcripts.md`).
 - Planning happens here. Execution happens on the node via the GitHub repo.
+- Node session (m00600–m00605): Aviary checkout in `data/`, called only through `data/aviary.sh`; bulldog mode, 13 h; fork mode with plain subagents (mostly Sonnet, Opus for hard parts); babysit once runs start; max 6 phone notifications, signed "Sana"; keep an agenda.
+- **User transcripts are part of this manifest.** They live in `agents/transcripts.md` (verbatim, courtroom style), which is §11 of this manifest kept in its own file because it is long.
 
 ## 9. Semantic Bindings
 

@@ -1,21 +1,23 @@
 # TODO
 
-- [x] Transcribe user (agents/transcripts.md) — through m00257
-- [x] Rename dump, git init, manifest + concerns
-- [x] Sub-frenzy research (5 Sonnet agents) → manifest §5
-- [x] Create private GitHub repo, push
-- [x] Notify user that repo is ready
-- [x] Research GateControl (agent 6) → manifest §5
-- [x] Draft data/project.dtab (512 only), validated with `aviary bluejay initialize`
-- [x] User answers: teacher first, distill last, 1024 only (m00295)
-- [x] dtab: MulticamDailies style, 1024 only, eval removed, import_index → download_image split, validated
-- [x] Fish scripts: aviary.sh, uv.env, run_proc_curate.fish, run_sparrow.fish, recipes/loops/until_empty.fish
-- [ ] Write data/processors/*.py (import_index, download_image, split_alpha, encode_latents)
-- [ ] Port GateControl training to our base model (guidance / TrigFlow)
-- [ ] (node) Step 0 curate MAGICK via BlueJay (user gives BlueJay path)
-- [ ] (node) ≤1 h throughput tuning, big batches
-- [ ] (node) Step 1 baseline
-- [ ] (node) Step 2 adapter → Checkpoint 1 notify (babysit)
-- [ ] (node) Step 3 control, GateControl-based (babysit)
-- [ ] (node) Step 4 base − adapter + control
-- Target: something working by ~15:38 EST 2026-11-17 (12 h from m00245)
+## REVIEW CHECKLIST (only the user checks items off)
+| # | Item | Product LOC | Status |
+|---|---|---|---|
+| 1 | Aviary checkout in data/, aviary.sh, setup.sh | — | Fork running |
+| 2 | Processors + run curation (Step 0) | — | Fork running |
+| 3 | Models, eval set, fixed noise, baseline (Step 1) | — | Fork running |
+| 4 | Adapter training code (Step 2) | — | Fork running |
+
+## Done (planning)
+- [x] Manifest, dtab, fish scripts, research (see git log)
+
+## Open
+- [ ] Step 0 curate MAGICK via BlueJay
+- [ ] ≤1 h throughput tuning, big batches
+- [ ] Step 1 baseline
+- [ ] Step 2 adapter → Checkpoint 1 notify (babysit)
+- [ ] Step 3 control, GateControl-based (babysit)
+- [ ] Step 4 base − adapter + control
+- [ ] Journal entries per step
+- [ ] Step 5 distill / Step 6 web UI (if time)
+- Deadline: 17:16 EST 2026-11-17 (agenda: manifest §0)

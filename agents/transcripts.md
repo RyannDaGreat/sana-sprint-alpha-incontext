@@ -99,3 +99,21 @@ There was a maintenance script in the dailies repository that dictated how to pr
 
 ## m00508 (04:10)
 I couldn't help but notice you did not inline your queries into the processors. Why? The magic data said it that.
+
+## m00600 — 2026-11-17 04:16 (node session start; pasted from an earlier session that failed with an API error)
+https://github.netflix.net/rburgert/MulticamDailies <--- Hi, please get started. Read this repository and you'll figure out what to do. BlueJay, here you may want to download into a sub-repository and coordinate everything through your top-level [aviary.sh, transcribed as "AVRE.sh"] file exactly the same as another project that I had. In fact, you might want to just download [Aviary, transcribed as "AVRE"] into the data [folder, transcribed as "filter"] and reference all invocations of it with aviary.sh, which you'll see is the same as another one of my repositories, which was located here. You can see how aviary.sh — its role that it plays in this repository is the role that it should play in this one, inside the data folder. And apart from that, I think you can figure out what to do. Um, yeah, this is a dump, so treat it as one. Stay in the dump and review all protocol and then get started. Enter bulldog mode, try to get some results done in about 12 hours, please. I'll be generous, I'll give you 13 hours.
+
+## m00601 — 2026-11-17 04:17
+Oh, when I said read this repository, I'm talking about the repository you're in. The MulticamDailies was just a reference or something else.
+
+## m00602 — 2026-11-17 04:19
+You can enter fork mode, although your forks don't have to be forks, they can just be regular subagents.
+
+## m00603 — 2026-11-17 04:20
+Babysitting mode can happen when you actually start doing things.
+
+## m00604 — 2026-11-17 04:20
+You can notify me up to 6 times total. Your name will be Sana, S-A-N-A. Declare yourself in every notification. Make sure that you record my transcriptions in the manifest. Choose your 6 notification points wisely. Those are the only times you can [ping, transcribed as "pick"] my phone. Remember your time frame. Come up with an agenda for time marks to hit things. And if you're ahead of schedule, happy day.
+
+## m00605 — 2026-11-17 04:22
+Launch research agents as you need to. Bulldog mode, you can do whatever you want. Your subagents honestly can mostly be Sonnet, but when you have something difficult, feel free to use Opus at any effort you need.
