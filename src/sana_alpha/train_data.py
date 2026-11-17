@@ -62,7 +62,7 @@ def load_toy_records(folder, rank, world_size, seed):
                 page_ids=keep.page_id.tolist())
 
 
-def load_lance_records(path, rank, world_size, seed):
+def load_lance_records(path, rank, world_size, seed, column="latent_rgb_1024"):
     """
     Query. Reads this rank's shard of training rows (split 'train', not nsfw, latent present) from magick_samples.
 
@@ -74,16 +74,17 @@ def load_lance_records(path, rank, world_size, seed):
         rank (int): this process's rank
         world_size (int): number of processes
         seed (int): shard permutation seed
+        column (str): latent column: latent_rgb_1024 (on gray) or latent_rgb_colorbg_1024 (on a random color)
 
     Returns:
         dict: latents (M, 32, 32, 32) bfloat16, captions list[str], page_ids list[str]
     """
     ds = lance.dataset(str(path))
     table = ds.to_table(columns=["page_id", "subject"], with_row_id=True,
-                        filter="latent_rgb_1024 IS NOT NULL AND split = 'train' AND nsfw = false").to_pandas()
+                        filter=f"{column} IS NOT NULL AND split = 'train' AND nsfw = false").to_pandas()
     table = table.sort_values("page_id").reset_index(drop=True)
     table = table.iloc[rank_shard(len(table), rank, world_size, seed).numpy()]
-    blobs = ds.take_blobs("latent_rgb_1024", ids=table["_rowid"].tolist())
+    blobs = ds.take_blobs(column, ids=table["_rowid"].tolist())
     with ThreadPoolExecutor(BLOB_READ_THREADS) as pool:
         latents = list(pool.map(lambda b: safetensors.torch.load(b.read())["latent"], blobs))
     return dict(latents=torch.stack(latents), captions=table.subject.astype(str).tolist(), page_ids=table.page_id.tolist())

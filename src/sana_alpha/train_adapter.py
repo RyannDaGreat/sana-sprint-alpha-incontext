@@ -34,8 +34,8 @@ from sana_alpha.train_objective import add_flow_noise, flow_velocity_target, sam
 from sana_alpha.train_text import encode_captions, pad_embeddings
 
 ROOT = Path(__file__).resolve().parents[2]
-SOURCES = dict(toy=lambda *shard: load_toy_records(ROOT / "agents/.scratchpad/toy_train", *shard),
-               lance=lambda *shard: load_lance_records(ROOT / "data/lance/magick_samples.lance", *shard))
+SOURCES = dict(toy=lambda *shard, column: load_toy_records(ROOT / "agents/.scratchpad/toy_train", *shard),
+               lance=lambda *shard, column: load_lance_records(ROOT / "data/lance/magick_samples.lance", *shard, column))
 SIGMA_BUCKETS = (0.0, 0.5, 0.8, 1.0)  # loss is logged per noise-level band; median training sigma is 0.75
 SAMPLE_TILE = 512  # px per image in the sample grid
 
@@ -191,7 +191,7 @@ def save_checkpoint(transformer, optimizer, step, run_dir, keep_optimizer):
 def main(run, source="toy", batch_size=16, lr=2e-5, warmup_steps=250, max_steps=1000, grad_clip=0.1,
          caption_dropout=0.1, weight_decay=0.0, grad_checkpointing=False, seed=0, log_every=10,
          sample_every=250, num_samples=8, sample_steps=20, sample_guidance=4.5, save_every=1000, resume=True,
-         compile=False):
+         compile=False, latent_column="latent_rgb_1024"):
     """
     Command. Trains the adapter (full fine-tune of the teacher) and writes models/adapter/<run>/.
 
@@ -215,6 +215,7 @@ def main(run, source="toy", batch_size=16, lr=2e-5, warmup_steps=250, max_steps=
         save_every (int): steps between fp32 checkpoints (also at the end); 0 = never
         resume (bool): continue from models/adapter/<run>/resume.pt if it exists
         compile (bool): torch.compile each transformer block
+        latent_column (str): lance column of the target latents; latent_rgb_colorbg_1024 trains adapter_v2 (random solid backgrounds)
     """
     rank, world, device = setup_distributed()
     teacher = localize(TEACHER_DIR)  # node-local copy; checkpoints still go to FSx
@@ -224,7 +225,7 @@ def main(run, source="toy", batch_size=16, lr=2e-5, warmup_steps=250, max_steps=
     log_path = ROOT / "agents/.scratchpad/logs" / f"train_adapter_{run}.log"
     config = dict(run=run, source=source, batch_size=batch_size, world=world, lr=lr, warmup_steps=warmup_steps,
                   max_steps=max_steps, grad_clip=grad_clip, caption_dropout=caption_dropout, weight_decay=weight_decay,
-                  grad_checkpointing=grad_checkpointing, seed=seed, compile=compile)
+                  grad_checkpointing=grad_checkpointing, seed=seed, compile=compile, latent_column=latent_column)
     if rank == 0:
         run_dir.mkdir(parents=True, exist_ok=True)
         log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -232,7 +233,8 @@ def main(run, source="toy", batch_size=16, lr=2e-5, warmup_steps=250, max_steps=
         log_line(log_path, dict(event="start", **config))
 
     # Records and caption embeddings (this rank's shard only).
-    records = SOURCES[source](rank, world, seed)
+    assert source == "lance" or latent_column == "latent_rgb_1024", f"source {source} has only latent_rgb_1024"
+    records = SOURCES[source](rank, world, seed, column=latent_column)
     latents, captions = records["latents"], records["captions"]
     unique = sorted(set(captions))
     t0 = time.time()
