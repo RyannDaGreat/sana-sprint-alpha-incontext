@@ -194,3 +194,6 @@ And don't do random shitty quantization. If you do int4 quantization, do it prop
 
 ## m00630 — 2026-11-17 1:13 PM
 Is BlueJay being used for inference? If so, can you launch a Sparrow server too and give me local ip:port (and have a run_sparrow.sh top-level, or .fish)?
+
+## m00631 — 2026-11-17 1:20 PM
+These galleries can be used to make [mirrored, transcribed as "minstrel"] Sparrow queries too. That way I can hide and show rows at my pleasure.
