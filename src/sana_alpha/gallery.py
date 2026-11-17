@@ -100,7 +100,7 @@ def rows(run, step, *variants, stock=False):
     print("".join(dtab_rows(step_models(run, step) + STOCK * stock, v) for v in variants or VARIANTS), end="")
 
 
-def build(run, step, notes=""):
+def build(run, step, notes="", name=None):
     """
     Command. Hard-links the showcase images of one control step and writes its gallery page. Raises if any is missing.
 
@@ -108,12 +108,14 @@ def build(run, step, notes=""):
         run (str): control run, e.g. "control_v1"
         step (int): its step
         notes (str): HTML of the observations paragraph
+        name (str | None): page and assets folder name; default gallery_<run without "control_">, e.g. gallery_v2_step1500
     """
     import lance
     import pandas as pd
 
     short = run.removeprefix("control_")
-    assets, page = ROOT / f"journal/assets/gallery_{short}", ROOT / f"journal/gallery_{short}.html"
+    name = name or f"gallery_{short}"
+    assets, page = ROOT / f"journal/assets/{name}", ROOT / f"journal/{name}.html"
     models = [(*m, label_of(*m[1:4])) for m in STOCK + step_models(run, step)]
     tags = {variant_tag(m[0], v): (m, v) for v in VARIANTS for m in models}
     items = json.loads((ROOT / SHOWCASE / "prompts.json").read_text())
