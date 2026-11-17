@@ -93,3 +93,6 @@ I don't know what the VLM judge processor is for. The agent will be doing that i
 ## m00397 — 2026-11-17 03:52
 [Image: Albatross graph of data/project.dtab: download_magick → magick_samples(page_id) → split_alpha → magick_samples(alpha, rgb_on_gray) → encode_latents]
 lol why ain't this it? And what downloads the MAGICK tsv first before downloading the samples?
+
+## m00436 (03:54, with a screenshot of the misaligned rows.parquet table)
+There was a maintenance script in the dailies repository that dictated how to prevent bullshit like this from occurring. See how misaligned this is? There was a tool script inside, I think, the agents folder of the original repository that helps you prevent that.
