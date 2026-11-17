@@ -3,3 +3,5 @@ agents/.scratchpad/logs/
 data/lance/
 models/
 /agents/.scratchpad
+data/Aviary/
+.venv/
