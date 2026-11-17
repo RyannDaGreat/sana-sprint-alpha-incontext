@@ -40,12 +40,13 @@ lineage true
       with no other use by the processor, including diagnostic logging.
     - Annotate each corresponding materialize and commit row that exists in the DTAB. Replace the space before the type with ~, as in [Key] ~str,
       without moving the columns. Preserve at least one space after the comment tab; widen the table if necessary. The marker is part of the comment, not the field name.
+    - Write each processor's query inline in the processor. The queries section holds only queries for Sparrow
     - Delete a query that no processor or widget uses
     - Delete a processor file that this dtab does not use, in its own commit
     - Remove a note when it is resolved
     - Right-align values at their shared suffix, like numbers at the decimal point: ` 720p.mp4` under `1080p.mp4`
     - Lay out a big query's SELECT like view_dataset: one item per line, struct fields aligned
-    - Write each query that is not tiny and simple as an annotated SQL query, like pending_latents, for a reader who does not speak SQL.
+    - Write each query that is not tiny and simple as an annotated SQL query, like encode_latents' query, for a reader who does not speak SQL.
       An annotated SQL query has these properties in its FROM, JOIN and WHERE:
         - Break lines where the English breaks: each line is one short statement. Join lines that make one statement, like SELECT ... FROM
         - End each line with a tiny -- comment, so that the comments read down as one sentence
@@ -114,7 +115,7 @@ tables
 processors
 
 	import_index	 Downloads magick_index.tsv (16 MB) and adds one magick_samples row per image. No image yet
-		query pending_import
+		query SELECT job_id FROM import_jobs WHERE import_claim IS NULL
 		claim	import_claim import_jobs
 		command bash
 			uv run --script processors/import_index.py "$SAMPLE" $MAGICK_REPO $EVAL_MODULUS
@@ -137,7 +138,10 @@ processors
 					source_run_id $RUN	             str    The import run                                                                           "4b2e…"
 
 	download_image	 Downloads each image's RGBA PNG from Hugging Face: images/<first 2 letters>/<page_id>.png
-		query pending_download
+		query sql
+			SELECT page_id FROM magick_samples           -- MAGICK images
+			WHERE download_claim IS NULL                 -- not yet claimed,
+			ORDER BY random() LIMIT $DOWNLOAD_BATCH_SIZE -- one batch at a time, in random order
 		claim	download_claim magick_samples
 		command bash
 			uv run --script processors/download_image.py "$BATCH" $MAGICK_REPO
@@ -149,7 +153,11 @@ processors
 				rgba rgba.png	    blob  The MAGICK image as downloaded: 1024 x 1024 RGBA, straight alpha  1.5 MB .png
 
 	split_alpha	 Splits each RGBA PNG into its matte and its RGB composited on gray, and measures the matte
-		query pending_split_alpha
+		query sql
+			SELECT page_id, rgba FROM magick_samples  -- MAGICK images
+			WHERE   split_alpha_claim IS NULL         -- not yet claimed,
+			    AND rgba              IS NOT NULL     -- that download_image did,
+			ORDER BY random() LIMIT $SPLIT_BATCH_SIZE -- one batch at a time, in random order
 		claim	split_alpha_claim magick_samples
 		command bash
 			uv run --script processors/split_alpha.py "$BATCH" $GRAY_LEVEL
@@ -165,7 +173,11 @@ processors
 					green_spill @	                    float  Mean of max(0, g - max(r, b)) where alpha > 0.5. High: green fringe  0.006
 
 	encode_latents	 Encodes each matte and each RGB-on-gray with the teacher's DC-AE, and measures the round trip
-		query pending_latents
+		query sql
+			SELECT page_id, alpha, rgb_on_gray FROM magick_samples -- MAGICK images
+			WHERE   encode_latents_claim IS NULL                   -- not yet claimed,
+			    AND rgb_on_gray          IS NOT NULL               -- that split_alpha did,
+			ORDER BY random() LIMIT $ENCODE_BATCH_SIZE             -- one batch at a time, in random order
 		claim	encode_latents_claim magick_samples
 		command bash
 			uv run --script processors/encode_latents.py "$BATCH" $TEACHER_MODEL
@@ -181,27 +193,6 @@ processors
 
 
 queries
-	 Convention: queries used only as processor queries are prefixed with pending_
-
-	pending_import SELECT job_id FROM import_jobs WHERE import_claim IS NULL
-
-	pending_download sql
-		SELECT page_id FROM magick_samples           -- MAGICK images
-		WHERE download_claim IS NULL                 -- not yet claimed,
-		ORDER BY random() LIMIT $DOWNLOAD_BATCH_SIZE -- one batch at a time, in random order
-
-	pending_split_alpha sql
-		SELECT page_id, rgba FROM magick_samples  -- MAGICK images
-		WHERE   split_alpha_claim IS NULL         -- not yet claimed,
-		    AND rgba              IS NOT NULL     -- that download_image did,
-		ORDER BY random() LIMIT $SPLIT_BATCH_SIZE -- one batch at a time, in random order
-
-	pending_latents sql
-		SELECT page_id, alpha, rgb_on_gray FROM magick_samples -- MAGICK images
-		WHERE   encode_latents_claim IS NULL                   -- not yet claimed,
-		    AND rgb_on_gray          IS NOT NULL               -- that split_alpha did,
-		ORDER BY random() LIMIT $ENCODE_BATCH_SIZE             -- one batch at a time, in random order
-
 	view_dataset sql
 		SELECT
 		    struct('image' AS widget,       alpha AS src, subject   AS caption) AS alpha,
