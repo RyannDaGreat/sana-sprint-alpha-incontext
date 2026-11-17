@@ -1,18 +1,24 @@
 environ
-	BATCH_SIZE 16
-	GPU_BATCH_SIZE 64
-	MAGICK_REPO OneOverZero/MAGICK
-	MAGICK_DIR magick_raw
-	GRAY_LEVEL 0.5
-	EVAL_EVERY 1000
-	EVAL_SEEDS 42,43,44
-	VAE_MODEL mit-han-lab/dc-ae-f32c32-sana-1.1-diffusers
-	TIME_ZONE America/New_York
+	 Batch sizes, in processor order. Not measured yet: tune them on the node
+	DOWNLOAD_BATCH_SIZE 64	 Images per run of download_image. Network bound: 1.5 MB per PNG
+	SPLIT_BATCH_SIZE 64	 Images per run of split_alpha. CPU only: it reads 1 PNG and writes 2
+	ENCODE_BATCH_SIZE 64	 Images per run of encode_latents. run_proc_curate.fish starts one loop per GPU
+
+	 Data
+	MAGICK_REPO OneOverZero/MAGICK	 Hugging Face dataset: 140,955 RGBA PNGs, 1024 x 1024, straight alpha, 191 GB
+	GRAY_LEVEL 0.5	                 Background of rgb_on_gray as a fraction of white: rgb * alpha + GRAY_LEVEL * (1 - alpha)
+	EVAL_MODULUS 4000	         An image is eval, never trained on, when sha256(page_id) mod EVAL_MODULUS is 0: about 35 images
+
+	 Models
+	TEACHER_MODEL Efficient-Large-Model/SANA_Sprint_1.6B_1024px_teacher_diffusers	 The model we fine-tune. Its vae subfolder (DC-AE f32c32) makes the latents, so they match the model
+
+	 Database
+	DATABASE_PORT 23947	 Far from the ports of the Bluejay demos on the laptop (19471, 19683, 19783)
 
 database
 	backend bluejay.local_database.LocalLanceBackend
 	host 0.0.0.0
-	port 23947
+	port $DATABASE_PORT
 	root lance
 
 claims_table bluejay_claims
@@ -20,302 +26,195 @@ runs_table bluejay_runs
 cell_lineage_table bluejay_lineage
 cell_lineage true
 
+
+ RULES FOR MAINTAINING THIS DTAB (copied from MulticamDailies' project.dtab, the house style):
+    - These rules are for the AI. Keep the user's own prose in the user's voice: do not rewrite it
+    - Everything is written in ASD-STE100
+    - Sort tables and processors by dependency: an item comes after each item that it reads
+    - Put the primary key first, then group the columns by the processor that writes them
+    - Give each committed column a TYPE, a DESCRIPTION and an EXAMPLE
+    - [Key] identifies a primary key. A tilde immediately before the type identifies a materialized field copied unchanged to the commit output,
+      with no other use by the processor, including diagnostic logging.
+    - Annotate each corresponding materialize and commit row that exists in the DTAB. Replace the space before the type with ~, as in [Key] ~str,
+      without moving the columns. Preserve at least one space after the comment tab; widen the table if necessary. The marker is part of the comment, not the field name.
+    - Delete a query that no processor or widget uses
+    - Delete a processor file that this dtab does not use, in its own commit
+    - Remove a note when it is resolved
+    - Right-align values at their shared suffix, like numbers at the decimal point: ` 720p.mp4` under `1080p.mp4`
+    - Lay out a big query's SELECT like view_dataset: one item per line, struct fields aligned
+    - Write each query that is not tiny and simple as an annotated SQL query, like pending_latents, for a reader who does not speak SQL.
+      An annotated SQL query has these properties in its FROM, JOIN and WHERE:
+        - Break lines where the English breaks: each line is one short statement. Join lines that make one statement, like SELECT ... FROM
+        - End each line with a tiny -- comment, so that the comments read down as one sentence
+        - Align the comments one space after the longest line. Inside parentheses, indent the comment text 4 more, so the reader can skip it
+        - Align the parts that nearby lines share, such as AND, IS, ON and =
+    - Eval is not done here: the agent runs it itself (user, m00371). These tables only curate the training data
+
+
 tables
+
 	bluejay_claims
+		 Bluejay requires this table
 		primary_key claim_id
+		index	claim_id btree
 		columns
 			claim_id, run_id, claim_status string
 
 	bluejay_runs
+		 Bluejay requires this table
 		primary_key run_id
 		columns
-			run_id, processor string
-			run_status, metadata string
-			started_at, finished_at string
+			run_id, run_status, started_at, finished_at, processor, metadata, dtab, query string
 			exit_code int64
-			log, profiler blob
-			dtab, query string
+			log blob
+			profiler blob
 
 	bluejay_lineage
+		 Bluejay requires this table, because cell_lineage is true
 		columns
 			claim_id, table string
 			key, materialized map_(string(), binary())
 			committed list_(string())
 
 	import_jobs
+		 One seeded row makes import_index read magick_index.tsv exactly once
 		primary_key job_id
-		initial_rows
-			,	job_id magick-full
 		columns
-			 One row: download all of MAGICK to MAGICK_DIR, then read its index
 			job_id string
 			index_tsv blob
+		initial_rows
+			,	job_id magick
 
 	magick_samples
+		 One row per MAGICK image: 140,955 rows when the download is done
 		primary_key page_id
 		columns
-			 Source: magick_index.tsv
-			page_id, subject, color string
-			sim_score float64
-			nsfw, picked int64
-			source_claim_id, source_run_id string
-
-			 Held-out split: train or eval, fixed by a hash of page_id
-			split string
-
-			 Pixels, 1024x1024 PNG
-			rgba, alpha, rgb_on_gray blob
-
-			 Matte and quality statistics
-			alpha_coverage, alpha_soft_fraction, green_spill float64
-			keep bool
-
-			 DC-AE latents at 512x512, safetensors (32, 16, 16) float16. 1024 columns come later (manifest: 512 end to end first)
-			latent_alpha_512, latent_rgb_512 blob
-			vae_psnr_512 float64
-
-	eval_noise
-		primary_key page_id,seed
-		columns
-			 Fixed starting noise for one eval sample and seed, safetensors (32, LH, LW) float32
 			page_id string
-			seed int64
-			noise_512 blob
 
-	checkpoints
-		primary_key checkpoint
-		initial_rows
-			,	checkpoint sprint_base_1.6b
-				stage baseline
-				path Efficient-Large-Model/Sana_Sprint_1.6B_1024px_diffusers
-			,	checkpoint teacher_base_1.6b
-				stage baseline
-				path Efficient-Large-Model/SANA_Sprint_1.6B_1024px_teacher_diffusers
-		columns
-			 stage: baseline, adapter, control, combined (base - adapter + control) or distilled
-			checkpoint, stage, path, parent, notes string
-			step int64
+			 Written by import_index, from magick_index.tsv
+			subject, color, split, source_claim_id, source_run_id string
+			sim_score float64
+			nsfw, hand_picked bool
 
-	generations
-		primary_key checkpoint,page_id,seed
-		columns
-			 One eval image: a checkpoint run on one eval sample and seed
-			checkpoint, page_id string
-			seed int64
-			source_claim_id, source_run_id string
-			image blob
+			 Written by download_image
+			rgba blob
 
-			 Metrics against the eval sample's matte
-			exterior_gray_error, matte_iou, edge_l1 float64
-			vlm_score float64
-			vlm_notes string
+			 Written by split_alpha
+			alpha, rgb_on_gray blob
+			alpha_coverage, alpha_soft_fraction, green_spill float64
+
+			 Written by encode_latents
+			latent_alpha_1024, latent_rgb_1024 blob
+			vae_psnr_1024 float64
+
 
 processors
-	download_magick
-		query sql
-			SELECT job_id FROM import_jobs WHERE download_claim IS NULL
-		claim
-			download_claim import_jobs
-		command bash
-			uv run --script processors/download_magick.py "$SAMPLE" $MAGICK_REPO $MAGICK_DIR
-		materialize
-			input.json
-				job_id @
-		commit
-			import_jobs
-				index_tsv index.tsv
-			magick_samples
-				rows.parquet
-					page_id @
-					subject @
-					color @
-					sim_score @
-					nsfw @
-					picked @
-					split @
-					source_claim_id $CLAIM
-					source_run_id $RUN
 
-	split_alpha
+	import_index	 Downloads magick_index.tsv (16 MB) and adds one magick_samples row per image. No image yet
+		query pending_import
+		claim	import_claim import_jobs
+		command bash
+			uv run --script processors/import_index.py "$SAMPLE" $MAGICK_REPO $EVAL_MODULUS
+		materialize	   TYPE  DESCRIPTION  EXAMPLE
+			input.json
+				job_id @	 [Key]  str  The one import job  "magick"
+		commit
+			import_jobs	                   TYPE  DESCRIPTION                                                                  EXAMPLE
+				index_tsv index.tsv	   blob  magick_index.tsv as downloaded: 148,193 rows, 7,238 of them repeat an image  16.1 MB .tsv
+			magick_samples
+				rows.parquet	                        TYPE   DESCRIPTION                                                                              EXAMPLE
+					page_id @	         [Key]  str    MAGICK image ID, the PNG's file name                                                     "Hcx82jcUpM"
+					subject @	                str    The caption: a short subject phrase                                                      "red boiled crayfish on a plate ."
+					color @	                        str    Screen color that MAGICK keyed out                                                       "green"
+					sim_score @	                float  Agreement of MAGICK's 3 alpha extractors (MS-SSIM). Low: maybe color spill               0.9879238
+					nsfw @	                        bool   MAGICK's NSFW flag. 3,000 index rows                                                     false
+					hand_picked @	                bool   The index lists it as "hand". A repeated image is listed once as "hand", once as "auto"  true
+					split @	                        str    "eval" when sha256(page_id) mod EVAL_MODULUS is 0, else "train"                          "train"
+					source_claim_id $CLAIM	        str    Claim of the import run                                                                  "9f1c…"
+					source_run_id $RUN	        str    The import run                                                                           "4b2e…"
+
+	download_image	 Downloads each image's RGBA PNG from Hugging Face: images/<first 2 letters>/<page_id>.png
+		query pending_download
+		claim	download_claim magick_samples
+		command bash
+			uv run --script processors/download_image.py "$BATCH" $MAGICK_REPO
+		materialize	   TYPE  DESCRIPTION  EXAMPLE
+			input.json
+				page_id @	 [Key]  str  MAGICK image ID, the PNG's file name  "Hcx82jcUpM"
+		commit
+			magick_samples	           TYPE  DESCRIPTION                                                       EXAMPLE
+				rgba rgba.png	   blob  The MAGICK image as downloaded: 1024 x 1024 RGBA, straight alpha  1.5 MB .png
+
+	split_alpha	 Splits each RGBA PNG into its matte and its RGB composited on gray, and measures the matte
 		query pending_split_alpha
-		claim
-			split_alpha_claim magick_samples
+		claim	split_alpha_claim magick_samples
 		command bash
-			uv run --script processors/split_alpha.py $BATCH $MAGICK_DIR $GRAY_LEVEL
-		materialize
-			input.json
-				page_id @
+			uv run --script processors/split_alpha.py "$BATCH" $GRAY_LEVEL
+		materialize	           TYPE  DESCRIPTION       EXAMPLE
+			rgba.png rgba	   blob  The MAGICK image  1.5 MB .png
 		commit
-			magick_samples
-				rgba rgba.png
-				alpha alpha.png
-				rgb_on_gray rgb_on_gray.png
-				result.json
-					alpha_coverage @
-					alpha_soft_fraction @
-					green_spill @
-					keep @
+			magick_samples	                                   TYPE   DESCRIPTION                                                          EXAMPLE
+				alpha alpha.png	                           blob   The matte: 1024 x 1024 grayscale, 8 bit                              120 KB .png
+				rgb_on_gray rgb_on_gray.png	           blob   rgb * alpha + GRAY_LEVEL * (1 - alpha): 1024 x 1024 RGB, 8 bit       1.4 MB .png
+				result.json	                 SUBFIELD  TYPE   DESCRIPTION                                                          EXAMPLE
+					alpha_coverage @	           float  Mean alpha: how much of the frame the object fills                   0.31
+					alpha_soft_fraction @	           float  Fraction of pixels with 0 < alpha < 1: hair, glass, smoke            0.04
+					green_spill @	                   float  Mean of max(0, g - max(r, b)) where alpha > 0.5. High: green fringe  0.006
 
-	encode_latents
+	encode_latents	 Encodes each matte and each RGB-on-gray with the teacher's DC-AE, and measures the round trip
 		query pending_latents
-		claim
-			encode_latents_claim magick_samples
+		claim	encode_latents_claim magick_samples
 		command bash
-			uv run --script processors/encode_latents.py $BATCH $VAE_MODEL
-		materialize
-			alpha.png alpha
-			rgb_on_gray.png rgb_on_gray
+			uv run --script processors/encode_latents.py "$BATCH" $TEACHER_MODEL
+		materialize	                           TYPE  DESCRIPTION                                      EXAMPLE
+			alpha.png alpha	                   blob  The matte, copied to 3 channels before encoding  120 KB .png
+			rgb_on_gray.png rgb_on_gray	   blob  The RGB on gray                                  1.4 MB .png
 		commit
-			magick_samples
-				latent_alpha_512 latent_alpha_512.safetensors
-				latent_rgb_512 latent_rgb_512.safetensors
-				result.json
-					vae_psnr_512 @
+			magick_samples	                                                   TYPE   DESCRIPTION                                                                                    EXAMPLE
+				latent_alpha_1024 latent_alpha.safetensors	           blob   DC-AE latent of the matte: (32, 32, 32) bfloat16, key "latent"                                 64 KB .safetensors
+				latent_rgb_1024 latent_rgb.safetensors	                   blob   DC-AE latent of the RGB on gray: (32, 32, 32) bfloat16, key "latent"                           64 KB .safetensors
+				result.json	                                 SUBFIELD  TYPE   DESCRIPTION                                                                                    EXAMPLE
+					vae_psnr_1024 @	                                   float  PSNR in dB of the decoded RGB on gray against the original. Low: DC-AE cannot hold this image  31.2
 
-	make_eval_noise
-		query pending_eval_noise
-		claim
-			eval_noise_claim magick_samples
-		command bash
-			uv run --script processors/make_eval_noise.py $BATCH $EVAL_SEEDS
-		materialize
-			input.json
-				page_id @
-		commit
-			eval_noise
-				children/
-					fields.json
-						page_id @
-						seed @
-					noise_512 noise_512.safetensors
-
-	plan_generations
-		query pending_plan
-		claim
-			plan_claim checkpoints
-		command bash
-			uv run --script processors/plan_generations.py "$THIS" "$SAMPLE"
-		materialize
-			input.json
-				checkpoint @
-		commit
-			generations
-				rows.parquet
-					checkpoint @
-					page_id @
-					seed @
-					source_claim_id $CLAIM
-					source_run_id $RUN
-
-	generate
-		query pending_generate
-		claim
-			generate_claim generations
-		command bash
-			uv run --script processors/generate.py $BATCH
-		materialize
-			input.json
-				checkpoint, path, stage, subject, seed @
-			alpha.png alpha
-			noise.safetensors noise
-		commit
-			generations
-				image image.png
-
-	score_generation
-		query pending_score
-		claim
-			score_claim generations
-		command bash
-			uv run --script processors/score_generation.py $BATCH $GRAY_LEVEL
-		materialize
-			image.png image
-			alpha.png alpha
-		commit
-			generations
-				result.json
-					exterior_gray_error @
-					matte_iou @
-					edge_l1 @
-
-	vlm_judge
-		query pending_vlm
-		claim
-			vlm_claim generations
-		command bash
-			uv run --script processors/vlm_judge.py $BATCH
-		materialize
-			input.json
-				subject @
-			image.png image
-			alpha.png alpha
-		commit
-			generations
-				result.json
-					vlm_score @
-					vlm_notes @
 
 queries
+	 Convention: queries used only as processor queries are prefixed with pending_
+
+	pending_import SELECT job_id FROM import_jobs WHERE import_claim IS NULL
+
+	pending_download sql
+		SELECT page_id FROM magick_samples           -- MAGICK images
+		WHERE download_claim IS NULL                 -- not yet claimed,
+		ORDER BY random() LIMIT $DOWNLOAD_BATCH_SIZE -- one batch at a time, in random order
+
 	pending_split_alpha sql
-		SELECT page_id FROM magick_samples
-		WHERE rgba IS NULL AND split_alpha_claim IS NULL
-		ORDER BY random() LIMIT $BATCH_SIZE
+		SELECT page_id, rgba FROM magick_samples  -- MAGICK images
+		WHERE   split_alpha_claim IS NULL         -- not yet claimed,
+		    AND rgba              IS NOT NULL     -- that download_image did,
+		ORDER BY random() LIMIT $SPLIT_BATCH_SIZE -- one batch at a time, in random order
 
 	pending_latents sql
-		SELECT page_id, alpha, rgb_on_gray FROM magick_samples
-		WHERE keep AND latent_rgb_512 IS NULL AND encode_latents_claim IS NULL
-		ORDER BY random() LIMIT $GPU_BATCH_SIZE
-
-	pending_eval_noise sql
-		SELECT page_id FROM magick_samples
-		WHERE split = 'eval' AND keep AND eval_noise_claim IS NULL
-		ORDER BY page_id LIMIT $BATCH_SIZE
-
-	pending_plan sql
-		SELECT checkpoint FROM checkpoints WHERE plan_claim IS NULL ORDER BY checkpoint LIMIT 1
-
-	pending_generate sql
-		SELECT g.checkpoint, c.path, c.stage, s.subject, g.seed, s.alpha,
-		       n.noise_512 AS noise
-		FROM generations g
-		JOIN checkpoints c ON g.checkpoint = c.checkpoint
-		JOIN magick_samples s ON g.page_id = s.page_id
-		JOIN eval_noise n ON g.page_id = n.page_id AND g.seed = n.seed
-		WHERE g.image IS NULL AND g.generate_claim IS NULL
-		ORDER BY g.checkpoint LIMIT $GPU_BATCH_SIZE
-
-	pending_score sql
-		SELECT g.checkpoint, g.page_id, g.seed, g.image, s.alpha
-		FROM generations g JOIN magick_samples s ON g.page_id = s.page_id
-		WHERE g.image IS NOT NULL AND g.score_claim IS NULL
-		LIMIT $BATCH_SIZE
-
-	pending_vlm sql
-		SELECT g.checkpoint, g.page_id, g.seed, g.image, s.alpha, s.subject
-		FROM generations g JOIN magick_samples s ON g.page_id = s.page_id
-		WHERE g.image IS NOT NULL AND g.vlm_claim IS NULL
-		LIMIT $BATCH_SIZE
+		SELECT page_id, alpha, rgb_on_gray FROM magick_samples -- MAGICK images
+		WHERE   encode_latents_claim IS NULL                   -- not yet claimed,
+		    AND rgb_on_gray          IS NOT NULL               -- that split_alpha did,
+		ORDER BY random() LIMIT $ENCODE_BATCH_SIZE             -- one batch at a time, in random order
 
 	view_dataset sql
-		SELECT struct('image' AS widget, rgba AS src, subject AS caption) AS rgba,
-		       struct('image' AS widget, alpha AS src, 'alpha' AS caption) AS alpha,
-		       struct('image' AS widget, rgb_on_gray AS src, 'on gray' AS caption) AS on_gray,
-		       page_id, subject, split, keep, sim_score, green_spill, vae_psnr_512
-		FROM magick_samples WHERE rgba IS NOT NULL ORDER BY page_id
-
-	view_eval_grid sql
-		SELECT g.page_id, g.seed, s.subject,
-		       struct('image' AS widget, s.alpha AS src, 'matte' AS caption) AS matte,
-		       struct('image' AS widget, g.image AS src, g.checkpoint AS caption) AS output,
-		       g.checkpoint, g.exterior_gray_error, g.matte_iou, g.edge_l1, g.vlm_score
-		FROM generations g JOIN magick_samples s ON g.page_id = s.page_id
-		WHERE g.image IS NOT NULL ORDER BY g.page_id, g.seed, g.checkpoint
-
-	view_checkpoint_scores sql
-		SELECT checkpoint, count(*) AS images,
-		       avg(exterior_gray_error) AS exterior_gray_error, avg(matte_iou) AS matte_iou,
-		       avg(edge_l1) AS edge_l1, avg(vlm_score) AS vlm_score
-		FROM generations WHERE image IS NOT NULL GROUP BY checkpoint ORDER BY checkpoint
+		SELECT
+		    struct('image' AS widget,       alpha AS src, subject   AS caption) AS alpha,
+		    struct('image' AS widget, rgb_on_gray AS src, 'on gray' AS caption) AS on_gray,
+		    page_id,
+		    subject,
+		    split,
+		    nsfw,
+		    hand_picked,
+		    sim_score,
+		    green_spill,
+		    alpha_coverage,
+		    vae_psnr_1024
+		FROM magick_samples           -- MAGICK images
+		WHERE rgb_on_gray IS NOT NULL -- that split_alpha did,
+		ORDER BY page_id              -- in a fixed order
 
 sparrow
 	saves sparrow_saves
