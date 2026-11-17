@@ -2,21 +2,21 @@
 
 > STATUS: **executing on the node** (8× A100 80GB, 96 CPUs, 1.1 TB RAM) since 2026-11-17 04:16 EST, in bulldog mode + fork mode (m00600–m00605). The agent's name is **Sana**.
 
-## 0. Agenda (node session, 13 h budget: 04:16 → 17:16 EST, m00600)
+## 0. Agenda (node session, 13 h budget: 4:16 AM → 5:16 PM ET, m00600)
 
-| By (EST) | Milestone |
+| By (ET) | Milestone |
 |---|---|
-| 05:15 | Aviary checkout in `data/Aviary`, `data/aviary.sh` runs it; `setup.sh`; processors written; curation running |
-| 06:00 | Models downloaded; eval set + fixed noises fixed; Step 1 baseline grid |
-| 07:30 | Adapter training code works on a subset; ≤1 h throughput tuning |
-| 08:00 | Adapter run launched (babysat) |
-| 10:30 | **Checkpoint 1** (adapter passes VLM check) → notification |
-| 11:00 | Control (GateControl) run launched (babysat) |
-| 14:30 | Control passes IoU/VLM; Step 4 `base − adapter + control` grid |
-| 16:30 | Journal written; web UI if time allows |
-| 17:16 | Hard stop: final notification |
+| 5:15 AM | Aviary checkout in `data/Aviary`, `data/aviary.sh` runs it; `setup.sh`; processors written; curation running |
+| 6:00 AM | Models downloaded; eval set + fixed noises fixed; Step 1 baseline grid |
+| 7:30 AM | Adapter training code works on a subset; ≤1 h throughput tuning |
+| 8:00 AM | Adapter run launched (babysat) |
+| 10:30 AM | **Checkpoint 1** (adapter passes VLM check) → notification |
+| 11:00 AM | Control (GateControl) run launched (babysat) |
+| 2:30 PM | Control passes IoU/VLM; Step 4 `base − adapter + control` grid |
+| 4:30 PM | Journal written; web UI if time allows |
+| 5:16 PM | Hard stop: final notification |
 
-**Agent deadlines (m00608).** Each subagent gets an expected finish time. After it, Sana babysits the agent (checks files, logs, GPUs every ~20 min) and steps in if it stalls. Wave 1 (launched 04:25): data pipeline → 05:15, eval set + baseline → 05:30, adapter training code → 06:00, GateControl port → 06:30.
+**Agent deadlines (m00608).** Each subagent gets an expected finish time. After it, Sana babysits the agent (checks files, logs, GPUs every ~20 min) and steps in if it stalls. Wave 1 (launched 4:25 AM): data pipeline → 5:15 AM, eval set + baseline → 5:30 AM, adapter training code → 6:00 AM, GateControl port → 6:30 AM.
 
 **Notifications (max 6, m00604).** Each starts with "Sana:". Plan: (1) Checkpoint 1, (2) control model follows mattes, (3) Step 4 result, (4) final wrap-up. Two are kept in reserve for blockers that only the user can fix.
 
