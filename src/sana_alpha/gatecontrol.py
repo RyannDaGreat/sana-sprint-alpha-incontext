@@ -61,6 +61,54 @@ class GateControlGates(nn.Module):
             nn.init.zeros_(gate.bias)
 
 
+def tokens_to_grid(x, height, width):
+    """
+    Pure function. (B, H·W, C) tokens -> (B, C, H, W) grid. torch ops, not einx: einx cannot take symbolic sizes,
+    which the dynamic-size ONNX export (web_export) traces with.
+
+    Examples:
+        >>> tokens_to_grid(torch.arange(6.).reshape(1, 3, 2), 1, 3).tolist()
+        [[[[0.0, 2.0, 4.0]], [[1.0, 3.0, 5.0]]]]
+    """
+    return x.transpose(1, 2).unflatten(2, (height, width))
+
+
+def grid_to_tokens(x):
+    """
+    Pure function. (B, C, H, W) grid -> (B, H·W, C) tokens; inverse of tokens_to_grid.
+
+    Examples:
+        >>> grid_to_tokens(tokens_to_grid(torch.arange(6.).reshape(1, 3, 2), 1, 3)).flatten().tolist()
+        [0.0, 1.0, 2.0, 3.0, 4.0, 5.0]
+    """
+    return x.flatten(2).transpose(1, 2)
+
+
+def streams_to_sequence(t, heads):
+    """
+    Pure function. einx "(s B) N (H d) -> B (s N) H d" with s = 2, in torch ops: einx writes the traced N into its
+    Reshape, which breaks the dynamic-size ONNX export.
+
+    Examples:
+        >>> t = torch.randn(4, 3, 6)
+        >>> bool((streams_to_sequence(t, 2) == einx.rearrange("(s B) N (H d) -> B (s N) H d", t, s=2, H=2)).all())
+        True
+    """
+    return t.unflatten(0, (2, -1)).transpose(0, 1).flatten(1, 2).unflatten(-1, (heads, -1))
+
+
+def sequence_to_streams(t):
+    """
+    Pure function. einx "B (s N) H d -> (s B) N (H d)" with s = 2; inverse of streams_to_sequence.
+
+    Examples:
+        >>> t = torch.randn(2, 6, 2, 3)
+        >>> bool((sequence_to_streams(t) == einx.rearrange("B (s N) H d -> (s B) N (H d)", t, s=2)).all())
+        True
+    """
+    return t.flatten(-2).unflatten(1, (2, -1)).transpose(0, 1).flatten(0, 1)
+
+
 def gate_value(gate, h):
     """
     Pure function. GateControl gate: sigmoid(Linear(LayerNorm_no_affine(h))), computed in float32.
@@ -104,8 +152,9 @@ def relu_linear_attention(q, k, v):
     q, k, v = q.float(), k.float(), v.float()
     v = F.pad(v, (0, 1), value=1.0)
     with torch.autocast(q.device.type, enabled=False):  # keep float32 even under autocast, like the base runs it
-        kv = einx.rearrange("B M H d -> B H d M", k) @ einx.rearrange("B M H e -> B H M e", v)  # (B, H, d, e)
-        out = einx.rearrange("B H N e -> B N H e", einx.rearrange("B N H d -> B H N d", q) @ kv)
+        # torch transposes, not einx: einx writes traced sizes into Reshape nodes (breaks dynamic-size ONNX export)
+        kv = k.permute(0, 2, 3, 1) @ v.transpose(1, 2)  # (B, H, d, M) @ (B, H, M, e) -> (B, H, d, e)
+        out = (q.transpose(1, 2) @ kv).transpose(1, 2)  # (B, H, N, e) -> (B, N, H, e)
     return out[..., :-1] / (out[..., -1:] + LINEAR_ATTN_EPS)
 
 
@@ -128,12 +177,12 @@ def two_stream_self_attention(attn, h, keep):
         k = attn.norm_k(k)
     q, k = F.relu(q), F.relu(k)
     k_x, k_c = k.chunk(2)
-    k_c = einx.multiply("B N D, B -> B N D", k_c, keep.to(k_c.dtype))
+    k_c = k_c * keep.to(k_c.dtype)[:, None, None]  # (B, N, D) · (B,); not einx: it bakes traced N into a Reshape
     k = torch.cat([k_x, k_c])
     # [x; c] on the batch axis -> one sequence of 2N tokens per sample
-    q, k, v = (einx.rearrange("(s B) N (H d) -> B (s N) H d", t, s=2, H=attn.heads) for t in (q, k, v))
+    q, k, v = (streams_to_sequence(t, attn.heads) for t in (q, k, v))
     out = relu_linear_attention(q, k, v).to(h.dtype)
-    out = einx.rearrange("B (s N) H d -> (s B) N (H d)", out, s=2)
+    out = sequence_to_streams(out)
     return attn.to_out[1](attn.to_out[0](out))
 
 
@@ -162,15 +211,14 @@ def gated_block_forward(block, x_gate, c_gate, h, temb, text, text_mask, height,
     attn = two_stream_self_attention(block.attn1, hn, keep)
     hn_x, hn_c = hn.chunk(2)
     attn_x, attn_c = attn.chunk(2)
-    cond_in = einx.multiply("B N D, B -> B N D", attn_c, keep.to(attn_c.dtype))
+    cond_in = attn_c * keep.to(attn_c.dtype)[:, None, None]  # (B, N, D) · (B,), torch broadcast as above
     mixed_x = gate_value(x_gate, hn_x) * attn_x + gate_value(c_gate, hn_c) * cond_in
     h = h + gate_msa * torch.cat([mixed_x.to(h.dtype), attn_c])
 
     h = h + block.attn2(h, encoder_hidden_states=text, attention_mask=text_mask)
 
     hn = block.norm2(h) * (1 + scale_mlp) + shift_mlp
-    hn = einx.rearrange("B (H W) C -> B C H W", hn, H=height, W=width)
-    ff = einx.rearrange("B C H W -> B (H W) C", block.ff(hn))
+    ff = grid_to_tokens(block.ff(tokens_to_grid(hn, height, width)))
     return h + gate_mlp * ff
 
 
@@ -214,7 +262,7 @@ def gatecontrol_forward(transformer, latents, cond_latents, text_embeds, text_ma
 
     x = transformer.norm_out(h[:B], embedded, transformer.scale_shift_table)
     x = transformer.proj_out(x)
-    return einx.rearrange("B (H W) C -> B C H W", x, H=height, W=width)
+    return tokens_to_grid(x, height, width)
 
 
 def compile_blocks():
