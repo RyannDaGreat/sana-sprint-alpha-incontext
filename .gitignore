@@ -7,3 +7,4 @@ data/Aviary/
 .venv/
 /data/.claude_logs
 /data/processors/__pycache__
+__pycache__/
