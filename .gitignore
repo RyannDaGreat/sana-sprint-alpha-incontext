@@ -5,3 +5,5 @@ models/
 /agents/.scratchpad
 data/Aviary/
 .venv/
+/data/.claude_logs
+/data/processors/__pycache__
