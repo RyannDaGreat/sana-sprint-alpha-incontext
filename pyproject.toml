@@ -22,6 +22,7 @@ dependencies = [
     "pyarrow",
     "sentencepiece",
     "protobuf",
+    "gradio>=6.32.0",
 ]
 
 [tool.uv]
