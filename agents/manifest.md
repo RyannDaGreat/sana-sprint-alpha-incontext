@@ -133,7 +133,7 @@ From the 2026-11-17 sub-frenzy (5 Sonnet agents). The raw reports are in `agents
 
 - Planning machine: Mac (no CUDA). No training here.
 - Training node: **8× A100 80GB** (user, m00040–m00041).
-- All paths relative to repo root. Base models may live under `/models/` (system-wide convention).
+- All paths relative to repo root. Model weights are stored on FSx in `models/` (durable) and **localized automatically** (m00613, m00614): the loading code copies them to node-local `/models/sana-sprint-alpha-incontext/<path>` the first time a machine loads them (temp dir + atomic rename, so 8 loops at once are safe). Never a manual step. Pattern from MulticamDailies `processors/muse/serve.sh`.
 
 ## 7. File Structure
 
