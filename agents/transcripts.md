@@ -179,3 +179,9 @@ I have a question. How feasible is it to get this to run in a web browser? Let's
 (pasted:) Obviously we're going to have many different versions for these models, but I'd like to have something running on WebGPU. That would be pretty awesome. Especially with, like, the ability to upload silhouettes and, like, possibly draw your own, and especially add text, and perhaps be able to do the different versions of the model on my own inside the UI, with a loading bar that caches it into — you know how, like, browser caching, that caches to, I think, files on your computer? There's, like, some API for that that lets it do some temporary file cache thing, to make it load even faster the second time. I don't know the best UI for this, so you can have an Opus agent plan out a good-looking GUI. The GUI should be in a simplified Swiss UI type style. Full dark mode and light mode available, using a Jost font, with thin Futura for any titles, with regular Futura-like font for the actual text. And of course loading bars to see how fast things go. And, like, maybe a paintbrush to play with the mask. Or maybe multiple different modes to play with the mask — there's multiple different ways to play with the mask, actually: adding text, playing in a canvas, dragging things around, and having it update almost, like, in real time, because, like, if it's so fast, I want to know. So there should be, like, a real-time toggle mode and stuff. By default it's off; like, you just press submit, like, redo it. And yeah, that would be pretty fucking awesome, don't you think? Notify me once that's running and you test it.
 
 (typed:) And obviously [Gemma text, transcribed as "gemotext"] stuff can be cached to save speed, right?
+
+## m00626 — 2026-11-17 1:08 PM
+A link to that page could even be in the gallery.
+
+## m00627 — 2026-11-17 1:08 PM
+That working model might be a WebGPU demo gallery item.
