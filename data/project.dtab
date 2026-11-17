@@ -761,6 +761,214 @@ tables
 				steps 1
 				guidance 4.5
 				eval_set resources/showcase
+			,
+				model_tag show_v2_step001500_lam1
+				pipeline teacher
+				checkpoint models/control/control_v2/step_001500
+				prompt_variant plain
+				steps 20
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v2_step001500_lam0.75
+				pipeline teacher
+				checkpoint models/control/control_v2/final_step_001500_adapter0.75
+				prompt_variant plain
+				steps 20
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v2_step001500_lam0.5
+				pipeline teacher
+				checkpoint models/control/control_v2/final_step_001500_adapter0.5
+				prompt_variant plain
+				steps 20
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v2_step001500_lam0.25
+				pipeline teacher
+				checkpoint models/control/control_v2/final_step_001500_adapter0.25
+				prompt_variant plain
+				steps 20
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v2_step001500_lam0
+				pipeline teacher
+				checkpoint models/control/control_v2/final_step_001500
+				prompt_variant plain
+				steps 20
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v2_step001500_sprint_lam1_2step
+				pipeline sprint
+				checkpoint models/control/control_v2/sprint_step_001500_adapter1
+				prompt_variant plain
+				steps 2
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v2_step001500_sprint_lam0.75_2step
+				pipeline sprint
+				checkpoint models/control/control_v2/sprint_step_001500_adapter0.75
+				prompt_variant plain
+				steps 2
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v2_step001500_sprint_lam0.5_2step
+				pipeline sprint
+				checkpoint models/control/control_v2/sprint_step_001500_adapter0.5
+				prompt_variant plain
+				steps 2
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v2_step001500_sprint_lam0_2step
+				pipeline sprint
+				checkpoint models/control/control_v2/sprint_step_001500
+				prompt_variant plain
+				steps 2
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v2_step001500_sprint_lam1_1step
+				pipeline sprint
+				checkpoint models/control/control_v2/sprint_step_001500_adapter1
+				prompt_variant plain
+				steps 1
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v2_step001500_sprint_lam0.75_1step
+				pipeline sprint
+				checkpoint models/control/control_v2/sprint_step_001500_adapter0.75
+				prompt_variant plain
+				steps 1
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v2_step001500_sprint_lam0.5_1step
+				pipeline sprint
+				checkpoint models/control/control_v2/sprint_step_001500_adapter0.5
+				prompt_variant plain
+				steps 1
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v2_step001500_sprint_lam0_1step
+				pipeline sprint
+				checkpoint models/control/control_v2/sprint_step_001500
+				prompt_variant plain
+				steps 1
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v2_step001500_lam1_detailed
+				pipeline teacher
+				checkpoint models/control/control_v2/step_001500
+				prompt_variant detailed
+				steps 20
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v2_step001500_lam0.75_detailed
+				pipeline teacher
+				checkpoint models/control/control_v2/final_step_001500_adapter0.75
+				prompt_variant detailed
+				steps 20
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v2_step001500_lam0.5_detailed
+				pipeline teacher
+				checkpoint models/control/control_v2/final_step_001500_adapter0.5
+				prompt_variant detailed
+				steps 20
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v2_step001500_lam0.25_detailed
+				pipeline teacher
+				checkpoint models/control/control_v2/final_step_001500_adapter0.25
+				prompt_variant detailed
+				steps 20
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v2_step001500_lam0_detailed
+				pipeline teacher
+				checkpoint models/control/control_v2/final_step_001500
+				prompt_variant detailed
+				steps 20
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v2_step001500_sprint_lam1_2step_detailed
+				pipeline sprint
+				checkpoint models/control/control_v2/sprint_step_001500_adapter1
+				prompt_variant detailed
+				steps 2
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v2_step001500_sprint_lam0.75_2step_detailed
+				pipeline sprint
+				checkpoint models/control/control_v2/sprint_step_001500_adapter0.75
+				prompt_variant detailed
+				steps 2
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v2_step001500_sprint_lam0.5_2step_detailed
+				pipeline sprint
+				checkpoint models/control/control_v2/sprint_step_001500_adapter0.5
+				prompt_variant detailed
+				steps 2
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v2_step001500_sprint_lam0_2step_detailed
+				pipeline sprint
+				checkpoint models/control/control_v2/sprint_step_001500
+				prompt_variant detailed
+				steps 2
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v2_step001500_sprint_lam1_1step_detailed
+				pipeline sprint
+				checkpoint models/control/control_v2/sprint_step_001500_adapter1
+				prompt_variant detailed
+				steps 1
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v2_step001500_sprint_lam0.75_1step_detailed
+				pipeline sprint
+				checkpoint models/control/control_v2/sprint_step_001500_adapter0.75
+				prompt_variant detailed
+				steps 1
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v2_step001500_sprint_lam0.5_1step_detailed
+				pipeline sprint
+				checkpoint models/control/control_v2/sprint_step_001500_adapter0.5
+				prompt_variant detailed
+				steps 1
+				guidance 4.5
+				eval_set resources/showcase
+			,
+				model_tag show_v2_step001500_sprint_lam0_1step_detailed
+				pipeline sprint
+				checkpoint models/control/control_v2/sprint_step_001500
+				prompt_variant detailed
+				steps 1
+				guidance 4.5
+				eval_set resources/showcase
 
 	eval_generations
 		 One row per model and eval image: the image that the model makes from the caption and the fixed noise
