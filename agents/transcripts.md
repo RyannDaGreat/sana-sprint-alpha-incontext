@@ -150,3 +150,6 @@ It's okay if it doesn't always do the perfect [gray, transcribed as "grade"] bac
 
 ## m00616 — 2026-11-17 12:43 PM
 Then why do the reports not show them at full resolution? This is bad. The reports should not baby my browser. They should use full resolution with many, many images.
+
+## m00617 — 2026-11-17 12:46 PM
+I believe you have enough VRAM to do some more tests. Can you do that simultaneously, [during, transcribed as "ranger"] training? The one-step thing should be pretty fast, right?
