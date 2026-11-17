@@ -6,9 +6,10 @@ import { Tokenizer } from '@huggingface/tokenizers';
 import { versionFiles, fetchCached } from './models.js';
 import { gemmaInputs, selectIndex, COMPLEX_HUMAN_INSTRUCTION } from './prompt.js';
 import { embeddingKey, getEmbedding, putEmbedding } from './embcache.js';
-import { gaussianNoise, SIZE } from './util.js';
+import { gaussianNoise } from './util.js';
 
-const LATENT = [1, 32, 32, 32];     // DC-AE latent (B, LC, LH, LW)
+const LATENT_CHANNELS = 32;          // DC-AE latent (B, LC, LH, LW), LH = H / 32
+const VAE_FACTOR = 32;
 const GEMMA_PAD_ID = 0;
 
 // Default ONNX names per role; a manifest file entry's "names" overrides them (web-model-contract).
@@ -17,7 +18,8 @@ const DEFAULT_NAMES = {
   vae_encoder: { image: 'image', output: 'latent' },
   transformer: {
     noise: 'noise', matte_latent: 'matte_latent', encoder_hidden_states: 'encoder_hidden_states',
-    encoder_attention_mask: 'encoder_attention_mask', timestep: 'timestep', guidance: 'guidance', output: 'latent',
+    encoder_attention_mask: 'encoder_attention_mask', timestep: 'timestep', guidance: 'guidance',
+    adapter_scale: 'adapter_scale', output: 'latent',
   },
   vae_decoder: { latent: 'latent', output: 'image' },
 };
@@ -200,6 +202,7 @@ export class Pipeline {
     p.encoderId = `${new URL(tf.path, version.url).href}:${tf.bytes}`;
     p.memory = new Map(); // embedding key → value (this page's lifetime)
     p.matte = { rev: -1, latent: null };
+    p.hasLambda = p.name('transformer', 'adapter_scale') in p.types.transformer;  // runtime-λ graph (manifest "adapter")
     return p;
   }
 
@@ -244,16 +247,19 @@ export class Pipeline {
   /**
    * Command. Matte tensor → scaled latent, reused while the matte revision is unchanged.
    *
-   * @param {Float32Array} matte - (1, 3, 1024, 1024) in [−1, 1]
+   * @param {Float32Array} matte - (1, 3, H, W) in [−1, 1]
    * @param {number} rev - Matte editor revision
+   * @param {number} width - W
+   * @param {number} height - H
    * @param {Record<string, number|string>} timings
-   * @returns {Promise<Float32Array>} (1, 32, 32, 32), × scaling_factor
+   * @returns {Promise<Float32Array>} (1, 32, H/32, W/32), × scaling_factor
    */
-  async encodeMatte(matte, rev, timings) {
+  async encodeMatte(matte, rev, width, height, timings) {
+    rev = `${rev}:${width}x${height}`;
     if (this.matte.rev === rev) { timings.vae_encoder = 'cached (same matte)'; return this.matte.latent; }
     const nImg = this.name('vae_encoder', 'image');
     const out = await timed(timings, 'vae_encoder', this.sessions.vae_encoder,
-      { [nImg]: makeTensor(this.types.vae_encoder[nImg], matte, [1, 3, SIZE, SIZE]) });
+      { [nImg]: makeTensor(this.types.vae_encoder[nImg], matte, [1, 3, height, width]) });
     const m = this.version.manifest, sf = m.latent_scaling_in_graph ? 1 : m.scaling_factor;
     const latent = asFloat32(out[this.name('vae_encoder', 'output')]).map((v) => v * sf);
     this.matte = { rev, latent };
@@ -264,29 +270,33 @@ export class Pipeline {
    * Command. One generation: Sprint's multi-step sampler (SanaSprintPipeline + SCMScheduler, unit-scale latents).
    * Step k: denoised = transformer(latents, s_k, guidance); then latents = cos(s_{k+1})·denoised + sin(s_{k+1})·ε_{k+1}.
    *
-   * @param {{prompt: string, matte: Float32Array, matteRev: number, seed: number, timesteps: number[], guidance: number}} job
-   *   timesteps: sprintTimesteps(...) (steps + 1 angles); guidance: Sprint's embedded guidance scale (one pass, not CFG)
-   * @returns {Promise<{image: Float32Array, timings: Record<string, number|string>}>} image (1, 3, 1024, 1024) in [−1, 1]
+   * @param {{prompt: string, matte: Float32Array, matteRev: number, seed: number, timesteps: number[], guidance: number,
+   *   width: number, height: number}} job - matte (1, 3, H, W); timesteps: sprintTimesteps(...) (steps + 1 angles);
+   *   guidance: Sprint's embedded guidance scale (one pass, not CFG); width, height: multiples of 32;
+   *   adapterScale: λ for runtime-λ versions (hasLambda), ignored otherwise
+   * @returns {Promise<{image: Float32Array, timings: Record<string, number|string>}>} image (1, 3, H, W) in [−1, 1]
    */
-  async generate({ prompt, matte, matteRev, seed, timesteps, guidance }) {
+  async generate({ prompt, matte, matteRev, seed, timesteps, guidance, width, height, adapterScale }) {
     const timings = {};
     const t0 = performance.now();
+    const dims = [1, LATENT_CHANNELS, height / VAE_FACTOR, width / VAE_FACTOR];
     const emb = await this.embed(prompt, timings);
-    const matteLatent = await this.encodeMatte(matte, matteRev, timings);
+    const matteLatent = await this.encodeMatte(matte, matteRev, width, height, timings);
     const m = this.version.manifest, types = this.types.transformer;
     const n = (k) => this.name('transformer', k);
     const t = (k, values, dims) => makeTensor(types[n(k)], values, dims);
-    const numel = LATENT.reduce((a, b) => a * b);
+    const numel = dims.reduce((a, b) => a * b);
     const fixed = {
-      [n('matte_latent')]: t('matte_latent', matteLatent, LATENT),
+      [n('matte_latent')]: t('matte_latent', matteLatent, dims),
       [n('encoder_hidden_states')]: t('encoder_hidden_states', emb.data, emb.dims),
       [n('encoder_attention_mask')]: t('encoder_attention_mask', emb.mask, [1, emb.mask.length]),
       [n('guidance')]: t('guidance', [guidance], [1]),
+      ...(this.hasLambda ? { [n('adapter_scale')]: t('adapter_scale', [adapterScale], [1]) } : {}),
     };
     let latents = gaussianNoise(numel, seed), denoised;
     for (let k = 0; k + 1 < timesteps.length; k++) {
       const out = await timed(timings, `transformer ${k + 1}`, this.sessions.transformer, {
-        ...fixed, [n('noise')]: t('noise', latents, LATENT), [n('timestep')]: t('timestep', [timesteps[k]], [1]),
+        ...fixed, [n('noise')]: t('noise', latents, dims), [n('timestep')]: t('timestep', [timesteps[k]], [1]),
       });
       denoised = asFloat32(out[n('output')]);
       const s = timesteps[k + 1];
@@ -298,7 +308,7 @@ export class Pipeline {
     const latent = denoised.map((v) => v / (m.latent_scaling_in_graph ? 1 : m.scaling_factor));
     const nLat = this.name('vae_decoder', 'latent');
     const dec = await timed(timings, 'vae_decoder', this.sessions.vae_decoder,
-      { [nLat]: makeTensor(this.types.vae_decoder[nLat], latent, LATENT) });
+      { [nLat]: makeTensor(this.types.vae_decoder[nLat], latent, dims) });
     timings.total = performance.now() - t0;
     const image = asFloat32(dec[this.name('vae_decoder', 'output')]);
     return { image: m.decoder_output_range === '0,1' ? image.map((v) => 2 * v - 1) : image, timings };

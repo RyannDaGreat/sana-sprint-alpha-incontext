@@ -103,6 +103,8 @@ a { color: inherit; }
 .field.grow input { flex: 1; }
 .hint { margin: 0; }
 .prompt-panel .hint { margin-bottom: var(--space-2); }
+.square canvas { object-fit: contain; }
+.crop-frame { position: absolute; outline: var(--hairline) dashed var(--accent); pointer-events: none; }
 .sampler input[type="number"] { width: var(--angle-input-w); }
 .equation { margin: var(--space-2) 0 0; font-family: var(--font); line-height: var(--leading); }
 

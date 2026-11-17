@@ -6,6 +6,8 @@
 //   "label": str, "description": str,
 //   "scaling_factor": 0.41407, "timestep": float, "guidance": float, "max_sequence_length": 300,
 //   "weights": str, "precision": str,                (weight equation and precision label, shown under the output)
+//   "adapter": {source, rank, ...} | null,           (runtime λ: the transformer takes adapter_scale; weights contain "λ")
+//   "dynamic_size": bool,                            (graphs take any H × W (multiples of 32); false: 1024² only)
 //   "complex_human_instruction": [str, ...]          (optional; default = SANA's, see prompt.js)
 //   "files": {                                        (paths are relative to the version folder)
 //     "tokenizer": {path, bytes}, "tokenizer_config": {path, bytes},
@@ -58,7 +60,8 @@ export async function loadVersions(base) {
 // Exporter graph input/output names → this app's role keys (see DEFAULT_NAMES in pipeline.js).
 const EXPORT_NAMES = {
   transformer: { noise: 'latents', matte_latent: 'cond_latents', encoder_hidden_states: 'prompt_embeds',
-    encoder_attention_mask: 'prompt_mask', timestep: 'timestep', guidance: 'guidance', output: 'denoised' },
+    encoder_attention_mask: 'prompt_mask', timestep: 'timestep', guidance: 'guidance', adapter_scale: 'adapter_scale',
+    output: 'denoised' },
   vae_encoder: { image: 'image', output: 'latent' },
   vae_decoder: { latent: 'latent', output: 'image' },
   text_encoder: { input_ids: 'input_ids', attention_mask: 'attention_mask', output: 'last_hidden_state' },
@@ -87,13 +90,15 @@ export function normalizeManifest(raw) {
     if (name.endsWith('.data')) continue;
     const entry = (n, b) => ({ path: n, bytes: b, sha256: raw.sha256?.[n], parts: raw.parts?.[n] });
     files[role] = { ...entry(name, bytes), names: EXPORT_NAMES[role] };
-    const data = raw.files[`${name}.data`];
-    if (data !== undefined) files[role].external_data = [entry(`${name}.data`, data)];
+    // external weights: <name>.data, plus extra files <name>.<tag>.data (the -lambda delta: transformer.onnx.lambda.data)
+    const data = Object.keys(raw.files).filter((n) => n.startsWith(`${name}.`) && n.endsWith('.data')).sort();
+    if (data.length) files[role].external_data = data.map((n) => entry(n, raw.files[n]));
   }
   return {
     label: raw.version, description: raw.source ? `Exported from ${raw.source}.` : '',
     scaling_factor: raw.vae.scaling_factor, timestep: raw.sampler.timestep, guidance: raw.sampler.guidance,
-    weights: raw.weights, precision: precisionLabel(raw.quantization),
+    weights: raw.weights, precision: precisionLabel(raw.quantization), adapter: raw.adapter ?? null,
+    dynamic_size: typeof raw.graphs.transformer.inputs[0][1][2] === 'string',  // [1, 32, "LH", "LW"]: any size
     max_sequence_length: 300, latent_scaling_in_graph: true, decoder_output_range: '0,1',
     files, missing: MODEL_FILES.filter((r) => !files[r]),
   };

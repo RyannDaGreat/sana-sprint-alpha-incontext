@@ -5,7 +5,7 @@ import './style.css';
 import { MatteEditor } from './matte.js';
 import { loadVersions, versionFiles, cachedFlags, cacheBytes, clearCache } from './models.js';
 import { countEmbeddings, clearEmbeddings } from './embcache.js';
-import { formatBytes, formatEta, rate, mattePixelsToTensor, decodeToPixels, fitRect, SIZE } from './util.js';
+import { formatBytes, formatEta, rate, mattePixelsToTensor, decodeToPixels, fitRect, cropRect, SIZE } from './util.js';
 // pipeline.js (with ONNX Runtime) is a separate chunk: ORT's WASM worker re-imports its own
 // module URL, which must not be this file (it touches the DOM).
 const { Pipeline, sprintTimesteps } = await import('./pipeline.js');
@@ -142,35 +142,61 @@ function download(canvas, name) {
 $('dl-gray').addEventListener('click', () => download($('out-gray'), `${state.last}_on_gray.png`));
 $('dl-rgba').addEventListener('click', () => download($('out-rgba'), `${state.last}_rgba.png`));
 
-/** Query. The sampler settings in the UI: steps, guidance and the TrigFlow angles they give. */
+/** Query. The sampler settings in the UI: steps, guidance, the TrigFlow angles they give, and the output size. */
 function samplerSettings() {
   const steps = Number($('steps').value);
   const sMid = steps === 2 ? Number($('s-mid').value) : null;
-  return { steps, guidance: Number($('guidance').value), timesteps: sprintTimesteps(steps, Number($('s-max').value), sMid) };
+  const [width, height] = $('size').value.split('x').map(Number);
+  return { steps, guidance: Number($('guidance').value), timesteps: sprintTimesteps(steps, Number($('s-max').value), sMid), width, height,
+    adapterScale: Number($('lambda').value) };
+}
+
+/**
+ * Query. The editor matte's centered width : height crop, resampled to width × height.
+ *
+ * @returns {Uint8ClampedArray} (height, width, 4) uint8 RGBA
+ */
+function matteAtSize(width, height) {
+  const r = cropRect(width, height);
+  const c = new OffscreenCanvas(width, height).getContext('2d', { willReadFrequently: true });
+  c.drawImage($('matte'), r.x, r.y, r.w, r.h, 0, 0, width, height);
+  return c.getImageData(0, 0, width, height).data;
 }
 
 /**
  * Pure function. The full equation of a generation: weights, precision and sampler.
  *
- * @param {{weights?: string, precision: string}} manifest
- * @param {{steps: number, guidance: number, timesteps: number[]}} sampler
+ * @param {{weights?: string, precision: string, adapter: object|null}} manifest - weights contain "λ" when manifest.adapter
+ * @param {{steps: number, guidance: number, timesteps: number[], width: number, height: number, adapterScale: number}} sampler
  * @param {number} seed
  * @returns {string}
  *
  * @example equationText({weights: 'W_sprint + (W_control − W_adapter) + gates · control_v2 step 1500', precision: 'transformer fp16 · Gemma fp16'},
- *   {steps: 2, guidance: 4.5, timesteps: [1.5708, 1.3, 0]}, 0)
- * // 'W_sprint + (W_control − W_adapter) + gates · control_v2 step 1500 · transformer fp16 · Gemma fp16 · Sprint sampler, 2 steps at s = 1.5708, 1.3 · guidance 4.5 (embedded) · seed 0'
+ *   {steps: 2, guidance: 4.5, timesteps: [1.5708, 1.3, 0], width: 1024, height: 1024}, 0)
+ * // 'W_sprint + (W_control − W_adapter) + gates · control_v2 step 1500 · transformer fp16 · Gemma fp16 · Sprint sampler, 2 steps at s = 1.5708, 1.3 · guidance 4.5 (embedded) · 1024 × 1024 · seed 0'
  */
-function equationText(manifest, { steps, guidance, timesteps }, seed) {
+function equationText(manifest, { steps, guidance, timesteps, width, height, adapterScale }, seed) {
   const s = timesteps.slice(0, -1).map((v) => +v.toFixed(4)).join(', ');
-  return `${manifest.weights ?? 'weight equation missing from manifest.json'} · ${manifest.precision} · ` +
-    `Sprint sampler, ${steps} step${steps > 1 ? 's' : ''} at s = ${s} · guidance ${guidance} (embedded) · seed ${seed}`;
+  const weights = manifest.weights ?? 'weight equation missing from manifest.json';
+  return `${manifest.adapter ? weights.replace('λ', adapterScale) : weights} · ${manifest.precision} · ` +
+    `Sprint sampler, ${steps} step${steps > 1 ? 's' : ''} at s = ${s} · guidance ${guidance} (embedded) · ${width} × ${height} · seed ${seed}`;
 }
 
-/** Command. Syncs the sampler controls: s_mid only applies to 2 steps; the guidance value label. */
+/**
+ * Command. Syncs the sampler controls: s_mid only applies to 2 steps; the guidance value label; sizes other than
+ * 1024² need a version with dynamic-size graphs; the dashed frame shows the matte crop of a non-square size.
+ */
 function syncSamplerUi() {
   $('s-mid').disabled = $('steps').value !== '2';
   $('guidance-v').textContent = $('guidance').value;
+  $('lambda-v').textContent = $('lambda').value;
+  $('lambda').disabled = !state.pipeline?.hasLambda;
+  const dynamic = state.pipeline?.version.manifest.dynamic_size ?? true;
+  for (const o of $('size').options) o.disabled = !dynamic && o.value !== '1024x1024';
+  if ($('size').selectedOptions[0].disabled) $('size').value = '1024x1024';
+  const [w, h] = $('size').value.split('x').map(Number), r = cropRect(w, h), pct = (v) => `${(100 * v) / SIZE}%`;
+  Object.assign($('crop-frame').style, { left: pct(r.x), top: pct(r.y), width: pct(r.w), height: pct(r.h) });
+  $('crop-frame').hidden = w === h;
 }
 
 /** Command. Fills the timings table. */
@@ -191,15 +217,17 @@ async function generate() {
   if (state.busy) { state.pending = true; return; }
   state.busy = true;
   status('Generating…');
-  const matte = editor.pixels();
-  const sampler = samplerSettings(), seed = Number($('seed').value);
+  const sampler = samplerSettings(), seed = Number($('seed').value), { width, height } = sampler;
+  const matte = matteAtSize(width, height);
   const { image, timings } = await state.pipeline.generate({
-    prompt: $('prompt').value, matte: mattePixelsToTensor(matte, SIZE * SIZE), matteRev: editor.rev, seed, ...sampler,
+    prompt: $('prompt').value, matte: mattePixelsToTensor(matte, width * height), matteRev: editor.rev, seed, ...sampler,
   }).catch(fail).finally(() => { state.busy = false; });
   $('equation').textContent = equationText(state.pipeline.version.manifest, sampler, seed);
-  const { onGray, cutout } = decodeToPixels(image, matte, SIZE * SIZE);
-  $('out-gray').getContext('2d').putImageData(new ImageData(onGray, SIZE, SIZE), 0, 0);
-  $('out-rgba').getContext('2d').putImageData(new ImageData(cutout, SIZE, SIZE), 0, 0);
+  const { onGray, cutout } = decodeToPixels(image, matte, width * height);
+  for (const [id, pixels] of [['out-gray', onGray], ['out-rgba', cutout]]) {
+    Object.assign($(id), { width, height });
+    $(id).getContext('2d').putImageData(new ImageData(pixels, width, height), 0, 0);
+  }
   $('out-empty').hidden = true;
   $('dl-gray').disabled = $('dl-rgba').disabled = false;
   state.last = `${state.pipeline.version.id}_seed${$('seed').value}`;
@@ -219,7 +247,7 @@ function scheduleRealtime() {
 $('generate').addEventListener('click', generate);
 $('prompt').addEventListener('input', scheduleRealtime);
 $('seed').addEventListener('input', scheduleRealtime);
-for (const id of ['steps', 'guidance', 's-max', 's-mid']) $(id).addEventListener('input', () => { syncSamplerUi(); scheduleRealtime(); });
+for (const id of ['steps', 'guidance', 's-max', 's-mid', 'size', 'lambda']) $(id).addEventListener('input', () => { syncSamplerUi(); scheduleRealtime(); });
 $('realtime').addEventListener('change', scheduleRealtime);
 $('new-seed').addEventListener('click', () => { $('seed').value = Math.floor(Math.random() * SEED_RANGE); scheduleRealtime(); });
 $('prompt').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) generate(); });
@@ -319,6 +347,7 @@ async function loadVersion(v) {
   url.searchParams.set('version', v.id);
   history.replaceState(null, '', url);
   $('generate').disabled = false;
+  syncSamplerUi();
   status(`${v.id} ready in ${((performance.now() - t0) / 1000).toFixed(1)} s (${ep}). Press Generate.`);
   await renderVersions();
   await refreshCacheInfo();

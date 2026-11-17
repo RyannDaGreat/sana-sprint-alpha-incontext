@@ -16,6 +16,22 @@ export function fitRect(w, h) {
 }
 
 /**
+ * Pure function. The centered w : h crop of the SIZE² matte editor, in editor pixels (the largest that fits).
+ *
+ * @param {number} w - output width
+ * @param {number} h - output height
+ * @returns {{x: number, y: number, w: number, h: number}}
+ *
+ * @example cropRect(1024, 768) // {x: 0, y: 128, w: 1024, h: 768}
+ * @example cropRect(512, 512)  // {x: 0, y: 0, w: 1024, h: 1024}
+ */
+export function cropRect(w, h) {
+  const s = SIZE / Math.max(w, h);
+  const cw = Math.round(w * s), ch = Math.round(h * s);
+  return { x: (SIZE - cw) / 2, y: (SIZE - ch) / 2, w: cw, h: ch };
+}
+
+/**
  * Pure function. Formats a byte count as KB below 1 MB, MB with one decimal, GB above 1024 MB.
  *
  * @param {number} bytes

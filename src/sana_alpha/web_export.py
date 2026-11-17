@@ -6,6 +6,10 @@ contract in agents/manifest.md §12 (SEMANTIC BINDING: web-model-contract); `wri
     PYTHONPATH=src uv run python -m sana_alpha.web_export verify control_v1_sprint_step_001500
     PYTHONPATH=src uv run python -m sana_alpha.web_export quantize control_v1_sprint_step_001500 --bits 4
 
+Image and latent sizes are dynamic (graph_specs: H = 32·LH, W = 32·LW). einx must not touch token-shaped tensors in
+traced code: it hashes symbolic shapes (TypeError) or writes the traced size into Reshape nodes; gatecontrol uses torch
+ops there.
+
 The graphs are traced from the fp16 PyTorch modules (WebGPU has no bf16), so the ops gatecontrol.py keeps in float32
 (linear attention, gates) stay float32 in ONNX. All graph inputs and outputs are float32 so the browser needs no fp16
 arrays. The Sprint TrigFlow wrapper (SanaSprintPipeline + SCMScheduler) is inside the transformer graph: it takes
@@ -40,6 +44,7 @@ TEXT_TOKENS = 300  # SanaSprintPipeline max_sequence_length: embeddings keep tok
 OPSET = 21
 # SanaSprintPipeline.__call__'s prompt template; encode_prompt's own default is None (no template), so pass it
 INSTRUCTION = inspect.signature(SanaSprintPipeline.__call__).parameters["complex_human_instruction"].default
+MIN_LATENT, MAX_LATENT = 8, 64  # dynamic latent side range: 256 to 2048 px
 IR_VERSION = 13  # onnxruntime-web 1.31 reads ONNX IR ≤ 13; onnx 1.23 writes 14 by default
 
 
@@ -63,9 +68,7 @@ class Conv1x1AsLinear(nn.Module):
 
     def forward(self, x):
         """Pure function (given fixed weights). (B, C, H, W) -> (B, O, H, W), equal to the 1×1 conv."""
-        H, W = x.shape[2:]
-        y = self.linear(einx.rearrange("B C H W -> B (H W) C", x))
-        return einx.rearrange("B (H W) O -> B O H W", y, H=H, W=W)
+        return gc.tokens_to_grid(self.linear(gc.grid_to_tokens(x)), *x.shape[2:])
 
 
 def linearize_mix_ffn(transformer):
@@ -200,6 +203,131 @@ class OneStepTransformer(nn.Module):
         return trigflow_step(latents, timestep, velocity)
 
 
+class AdapterScale:
+    """The traced λ (graph input adapter_scale) shared by one transformer's LambdaLinear / AddScaledDelta modules."""
+    value = None
+
+
+class LambdaLinear(nn.Module):
+    """y = base(x) + λ·((x·downᵀ)·upᵀ + Δbias): a Linear-like module plus λ times a rank-r weight delta."""
+
+    def __init__(self, base, up, down, bias_delta, scale):
+        """
+        Command (registers buffers).
+
+        Args:
+            base (nn.Module): (..., K) -> (..., N): nn.Linear, Fp32Linear or web_quant.QuantLinear
+            up (torch.Tensor): (N, r) fp16, U·S of the delta's SVD
+            down (torch.Tensor): (r, K) fp16, Vᵀ
+            bias_delta (torch.Tensor | None): (N,) fp16
+            scale (AdapterScale): holds λ while the graph runs
+        """
+        super().__init__()
+        self.base, self.scale = base, scale
+        self.register_buffer("up", up)
+        self.register_buffer("down", down)
+        self.register_buffer("bias_delta", bias_delta)
+
+    def forward(self, x):
+        """Pure function (given fixed weights and λ). (..., K) -> (..., N) in base's output dtype."""
+        y = self.base(x)
+        delta = F.linear(F.linear(x.to(self.down.dtype), self.down), self.up, self.bias_delta)
+        return y + (self.scale.value * delta).to(y.dtype)
+
+
+class AddScaledDelta(nn.Module):
+    """Parametrization p -> p + λ·Δp, for the small dense tensors of the adapter delta (norms, biases, convs)."""
+
+    def __init__(self, delta, scale):
+        """Command (registers the buffer). delta: same shape as the parameter; scale: AdapterScale."""
+        super().__init__()
+        self.scale = scale
+        self.register_buffer("delta", delta)
+
+    def forward(self, p):
+        """Pure function (given fixed delta and λ). Same shape and dtype as p."""
+        return p + (self.scale.value * self.delta).to(p.dtype)
+
+
+def adapter_delta_parts(base, full, rank, min_side=256):
+    """
+    Query (reads two merge folders, runs SVDs on the GPU). The adapter delta D = W(λ=1) − W(λ=0) of two
+    train_control.merge_final --student folders of one control run, split for runtime λ: every weight matrix with both
+    sides ≥ min_side (Linears and 1×1 convs) as a rank-r SVD, every other nonzero tensor dense.
+
+    Args:
+        base (str): λ = 0 merge, e.g. models/control/control_v2/sprint_step_001500
+        full (str): λ = 1 merge, e.g. models/control/control_v2/sprint_step_001500_adapter1
+        rank (int): SVD rank per matrix
+        min_side (int): smaller matrices stay dense
+
+    Returns:
+        tuple: (lowrank {state key: (up (N, r) fp16, down (r, K) fp16)}, dense {state key: fp16 tensor})
+    """
+    from safetensors.torch import load_file
+    w0, w1 = (load_file(models.localize(f) / "diffusion_pytorch_model.safetensors") for f in (base, full))
+    assert w0.keys() == w1.keys(), "the two merges differ in keys"
+    lowrank, dense = {}, {}
+    for k in w0:
+        d = w1[k] - w0[k]
+        if not d.any():  # student-only tensors (guidance_embedder) have no adapter delta
+            continue
+        if d.ndim in (2, 4) and d.shape[2:] in ((), (1, 1)) and min(d.shape[:2]) >= min_side:
+            u, sv, vh = torch.linalg.svd(d.flatten(1).cuda(), full_matrices=False)
+            lowrank[k] = ((u[:, :rank] * sv[:rank]).half().cpu(), vh[:rank].half().cpu())
+        else:
+            dense[k] = d.half()
+    return lowrank, dense
+
+
+def attach_adapter_delta(transformer, lowrank, dense, scale):
+    """
+    Command (replaces modules, registers parametrizations). Adds λ·D to a prepared transformer (after
+    linearize_mix_ffn, fix_fp16_overflow and any quantization): each low-rank matrix becomes a LambdaLinear around
+    whatever computes it now, each dense tensor gets an AddScaledDelta parametrization.
+
+    Args:
+        transformer (SanaTransformer2DModel): weights W(λ=0)
+        lowrank, dense (dict): adapter_delta_parts output, keyed by the original state-dict names
+        scale (AdapterScale)
+
+    Returns:
+        int: number of LambdaLinear modules
+    """
+    from torch.nn.utils import parametrize
+    from sana_alpha import web_quant as wq
+    dense = dict(dense)
+    for key, (up, down) in lowrank.items():
+        owner = key.removesuffix(".weight")
+        module = transformer.get_submodule(owner)
+        if isinstance(module, Conv1x1AsLinear):
+            owner, module = f"{owner}.linear", module.linear
+        bias = dense.pop(f"{key.removesuffix('.weight')}.bias", None)
+        wq.set_module(transformer, owner, LambdaLinear(module, up.cuda(), down.cuda(),
+                                                       None if bias is None else bias.cuda(), scale))
+    for key, d in dense.items():
+        owner, _, name = key.rpartition(".")
+        module = transformer.get_submodule(owner)
+        module = module.module if isinstance(module, CastOutput) else module  # fix_fp16_overflow wraps attn2.norm_q
+        assert isinstance(getattr(module, name, None), torch.Tensor), f"{key}: no such tensor after preparation"
+        parametrize.register_parametrization(module, name, AddScaledDelta(d.cuda(), scale), unsafe=True)
+    return len(lowrank)
+
+
+class LambdaStepTransformer(OneStepTransformer):
+    """OneStepTransformer with the adapter fraction λ as one more graph input (adapter_scale)."""
+
+    def __init__(self, transformer, scale):
+        """Command (holds the module). transformer: prepared with attach_adapter_delta(..., scale)."""
+        super().__init__(transformer)
+        self.scale = scale
+
+    def forward(self, latents, cond_latents, timestep, guidance, prompt_embeds, prompt_mask, adapter_scale):
+        """Pure function (given fixed weights). As OneStepTransformer; adapter_scale: (1,) float32 λ."""
+        self.scale.value = adapter_scale
+        return super().forward(latents, cond_latents, timestep, guidance, prompt_embeds, prompt_mask)
+
+
 class VaeEncoder(nn.Module):
     """DC-AE encoder: RGB in [−1, 1] -> latent × scaling_factor; float32 I/O."""
 
@@ -240,9 +368,11 @@ class TextEncoder(nn.Module):
         return self.model(input_ids, attention_mask=attention_mask)[0].float()
 
 
-def graph_specs():
+def graph_specs(adapter_scale=False):
     """
-    Pure function. Input and output names, shapes and dtypes of every graph (the model contract).
+    Pure function. Input and output names, shapes and dtypes of every graph (the model contract). String dims are
+    dynamic: T tokens; LH, LW latent height and width; H = 32·LH, W = 32·LW pixels (export_graph's DIMS).
+    adapter_scale=True: the transformer takes λ as a last input (LambdaStepTransformer).
 
     Returns:
         dict: graph name -> dict(inputs=[(name, shape, dtype)], outputs=[...])
@@ -251,12 +381,13 @@ def graph_specs():
         >>> [n for n, _, _ in graph_specs()["transformer"]["inputs"]]
         ['latents', 'cond_latents', 'timestep', 'guidance', 'prompt_embeds', 'prompt_mask']
     """
-    latent, image = [1, 32, 32, 32], [1, 3, 1024, 1024]
+    latent, image = [1, 32, "LH", "LW"], [1, 3, "H", "W"]  # H = 32·LH (DC-AE f32); any size, trained at 1024²
     return dict(
         transformer=dict(inputs=[("latents", latent, "float32"), ("cond_latents", latent, "float32"),
                                  ("timestep", [1], "float32"), ("guidance", [1], "float32"),
                                  ("prompt_embeds", [1, TEXT_TOKENS, 2304], "float32"),
-                                 ("prompt_mask", [1, TEXT_TOKENS], "float32")],
+                                 ("prompt_mask", [1, TEXT_TOKENS], "float32")]
+                                + [("adapter_scale", [1], "float32")] * adapter_scale,
                          outputs=[("denoised", latent, "float32")]),
         vae_encoder=dict(inputs=[("image", image, "float32")], outputs=[("latent", latent, "float32")]),
         vae_decoder=dict(inputs=[("latent", latent, "float32")], outputs=[("image", image, "float32")]),
@@ -265,26 +396,28 @@ def graph_specs():
     )
 
 
-def example_inputs(name, device):
+def example_inputs(name, device, adapter_scale=False):
     """
     Query (reads the RNG). Random float32 tensors shaped like a graph's inputs, for tracing.
 
     Args:
         name (str): graph name in graph_specs()
         device (str): torch device
+        adapter_scale (bool): see graph_specs
 
     Returns:
         tuple of torch.Tensor
     """
     tokens = 506  # length of SANA's templated prompt (instruction + 298 tokens)
+    size = dict(T=tokens, LH=32, LW=32, H=1024, W=1024)  # trace at the training size
     special = dict(timestep=torch.tensor([ONE_STEP_TIMESTEP]), guidance=torch.tensor([GUIDANCE]),
                    prompt_mask=torch.ones(1, TEXT_TOKENS), input_ids=torch.randint(3, 1000, (1, tokens)),
-                   attention_mask=torch.ones(1, tokens, dtype=torch.long))
-    return tuple(special[n].to(device) if n in special else torch.randn(shape, device=device)
-                 for n, shape, _ in graph_specs()[name]["inputs"])
+                   attention_mask=torch.ones(1, tokens, dtype=torch.long), adapter_scale=torch.tensor([0.5]))
+    return tuple(special[n].to(device) if n in special else torch.randn([size.get(d, d) for d in shape], device=device)
+                 for n, shape, _ in graph_specs(adapter_scale)[name]["inputs"])
 
 
-def export_graph(module, name, path, custom_translation_table=None):
+def export_graph(module, name, path, custom_translation_table=None, adapter_scale=False):
     """
     Command. Traces module with torch.onnx (dynamo exporter) and writes path (+ path.data when weights exceed 2 GB).
 
@@ -293,18 +426,22 @@ def export_graph(module, name, path, custom_translation_table=None):
         name (str): graph name in graph_specs()
         path (Path): e.g. models/web/<version>/transformer.onnx
         custom_translation_table (dict | None): torch op -> onnxscript function (web_quant's MatMulNBits)
+        adapter_scale (bool): see graph_specs
     """
-    spec = graph_specs()[name]
+    spec = graph_specs(adapter_scale)[name]
     began = time.perf_counter()
-    T = torch.export.Dim("T", min=2, max=2048)
-    dynamic = tuple({1: T} if "T" in shape else None for _, shape, _ in spec["inputs"])
+    LH, LW = torch.export.Dim("LH", min=MIN_LATENT, max=MAX_LATENT), torch.export.Dim("LW", min=MIN_LATENT, max=MAX_LATENT)
+    dims = dict(T=torch.export.Dim("T", min=2, max=2048), LH=LH, LW=LW, H=32 * LH, W=32 * LW)
+    dynamic = tuple({i: dims[d] for i, d in enumerate(shape) if isinstance(d, str)} or None for _, shape, _ in spec["inputs"])
     with torch.no_grad():  # optimize=False: onnxscript's optimizer drops the "+ 1e-15" of linear attention -> 0/0 = NaN
-        program = torch.onnx.export(module, example_inputs(name, "cuda"), dynamo=True, opset_version=OPSET, optimize=False,
+        program = torch.onnx.export(module, example_inputs(name, "cuda", adapter_scale), dynamo=True, opset_version=OPSET, optimize=False,
                                     input_names=[n for n, _, _ in spec["inputs"]],
                                     output_names=[n for n, _, _ in spec["outputs"]],
                                     dynamic_shapes=dynamic if any(dynamic) else None,
                                     custom_translation_table=custom_translation_table)
     program.model.ir_version = IR_VERSION
+    for old in (path, path.with_name(path.name + ".data")):  # other versions may hard-link these: never write through
+        old.unlink(missing_ok=True)
     program.save(str(path), external_data=True)
     print(f"export {name}: {path} in {time.perf_counter() - began:.0f} s", flush=True)
 
@@ -349,7 +486,7 @@ def weight_equation(source):
            f" · {path.parent.name} step {int(step)}"
 
 
-def write_manifest(folder, version, source, quantization):
+def write_manifest(folder, version, source, quantization, adapter=None):
     """
     Command. Writes folder/manifest.json: files, I/O specs, quantization, and the Sprint math (web-model-contract).
 
@@ -358,12 +495,16 @@ def write_manifest(folder, version, source, quantization):
         version (str): e.g. control_v1_sprint_step_001500
         source (str): the merge folder it came from
         quantization (dict): graph name -> list of variants, e.g. {"transformer": {"fp16": "transformer.onnx"}}
+        adapter (dict | None): runtime-λ versions: {source, rank, ...}; the transformer takes adapter_scale = λ
     """
     files = sorted(p.name for p in folder.iterdir() if p.suffix in (".onnx", ".data") or p.name.startswith("tokenizer"))
+    weights = weight_equation(source)
+    if adapter:
+        weights = weights.replace("W_sprint", f"W_sprint + λ·SVD{adapter['rank']}(W_adapter − W_teacher)", 1)
     manifest = dict(
-        version=version, source=source, weights=weight_equation(source),
+        version=version, source=source, weights=weights, adapter=adapter,
         files={f: (folder / f).stat().st_size for f in files},
-        graphs=graph_specs(), quantization=quantization,
+        graphs=graph_specs(adapter is not None), quantization=quantization,
         text_encoder=dict(
             model="models/Sana_Sprint_1.6B_1024px_diffusers/text_encoder (Gemma2Model, gemma-2-2b-it), last_hidden_state",
             prompt="complex_human_instruction lines joined by '\\n' + caption.lower().strip()",
@@ -497,7 +638,7 @@ def quantize_linears(root, linears, inputs, bits, rank):
 
 
 def quantize(version, bits=4, rank=None, parts="transformer,text_encoder", reuse=None, calib_dir="resources/showcase",
-             rows_per_item=128):
+             rows_per_item=128, adapter=None, adapter_rank=128):
     """
     Command. SVDQuant-style weight-only quantization (web_quant.py) of the transformer and the Gemma text encoder,
     exported to models/web/<version>-int<bits>/; the files not quantized are hard links to the fp16 version's.
@@ -514,11 +655,19 @@ def quantize(version, bits=4, rank=None, parts="transformer,text_encoder", reuse
             entries) instead of the fp16 ones, e.g. the same Gemma int4 for a new transformer
         calib_dir (str): calibration set (its "train" items)
         rows_per_item (int): calibration tokens per Linear per item
+        adapter (str | None): runtime λ: the λ = 1 merge of the same control run (e.g. models/control/control_v2/
+            sprint_step_001500_adapter1). Writes <version>-int<bits>-lambda/, whose transformer adds λ·D (D =
+            adapter_delta_parts, rank adapter_rank) and takes adapter_scale; its quantized base tensors are stored in
+            the hard-linked transformer.onnx.data of <version>-int<bits> (share_external_data), so only the delta is new
+        adapter_rank (int): SVD rank of D per matrix
     """
     from sana_alpha import web_quant as wq
     rank = (wq.RANK if bits == 4 else 0) if rank is None else rank
     parts = parts.split(",") if isinstance(parts, str) else list(parts)
-    base, folder = WEB_DIR / version, WEB_DIR / f"{version}-int{bits}"
+    plain = WEB_DIR / f"{version}-int{bits}"
+    base, folder = WEB_DIR / version, WEB_DIR / f"{version}-int{bits}{'-lambda' if adapter else ''}"
+    assert not adapter or parts == ["transformer"], "a -lambda version re-exports only the transformer"
+    adapter_info = None
     folder.mkdir(exist_ok=True)
     source = json.loads((base / "manifest.json").read_text())["source"]
     donor = WEB_DIR / reuse if reuse else base
@@ -545,7 +694,16 @@ def quantize(version, bits=4, rank=None, parts="transformer,text_encoder", reuse
                                   bits, rank)
         for f in folder.glob(f"{name}.onnx*"):
             f.unlink()  # may be a hard link to the fp16 file: writing through it would overwrite fp16
-        export_graph(model.eval(), name, folder / f"{name}.onnx", table)
+        if adapter:
+            lowrank, dense = adapter_delta_parts(source, adapter, adapter_rank)
+            scale = AdapterScale()
+            attach_adapter_delta(model.transformer, lowrank, dense, scale)
+            model = LambdaStepTransformer(model.transformer, scale)
+            adapter_info = dict(source=adapter, rank=adapter_rank, lowrank_matrices=len(lowrank), dense_tensors=len(dense),
+                                delta="D = W(λ=1) − W(λ=0) = W_adapter − W_teacher (student keys); fp16 SVD factors")
+        export_graph(model.eval(), name, folder / f"{name}.onnx", table, adapter_scale=adapter is not None)
+        if adapter:
+            share_external_data(folder / f"{name}.onnx", plain / f"{name}.onnx")
         del model
         torch.cuda.empty_cache()
         errors = [r["rel_error"] for r in report.values()]
@@ -559,7 +717,51 @@ def quantize(version, bits=4, rank=None, parts="transformer,text_encoder", reuse
     for f in [*donor.iterdir(), *base.iterdir()]:
         if f.name != "manifest.json" and not (folder / f.name).exists():
             (folder / f.name).hardlink_to(f)
-    write_manifest(folder, folder.name, source, quantization)
+    write_manifest(folder, folder.name, source, quantization, adapter_info)
+
+
+def share_external_data(path, donor):
+    """
+    Command (rewrites path, path.data). Points every external tensor of the ONNX graph `path` whose bytes also exist in
+    `donor`'s external data at the donor's copy (hard-linked in as path.data, so the models branch stores it once), and
+    moves the remaining tensors to `<path>.lambda.data`.
+
+    Args:
+        path (Path): e.g. models/web/<v>-int4-lambda/transformer.onnx, just exported (with path.data)
+        donor (Path): e.g. models/web/<v>-int4/transformer.onnx (with its .data)
+    """
+    import hashlib
+    import onnx
+    from onnx.external_data_helper import set_external_data
+    def tensors(model):
+        for t in model.graph.initializer:
+            if t.data_location == onnx.TensorProto.EXTERNAL:
+                info = {e.key: e.value for e in t.external_data}
+                yield t, info["location"], int(info.get("offset", 0)), int(info["length"])
+    def read(file, offset, length):
+        file.seek(offset)
+        return file.read(length)
+    donor_model = onnx.load(str(donor), load_external_data=False)
+    with open(donor.with_name(donor.name + ".data"), "rb") as f:
+        shared = {hashlib.sha256(read(f, o, n)).digest(): (o, n) for _, _, o, n in tensors(donor_model)}
+    model = onnx.load(str(path), load_external_data=False)
+    own_data, new_data = path.with_name(path.name + ".data"), path.with_name(path.name + ".lambda.data")
+    own_bytes = reused = 0
+    with open(own_data, "rb") as f, open(new_data, "wb") as out:
+        for t, _, o, n in list(tensors(model)):
+            data = read(f, o, n)
+            hit = shared.get(hashlib.sha256(data).digest())
+            if hit:
+                set_external_data(t, own_data.name, offset=hit[0], length=hit[1])
+                reused += n
+            else:
+                set_external_data(t, new_data.name, offset=out.tell(), length=n)
+                out.write(data)
+                own_bytes += n
+    own_data.unlink()
+    own_data.hardlink_to(donor.with_name(donor.name + ".data"))
+    onnx.save(model, str(path))
+    print(f"share_external_data: {reused / 1e9:.2f} GB shared with {donor.parent.name}, {own_bytes / 1e9:.3f} GB new", flush=True)
 
 
 def ort_session(path):
