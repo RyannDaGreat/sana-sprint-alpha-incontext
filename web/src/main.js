@@ -325,6 +325,31 @@ $('realtime').addEventListener('change', scheduleRealtime);
 $('new-seed').addEventListener('click', () => { $('seed').value = Math.floor(Math.random() * SEED_RANGE); scheduleRealtime(); });
 $('prompt').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) generate(); });
 
+// ---------- model class: alpha matte or trimask ----------
+
+// What the editor's values mean to each class (training: a matte is alpha; a trimask is 1 / 0.5 / 0, src/sana_alpha/trimask)
+const COND_TEXT = {
+  matte: ['Matte', 'white = object · gray = partly transparent · black = background'],
+  trimask: ['Trimask', 'white = object · gray = unknown · black = background'],
+};
+
+/**
+ * Pure function. The condition class of a version: its manifest's `cond` ("trimask"), else "matte" (the older exports have no `cond`).
+ *
+ * @example condOf({manifest: {cond: 'trimask'}}) // 'trimask'
+ * @example condOf({manifest: {}}) // 'matte'
+ */
+const condOf = (v) => v.manifest.cond ?? 'matte';
+
+/** Command. Shows the editor as version v's class: the heading, and for a trimask only RGB on gray (it predicts no alpha). */
+function applyCond(v) {
+  const cond = condOf(v);
+  if (!COND_TEXT[cond]) throw new Error(`${v.id}: unknown manifest cond "${cond}"`);
+  document.body.dataset.cond = cond;
+  [$('cond-name').textContent, $('cond-text').textContent] = COND_TEXT[cond];
+  if (cond === 'trimask') document.querySelector('.tab[data-view="gray"]').click();
+}
+
 // ---------- models ----------
 
 /**
@@ -363,7 +388,7 @@ async function renderVersions() {
       <span class="version-name"></span>
       <span class="label"></span>
       <span class="meta desc"></span>
-      <span class="meta">${formatBytes(total)} · ${nCached === files.length ? 'cached' : `${nCached}/${files.length} files cached`}</span>
+      <span class="meta">${COND_TEXT[condOf(v)][0]} model · ${formatBytes(total)} · ${nCached === files.length ? 'cached' : `${nCached}/${files.length} files cached`}</span>
       <div class="row"><button>${state.pipeline?.version === v ? 'Loaded' : 'Load'}</button></div>`;
     card.querySelector('.version-name').textContent = v.id;
     card.querySelector('.label').textContent = v.manifest.label ?? '';
@@ -409,6 +434,7 @@ function progressRows(files, box = $('files')) {
 async function loadVersion(v) {
   state.selected = v;
   state.pipeline = null;
+  applyCond(v);
   $('generate').disabled = true;
   await renderVersions();
   const { ep, label } = await pickEp();
@@ -449,6 +475,7 @@ async function init() {
   const pre = state.versions.find((v) => v.id === wanted);
   if (wanted && !pre) status(`Unknown version "${wanted}"; pick one below.`, true);
   state.selected = pre ?? state.versions[0];
+  applyCond(state.selected);
   await renderVersions();
   await refreshCacheInfo();
   const fully = (await cachedFlags(versionFiles(state.selected))).every(Boolean);

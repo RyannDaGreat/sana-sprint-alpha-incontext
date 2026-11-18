@@ -8,6 +8,8 @@
 //   "weights": str, "precision": str,                (weight equation and precision label, shown under the output)
 //   "adapter": {source, rank, ...} | null,           (runtime λ: the transformer takes adapter_scale; weights contain "λ")
 //   "dynamic_size": bool,                            (graphs take any H × W (multiples of 32); false: 1024² only)
+//   "cond": "matte" | "trimask",                     (the control's training condition; picks the editor heading and outputs;
+//                                                     absent in older exports = "matte"; both feed vae_encoder the same gray image)
 //   "complex_human_instruction": [str, ...]          (optional; default = SANA's, see prompt.js)
 //   "files": {                                        (paths are relative to the version folder)
 //     "tokenizer": {path, bytes}, "tokenizer_config": {path, bytes},
@@ -97,7 +99,7 @@ export function normalizeManifest(raw) {
   return {
     label: raw.version, description: raw.source ? `Exported from ${raw.source}.` : '',
     scaling_factor: raw.vae.scaling_factor, timestep: raw.sampler.timestep, guidance: raw.sampler.guidance,
-    weights: raw.weights, precision: precisionLabel(raw.quantization), adapter: raw.adapter ?? null,
+    weights: raw.weights, precision: precisionLabel(raw.quantization), adapter: raw.adapter ?? null, cond: raw.cond,
     dynamic_size: typeof raw.graphs.transformer.inputs[0][1][2] === 'string',  // [1, 32, "LH", "LW"]: any size
     max_sequence_length: 300, latent_scaling_in_graph: true, decoder_output_range: '0,1',
     files, missing: MODEL_FILES.filter((r) => !files[r]),

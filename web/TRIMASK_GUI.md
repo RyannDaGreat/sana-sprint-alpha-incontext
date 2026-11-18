@@ -54,3 +54,10 @@ Every design reached the goal, so the comparison rests on effort and on the part
 **D** = A's buttons with technical names plus meaning ("Dilate (grow)", "Harden → 3 levels", palette "Gray · unknown"), a tooltip on every filter that says exactly what Filter size does (e.g. "band of total width Filter size centered on every edge: half inside, half outside"), the slider renamed "Filter size" and the brush slider "Size (brush, eraser, line width)", C's lasso ("Lasso (filter region)"), gallery search, and a live "white · gray · black %" readout under the matte title. In r3, T7 dropped to 6 commands with no confusion about harden; the other tasks stayed at A/C cost. Remaining notes are about the headless harness (no cursor coordinates), not the app. D is the default; `?gui=A|B|C` keep the others.
 
 Known harness flaw (fixed after r3, same for every design): `ui.js` left stale control numbers on the page, so a few clicks inside the gallery dialog could land on the wrong control.
+
+## Model class: alpha matte or trimask
+
+Each model version's `manifest.json` has `cond` = `"matte"` or `"trimask"` (absent in older exports = matte; `web_export.control_cond`). The editor is the same for both, and both feed `vae_encoder` the same gray image (8-bit value / 127.5 − 1, copied to 3 channels; gray = 128, as in training's `encode_multires.model_input`). Loading a version switches the class (`applyCond` in `main.js`):
+- **Matte**: heading "Matte · gray = partly transparent"; outputs RGB on gray and the RGBA cutout (the matte is the alpha).
+- **Trimask**: heading "Trimask · gray = unknown"; only RGB on gray, because a trimask model predicts no alpha (the RGBA tab and download are hidden).
+Version cards say "Matte model" or "Trimask model". Test: `agents/.scratchpad/web/test_cond.js` (fakes a trimask manifest, or checks a real version id).
