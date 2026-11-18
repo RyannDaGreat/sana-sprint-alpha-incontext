@@ -2462,7 +2462,7 @@ queries
 		ORDER BY r.run_step, split, t.page_id, t.prompt_variant DESC                          -- held-out items first, caption before detailed prompt
 	_showcase_train_items sql
 		-- The training images of the showcase set (resources/showcase, page_residue 1). No trimask_<method> uses them
-		SELECT column1 AS page_id FROM (VALUES ('0pUpyMQaCk'), ('5eMH8a6Vjv'), ('AgfOUN3DeM'), ('G5x2u0fPL8'), ('Hh8q5lgcAQ'), ('Io48JpfRrF'), ('IotKdbdV6T'), ('JGCoeNF4Tz'), ('KkgEsWzE8g'), ('N3JnvKPzOa'), ('NqdDLAYhG0'), ('Of2DUBiPIs'), ('QJcPoXEAP4'), ('RMcfP2pbC9'), ('StEZ525CCF'), ('TbTuikHxJT'), ('UFzmrKcIez'), ('WLDj1YvRWz'), ('WvG6E6hnyA'), ('Y5KTHH1ThN'), ('YYOAlb6C3u'), ('YhFRkqnzo4'), ('aoKJjZiw5t'), ('ebSe48PO7c'), ('fdNNerLubw'), ('gibvvaoLuT'), ('hRhqVbDC6h'), ('jjRpuZm4XX'), ('ksBFHMzGfM'), ('l2ynv1mqir'), ('mxCEBNOGGW'), ('oswuq3J8bi'), ('p4auHb5Y3v'), ('swSl8ww8WG'), ('ymcgJ1MZH4'), ('z3PrRRIvM4'), ('zDR3g9P014'), ('zZYNHaRp8O'))
+		SELECT unnest(make_array('0pUpyMQaCk', '5eMH8a6Vjv', 'AgfOUN3DeM', 'G5x2u0fPL8', 'Hh8q5lgcAQ', 'Io48JpfRrF', 'IotKdbdV6T', 'JGCoeNF4Tz', 'KkgEsWzE8g', 'N3JnvKPzOa', 'NqdDLAYhG0', 'Of2DUBiPIs', 'QJcPoXEAP4', 'RMcfP2pbC9', 'StEZ525CCF', 'TbTuikHxJT', 'UFzmrKcIez', 'WLDj1YvRWz', 'WvG6E6hnyA', 'Y5KTHH1ThN', 'YYOAlb6C3u', 'YhFRkqnzo4', 'aoKJjZiw5t', 'ebSe48PO7c', 'fdNNerLubw', 'gibvvaoLuT', 'hRhqVbDC6h', 'jjRpuZm4XX', 'ksBFHMzGfM', 'l2ynv1mqir', 'mxCEBNOGGW', 'oswuq3J8bi', 'p4auHb5Y3v', 'swSl8ww8WG', 'ymcgJ1MZH4', 'z3PrRRIvM4', 'zDR3g9P014', 'zZYNHaRp8O')) AS page_id
 
 	view_trimasks sql
 		-- One row per image of trimask_augmentations: its matte, then the trimask of each method that used it (variant 0).
