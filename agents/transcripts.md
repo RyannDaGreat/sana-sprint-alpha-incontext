@@ -239,3 +239,6 @@ I should be able to undo and redo and apply thresholds to the editor area. Also,
 
 ## m00645 — 2026-11-17 10:17 PM
 Make sure to update the manifest with all my requests and stuff.
+
+## m00646 — 2026-11-17 10:24 PM
+We use ALL 10 during training.
