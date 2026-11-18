@@ -278,3 +278,6 @@ Also, I don't know why our GPUs aren't fully blasting. Shouldn't you have a very
 
 ## m00658 — 2026-11-18 1:35 AM
 Also, by the way, I [should] point out the DTAB is, like, absolutely fucking hideous right now. Did you not look at the MulticamDailies [project] how it used commas to condense a lot of duplicate and repeated things? You should look into that. DTAB has features that will probably let you condense, without destroying any type of formatting, your project file down to something way, way smaller. Have a [subagent] do that — maybe just [a] subagent.
+
+## m00659 — 2026-11-18 1:36 AM
+Like, without sacrificing readability, you can make it a lot smaller.
