@@ -275,3 +275,6 @@ Also, when you train the next version, can you make sure to train it on multiple
 
 ## m00657 — 2026-11-18 12:52 AM
 Also, I don't know why our GPUs aren't fully blasting. Shouldn't you have a very hyper-efficient processor that loads the VAE and continuously encodes all of these at all the resolutions we need? All of our augmentations and all of our images?
+
+## m00658 — 2026-11-18 1:35 AM
+Also, by the way, I [should] point out the DTAB is, like, absolutely fucking hideous right now. Did you not look at the MulticamDailies [project] how it used commas to condense a lot of duplicate and repeated things? You should look into that. DTAB has features that will probably let you condense, without destroying any type of formatting, your project file down to something way, way smaller. Have a [subagent] do that — maybe just [a] subagent.
