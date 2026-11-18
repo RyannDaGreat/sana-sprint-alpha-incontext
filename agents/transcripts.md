@@ -269,3 +269,6 @@ The beauty of BlueJay is that you can be encoding while the other things, images
 
 ## m00655 — 2026-11-18 12:47 AM
 Did you push 8,000 yet? Please do that if you haven't already.
+
+## m00656 — 2026-11-18 12:50 AM
+Also, when you train the next version, can you make sure to train it on multiple resolutions? Yes, of course, you should mostly train on 1024, but 50% of the time I'd like to divide it between 768, 512 and 256 resolutions, so that we have a variety of different resolutions, because right now it actually looks like shit when you use lower resolutions.
