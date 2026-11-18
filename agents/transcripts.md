@@ -356,3 +356,9 @@ Apply the fastlance fix.
 
 ## m00684 — 2026-11-18 4:25 AM
 And again, don't forget the GUI. We want ways to soften it, we want ways to harden it, we want ways to make gray, to make white, to turn white into gray, to turn gray into black, or black to white, etc. We want ways to dilate, erode, erode into gray, dilate into gray — all these different filters. Brainstorm good GUIs for it. Have some [agentic, transcribed as "magentic"] user studies figured out. We want people to draw polygons, draw lines, all this kind of shit, all of this on top of what we have now.
+
+## m00685 — 2026-11-18 4:27 AM
+You can also have a bunch of Haiku and Sonnet swarms go fetch 10 times more mask presets than we have now. All of them super high quality, not just random bullshit.
+
+## m00686 — 2026-11-18 4:27 AM
+Make sure to push all these things. Notify me when done.
