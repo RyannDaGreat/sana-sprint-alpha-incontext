@@ -490,6 +490,27 @@ def weight_equation(source):
            f" · {path.parent.name} step {int(step)}"
 
 
+def control_cond(source):
+    """
+    Query. The condition image a merge folder's control was trained on, from its gates.safetensors metadata:
+    "matte" or "trimask" (1 = object, 0.5 = unknown, 0 = background; both enter vae_encoder the same way).
+    Runs from before train_control's --cond option (control_v1, control_v2) stored no "cond" and were trained on mattes.
+
+    Args:
+        source (str): merge_final folder
+
+    Returns:
+        str
+
+    Examples:
+        >>> control_cond("models/control/control_v2/sprint_step_008000")
+        'matte'
+    """
+    from safetensors import safe_open
+    with safe_open(Path(source) / "gates.safetensors", "pt") as f:
+        return f.metadata().get("cond", "matte")
+
+
 def write_manifest(folder, version, source, quantization, adapter=None):
     """
     Command. Writes folder/manifest.json: files, I/O specs, quantization, and the Sprint math (web-model-contract).
@@ -507,6 +528,7 @@ def write_manifest(folder, version, source, quantization, adapter=None):
         weights = weights.replace("W_sprint", f"W_sprint + λ·SVD{adapter['rank']}(W_adapter − W_teacher)", 1)
     manifest = dict(
         version=version, source=source, weights=weights, adapter=adapter,
+        cond=control_cond(source),
         files={f: (folder / f).stat().st_size for f in files},
         graphs=graph_specs(adapter is not None), quantization=quantization,
         text_encoder=dict(
