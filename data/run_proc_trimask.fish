@@ -1,5 +1,5 @@
 #!/usr/bin/env fish
-# Fills trimask_augmentations (manifest §13): every trimask_<method> processor (CPU, nice) and one encode_multires worker per GPU
+# Fills trimask_augmentations (manifest §13): every trimask_<method> processor (CPU, nice) and two encode_multires workers per GPU
 # run at the same time. The workers encode rows as soon as they commit, and stop once augmentation is done and nothing is left.
 # Safe to run again: each processor and worker does only the rows that are not done yet
 # Usage: fish run_proc_trimask.fish
@@ -25,8 +25,9 @@ for method in $METHODS
     nice -n 10 fish $stage $dtab trimask_$method $AUGMENT_LOOPS $done/trimask_$method &
 end
 fish -c 'for file in $argv[2..]; while not test -e $file; sleep 10; end; end; touch $argv[1]' $done/augment $done/trimask_$METHODS &
-for gpu in (seq 0 (math $GPUS - 1))
-    env CUDA_VISIBLE_DEVICES=$gpu $WORKER_ENV python processors/encode_multires.py $gpu $GPUS $done/augment &  # A failed worker prints its error
+set WORKERS (math 2 x $GPUS)  # Two encode_multires workers per GPU: one decodes on the CPU while the other encodes
+for worker in (seq 0 (math $WORKERS - 1))
+    env CUDA_VISIBLE_DEVICES=(math $worker % $GPUS) $WORKER_ENV python processors/encode_multires.py $worker $WORKERS $done/augment &  # A failed worker prints its error
 end
 wait
 

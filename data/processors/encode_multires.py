@@ -1,5 +1,5 @@
 """
-Multi-resolution DC-AE encoder (manifest §13, m00656, m00657): one long-lived worker per GPU loads the VAE once and keeps it
+Multi-resolution DC-AE encoder (manifest §13, m00656, m00657): long-lived workers, two per GPU, load the VAE once and keep it
 busy. Not a Bluejay processor: a Bluejay run spent ~5 of its ~6 minutes in claim, materialize and stage, so the worker reads
 PNG Blobs straight from their files (blob_info), decodes and area-downsamples them in a thread pool, encodes big batches per
 resolution, and commits the latents with the database's commit. Run by data/run_encode_multires.fish (it adds Bluejay).
