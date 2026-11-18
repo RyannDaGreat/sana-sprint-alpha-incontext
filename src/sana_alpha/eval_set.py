@@ -181,7 +181,7 @@ def build_trimask(source="resources/showcase", out="resources/showcase_trimask",
     Args:
         source (str): eval set folder relative to the repo root (resources/showcase)
         out (str): output folder relative to the repo root
-        methods (tuple[str] | None): trimask.METHODS tags; None = all ten (m00646: training uses all ten)
+        methods (tuple[str] | None): trimask.METHODS tags; None = all of trimask.METHODS (m00646, m00648: training uses all)
         variant (int): trimask.generate variant
     """
     from sana_alpha import trimask

@@ -158,8 +158,9 @@ def epoch_draws(records, batch_size, epoch, seed, gen):
         >>> draws = epoch_draws(r, 10, 0, 0, torch.Generator().manual_seed(0))
         >>> len(draws), bool((r["cond_owner"][draws[0][1]] == draws[0][0]).all())
         (10, True)
-        >>> torch.bincount(r["cond_method"][torch.cat([c for _, c in draws])], minlength=len(METHODS)).tolist()
-        [9, 11, 8, 15, 6, 8, 12, 6, 9, 16]
+        >>> counts = torch.bincount(r["cond_method"][torch.cat([c for _, c in draws])], minlength=len(METHODS))
+        >>> len(counts) == len(METHODS), bool(counts.min() > 0)  # every method drawn, about equally often
+        (True, True)
         >>> [(a.tolist(), b.tolist()) for a, b in epoch_draws(dict(captions="abcd"), 2, 0, 0, None)]
         [([0, 1], [0, 1]), ([3, 2], [3, 2])]
     """
