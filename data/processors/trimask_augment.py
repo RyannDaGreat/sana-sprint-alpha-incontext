@@ -2,7 +2,7 @@
 Makes trimask_augmentations rows: the ten trimask_<method> processors all run this file, each with its own method tag.
 
 Not a PEP 723 script: it runs in the repo's own uv project, so it uses src/sana_alpha/trimask (manifest §13), like generate_eval.
-Each Sample folder has input.json {page_id, split} and alpha.png. It writes children/<variant>/fields.json and
+Each Sample folder has input.json {page_id, split} and alpha.png (and rgb_on_gray.png for RGB_METHODS). It writes children/<variant>/fields.json and
 children/<variant>/trimask.png, one trimask_augmentations row per variant. Every Sample gets at least one row: Bluejay fails a lineage
 commit whose first Sample has an empty children/ (concerns.md). So the query, not this file, leaves out the showcase images.
 """
@@ -17,7 +17,7 @@ from PIL import Image
 
 from _batch import process_samples
 from sana_alpha.eval_set import page_residue
-from sana_alpha.trimask import coverage, generate, to_uint8
+from sana_alpha.trimask import RGB_METHODS, coverage, generate, to_uint8
 
 WORKERS = 8  # Threads per run: OpenCV and PNG coding release the GIL. run_proc_trimask.fish starts several runs per method
 
@@ -49,8 +49,9 @@ def process_sample(sample, method, variants, subset_digits):
     if page_residue(job["page_id"]) == 0:
         raise ValueError(f"{job['page_id']} is an eval image: the query must leave it out")
     alpha = np.asarray(Image.open(sample / "alpha.png").convert("L"), np.float32) / 255
+    rgb = np.asarray(Image.open(sample / "rgb_on_gray.png").convert("RGB"), np.float32) / 255 if method in RGB_METHODS else None
     for variant in range(variants):
-        trimask, params = generate(alpha, job["page_id"], method, variant)
+        trimask, params = generate(alpha, job["page_id"], method, variant, rgb)
         stored = to_uint8(trimask)
         fractions = {f"{name}_fraction": value for name, value in coverage(stored).items()}
         child = sample / "children" / str(variant)

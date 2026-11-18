@@ -1826,13 +1826,13 @@ tables
 			seconds, exterior_gray_error, border_gray_error, border_std, iou, foreground_fraction float64
 
 	trimask_augmentations
-		 One row per trimask: the condition of the trimask model (manifest §13). Fourteen methods, about 26k train images each
+		 One row per trimask: the condition of the trimask model (manifest §13). Sixteen methods, about 26k train images each
 		primary_key page_id,method,variant
 		columns
 			page_id, method string
 			variant int64
 
-			 Written by the fourteen trimask_<method> processors
+			 Written by the sixteen trimask_<method> processors
 			split, params string
 			trimask blob
 			white_fraction, gray_fraction, black_fraction float64
@@ -2433,6 +2433,69 @@ processors
 						gray_fraction @	            float  Fraction of pixels not 0 or 255: unknown                                          0.10
 						black_fraction @	        float  Fraction of pixels 0: surely background                                           0.65
 
+	trimask_bilateral_blur	 Makes the trimasks of method bilateral_blur (src/sana_alpha/trimask/bilateral_blur.py) for its train images
+		query sql
+			SELECT page_id, alpha, rgb_on_gray, split FROM magick_samples                                          -- MAGICK images
+			WHERE   trimask_bilateral_blur_claim IS NULL                                                           -- not yet claimed,
+			    AND alpha                        IS NOT NULL                                                       -- that split_alpha did,
+			    AND split                        = 'train'                                                         -- not eval,
+			    AND page_id NOT IN (SELECT page_id FROM _showcase_train_items)                                     -- not a showcase image,
+			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'bilateral_blur')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
+			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                            -- one batch at a time, in random order
+		claim	trimask_bilateral_blur_claim magick_samples
+		command bash
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src uv run --project .. python processors/trimask_augment.py "$BATCH" bilateral_blur $TRIMASK_VARIANTS $TRIMASK_SUBSET
+		materialize	                           TYPE  DESCRIPTION                                     EXAMPLE
+			alpha.png alpha	                    blob  The matte                                       120 KB .png
+			rgb_on_gray.png rgb_on_gray	        blob  The RGB on gray: this method follows its edges  1.4 MB .png
+			input.json	                       TYPE  DESCRIPTION                                     EXAMPLE
+				page_id @	             [Key]  str   MAGICK image ID: it seeds the trimask           "Hcx82jcUpM"
+				split @	                       ~str   Always train                                    "train"
+		commit
+			trimask_augmentations
+				children/	                       TYPE   DESCRIPTION                                                                       EXAMPLE
+					trimask trimask.png	            blob   The trimask: 1024 x 1024 grayscale, 8 bit. 255 object, 0 background, 128 unknown  20 KB .png
+					fields.json	         SUBFIELD  TYPE   DESCRIPTION                                                                       EXAMPLE
+						page_id @	         [Key]  str    The image                                                                         "Hcx82jcUpM"
+						method @	         [Key]  str    The method tag                                                                    "bilateral_blur"
+						variant @	         [Key]  int    0 to TRIMASK_VARIANTS - 1: it seeds the trimask too                               0
+						split @	                   ~str    Always train                                                                      "train"
+						params @	                str    JSON of the hyperparameters used                                                  "{...}"
+						white_fraction @	        float  Fraction of pixels 255: surely object                                             0.25
+						gray_fraction @	            float  Fraction of pixels not 0 or 255: unknown                                          0.10
+						black_fraction @	        float  Fraction of pixels 0: surely background                                           0.65
+
+	trimask_random_stack	 Makes the trimasks of method random_stack (src/sana_alpha/trimask/random_stack.py) for its train images
+		query sql
+			SELECT page_id, alpha, split FROM magick_samples                                                     -- MAGICK images
+			WHERE   trimask_random_stack_claim IS NULL                                                           -- not yet claimed,
+			    AND alpha                      IS NOT NULL                                                       -- that split_alpha did,
+			    AND split                      = 'train'                                                         -- not eval,
+			    AND page_id NOT IN (SELECT page_id FROM _showcase_train_items)                                   -- not a showcase image,
+			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'random_stack')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
+			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                          -- one batch at a time, in random order
+		claim	trimask_random_stack_claim magick_samples
+		command bash
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src uv run --project .. python processors/trimask_augment.py "$BATCH" random_stack $TRIMASK_VARIANTS $TRIMASK_SUBSET
+		materialize	               TYPE  DESCRIPTION                            EXAMPLE
+			alpha.png alpha	        blob  The matte                              120 KB .png
+			input.json	           TYPE  DESCRIPTION                            EXAMPLE
+				page_id @	 [Key]  str   MAGICK image ID: it seeds the trimask  "Hcx82jcUpM"
+				split @	           ~str   Always train                           "train"
+		commit
+			trimask_augmentations
+				children/	                       TYPE   DESCRIPTION                                                                       EXAMPLE
+					trimask trimask.png	            blob   The trimask: 1024 x 1024 grayscale, 8 bit. 255 object, 0 background, 128 unknown  20 KB .png
+					fields.json	         SUBFIELD  TYPE   DESCRIPTION                                                                       EXAMPLE
+						page_id @	         [Key]  str    The image                                                                         "Hcx82jcUpM"
+						method @	         [Key]  str    The method tag                                                                    "random_stack"
+						variant @	         [Key]  int    0 to TRIMASK_VARIANTS - 1: it seeds the trimask too                               0
+						split @	                   ~str    Always train                                                                      "train"
+						params @	                str    JSON of the hyperparameters used                                                  "{...}"
+						white_fraction @	        float  Fraction of pixels 255: surely object                                             0.25
+						gray_fraction @	            float  Fraction of pixels not 0 or 255: unknown                                          0.10
+						black_fraction @	        float  Fraction of pixels 0: surely background                                           0.65
+
 	encode_trimask	 Encodes each trimask with the teacher's DC-AE, copied to 3 channels like the matte
 		query sql
 			SELECT page_id, method, variant, trimask FROM trimask_augmentations -- trimasks
@@ -2619,6 +2682,8 @@ queries
 		    shot(t.trimask, t.method, t.caption, 'combo_chain')                        AS combo_chain,
 		    shot(t.trimask, t.method, t.caption, 'skeleton_strokes')                   AS skeleton_strokes,
 		    shot(t.trimask, t.method, t.caption, 'partial_view')                       AS partial_view,
+		    shot(t.trimask, t.method, t.caption, 'bilateral_blur')                     AS bilateral_blur,
+		    shot(t.trimask, t.method, t.caption, 'random_stack')                       AS random_stack,
 		    avg(t.white_fraction)                                                      AS white_fraction,
 		    avg(t.gray_fraction)                                                       AS gray_fraction,
 		    avg(t.black_fraction)                                                      AS black_fraction

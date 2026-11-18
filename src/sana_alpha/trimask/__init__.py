@@ -29,7 +29,9 @@ import numpy as np
 
 METHODS = ("morph_band", "noisy_band", "blur_quantize", "scribbles", "bbox_unknown",
            "convex_hull", "grid_coarsen", "polygon_simplify", "unknown_patches", "fuzzy_ramp",
-           "combo_union", "combo_chain", "skeleton_strokes", "partial_view")  # The last four: m00648
+           "combo_union", "combo_chain", "skeleton_strokes", "partial_view",  # m00648
+           "bilateral_blur", "random_stack")  # m00649
+RGB_METHODS = ("bilateral_blur",)  # Their make_trimask also takes rgb: (H, W, 3) float32 in [0, 1], the image on gray
 
 
 def seed(page_id, method, variant):
@@ -148,7 +150,7 @@ def check_trimask(trimask, alpha):
     return trimask
 
 
-def generate(alpha, page_id, method, variant):
+def generate(alpha, page_id, method, variant, rgb=None):
     """
     Near-pure function (imports the method module). Makes one trimask with hyperparameters drawn from the method's distribution.
     Deterministic in (alpha, page_id, method, variant).
@@ -156,6 +158,7 @@ def generate(alpha, page_id, method, variant):
     Args:
         alpha (np.ndarray): (H, W) float32 in [0, 1], white = object
         page_id (str), method (str), variant (int): See seed()
+        rgb (np.ndarray | None): (H, W, 3) float32 in [0, 1], magick_samples.rgb_on_gray / 255. Required by RGB_METHODS only
 
     Returns:
         tuple[np.ndarray, dict]: trimask (H, W) float32 in [0, 1], and the hyperparameters used
@@ -173,7 +176,10 @@ def generate(alpha, page_id, method, variant):
         raise ValueError("The matte has no object pixel (alpha > 0.5) or no background pixel: a trimask of it would be constant")
     module = method_module(method)
     rng = np.random.default_rng(seed(page_id, method, variant))
-    trimask, params = module.make_trimask(alpha, rng, **module.sample_params(rng))
+    if (method in RGB_METHODS) != (rgb is not None):
+        raise ValueError(f"{method}: rgb is required by {RGB_METHODS} and by no other method")
+    extra = {"rgb": rgb} if method in RGB_METHODS else {}
+    trimask, params = module.make_trimask(alpha, rng, **extra, **module.sample_params(rng))
     json.dumps(params)  # Raises here, not in the processor's writer, if a method returns a non-JSON value
     return check_consistent(alpha, check_trimask(trimask, alpha)), params
 
