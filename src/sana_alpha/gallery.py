@@ -126,26 +126,37 @@ def trimask_models(run_step):
     return [m for m in step_models(run, int(step)) if m[0].endswith(("_lam0", "_lam0_2step", "_lam0_1step"))]
 
 
-def trimask_tag(tag, method):
+def trimask_tag(tag, method, resolution=1024):
     """
-    Pure function. The model_tag of a showcase model on one trimask method's eval set.
+    Pure function. The model_tag of a showcase model on one trimask method's eval set (suffix _r<res> below 1024).
 
     Examples:
-        >>> trimask_tag("show_tri_ft_step006000_lam0", "morph_band")
-        'tri_morph_band_tri_ft_step006000_lam0'
+        >>> trimask_tag("show_tri_ft_step006000_lam0", "morph_band"), trimask_tag("show_v2_step006000_lam0", "scribbles", 512)
+        ('tri_morph_band_tri_ft_step006000_lam0', 'tri_scribbles_v2_step006000_lam0_r512')
     """
-    return tag.replace("show_", f"tri_{method}_", 1)
+    return tag.replace("show_", f"tri_{method}_", 1) + (f"_r{resolution}" if resolution != 1024 else "")
 
 
-def trimask_rows(*run_steps):
-    """Command. Prints the eval_models rows (MAGICK captions) of RUN:STEP... on every trimask eval set, to paste into the dtab."""
+def trimask_set(resolution=1024):
+    """
+    Pure function. The trimask eval sets folder of one resolution (eval_set.build_trimask --resolution).
+
+    Examples:
+        >>> trimask_set(), trimask_set(256)
+        ('resources/showcase_trimask', 'resources/showcase_trimask_256')
+    """
+    return TRIMASK_SET + (f"_{resolution}" if resolution != 1024 else "")
+
+
+def trimask_rows(*run_steps, resolution=1024):
+    """Command. Prints the eval_models rows (MAGICK captions) of RUN:STEP... on every trimask eval set of one resolution, to paste into the dtab."""
     from sana_alpha.trimask import METHODS
 
-    print("".join(dtab_rows([(trimask_tag(m[0], method), *m[1:]) for r in run_steps for m in trimask_models(r)], "plain",
-                            f"{TRIMASK_SET}/{method}") for method in METHODS), end="")
+    print("".join(dtab_rows([(trimask_tag(m[0], method, resolution), *m[1:]) for r in run_steps for m in trimask_models(r)],
+                            "plain", f"{trimask_set(resolution)}/{method}") for method in METHODS), end="")
 
 
-def build_trimask(*run_steps, notes="", name="gallery_trimask"):
+def build_trimask(*run_steps, notes="", name=None, resolution=1024):
     """
     Command. Hard-links the trimask showcase images of the full-subtraction models of RUN:STEP... and writes the page
     journal/<name>.html: one collapsible section per method, rows [matte | trimask | MAGICK on gray | models].
@@ -155,7 +166,8 @@ def build_trimask(*run_steps, notes="", name="gallery_trimask"):
     Args:
         *run_steps (str): "RUN:STEP", e.g. control_v2:6000 control_tri_ft:6000 control_tri_scratch:6000
         notes (str): HTML of the observations paragraph
-        name (str): page and assets folder name
+        name (str | None): page and assets folder name; default gallery_trimask (+ _<resolution> below 1024)
+        resolution (int): eval resolution (trimask_set)
     """
     from concurrent.futures import ThreadPoolExecutor
 
@@ -166,9 +178,10 @@ def build_trimask(*run_steps, notes="", name="gallery_trimask"):
     from sana_alpha.metrics import trimask_metrics
     from sana_alpha.trimask import METHODS
 
+    name, sets = name or "gallery_trimask" + (f"_{resolution}" if resolution != 1024 else ""), trimask_set(resolution)
     assets, page = ROOT / f"journal/assets/{name}", ROOT / f"journal/{name}.html"
     models = [(*m[:4], f"{r.split(':')[0]}: {m[4]}", label_of(*m[1:4])) for r in run_steps for m in trimask_models(r)]
-    tags = {trimask_tag(m[0], method): (m[0], method) for m in models for method in METHODS}
+    tags = {trimask_tag(m[0], method, resolution): (m[0], method) for m in models for method in METHODS}
     items = json.loads((ROOT / SHOWCASE / "prompts.json").read_text())
     where = "image IS NOT NULL AND model_tag IN (%s)" % ", ".join(f"'{t}'" for t in tags)
     table = lance.dataset(str(LANCE)).to_table(columns=["model_tag", "page_id", "image", "iou", "exterior_gray_error"],
@@ -180,15 +193,15 @@ def build_trimask(*run_steps, notes="", name="gallery_trimask"):
         assert image["position"] == 0, f"{tag} {page_id}: blob is packed in {image['blob_uri']}, not a file of its own"
         link(LANCE / image["blob_uri"], assets / tag / f"{page_id}.png")
     for item in items:
-        link(ROOT / SHOWCASE / "mattes" / f"{item['page_id']}.png", assets / "mattes" / f"{item['page_id']}.png")
-        link(ROOT / SHOWCASE / "references" / f"{item['page_id']}.png", assets / "references" / f"{item['page_id']}.png")
         for method in METHODS:
-            link(ROOT / TRIMASK_SET / method / "mattes" / f"{item['page_id']}.png", assets / "trimasks" / method / f"{item['page_id']}.png")
+            link(ROOT / sets / method / "mattes" / f"{item['page_id']}.png", assets / "trimasks" / method / f"{item['page_id']}.png")
+        for kind, target in (("originals", "mattes"), ("references", "references")):  # the true matte and MAGICK, at this resolution
+            link(ROOT / sets / METHODS[0] / kind / f"{item['page_id']}.png", assets / target / f"{item['page_id']}.png")
 
     def score(row):
         """Query. trimask_metrics of one stored image (reads its PNG and its trimask)."""
         read = lambda path: np.asarray(Image.open(path), np.float32) / 255
-        return trimask_metrics(read(LANCE / row.image["blob_uri"]), read(ROOT / TRIMASK_SET / row.method / "mattes" / f"{row.page_id}.png"))
+        return trimask_metrics(read(LANCE / row.image["blob_uri"]), read(ROOT / sets / row.method / "mattes" / f"{row.page_id}.png"))
 
     with ThreadPoolExecutor(16) as pool:
         table = table.join(pd.DataFrame(list(pool.map(score, table.itertuples())), index=table.index))
@@ -196,11 +209,11 @@ def build_trimask(*run_steps, notes="", name="gallery_trimask"):
     means = pd.concat([table.groupby("model")[columns].mean().assign(method="all"),
                        table.groupby(["model", "method"])[columns].mean().reset_index("method")]).set_index("method", append=True)
     (assets / "metrics.json").write_text(means.reset_index().to_json(orient="records", indent=1) + "\n")
-    page.write_text(render_trimask(models, items, METHODS, means, notes, assets.relative_to(page.parent), run_steps))
+    page.write_text(render_trimask(models, items, METHODS, means, notes, assets.relative_to(page.parent), run_steps, resolution))
     print(f"wrote {page}: {len(items)} items x {len(METHODS)} methods x {len(models)} models, {len(table)} links in {assets}")
 
 
-def render_trimask(models, items, methods, means, notes, assets, run_steps):
+def render_trimask(models, items, methods, means, notes, assets, run_steps, resolution=1024):
     """
     Pure function. The trimask gallery page HTML.
 
@@ -212,6 +225,7 @@ def render_trimask(models, items, methods, means, notes, assets, run_steps):
         notes (str): observations HTML
         assets (Path): image folder relative to the page
         run_steps (tuple[str]): RUN:STEP of the models, for the title
+        resolution (int): eval resolution (model tags and title)
 
     Returns:
         str
@@ -230,12 +244,12 @@ def render_trimask(models, items, methods, means, notes, assets, run_steps):
             pid = item["page_id"]
             cells = [figure(f"{assets}/mattes/{pid}.png", "matte"), figure(f"{assets}/trimasks/{method}/{pid}.png", f"trimask ({method})"),
                      figure(f"{assets}/references/{pid}.png", "MAGICK on gray")]
-            cells += [figure(f"{assets}/{trimask_tag(tag, method)}/{pid}.png", short, equation) for tag, *_, short, equation in models]
+            cells += [figure(f"{assets}/{trimask_tag(tag, method, resolution)}/{pid}.png", short, equation) for tag, *_, short, equation in models]
             rows += (f'<div class="evalrow"><p class="rowcap"><span class="split {item["split"]}">{item["split"]}</span> '
                      f'{esc(item["caption"])} <code>{pid}</code></p>{"".join(cells)}</div>\n')
         sections += (f'<details{" open" * (method == methods[0])}><summary><h2>{esc(method)}</h2></summary>\n'
                      f'<div class="evalgrid" style="--cols: {len(models) + 3}">\n{rows}</div></details>\n')
-    return TRIMASK_HTML.format(title="Gallery trimask", runs=esc(", ".join(run_steps)), n=len(items), k=len(methods),
+    return TRIMASK_HTML.format(title=f"Gallery trimask {resolution}", runs=esc(", ".join(run_steps)) + f" at {resolution}&sup2;", n=len(items), k=len(methods),
                                held=sum(i["split"] == "held-out" for i in items), body=body, notes=notes, sections=sections)
 
 

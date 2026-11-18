@@ -101,13 +101,14 @@ def split_rgba(rgba):
     return alpha, x[..., :3] * alpha[..., None] + GRAY_LEVEL * (1 - alpha[..., None])
 
 
-def make_noise(count, seed=NOISE_SEED):
+def make_noise(count, seed=NOISE_SEED, shape=LATENT_SHAPE):
     """
     Pure function. Fixed standard-normal initial latents, one per eval item, made on CPU so they are device independent.
 
     Args:
         count (int): N, number of eval items
         seed (int): torch CPU generator seed
+        shape (tuple[int]): (LC, LH, LW) of one latent; (32, r/32, r/32) at resolution r
 
     Returns:
         torch.Tensor: (N, LC, LH, LW) float32, e.g. (29, 32, 32, 32)
@@ -116,7 +117,7 @@ def make_noise(count, seed=NOISE_SEED):
         >>> make_noise(2).shape, bool((make_noise(2) == make_noise(2)).all())
         (torch.Size([2, 32, 32, 32]), True)
     """
-    return torch.randn((count, *LATENT_SHAPE), generator=torch.Generator("cpu").manual_seed(seed))
+    return torch.randn((count, *shape), generator=torch.Generator("cpu").manual_seed(seed))
 
 
 def load_eval_set(eval_dir=EVAL_DIR):
@@ -171,36 +172,55 @@ def build(eval_dir=str(EVAL_DIR), download_dir=str(DOWNLOAD_DIR), residues=(0,))
     print(f"wrote {eval_dir}")
 
 
-def build_trimask(source="resources/showcase", out="resources/showcase_trimask", methods=None, variant=0):
+def build_trimask(source="resources/showcase", out="resources/showcase_trimask", methods=None, variant=0, resolution=1024):
     """
     Command. Writes one eval set per trimask method: OUT/<method>/mattes/<page_id>.png = the 8-bit trimask (0.5 = 128)
     of SOURCE's matte, made by trimask.generate (seeded by page_id, method, variant, so it is fixed). Everything else
     (originals/ = SOURCE's mattes, references/, prompts, noise) is a relative symlink into SOURCE. Raises unless every
-    stored trimask passes trimask.check_consistent (m00647: no incorrect trimasks).
+    stored 1024 trimask passes trimask.check_consistent (m00647: no incorrect trimasks).
+    Below 1024 (m00656) the folder is OUT_<resolution>: trimasks, originals/ and references/ are area-downsampled from
+    1024 (uint8 cv2.INTER_AREA, as data/processors/encode_multires.py makes the training latents; resampling can move
+    single edge pixels off the rule, so the rule is checked at 1024), and the noise is (32, r/32, r/32) seeded
+    NOISE_SEED + resolution. originals/, references/ and noise are written once in OUT_<resolution>/ and linked.
 
     Args:
         source (str): eval set folder relative to the repo root (resources/showcase)
         out (str): output folder relative to the repo root
         methods (tuple[str] | None): trimask.METHODS tags; None = all of trimask.METHODS (m00646, m00648: training uses all)
         variant (int): trimask.generate variant
+        resolution (int): 1024, 768, 512 or 256
     """
+    import cv2
+
     from sana_alpha import trimask
 
-    source = ROOT / source
+    source, low = ROOT / source, resolution != 1024
+    base = ROOT / (f"{out}_{resolution}" if low else out)
+    area = lambda image: cv2.resize(image, (resolution, resolution), interpolation=cv2.INTER_AREA) if low else image
     items = json.loads((source / "prompts.json").read_text())
+    read = lambda kind, item, mode: np.asarray(Image.open(source / kind / f"{item['page_id']}.png").convert(mode))
+    shared = {f: source / f for f in TRIMASK_SHARED}
+    shared.update(originals=source / "mattes", references=source / "references")
+    if low:  # the per-resolution originals, references and noise, once
+        for kind, folder, mode in (("mattes", "originals", "L"), ("references", "references", "RGB")):
+            (base / folder).mkdir(parents=True, exist_ok=True)
+            for item in items:
+                Image.fromarray(area(read(kind, item, mode)), mode).save(base / folder / f"{item['page_id']}.png")
+        noise = make_noise(len(items), NOISE_SEED + resolution, (LATENT_SHAPE[0], resolution // 32, resolution // 32))
+        save_file(dict(noise=noise), base / "noise.safetensors", metadata=dict(seed=str(NOISE_SEED + resolution), order="same as prompts.json"))
+        shared.update({k: base / k for k in ("originals", "references", "noise.safetensors")})
     for method in methods or trimask.METHODS:
-        folder = ROOT / out / method
+        folder = base / method
         (folder / "mattes").mkdir(parents=True, exist_ok=True)
-        for link, target in dict(originals="mattes", references="references", **{f: f for f in TRIMASK_SHARED}).items():
+        for link, target in shared.items():
             if not (folder / link).is_symlink():
-                (folder / link).symlink_to(os.path.relpath(source / target, folder))  # relative: the dump stays portable
+                (folder / link).symlink_to(os.path.relpath(target, folder))  # relative: the dump stays portable
         for item in items:
-            alpha = np.asarray(Image.open(source / "mattes" / f"{item['page_id']}.png"), np.float32) / 255
-            rgb = (np.asarray(Image.open(source / "references" / f"{item['page_id']}.png").convert("RGB"), np.float32) / 255
-                   if method in trimask.RGB_METHODS else None)  # bilateral_blur follows the RGB on gray
+            alpha = read("mattes", item, "L").astype(np.float32) / 255
+            rgb = read("references", item, "RGB").astype(np.float32) / 255 if method in trimask.RGB_METHODS else None  # bilateral_blur follows the RGB on gray
             stored = trimask.to_uint8(trimask.generate(alpha, item["page_id"], method, variant, rgb)[0])
-            trimask.check_consistent(alpha, stored.astype(np.float32) / 255)  # m00647: the stored PNG, as load_eval_set reads it
-            Image.fromarray(stored, "L").save(folder / "mattes" / f"{item['page_id']}.png")
+            trimask.check_consistent(alpha, stored.astype(np.float32) / 255)  # m00647: the stored 8-bit values, as read
+            Image.fromarray(area(stored), "L").save(folder / "mattes" / f"{item['page_id']}.png")
         print(f"wrote {folder}: {len(items)} trimasks")
 
 
