@@ -194,6 +194,13 @@ Training entry points (e.g. `train_adapter.sh`, `train_control.sh`) may also liv
 - Planning happens here. Execution happens on the node via the GitHub repo.
 - Node session (m00600–m00605): Aviary checkout in `data/`, called only through `data/aviary.sh`; bulldog mode, 13 h; fork mode with plain subagents (mostly Sonnet, Opus for hard parts); babysit once runs start; max 6 phone notifications, signed "Sana"; keep an agenda.
 - **User transcripts are part of this manifest.** They live in `agents/transcripts.md` (verbatim, courtroom style), which is §11 of this manifest kept in its own file because it is long.
+- **Requests log, node session (each with its transcript id):**
+  - Journal and galleries: λ sweep and full vs partial subtraction shown (m00615); ≥50 examples, held-out vs train labeled (m00615); full-resolution images, many per page (m00616); stock Sprint column for color reference (m00618); detailed SANA-style prompts as a second row per item (m00619); every image labeled with its weight equation; no bare "final" (m00622, m00623); collapsible sections (m00622); gray background not required, full subtraction is the final model (m00628).
+  - Sparrow: run_sparrow.fish at the top level, server reported as lan_ip:port (m00630); Sparrow views that mirror the galleries (m00631).
+  - Talking and notifying: talk out loud once per request with the stark_comma curl; "notify me" = phone (m00620, m00621); 6 notifications, then 4 more (m00604, m00642); be frugal.
+  - WebGPU app (§12): runs in the browser on a 16–32 GB MacBook (m00624); Swiss style, dark/light, Jost, matte editor with brush, text, shapes, upload, real-time toggle off by default, model picker with progress bars and browser cache, Gemma embedding cache (m00625); linked from the journal and galleries (m00626, m00627); proper quantization, SANA's own scheme first (m00629); photo → matte foreground segmentation (m00632); user controls for steps, guidance, λ (m00638) and resolution (m00639); undo/redo, threshold, more fonts, mask gallery modal filled by a batch swarm from openly licensed vector sources (m00643).
+  - GitHub: publish on GitHub Pages with model files on a separate branch, no LFS, shards if needed (m00633); notify when live (m00634); repo is public, never create private repos (m00635, m00636); the repo must hold everything (m00637); latest and best models hosted (m00641).
+  - Trimask model (§13): fuzzy masks / trimasks as a second model class, dilate/erode tools, ten augmentation strategies by ten Sonnet agents as BlueJay processors into one table, Sparrow view, fine-tune vs scratch, 16 h (m00644).
 
 ## 9. Semantic Bindings
 
