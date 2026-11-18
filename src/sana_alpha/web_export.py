@@ -947,10 +947,11 @@ def verify(version, transformers="transformer.onnx", eval_dir="resources/eval"):
         began = time.perf_counter()
         session = ort_session(folder / name)
         load_s = time.perf_counter() - began
+        lam = [np.zeros(1, np.float32)] if "adapter_scale" in [x.name for x in session.get_inputs()] else []  # λ graphs: λ = 0 is the reference model
         latents, seconds = [], []
         for i in range(len(items)):
             began = time.perf_counter()
-            latents.append(run_session(session, noise[i:i + 1], onnx_cond[i:i + 1], timestep, guidance, embeds[i], mask[i]))
+            latents.append(run_session(session, noise[i:i + 1], onnx_cond[i:i + 1], timestep, guidance, embeds[i], mask[i], *lam))
             seconds.append(time.perf_counter() - began)
         latents = np.concatenate(latents)
         del session
