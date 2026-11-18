@@ -272,3 +272,6 @@ Did you push 8,000 yet? Please do that if you haven't already.
 
 ## m00656 — 2026-11-18 12:50 AM
 Also, when you train the next version, can you make sure to train it on multiple resolutions? Yes, of course, you should mostly train on 1024, but 50% of the time I'd like to divide it between 768, 512 and 256 resolutions, so that we have a variety of different resolutions, because right now it actually looks like shit when you use lower resolutions.
+
+## m00657 — 2026-11-18 12:52 AM
+Also, I don't know why our GPUs aren't fully blasting. Shouldn't you have a very hyper-efficient processor that loads the VAE and continuously encodes all of these at all the resolutions we need? All of our augmentations and all of our images?
