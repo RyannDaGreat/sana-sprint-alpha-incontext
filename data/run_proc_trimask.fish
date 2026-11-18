@@ -1,6 +1,6 @@
 #!/usr/bin/env fish
-# Fills trimask_augmentations (manifest §13): the ten trimask_<method> processors (CPU) and encode_trimask (GPU) run at the same time
-# encode_trimask waits for rows until all ten methods are done. Safe to run again: each processor does only the rows that are not done yet
+# Fills trimask_augmentations (manifest §13): every trimask_<method> processor (CPU) and encode_trimask (GPU) run at the same time
+# encode_trimask waits for rows until all methods are done. Safe to run again: each processor does only the rows that are not done yet
 # Usage: fish run_proc_trimask.fish
 
 cd (status dirname); or exit
@@ -8,7 +8,7 @@ source uv.env; or exit
 set dtab project.dtab
 set stage recipes/loops/stage.fish
 
-set METHODS (string replace -rf '^\ttrimask_(\w+)\t.*' '$1' < $dtab)  # The ten trimask_<method> processors of the dtab
+set METHODS (string replace -rf '^\ttrimask_(\w+)\t.*' '$1' < $dtab)  # Every trimask_<method> processor of the dtab
 set AUGMENT_LOOPS 2  # Per method. Each run uses 8 threads (trimask_augment.WORKERS). 4 per method saturated the 96 CPUs and starved encode_trimask
 set ENCODE_LOOPS  (math 2 x (nvidia-smi -L | count))  # Two per GPU: one loads its batch while the other encodes
 

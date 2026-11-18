@@ -1826,13 +1826,13 @@ tables
 			seconds, exterior_gray_error, border_gray_error, border_std, iou, foreground_fraction float64
 
 	trimask_augmentations
-		 One row per trimask: the condition of the trimask model (manifest §13). Ten methods, about 26k train images each
+		 One row per trimask: the condition of the trimask model (manifest §13). Fourteen methods, about 26k train images each
 		primary_key page_id,method,variant
 		columns
 			page_id, method string
 			variant int64
 
-			 Written by the ten trimask_<method> processors
+			 Written by the fourteen trimask_<method> processors
 			split, params string
 			trimask blob
 			white_fraction, gray_fraction, black_fraction float64
@@ -2309,6 +2309,130 @@ processors
 						gray_fraction @	            float  Fraction of pixels not 0 or 255: unknown                                          0.10
 						black_fraction @	        float  Fraction of pixels 0: surely background                                           0.65
 
+	trimask_combo_union	 Makes the trimasks of method combo_union (src/sana_alpha/trimask/combo_union.py) for its train images
+		query sql
+			SELECT page_id, alpha, split FROM magick_samples                                                    -- MAGICK images
+			WHERE   trimask_combo_union_claim IS NULL                                                           -- not yet claimed,
+			    AND alpha                     IS NOT NULL                                                       -- that split_alpha did,
+			    AND split                     = 'train'                                                         -- not eval,
+			    AND page_id NOT IN (SELECT page_id FROM _showcase_train_items)                                  -- not a showcase image,
+			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'combo_union')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
+			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                         -- one batch at a time, in random order
+		claim	trimask_combo_union_claim magick_samples
+		command bash
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src uv run --project .. python processors/trimask_augment.py "$BATCH" combo_union $TRIMASK_VARIANTS $TRIMASK_SUBSET
+		materialize	               TYPE  DESCRIPTION                            EXAMPLE
+			alpha.png alpha	        blob  The matte                              120 KB .png
+			input.json	           TYPE  DESCRIPTION                            EXAMPLE
+				page_id @	 [Key]  str   MAGICK image ID: it seeds the trimask  "Hcx82jcUpM"
+				split @	           ~str   Always train                           "train"
+		commit
+			trimask_augmentations
+				children/	                       TYPE   DESCRIPTION                                                                       EXAMPLE
+					trimask trimask.png	            blob   The trimask: 1024 x 1024 grayscale, 8 bit. 255 object, 0 background, 128 unknown  20 KB .png
+					fields.json	         SUBFIELD  TYPE   DESCRIPTION                                                                       EXAMPLE
+						page_id @	         [Key]  str    The image                                                                         "Hcx82jcUpM"
+						method @	         [Key]  str    The method tag                                                                    "combo_union"
+						variant @	         [Key]  int    0 to TRIMASK_VARIANTS - 1: it seeds the trimask too                               0
+						split @	                   ~str    Always train                                                                      "train"
+						params @	                str    JSON of the hyperparameters used                                                  "{...}"
+						white_fraction @	        float  Fraction of pixels 255: surely object                                             0.25
+						gray_fraction @	            float  Fraction of pixels not 0 or 255: unknown                                          0.10
+						black_fraction @	        float  Fraction of pixels 0: surely background                                           0.65
+
+	trimask_combo_chain	 Makes the trimasks of method combo_chain (src/sana_alpha/trimask/combo_chain.py) for its train images
+		query sql
+			SELECT page_id, alpha, split FROM magick_samples                                                    -- MAGICK images
+			WHERE   trimask_combo_chain_claim IS NULL                                                           -- not yet claimed,
+			    AND alpha                     IS NOT NULL                                                       -- that split_alpha did,
+			    AND split                     = 'train'                                                         -- not eval,
+			    AND page_id NOT IN (SELECT page_id FROM _showcase_train_items)                                  -- not a showcase image,
+			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'combo_chain')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
+			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                         -- one batch at a time, in random order
+		claim	trimask_combo_chain_claim magick_samples
+		command bash
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src uv run --project .. python processors/trimask_augment.py "$BATCH" combo_chain $TRIMASK_VARIANTS $TRIMASK_SUBSET
+		materialize	               TYPE  DESCRIPTION                            EXAMPLE
+			alpha.png alpha	        blob  The matte                              120 KB .png
+			input.json	           TYPE  DESCRIPTION                            EXAMPLE
+				page_id @	 [Key]  str   MAGICK image ID: it seeds the trimask  "Hcx82jcUpM"
+				split @	           ~str   Always train                           "train"
+		commit
+			trimask_augmentations
+				children/	                       TYPE   DESCRIPTION                                                                       EXAMPLE
+					trimask trimask.png	            blob   The trimask: 1024 x 1024 grayscale, 8 bit. 255 object, 0 background, 128 unknown  20 KB .png
+					fields.json	         SUBFIELD  TYPE   DESCRIPTION                                                                       EXAMPLE
+						page_id @	         [Key]  str    The image                                                                         "Hcx82jcUpM"
+						method @	         [Key]  str    The method tag                                                                    "combo_chain"
+						variant @	         [Key]  int    0 to TRIMASK_VARIANTS - 1: it seeds the trimask too                               0
+						split @	                   ~str    Always train                                                                      "train"
+						params @	                str    JSON of the hyperparameters used                                                  "{...}"
+						white_fraction @	        float  Fraction of pixels 255: surely object                                             0.25
+						gray_fraction @	            float  Fraction of pixels not 0 or 255: unknown                                          0.10
+						black_fraction @	        float  Fraction of pixels 0: surely background                                           0.65
+
+	trimask_skeleton_strokes	 Makes the trimasks of method skeleton_strokes (src/sana_alpha/trimask/skeleton_strokes.py) for its train images
+		query sql
+			SELECT page_id, alpha, split FROM magick_samples                                                         -- MAGICK images
+			WHERE   trimask_skeleton_strokes_claim IS NULL                                                           -- not yet claimed,
+			    AND alpha                          IS NOT NULL                                                       -- that split_alpha did,
+			    AND split                          = 'train'                                                         -- not eval,
+			    AND page_id NOT IN (SELECT page_id FROM _showcase_train_items)                                       -- not a showcase image,
+			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'skeleton_strokes')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
+			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                              -- one batch at a time, in random order
+		claim	trimask_skeleton_strokes_claim magick_samples
+		command bash
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src uv run --project .. python processors/trimask_augment.py "$BATCH" skeleton_strokes $TRIMASK_VARIANTS $TRIMASK_SUBSET
+		materialize	               TYPE  DESCRIPTION                            EXAMPLE
+			alpha.png alpha	        blob  The matte                              120 KB .png
+			input.json	           TYPE  DESCRIPTION                            EXAMPLE
+				page_id @	 [Key]  str   MAGICK image ID: it seeds the trimask  "Hcx82jcUpM"
+				split @	           ~str   Always train                           "train"
+		commit
+			trimask_augmentations
+				children/	                       TYPE   DESCRIPTION                                                                       EXAMPLE
+					trimask trimask.png	            blob   The trimask: 1024 x 1024 grayscale, 8 bit. 255 object, 0 background, 128 unknown  20 KB .png
+					fields.json	         SUBFIELD  TYPE   DESCRIPTION                                                                       EXAMPLE
+						page_id @	         [Key]  str    The image                                                                         "Hcx82jcUpM"
+						method @	         [Key]  str    The method tag                                                                    "skeleton_strokes"
+						variant @	         [Key]  int    0 to TRIMASK_VARIANTS - 1: it seeds the trimask too                               0
+						split @	                   ~str    Always train                                                                      "train"
+						params @	                str    JSON of the hyperparameters used                                                  "{...}"
+						white_fraction @	        float  Fraction of pixels 255: surely object                                             0.25
+						gray_fraction @	            float  Fraction of pixels not 0 or 255: unknown                                          0.10
+						black_fraction @	        float  Fraction of pixels 0: surely background                                           0.65
+
+	trimask_partial_view	 Makes the trimasks of method partial_view (src/sana_alpha/trimask/partial_view.py) for its train images
+		query sql
+			SELECT page_id, alpha, split FROM magick_samples                                                     -- MAGICK images
+			WHERE   trimask_partial_view_claim IS NULL                                                           -- not yet claimed,
+			    AND alpha                      IS NOT NULL                                                       -- that split_alpha did,
+			    AND split                      = 'train'                                                         -- not eval,
+			    AND page_id NOT IN (SELECT page_id FROM _showcase_train_items)                                   -- not a showcase image,
+			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'partial_view')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
+			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                          -- one batch at a time, in random order
+		claim	trimask_partial_view_claim magick_samples
+		command bash
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src uv run --project .. python processors/trimask_augment.py "$BATCH" partial_view $TRIMASK_VARIANTS $TRIMASK_SUBSET
+		materialize	               TYPE  DESCRIPTION                            EXAMPLE
+			alpha.png alpha	        blob  The matte                              120 KB .png
+			input.json	           TYPE  DESCRIPTION                            EXAMPLE
+				page_id @	 [Key]  str   MAGICK image ID: it seeds the trimask  "Hcx82jcUpM"
+				split @	           ~str   Always train                           "train"
+		commit
+			trimask_augmentations
+				children/	                       TYPE   DESCRIPTION                                                                       EXAMPLE
+					trimask trimask.png	            blob   The trimask: 1024 x 1024 grayscale, 8 bit. 255 object, 0 background, 128 unknown  20 KB .png
+					fields.json	         SUBFIELD  TYPE   DESCRIPTION                                                                       EXAMPLE
+						page_id @	         [Key]  str    The image                                                                         "Hcx82jcUpM"
+						method @	         [Key]  str    The method tag                                                                    "partial_view"
+						variant @	         [Key]  int    0 to TRIMASK_VARIANTS - 1: it seeds the trimask too                               0
+						split @	                   ~str    Always train                                                                      "train"
+						params @	                str    JSON of the hyperparameters used                                                  "{...}"
+						white_fraction @	        float  Fraction of pixels 255: surely object                                             0.25
+						gray_fraction @	            float  Fraction of pixels not 0 or 255: unknown                                          0.10
+						black_fraction @	        float  Fraction of pixels 0: surely background                                           0.65
+
 	encode_trimask	 Encodes each trimask with the teacher's DC-AE, copied to 3 channels like the matte
 		query sql
 			SELECT page_id, method, variant, trimask FROM trimask_augmentations -- trimasks
@@ -2491,6 +2615,10 @@ queries
 		    shot(t.trimask, t.method, t.caption, 'polygon_simplify')                   AS polygon_simplify,
 		    shot(t.trimask, t.method, t.caption, 'unknown_patches')                    AS unknown_patches,
 		    shot(t.trimask, t.method, t.caption, 'fuzzy_ramp')                         AS fuzzy_ramp,
+		    shot(t.trimask, t.method, t.caption, 'combo_union')                        AS combo_union,
+		    shot(t.trimask, t.method, t.caption, 'combo_chain')                        AS combo_chain,
+		    shot(t.trimask, t.method, t.caption, 'skeleton_strokes')                   AS skeleton_strokes,
+		    shot(t.trimask, t.method, t.caption, 'partial_view')                       AS partial_view,
 		    avg(t.white_fraction)                                                      AS white_fraction,
 		    avg(t.gray_fraction)                                                       AS gray_fraction,
 		    avg(t.black_fraction)                                                      AS black_fraction

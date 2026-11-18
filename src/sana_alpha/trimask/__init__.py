@@ -1,5 +1,5 @@
 """
-Trimask augmentations (manifest §13): ten methods that turn a MAGICK matte into a trimask, the second model's condition.
+Trimask augmentations (manifest §13): fourteen methods that turn a MAGICK matte into a trimask, the second model's condition.
 
 A trimask is (H, W) float32 in [0, 1]: 1 = surely object, 0 = surely background, 0.5 = unknown (the model decides).
 fuzzy_ramp may use values between these; every other method uses only {0, 0.5, 1}.
@@ -28,7 +28,8 @@ import json
 import numpy as np
 
 METHODS = ("morph_band", "noisy_band", "blur_quantize", "scribbles", "bbox_unknown",
-           "convex_hull", "grid_coarsen", "polygon_simplify", "unknown_patches", "fuzzy_ramp")
+           "convex_hull", "grid_coarsen", "polygon_simplify", "unknown_patches", "fuzzy_ramp",
+           "combo_union", "combo_chain", "skeleton_strokes", "partial_view")  # The last four: m00648
 
 
 def seed(page_id, method, variant):
