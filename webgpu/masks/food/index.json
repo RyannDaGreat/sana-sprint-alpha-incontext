@@ -113,13 +113,6 @@
       "author": "Delapouite"
     },
     {
-      "file": "cellar-barrels.png",
-      "name": "Cellar Barrels",
-      "source_url": "https://game-icons.net/1x1/delapouite/cellar-barrels.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
       "file": "cherry.png",
       "name": "Cherry",
       "source_url": "https://game-icons.net/1x1/delapouite/cherry.html",
@@ -596,100 +589,9 @@
       "author": "Skoll"
     },
     {
-      "file": "aubergine.png",
-      "name": "Aubergine",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f346.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "grapes.png",
-      "name": "Grapes",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f347.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "banana-noto-emoji.png",
-      "name": "Banana",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f34c.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "pineapple-noto-emoji.png",
-      "name": "Pineapple",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f34d.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "red-apple.png",
-      "name": "Red Apple",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f34e.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "pear-noto-emoji.png",
-      "name": "Pear",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f350.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "peach-noto-emoji.png",
-      "name": "Peach",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f351.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "cherries.png",
-      "name": "Cherries",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f352.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "slice-of-pizza.png",
-      "name": "Slice Of Pizza",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f355.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "poultry-leg.png",
-      "name": "Poultry Leg",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f357.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "steaming-bowl.png",
-      "name": "Steaming Bowl",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f35c.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "french-fries-noto-emoji.png",
-      "name": "French Fries",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f35f.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
       "file": "oden.png",
       "name": "Oden",
       "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f362.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "fried-shrimp.png",
-      "name": "Fried Shrimp",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f364.svg",
       "license": "Apache-2.0",
       "author": "Google (Noto Emoji)"
     },
@@ -729,58 +631,9 @@
       "author": "Google (Noto Emoji)"
     },
     {
-      "file": "popcorn-noto-emoji.png",
-      "name": "Popcorn",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f37f.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "croissant-noto-emoji.png",
-      "name": "Croissant",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f950.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "bacon-noto-emoji.png",
-      "name": "Bacon",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f953.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "carrot-noto-emoji.png",
-      "name": "Carrot",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f955.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "baguette-bread.png",
-      "name": "Baguette Bread",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f956.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
       "file": "peanuts.png",
       "name": "Peanuts",
       "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f95c.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "broccoli-noto-emoji.png",
-      "name": "Broccoli",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f966.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "pretzel-noto-emoji.png",
-      "name": "Pretzel",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f968.svg",
       "license": "Apache-2.0",
       "author": "Google (Noto Emoji)"
     },
@@ -820,13 +673,6 @@
       "author": "Google (Noto Emoji)"
     },
     {
-      "file": "olive-noto-emoji.png",
-      "name": "Olive",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1fad2.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
       "file": "fondue.png",
       "name": "Fondue",
       "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1fad5.svg",
@@ -846,20 +692,6 @@
       "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1fadb.svg",
       "license": "Apache-2.0",
       "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "hot-beverage.png",
-      "name": "Hot Beverage",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u2615.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "corn-mdi.png",
-      "name": "Corn",
-      "source_url": "https://pictogrammers.com/library/mdi/icon/corn/",
-      "license": "Apache-2.0",
-      "author": "Pictogrammers (Material Design Icons)"
     },
     {
       "file": "food-hot-dog.png",
@@ -888,13 +720,6 @@
       "source_url": "https://pictogrammers.com/library/mdi/icon/sausage/",
       "license": "Apache-2.0",
       "author": "Pictogrammers (Material Design Icons)"
-    },
-    {
-      "file": "champagne-glasses.png",
-      "name": "Champagne Glasses",
-      "source_url": "https://fontawesome.com/icons/champagne-glasses?style=solid",
-      "license": "CC BY 4.0",
-      "author": "Font Awesome Free"
     },
     {
       "file": "ice-cream-cone.png",
@@ -974,20 +799,6 @@
       "author": "Microsoft (Fluent Emoji)"
     },
     {
-      "file": "dumpling.png",
-      "name": "Dumpling",
-      "source_url": "https://github.com/microsoft/fluentui-emoji/tree/main/assets/Dumpling",
-      "license": "MIT",
-      "author": "Microsoft (Fluent Emoji)"
-    },
-    {
-      "file": "hot-dog.png",
-      "name": "Hot Dog",
-      "source_url": "https://github.com/microsoft/fluentui-emoji/tree/main/assets/Hot%20dog",
-      "license": "MIT",
-      "author": "Microsoft (Fluent Emoji)"
-    },
-    {
       "file": "ice-cream.png",
       "name": "Ice Cream",
       "source_url": "https://github.com/microsoft/fluentui-emoji/tree/main/assets/Ice%20cream",
@@ -1030,13 +841,6 @@
       "author": "Microsoft (Fluent Emoji)"
     },
     {
-      "file": "strawberry.png",
-      "name": "Strawberry",
-      "source_url": "https://github.com/microsoft/fluentui-emoji/tree/main/assets/Strawberry",
-      "license": "MIT",
-      "author": "Microsoft (Fluent Emoji)"
-    },
-    {
       "file": "tropical-drink.png",
       "name": "Tropical Drink",
       "source_url": "https://github.com/microsoft/fluentui-emoji/tree/main/assets/Tropical%20drink",
@@ -1051,7 +855,7 @@
       "author": "Delapouite"
     },
     {
-      "file": "dumpling-game-icons.png",
+      "file": "dumpling.png",
       "name": "Dumpling",
       "source_url": "https://game-icons.net/1x1/caro-asercion/dumpling.html",
       "license": "CC BY 3.0",
@@ -1079,7 +883,7 @@
       "author": "Delapouite"
     },
     {
-      "file": "strawberry-game-icons.png",
+      "file": "strawberry.png",
       "name": "Strawberry",
       "source_url": "https://game-icons.net/1x1/delapouite/strawberry.html",
       "license": "CC BY 3.0",
@@ -1100,7 +904,7 @@
       "author": "Delapouite"
     },
     {
-      "file": "aubergine-game-icons.png",
+      "file": "aubergine.png",
       "name": "Aubergine",
       "source_url": "https://game-icons.net/1x1/lorc/aubergine.html",
       "license": "CC BY 3.0",
@@ -1161,6 +965,90 @@
       "source_url": "https://game-icons.net/1x1/delapouite/chips-bag.html",
       "license": "CC BY 3.0",
       "author": "Delapouite"
+    },
+    {
+      "file": "jubilee-cake-stand-red.png",
+      "name": "Jubilee Cake Stand Red",
+      "source_url": "https://openclipart.org/detail/170027/jubilee-cake-stand-red",
+      "license": "CC0 1.0",
+      "author": "mr_johnnyp"
+    },
+    {
+      "file": "teapot-openclipart.png",
+      "name": "Teapot",
+      "source_url": "https://openclipart.org/detail/220794/teapot-silhouette",
+      "license": "CC0 1.0",
+      "author": "GDJ"
+    },
+    {
+      "file": "teapot-2.png",
+      "name": "Teapot 2",
+      "source_url": "https://openclipart.org/detail/283472/teapot-silhouette-2",
+      "license": "CC0 1.0",
+      "author": "GDJ"
+    },
+    {
+      "file": "wine-glass-5.png",
+      "name": "Wine Glass 5",
+      "source_url": "https://openclipart.org/detail/297235/wine-glass-5",
+      "license": "CC0 1.0",
+      "author": "Firkin"
+    },
+    {
+      "file": "abstract-cocktail-2.png",
+      "name": "Abstract Cocktail 2",
+      "source_url": "https://openclipart.org/detail/299210/abstract-cocktail-2",
+      "license": "CC0 1.0",
+      "author": "Firkin"
+    },
+    {
+      "file": "abstract-cocktail-3.png",
+      "name": "Abstract Cocktail 3",
+      "source_url": "https://openclipart.org/detail/299211/abstract-cocktail-3",
+      "license": "CC0 1.0",
+      "author": "Firkin"
+    },
+    {
+      "file": "silhouette-of-a-bottle-and-drinking-glass.png",
+      "name": "Silhouette Of A Bottle And Drinking Glass",
+      "source_url": "https://openclipart.org/detail/320858/silhouette-of-a-bottle-and-drinking-glass",
+      "license": "CC0 1.0",
+      "author": "liftarn"
+    },
+    {
+      "file": "chocolate-square-piece.png",
+      "name": "Chocolate Square Piece",
+      "source_url": "https://openclipart.org/detail/321433/chocolate-square-piece",
+      "license": "CC0 1.0",
+      "author": "liftarn"
+    },
+    {
+      "file": "jack-o-lantern.png",
+      "name": "Jack O Lantern",
+      "source_url": "https://openclipart.org/detail/323315/jack-o-lantern",
+      "license": "CC0 1.0",
+      "author": "NicholasJudy567"
+    },
+    {
+      "file": "turkey.png",
+      "name": "Turkey",
+      "source_url": "https://openclipart.org/detail/330506/turkey",
+      "license": "CC0 1.0",
+      "author": "NicholasJudy567"
+    },
+    {
+      "file": "kitchen-icon-knife-spoon-fork.png",
+      "name": "Kitchen Icon   Knife Spoon Fork",
+      "source_url": "https://openclipart.org/detail/169913/kitchen-icon-knife-spoon-fork",
+      "license": "CC0 1.0",
+      "author": "StudioFibonacci"
+    },
+    {
+      "file": "pomegranate-2.png",
+      "name": "Pomegranate 2",
+      "source_url": "https://openclipart.org/detail/302912/pomegranate-2",
+      "license": "CC0 1.0",
+      "author": "Firkin"
     }
   ]
 }
