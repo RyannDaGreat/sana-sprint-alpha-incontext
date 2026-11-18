@@ -265,15 +265,22 @@ def gatecontrol_forward(transformer, latents, cond_latents, text_embeds, text_ma
     return tokens_to_grid(x, height, width)
 
 
+COMPILE_GRAPHS_PER_FUNCTION = 256  # ≥ 20 blocks × 4 resolutions = 80 graphs per compiled function, with headroom
+COMPILE_GRAPHS_TOTAL = 4096  # all compiled functions together (the block function and its resume functions)
+
+
 def compile_blocks():
     """
     Command (rebinds this module's gated_block_forward). torch.compile of the block function, static shapes.
 
-    Measured on an A100 (shared): 1.66× faster, 30% less activation memory than eager. One graph per block
-    (modules are guarded by identity), hence the larger dynamo cache.
+    Measured on an A100 (shared): 1.66× faster, 30% less activation memory than eager. One graph per block and input
+    shape (modules are guarded by identity), hence the larger dynamo cache: 20 blocks × 4 training resolutions
+    (train_control --multires) and their graph-break resume functions. Callers keep the text length fixed
+    (train_control pads every batch to one length), else every caption length adds graphs.
     """
     global gated_block_forward
-    torch._dynamo.config.cache_size_limit = 64
+    torch._dynamo.config.recompile_limit = COMPILE_GRAPHS_PER_FUNCTION
+    torch._dynamo.config.accumulated_recompile_limit = COMPILE_GRAPHS_TOTAL
     gated_block_forward = torch.compile(gated_block_forward, dynamic=False)
 
 

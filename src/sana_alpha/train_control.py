@@ -390,8 +390,12 @@ def train(run, data=str(OVERFIT_DIR), adapter=None, rank=16, batch_size=16, max_
     pipe.set_progress_bar_config(disable=True)
     text = encode_captions(pipe, records["captions"])
     null = encode_captions(pipe, [""], null=True)[0]
+    text_len = torch.tensor(max(len(t) for t in text + [null]), device=device)  # one padded length on every rank:
+    if world > 1:                                                                # fixed compiled shapes (compile_blocks)
+        dist.all_reduce(text_len, op=dist.ReduceOp.MAX)
+    text_len = int(text_len)
     log(f"world {world}, shard {len(text)} records, {len(records['cond_latents'])} conditions, "
-        f"text tokens/caption {len(text[0])}")
+        f"text tokens padded to {text_len}")
     if not main:
         del pipe  # only rank 0 keeps text encoder + vae, for previews
         torch.cuda.empty_cache()
@@ -447,7 +451,7 @@ def train(run, data=str(OVERFIT_DIR), adapter=None, rank=16, batch_size=16, max_
             x0 = pool["latents"][idx].to(device, torch.float32) * sf
             cond = pool["cond_latents"][rows].to(device, torch.float32) * sf
             drop_text = torch.rand(len(idx), generator=gen) < text_drop
-            emb, mask = pad_embeddings([null if d else text[j] for d, j in zip(drop_text.tolist(), idx.tolist())])
+            emb, mask = pad_embeddings([null if d else text[j] for d, j in zip(drop_text.tolist(), idx.tolist())], text_len)
             keep = torch.rand(len(idx), generator=gen) >= cond_drop
             sigmas = sample_sigmas(len(idx), gen)
             noise = torch.randn(x0.shape, generator=gen).to(device)

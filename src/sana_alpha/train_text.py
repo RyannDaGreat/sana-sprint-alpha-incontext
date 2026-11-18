@@ -43,12 +43,13 @@ def encode_captions(pipe, captions, batch_size=128, null=False):
     return out
 
 
-def pad_embeddings(embeddings):
+def pad_embeddings(embeddings, length=None):
     """
     Pure function. Right-pads variable-length token embeddings into a batch with an attention mask.
 
     Args:
         embeddings (list[torch.Tensor]): B tensors, each (L_i, D)
+        length (int | None): padded length (≥ every L_i); None = max L_i. A fixed length keeps compiled shapes fixed.
 
     Returns:
         tuple: (B, max L_i, D) embeddings (zeros where padded), (B, max L_i) int64 mask (1 = real token)
@@ -57,8 +58,10 @@ def pad_embeddings(embeddings):
         >>> e, m = pad_embeddings([torch.ones(2, 3), torch.ones(1, 3)])
         >>> tuple(e.shape), m.tolist(), e[1, 1].tolist()
         ((2, 2, 3), [[1, 1], [1, 0]], [0.0, 0.0, 0.0])
+        >>> pad_embeddings([torch.ones(2, 3)], length=4)[1].tolist()
+        [[1, 1, 0, 0]]
     """
-    length = max(len(e) for e in embeddings)
+    length = length or max(len(e) for e in embeddings)
     batch = embeddings[0].new_zeros(len(embeddings), length, embeddings[0].shape[1])
     mask = torch.zeros(len(embeddings), length, dtype=torch.int64)
     for i, e in enumerate(embeddings):
