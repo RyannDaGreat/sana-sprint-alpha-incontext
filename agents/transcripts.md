@@ -332,3 +332,6 @@ Well, I'm not gonna be waiting for it, so once it works, go fix it and rewrite t
 
 ## m00676 — 2026-11-18 3:34 AM
 Also, I don't know why there's two Sparrow saves. There should only be one.
+
+## m00677 — 2026-11-18 3:38 AM
+That's lame, that's really lame. Why don't you have BlueJay then go and [encode, transcribed as "code"] those? You still have enough VRAM, I'm sure. You can do both. You can multitask your GPUs.
