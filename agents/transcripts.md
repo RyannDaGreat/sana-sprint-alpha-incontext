@@ -248,3 +248,6 @@ Just to be clear, the trimasks — they're all correct, right? No incorrect trim
 
 ## m00648 — 2026-11-17 11:31 PM
 And why not have 4 more augmentation methods, including combinations of the others, with 4 more Sonnet agents?
+
+## m00649 — 2026-11-17 11:50 PM
+What about bilateral blurs? Overlaying others? Applying others in random orders? 2 more?
