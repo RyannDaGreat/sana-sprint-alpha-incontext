@@ -14,6 +14,7 @@ deepest point from the edge), which is a strong erosion for any object size.
 
 import cv2
 import numpy as np
+from sana_alpha.trimask import restrict_to_matte
 
 THRESHOLD = 0.5  # Alpha above this is object
 PAD_MAX_FRAC_RANGE = (0.01, 0.3)  # Per-image maximum padding, as a fraction of the box side; drawn log-uniformly
@@ -171,4 +172,4 @@ def make_trimask(alpha, rng, pad_top, pad_bottom, pad_left, pad_right, core_frac
         box = pad_box(tight, {side: int(round(px)) for side, px in pads.items()}, alpha.shape)
     params = {"pad_top": pad_top, "pad_bottom": pad_bottom, "pad_left": pad_left, "pad_right": pad_right,
               "core_frac": core_frac, "threshold": threshold, "box": None if box is None else list(box)}
-    return box_trimask(alpha.shape, box, core_mask(binary, core_frac)), params
+    return restrict_to_matte(alpha, box_trimask(alpha.shape, box, core_mask(binary, core_frac))), params

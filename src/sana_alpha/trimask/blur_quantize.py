@@ -15,6 +15,7 @@ Sources (none blurs-then-thresholds the matte to get a trimap; these are the clo
 
 import cv2
 import numpy as np
+from sana_alpha.trimask import restrict_to_matte
 
 SIGMA_PX = (2.0, 32.0)  # Isotropic sigma is log-uniform in this range, in pixels of a 1024² matte
 ANISOTROPIC_PROB = 0.3  # Chance that the two axes get different sigmas
@@ -100,4 +101,4 @@ def make_trimask(alpha, rng, sigma_x, sigma_y, low, high):
         {'sigma_x': 3.0, 'sigma_y': 3.0, 'low': 0.2, 'high': 0.8}
     """
     trimask = quantize3(blur(alpha, sigma_x, sigma_y), low, high)
-    return trimask, {"sigma_x": sigma_x, "sigma_y": sigma_y, "low": low, "high": high}
+    return restrict_to_matte(alpha, trimask), {"sigma_x": sigma_x, "sigma_y": sigma_y, "low": low, "high": high}

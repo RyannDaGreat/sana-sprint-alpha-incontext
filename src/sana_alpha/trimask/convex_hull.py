@@ -13,6 +13,7 @@ Sources (no paper builds trimaps from hulls for augmentation; these are the clos
 
 import cv2
 import numpy as np
+from sana_alpha.trimask import restrict_to_matte
 
 CORE_ERODE_PX = (2, 48)  # Core erosion radius range, in pixels of a 1024² matte
 HULL_DILATE_PX = (4, 40)  # Hull dilation radius range when dilation is used
@@ -143,4 +144,4 @@ def make_trimask(alpha, rng, mode, hull_dilate_px, erode_px, threshold):
     hull = grow(hull_mask(binary, mode == "per_component", min_area_px), hull_dilate_px)
     core = shrink(binary, erode_px) & hull
     trimask = np.where(core, 1, np.where(hull, 0.5, 0)).astype(np.float32)
-    return trimask, {"mode": mode, "hull_dilate_px": hull_dilate_px, "erode_px": erode_px, "threshold": threshold}
+    return restrict_to_matte(alpha, trimask), {"mode": mode, "hull_dilate_px": hull_dilate_px, "erode_px": erode_px, "threshold": threshold}
