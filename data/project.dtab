@@ -5,7 +5,6 @@ environ
 	ENCODE_BATCH_SIZE 128	 Images per run of encode_latents (about 40 s on one A100). run_proc_curate.fish starts two loops per GPU
 	COLORBG_BATCH_SIZE 512	 Images per run of encode_colorbg. Big: a run costs ~40 s besides the encoding. run_proc_colorbg.fish starts 1 loop per GPU
 	TRIMASK_BATCH_SIZE 512	        Images per run of each trimask_<method>. CPU only: it reads 1 PNG and writes 1 per variant. run_proc_trimask.fish starts 2 loops per method
-	TRIMASK_ENCODE_BATCH_SIZE 1024	 Trimasks per run of encode_trimask: big, so the ~40 s per-run cost is shared. run_proc_trimask.fish starts two loops per GPU
 
 	 Data
 	MAGICK_REPO OneOverZero/MAGICK	 Hugging Face dataset: 140,955 RGBA PNGs, 1024 x 1024, straight alpha, 191 GB
@@ -127,6 +126,10 @@ tables
 			 Written by encode_colorbg, for adapter_v2
 			bg_color list_(float32(), 3)
 			latent_rgb_colorbg_1024 blob
+
+			 Written by encode_multires: long-lived per-GPU workers (data/processors/encode_multires.py, started by run_proc_trimask.fish), committed with Bluejay's commit, not Bluejay runs
+			 latent_<x>_<S>: (32, S/32, S/32) bfloat16, key "latent", unscaled, of the image area-downsampled to S x S
+			latent_rgb_768, latent_rgb_512, latent_rgb_256, latent_alpha_768, latent_alpha_512, latent_alpha_256 blob
 
 	eval_models
 		 One row per model to evaluate. To evaluate a new checkpoint, add a row here: run_proc_eval.fish initializes first
@@ -1838,8 +1841,9 @@ tables
 			trimask blob
 			white_fraction, gray_fraction, black_fraction float64
 
-			 Written by encode_trimask
-			latent_trimask_1024 blob
+			 Written by encode_multires: long-lived per-GPU workers (data/processors/encode_multires.py, started by run_proc_trimask.fish), committed with Bluejay's commit, not Bluejay runs
+			 768, 512 and 256 only for ~31% of the rows (encode_multires.LOWRES_DIGITS)
+			latent_trimask_1024, latent_trimask_768, latent_trimask_512, latent_trimask_256 blob
 
 
 processors
@@ -2608,21 +2612,6 @@ processors
 						white_fraction @	        float  Fraction of pixels 255: surely object                                             0.25
 						gray_fraction @	            float  Fraction of pixels not 0 or 255: unknown                                          0.10
 						black_fraction @	        float  Fraction of pixels 0: surely background                                           0.65
-
-	encode_trimask	 Encodes each trimask with the teacher's DC-AE, copied to 3 channels like the matte
-		query sql
-			SELECT page_id, method, variant, trimask FROM trimask_augmentations -- trimasks
-			WHERE   encode_trimask_claim IS NULL                                -- not yet claimed,
-			    AND trimask              IS NOT NULL                            -- that a trimask_<method> made,
-			ORDER BY random() LIMIT $TRIMASK_ENCODE_BATCH_SIZE                  -- one batch at a time, in random order
-		claim	encode_trimask_claim trimask_augmentations
-		command bash
-			uv run --script processors/encode_trimask.py "$BATCH" $TEACHER_DIR
-		materialize	              TYPE  DESCRIPTION                                        EXAMPLE
-			trimask.png trimask	   blob  The trimask, copied to 3 channels before encoding  20 KB .png
-		commit
-			trimask_augmentations	                              TYPE  DESCRIPTION                                                                                         EXAMPLE
-				latent_trimask_1024 latent_trimask.safetensors	   blob  DC-AE latent of the trimask: (32, 32, 32) bfloat16, key "latent", unscaled, like latent_alpha_1024  64 KB .safetensors
 
 
 functions
