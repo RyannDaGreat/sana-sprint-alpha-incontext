@@ -2005,6 +2005,7 @@ processors
 			WHERE   trimask_morph_band_claim IS NULL                                                           -- not yet claimed,
 			    AND alpha                    IS NOT NULL                                                       -- that split_alpha did,
 			    AND split                    = 'train'                                                         -- not eval,
+			    AND page_id NOT IN (SELECT page_id FROM _showcase_train_items)                                 -- not a showcase image,
 			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'morph_band')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
 			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                        -- one batch at a time, in random order
 		claim	trimask_morph_band_claim magick_samples
@@ -2035,6 +2036,7 @@ processors
 			WHERE   trimask_noisy_band_claim IS NULL                                                           -- not yet claimed,
 			    AND alpha                    IS NOT NULL                                                       -- that split_alpha did,
 			    AND split                    = 'train'                                                         -- not eval,
+			    AND page_id NOT IN (SELECT page_id FROM _showcase_train_items)                                 -- not a showcase image,
 			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'noisy_band')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
 			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                        -- one batch at a time, in random order
 		claim	trimask_noisy_band_claim magick_samples
@@ -2065,6 +2067,7 @@ processors
 			WHERE   trimask_blur_quantize_claim IS NULL                                                           -- not yet claimed,
 			    AND alpha                       IS NOT NULL                                                       -- that split_alpha did,
 			    AND split                       = 'train'                                                         -- not eval,
+			    AND page_id NOT IN (SELECT page_id FROM _showcase_train_items)                                    -- not a showcase image,
 			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'blur_quantize')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
 			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                           -- one batch at a time, in random order
 		claim	trimask_blur_quantize_claim magick_samples
@@ -2095,6 +2098,7 @@ processors
 			WHERE   trimask_scribbles_claim IS NULL                                                           -- not yet claimed,
 			    AND alpha                   IS NOT NULL                                                       -- that split_alpha did,
 			    AND split                   = 'train'                                                         -- not eval,
+			    AND page_id NOT IN (SELECT page_id FROM _showcase_train_items)                                -- not a showcase image,
 			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'scribbles')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
 			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                       -- one batch at a time, in random order
 		claim	trimask_scribbles_claim magick_samples
@@ -2125,6 +2129,7 @@ processors
 			WHERE   trimask_bbox_unknown_claim IS NULL                                                           -- not yet claimed,
 			    AND alpha                      IS NOT NULL                                                       -- that split_alpha did,
 			    AND split                      = 'train'                                                         -- not eval,
+			    AND page_id NOT IN (SELECT page_id FROM _showcase_train_items)                                   -- not a showcase image,
 			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'bbox_unknown')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
 			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                          -- one batch at a time, in random order
 		claim	trimask_bbox_unknown_claim magick_samples
@@ -2155,6 +2160,7 @@ processors
 			WHERE   trimask_convex_hull_claim IS NULL                                                           -- not yet claimed,
 			    AND alpha                     IS NOT NULL                                                       -- that split_alpha did,
 			    AND split                     = 'train'                                                         -- not eval,
+			    AND page_id NOT IN (SELECT page_id FROM _showcase_train_items)                                  -- not a showcase image,
 			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'convex_hull')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
 			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                         -- one batch at a time, in random order
 		claim	trimask_convex_hull_claim magick_samples
@@ -2185,6 +2191,7 @@ processors
 			WHERE   trimask_grid_coarsen_claim IS NULL                                                           -- not yet claimed,
 			    AND alpha                      IS NOT NULL                                                       -- that split_alpha did,
 			    AND split                      = 'train'                                                         -- not eval,
+			    AND page_id NOT IN (SELECT page_id FROM _showcase_train_items)                                   -- not a showcase image,
 			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'grid_coarsen')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
 			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                          -- one batch at a time, in random order
 		claim	trimask_grid_coarsen_claim magick_samples
@@ -2215,6 +2222,7 @@ processors
 			WHERE   trimask_polygon_simplify_claim IS NULL                                                           -- not yet claimed,
 			    AND alpha                          IS NOT NULL                                                       -- that split_alpha did,
 			    AND split                          = 'train'                                                         -- not eval,
+			    AND page_id NOT IN (SELECT page_id FROM _showcase_train_items)                                       -- not a showcase image,
 			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'polygon_simplify')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
 			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                              -- one batch at a time, in random order
 		claim	trimask_polygon_simplify_claim magick_samples
@@ -2245,6 +2253,7 @@ processors
 			WHERE   trimask_unknown_patches_claim IS NULL                                                           -- not yet claimed,
 			    AND alpha                         IS NOT NULL                                                       -- that split_alpha did,
 			    AND split                         = 'train'                                                         -- not eval,
+			    AND page_id NOT IN (SELECT page_id FROM _showcase_train_items)                                      -- not a showcase image,
 			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'unknown_patches')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
 			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                             -- one batch at a time, in random order
 		claim	trimask_unknown_patches_claim magick_samples
@@ -2275,6 +2284,7 @@ processors
 			WHERE   trimask_fuzzy_ramp_claim IS NULL                                                           -- not yet claimed,
 			    AND alpha                    IS NOT NULL                                                       -- that split_alpha did,
 			    AND split                    = 'train'                                                         -- not eval,
+			    AND page_id NOT IN (SELECT page_id FROM _showcase_train_items)                                 -- not a showcase image,
 			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'fuzzy_ramp')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
 			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                        -- one batch at a time, in random order
 		claim	trimask_fuzzy_ramp_claim magick_samples
@@ -2450,6 +2460,10 @@ queries
 		JOIN magick_samples s ON s.page_id = t.page_id                                        -- with its matte,
 		GROUP BY r.run_step, t.page_id, s.split, t.prompt_variant                             -- one row per step, item and prompt,
 		ORDER BY r.run_step, split, t.page_id, t.prompt_variant DESC                          -- held-out items first, caption before detailed prompt
+	_showcase_train_items sql
+		-- The training images of the showcase set (resources/showcase, page_residue 1). No trimask_<method> uses them
+		SELECT column1 AS page_id FROM (VALUES ('0pUpyMQaCk'), ('5eMH8a6Vjv'), ('AgfOUN3DeM'), ('G5x2u0fPL8'), ('Hh8q5lgcAQ'), ('Io48JpfRrF'), ('IotKdbdV6T'), ('JGCoeNF4Tz'), ('KkgEsWzE8g'), ('N3JnvKPzOa'), ('NqdDLAYhG0'), ('Of2DUBiPIs'), ('QJcPoXEAP4'), ('RMcfP2pbC9'), ('StEZ525CCF'), ('TbTuikHxJT'), ('UFzmrKcIez'), ('WLDj1YvRWz'), ('WvG6E6hnyA'), ('Y5KTHH1ThN'), ('YYOAlb6C3u'), ('YhFRkqnzo4'), ('aoKJjZiw5t'), ('ebSe48PO7c'), ('fdNNerLubw'), ('gibvvaoLuT'), ('hRhqVbDC6h'), ('jjRpuZm4XX'), ('ksBFHMzGfM'), ('l2ynv1mqir'), ('mxCEBNOGGW'), ('oswuq3J8bi'), ('p4auHb5Y3v'), ('swSl8ww8WG'), ('ymcgJ1MZH4'), ('z3PrRRIvM4'), ('zDR3g9P014'), ('zZYNHaRp8O'))
+
 	view_trimasks sql
 		-- One row per image of trimask_augmentations: its matte, then the trimask of each method that used it (variant 0).
 		-- Each caption is the trimask's unknown (gray) fraction and its hyperparameters. Images with the most methods come first
