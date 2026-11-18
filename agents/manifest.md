@@ -252,6 +252,8 @@ Exact form (written by `src/sana_alpha/web_export.py`; all graph I/O float32 exc
 
 **Ten strategies (method tags).** `morph_band` (erode/dilate band), `noisy_band` (band width modulated by smooth noise), `blur_quantize` (blurred mask cut into 3 levels), `scribbles` (sparse user-like strokes, rest unknown), `bbox_unknown` (unknown = bounding box minus eroded core), `convex_hull` (unknown = hull minus core), `grid_coarsen` (low-res cells that straddle the edge are unknown), `polygon_simplify` (coarse polygon tracing, band around it), `unknown_patches` (random unknown blobs in and out), `fuzzy_ramp` (continuous distance-transform ramp, not 3-level).
 
+**Correctness (m00647).** No incorrect trimasks: sure-white only on fully opaque pixels (alpha ≥ 1 − 1/255), sure-black only on fully transparent pixels (alpha ≤ 1/255), every soft-alpha pixel gray (fuzzy_ramp: ≥ 0.5 on opaque, ≤ 0.5 on transparent, strictly between on soft). `check_consistent` enforces it in `generate()` (raises), and a full table scan must show 0 violations before training.
+
 **Training.** Two runs to compare (m00644: "fine-tune your current checkpoints, or maybe it's better just to do it from scratch"): `control_tri_ft` = init from control_v2 step 6000; `control_tri_scratch` = fresh LoRA + gates; both on adapter_v2 step 1000, 4 GPUs each, condition = trimask latent; ALL ten methods are used in training (m00646), sampled uniformly over methods, with per-method counts logged.
 
 **Agenda (16 h, 10:15 PM → 2:15 PM ET 2026-11-18).** 11:15 PM processors written; 12:30 AM table filled and encoded; 12:45 AM both runs start (babysat); ~4:30 AM evals + gallery; 9:00 AM web demo trimask class + export; 11:00 AM journal page; 2:15 PM hard stop.
