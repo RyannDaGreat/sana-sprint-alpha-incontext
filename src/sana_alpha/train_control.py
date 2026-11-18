@@ -430,7 +430,8 @@ def train(run, data=str(OVERFIT_DIR), adapter=None, rank=16, batch_size=16, max_
     if trimask:  # preview one row each of PREVIEW_COUNT methods spread over METHODS
         preview_cond = [int(torch.nonzero(records["cond_method"] == m)[0]) for m in torch.linspace(0, len(METHODS) - 1, PREVIEW_COUNT).long()]
         preview_idx = records["cond_owner"][preview_cond].tolist()
-        log(f"trimask rows per method (rank 0 shard): {dict(zip(METHODS, torch.bincount(records['cond_method'], minlength=len(METHODS)).tolist()))}")
+        for res, pool in {1024: records, **records["lowres"]}.items():
+            log(f"trimask rows per method at {res} (rank 0 shard): {dict(zip(METHODS, torch.bincount(pool['cond_method'], minlength=len(METHODS)).tolist()))}")
     res_steps, res_secs = dict.fromkeys(RESOLUTION_PROBS, 0), dict.fromkeys(RESOLUTION_PROBS, 0.0)  # since the last log
     meta = dict(run=run, adapter=str(adapter), data=str(data), cond=cond, multires=multires, objective="flow v=eps-x0, sigma timestep")
     if main and preview_every:
