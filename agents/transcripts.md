@@ -308,3 +308,6 @@ Do you have any explanation as to why the claims timelines one takes so fucking 
 
 ## m00668 — 2026-11-18 3:13 AM
 How about we just do it from scratch? Only.
+
+## m00669 — 2026-11-18 3:21 AM
+Okay, good, looks like the VAE thing is done. Can we finally restart the Sparrows over properly? It seems totally busted. Give me the URL for it.
