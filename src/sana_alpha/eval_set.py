@@ -6,12 +6,15 @@ Build it once (writes resources/eval/):
 The showcase set adds training images (residue 1, split "train") after the held-out ones, so its first noise rows
 equal the eval set's (writes resources/showcase/):
     PYTHONPATH=src uv run python -m sana_alpha.eval_set build resources/showcase --residues 0,1
+The showcase trimask sets (one eval set per method, conditions = fixed trimasks; writes resources/showcase_trimask/):
+    PYTHONPATH=src uv run python -m sana_alpha.eval_set build_trimask
 
 The rule must match data/project.dtab (EVAL_MODULUS, the `split` column of import_index).
 """
 
 import hashlib
 import json
+import os
 from pathlib import Path
 
 import fire
@@ -30,6 +33,7 @@ EVAL_MODULUS = 4000  # must equal EVAL_MODULUS in data/project.dtab
 GRAY_LEVEL = 0.5
 NOISE_SEED = 20261117  # the date the eval set was fixed
 LATENT_SHAPE = (32, 32, 32)  # (LC, LH, LW): DC-AE f32c32 latent of a 1024x1024 image
+TRIMASK_SHARED = ("prompts.json", "prompts_detailed.json", "noise.safetensors")  # files a trimask set links from its source
 PROMPT_SUFFIXES = dict(plain="", gray=", on a plain 50% gray background")  # prompt variant -> text added to the caption
 
 
@@ -123,16 +127,18 @@ def load_eval_set(eval_dir=EVAL_DIR):
         eval_dir (Path): folder written by `build`
 
     Returns:
-        dict: items (list of {page_id, caption, sim_score}), mattes (N, H, W) float32 in [0,1],
-              references (N, H, W, 3) float32 RGB gray composites, noise (N, 32, 32, 32) float32
+        dict: items (list of {page_id, caption, sim_score}), mattes (N, H, W) float32 in [0,1] (the condition: 8-bit
+              PNG / 255, so a trimask's unknown 128 stays 0.502), originals (N, H, W) the true mattes (originals/ of a
+              trimask set, else = mattes), references (N, H, W, 3) float32 RGB gray composites, noise (N, 32, 32, 32) float32
     """
     eval_dir = Path(eval_dir)
     items = json.loads((eval_dir / "prompts.json").read_text())
-    mattes = np.stack([np.asarray(Image.open(eval_dir / "mattes" / f"{i['page_id']}.png"), np.float32) / 255 for i in items])
-    refs = np.stack([np.asarray(Image.open(eval_dir / "references" / f"{i['page_id']}.png"), np.float32) / 255 for i in items])
+    read = lambda kind: np.stack([np.asarray(Image.open(eval_dir / kind / f"{i['page_id']}.png"), np.float32) / 255 for i in items])
     noise = load_file(eval_dir / "noise.safetensors")["noise"]
     assert len(noise) == len(items), f"noise has {len(noise)} rows but prompts.json has {len(items)} items"
-    return dict(items=items, mattes=mattes, references=refs, noise=noise)
+    mattes = read("mattes")
+    originals = read("originals") if (eval_dir / "originals").is_dir() else mattes
+    return dict(items=items, mattes=mattes, originals=originals, references=read("references"), noise=noise)
 
 
 def build(eval_dir=str(EVAL_DIR), download_dir=str(DOWNLOAD_DIR), residues=(0,)):
@@ -165,5 +171,34 @@ def build(eval_dir=str(EVAL_DIR), download_dir=str(DOWNLOAD_DIR), residues=(0,))
     print(f"wrote {eval_dir}")
 
 
+def build_trimask(source="resources/showcase", out="resources/showcase_trimask", methods=None, variant=0):
+    """
+    Command. Writes one eval set per trimask method: OUT/<method>/mattes/<page_id>.png = the 8-bit trimask (0.5 = 128)
+    of SOURCE's matte, made by trimask.generate (seeded by page_id, method, variant, so it is fixed). Everything else
+    (originals/ = SOURCE's mattes, references/, prompts, noise) is a relative symlink into SOURCE.
+
+    Args:
+        source (str): eval set folder relative to the repo root (resources/showcase)
+        out (str): output folder relative to the repo root
+        methods (tuple[str] | None): trimask.METHODS tags; None = all ten (m00646: training uses all ten)
+        variant (int): trimask.generate variant
+    """
+    from sana_alpha import trimask
+
+    source = ROOT / source
+    items = json.loads((source / "prompts.json").read_text())
+    for method in methods or trimask.METHODS:
+        folder = ROOT / out / method
+        (folder / "mattes").mkdir(parents=True, exist_ok=True)
+        for link, target in dict(originals="mattes", references="references", **{f: f for f in TRIMASK_SHARED}).items():
+            if not (folder / link).is_symlink():
+                (folder / link).symlink_to(os.path.relpath(source / target, folder))  # relative: the dump stays portable
+        for item in items:
+            alpha = np.asarray(Image.open(source / "mattes" / f"{item['page_id']}.png"), np.float32) / 255
+            mask, _ = trimask.generate(alpha, item["page_id"], method, variant)
+            Image.fromarray(trimask.to_uint8(mask), "L").save(folder / "mattes" / f"{item['page_id']}.png")
+        print(f"wrote {folder}: {len(items)} trimasks")
+
+
 if __name__ == "__main__":
-    fire.Fire(dict(build=build))
+    fire.Fire(dict(build=build, build_trimask=build_trimask))

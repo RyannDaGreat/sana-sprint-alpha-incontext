@@ -104,7 +104,7 @@ def serve():
             for (sample, row), prompt, image, sec, seed in zip(members, prompts, images, seconds, seeds):
                 Image.fromarray(np.round(image * 255).astype(np.uint8)).save(sample / "image.png")
                 result = dict(prompt=prompt, call_kwargs=json.dumps(kwargs), step_noise_seed=seed, seconds=sec,
-                              **image_metrics(image, data["mattes"][row["noise_index"]]))
+                              **image_metrics(image, data["originals"][row["noise_index"]]))  # true matte, also for trimask sets
                 (sample / "result.json").write_text(json.dumps(result))
             print(f"{kind} {checkpoint} {len(members)} images, {np.mean(seconds):.2f} s/image", flush=True)
 

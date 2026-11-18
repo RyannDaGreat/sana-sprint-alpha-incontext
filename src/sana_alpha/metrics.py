@@ -124,6 +124,32 @@ def image_metrics(rgb, matte):
     )
 
 
+def trimask_metrics(rgb, trimask):
+    """
+    Pure function. How well a generated image respects the certain regions of its trimask (0 = fully respected).
+
+    white_miss: mean |fg − 1| on trimask white (> 1 − EXTERIOR_ALPHA), the share of "surely object" left gray.
+    black_hit: mean fg on trimask black (< EXTERIOR_ALPHA), the share of "surely background" painted.
+    fg = foreground_mask(rgb). NaN when the region is empty. IoU and gray error against the true matte are image_metrics'.
+
+    Args:
+        rgb (np.ndarray): (H, W, 3) float RGB in [0,1]
+        trimask (np.ndarray): (H, W) float in [0,1]; 1 = object, 0 = background, 0.5 = unknown
+
+    Returns:
+        dict: white_miss, black_hit (floats)
+
+    Examples:
+        >>> trimask = np.array([[1, 1, 0.5, 0], [0, 0, 0, 0]])
+        >>> rgb = np.full((2, 4, 3), 0.5); rgb[0, 0] = rgb[0, 2] = rgb[1, 3] = 0.9
+        >>> trimask_metrics(rgb, trimask)
+        {'white_miss': 0.5, 'black_hit': 0.2}
+    """
+    fg = foreground_mask(rgb).astype(float)
+    region_mean = lambda region: float(fg[region].mean()) if region.any() else float("nan")
+    return dict(white_miss=1 - region_mean(trimask > 1 - EXTERIOR_ALPHA), black_hit=region_mean(trimask < EXTERIOR_ALPHA))
+
+
 def mean_metrics(per_image):
     """
     Pure function. Averages a list of image_metrics dicts key by key.

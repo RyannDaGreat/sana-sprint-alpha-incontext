@@ -5,6 +5,9 @@ one column per model: stock Sprint/teacher, the teacher λ sweep, and the Sprint
 
     PYTHONPATH=src uv run python -m sana_alpha.gallery rows control_v2 1500 plain detailed   # dtab eval_models rows to paste
     PYTHONPATH=src uv run python -m sana_alpha.gallery build control_v2 1500 [--notes "<p>...</p>"]
+The trimask gallery (manifest §13): full-subtraction models of several RUN:STEP on resources/showcase_trimask/<method>:
+    PYTHONPATH=src uv run python -m sana_alpha.gallery trimask_rows control_v2:6000 control_tri_ft:6000
+    PYTHONPATH=src uv run python -m sana_alpha.gallery build_trimask control_v2:6000 control_tri_ft:6000 [--notes ...]
 
 build writes journal/gallery_<run without "control_">.html and hard-links every full-resolution image into
 journal/assets/gallery_<...>/ (git ignores it; run build again to recreate the links).
@@ -16,10 +19,13 @@ from pathlib import Path
 
 import fire
 
+import pandas as pd
+
 from sana_alpha.journal_assets import label_of, link
 
 ROOT = Path(__file__).resolve().parents[2]
 SHOWCASE = "resources/showcase"
+TRIMASK_SET = "resources/showcase_trimask"  # one eval set per trimask method (eval_set.build_trimask)
 LANCE = ROOT / "data/lance/eval_generations.lance"
 TEACHER_LAMBDAS = (1, 0.75, 0.5, 0.25, 0)
 SPRINT_LAMBDAS = (1, 0.75, 0.5, 0)
@@ -56,13 +62,14 @@ def step_models(run, step):
     return teacher + sprint
 
 
-def dtab_rows(models, variant):
+def dtab_rows(models, variant, eval_set=SHOWCASE):
     """
     Pure function. eval_models initial_rows text (DTAB, tab-indented) for models on the showcase set.
 
     Args:
         models (list[tuple]): from step_models or STOCK
         variant (str): prompt_variant
+        eval_set (str): eval set folder relative to the repo root
 
     Returns:
         str
@@ -81,7 +88,7 @@ def dtab_rows(models, variant):
     """
     keys = "model_tag pipeline checkpoint prompt_variant steps guidance eval_set".split()
     return "".join("\t\t\t,\n" + "".join(f"\t\t\t\t{k} {v}\n" for k, v in zip(keys, (variant_tag(tag, variant), pipeline, checkpoint,
-                   variant, steps, 4.5, SHOWCASE))) for tag, pipeline, checkpoint, steps, _ in models)
+                   variant, steps, 4.5, eval_set))) for tag, pipeline, checkpoint, steps, _ in models)
 
 
 def variant_tag(tag, variant):
@@ -98,6 +105,138 @@ def variant_tag(tag, variant):
 def rows(run, step, *variants, stock=False):
     """Command. Prints the eval_models rows of one control step (and the STOCK models with --stock) to paste into the dtab."""
     print("".join(dtab_rows(step_models(run, step) + STOCK * stock, v) for v in variants or VARIANTS), end="")
+
+
+def trimask_models(run_step):
+    """
+    Pure function. The full-subtraction (λ = 0) models of one control step, for the trimask gallery: teacher 20 steps,
+    Sprint 2 steps and 1 step.
+
+    Args:
+        run_step (str): "RUN:STEP", e.g. "control_tri_ft:6000"
+
+    Returns:
+        list[tuple]: as step_models
+
+    Examples:
+        >>> [m[0] for m in trimask_models("control_tri_ft:6000")]
+        ['show_tri_ft_step006000_lam0', 'show_tri_ft_step006000_sprint_lam0_2step', 'show_tri_ft_step006000_sprint_lam0_1step']
+    """
+    run, step = run_step.split(":")
+    return [m for m in step_models(run, int(step)) if m[0].endswith(("_lam0", "_lam0_2step", "_lam0_1step"))]
+
+
+def trimask_tag(tag, method):
+    """
+    Pure function. The model_tag of a showcase model on one trimask method's eval set.
+
+    Examples:
+        >>> trimask_tag("show_tri_ft_step006000_lam0", "morph_band")
+        'tri_morph_band_tri_ft_step006000_lam0'
+    """
+    return tag.replace("show_", f"tri_{method}_", 1)
+
+
+def trimask_rows(*run_steps):
+    """Command. Prints the eval_models rows (MAGICK captions) of RUN:STEP... on every trimask eval set, to paste into the dtab."""
+    from sana_alpha.trimask import METHODS
+
+    print("".join(dtab_rows([(trimask_tag(m[0], method), *m[1:]) for r in run_steps for m in trimask_models(r)], "plain",
+                            f"{TRIMASK_SET}/{method}") for method in METHODS), end="")
+
+
+def build_trimask(*run_steps, notes="", name="gallery_trimask"):
+    """
+    Command. Hard-links the trimask showcase images of the full-subtraction models of RUN:STEP... and writes the page
+    journal/<name>.html: one collapsible section per method, rows [matte | trimask | MAGICK on gray | models].
+    Metrics per model and method: IoU and gray error against the true matte (eval_generations), and white_miss /
+    black_hit against the trimask (metrics.trimask_metrics, computed here from the stored images). Raises if any image is missing.
+
+    Args:
+        *run_steps (str): "RUN:STEP", e.g. control_v2:6000 control_tri_ft:6000 control_tri_scratch:6000
+        notes (str): HTML of the observations paragraph
+        name (str): page and assets folder name
+    """
+    from concurrent.futures import ThreadPoolExecutor
+
+    import lance
+    import numpy as np
+    from PIL import Image
+
+    from sana_alpha.metrics import trimask_metrics
+    from sana_alpha.trimask import METHODS
+
+    assets, page = ROOT / f"journal/assets/{name}", ROOT / f"journal/{name}.html"
+    models = [(*m[:4], f"{r.split(':')[0]}: {m[4]}", label_of(*m[1:4])) for r in run_steps for m in trimask_models(r)]
+    tags = {trimask_tag(m[0], method): (m[0], method) for m in models for method in METHODS}
+    items = json.loads((ROOT / SHOWCASE / "prompts.json").read_text())
+    where = "image IS NOT NULL AND model_tag IN (%s)" % ", ".join(f"'{t}'" for t in tags)
+    table = lance.dataset(str(LANCE)).to_table(columns=["model_tag", "page_id", "image", "iou", "exterior_gray_error"],
+                                               filter=where).to_pandas()
+    missing = {(t, i["page_id"]) for t in tags for i in items} - set(zip(table.model_tag, table.page_id))
+    assert not missing, f"{len(missing)} trimask showcase images missing, e.g. {sorted(missing)[:3]}: run data/run_proc_eval.fish"
+    table["model"], table["method"] = zip(*table.model_tag.map(tags))
+    for tag, page_id, image in zip(table.model_tag, table.page_id, table.image):
+        assert image["position"] == 0, f"{tag} {page_id}: blob is packed in {image['blob_uri']}, not a file of its own"
+        link(LANCE / image["blob_uri"], assets / tag / f"{page_id}.png")
+    for item in items:
+        link(ROOT / SHOWCASE / "mattes" / f"{item['page_id']}.png", assets / "mattes" / f"{item['page_id']}.png")
+        link(ROOT / SHOWCASE / "references" / f"{item['page_id']}.png", assets / "references" / f"{item['page_id']}.png")
+        for method in METHODS:
+            link(ROOT / TRIMASK_SET / method / "mattes" / f"{item['page_id']}.png", assets / "trimasks" / method / f"{item['page_id']}.png")
+
+    def score(row):
+        """Query. trimask_metrics of one stored image (reads its PNG and its trimask)."""
+        read = lambda path: np.asarray(Image.open(path), np.float32) / 255
+        return trimask_metrics(read(LANCE / row.image["blob_uri"]), read(ROOT / TRIMASK_SET / row.method / "mattes" / f"{row.page_id}.png"))
+
+    with ThreadPoolExecutor(16) as pool:
+        table = table.join(pd.DataFrame(list(pool.map(score, table.itertuples())), index=table.index))
+    columns = ["iou", "exterior_gray_error", "white_miss", "black_hit"]
+    means = pd.concat([table.groupby("model")[columns].mean().assign(method="all"),
+                       table.groupby(["model", "method"])[columns].mean().reset_index("method")]).set_index("method", append=True)
+    (assets / "metrics.json").write_text(means.reset_index().to_json(orient="records", indent=1) + "\n")
+    page.write_text(render_trimask(models, items, METHODS, means, notes, assets.relative_to(page.parent), run_steps))
+    print(f"wrote {page}: {len(items)} items x {len(METHODS)} methods x {len(models)} models, {len(table)} links in {assets}")
+
+
+def render_trimask(models, items, methods, means, notes, assets, run_steps):
+    """
+    Pure function. The trimask gallery page HTML.
+
+    Args:
+        models (list[tuple]): (model_tag, pipeline, checkpoint, steps, short label, weight equation), in column order
+        items (list[dict]): showcase prompts.json (page_id, caption, split)
+        methods (tuple[str]): trimask methods, one section each
+        means (pd.DataFrame): index (model_tag, method or "all"); columns iou, exterior_gray_error, white_miss, black_hit
+        notes (str): observations HTML
+        assets (Path): image folder relative to the page
+        run_steps (tuple[str]): RUN:STEP of the models, for the title
+
+    Returns:
+        str
+    """
+    esc = html.escape
+    label = lambda short, equation="": esc(short) + (f"<br><small>{esc(equation)}</small>" if equation else "")
+    figure = lambda src, short, equation="": (f'<figure><a href="{src}" target="_blank"><img loading="lazy" decoding="async" '
+                                              f'src="{src}" alt="{esc(short)}"></a><figcaption>{label(short, equation)}</figcaption></figure>')
+    body = "".join(f"<tr><td>{label(short, equation)}</td><td>{esc(method)}</td>" + "".join(
+        f"<td>{v:.3f}</td>" for v in means.loc[(tag, method)]) + "</tr>"
+        for method in ("all", *methods) for tag, *_, short, equation in models)
+    sections = ""
+    for method in methods:
+        rows = ""
+        for item in items:
+            pid = item["page_id"]
+            cells = [figure(f"{assets}/mattes/{pid}.png", "matte"), figure(f"{assets}/trimasks/{method}/{pid}.png", f"trimask ({method})"),
+                     figure(f"{assets}/references/{pid}.png", "MAGICK on gray")]
+            cells += [figure(f"{assets}/{trimask_tag(tag, method)}/{pid}.png", short, equation) for tag, *_, short, equation in models]
+            rows += (f'<div class="evalrow"><p class="rowcap"><span class="split {item["split"]}">{item["split"]}</span> '
+                     f'{esc(item["caption"])} <code>{pid}</code></p>{"".join(cells)}</div>\n')
+        sections += (f'<details{" open" * (method == methods[0])}><summary><h2>{esc(method)}</h2></summary>\n'
+                     f'<div class="evalgrid" style="--cols: {len(models) + 3}">\n{rows}</div></details>\n')
+    return TRIMASK_HTML.format(title="Gallery trimask", runs=esc(", ".join(run_steps)), n=len(items), k=len(methods),
+                               held=sum(i["split"] == "held-out" for i in items), body=body, notes=notes, sections=sections)
 
 
 def build(run, step, notes="", name=None):
@@ -187,7 +326,7 @@ def render(run, step, models, items, detailed, means, notes, assets):
 
 
 GROUP_SIZE = 10  # items per collapsible group of rows
-GALLERY_HTML = """<!doctype html>
+GALLERY_HEAD = """<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -213,7 +352,8 @@ td:first-child, td:nth-child(2) {{ text-align: left; }}
 <body>
 <main>
 <p><a href="index.html">&larr; journal</a></p>
-<h1>Gallery: {run} step {step}, with and without subtracting the adapter</h1>
+"""
+GALLERY_HTML = GALLERY_HEAD + """<h1>Gallery: {run} step {step}, with and without subtracting the adapter</h1>
 <details open><summary><h2>How each image is made</h2></summary>
 <ul>
 <li><b>W_teacher</b>: the stock SANA-Sprint 1.6B teacher. <b>W_sprint</b>: the stock Sprint student. <b>W_adapter</b>: the teacher fully fine-tuned on MAGICK-on-gray, with no matte (adapter_v1 step 2000).</li>
@@ -240,5 +380,27 @@ Every image is the stored 1024 &times; 1024 PNG: click one to open it.</p>
 </html>
 """
 
+TRIMASK_HTML = GALLERY_HEAD + """<h1>Trimask gallery: {runs}</h1>
+<details open><summary><h2>How each image is made</h2></summary>
+<p>The condition is a <b>trimask</b>: white = surely object, black = surely background, gray = unknown (the model decides).
+Each of the {n} showcase items ({held} <span class="split held-out">held-out</span>) has one fixed trimask per method ({k} methods,
+<code>resources/showcase_trimask</code>), made from its true matte. Every column is a full-subtraction model
+(W_base + W_control &minus; W_adapter + gates); the label under each image gives its equation and sampler. Same fixed noise everywhere.</p>
+</details>
+<details open><summary><h2>Metrics</h2></summary>
+<p>IoU and gray error: against the <b>true</b> matte (as in the other galleries). white miss: share of the trimask's white left gray
+(0 = all of it painted). black hit: share of the trimask's black painted (0 = all of it left gray). The first rows average all methods.</p>
+<div class="metrics"><table><tr><th>model</th><th>method</th><th>IoU</th><th>gray error</th><th>white miss</th><th>black hit</th></tr>{body}</table></div>
+</details>
+<details open><summary><h2>Observations</h2></summary>
+{notes}
+</details>
+<button class="gridtoggle" onclick="this.setAttribute('aria-pressed', [...document.querySelectorAll('.evalgrid')].map(g => g.classList.toggle('native'))[0])">native size (1:1)</button>
+</main>
+{sections}
+</body>
+</html>
+"""
+
 if __name__ == "__main__":
-    fire.Fire(dict(rows=rows, build=build))
+    fire.Fire(dict(rows=rows, build=build, trimask_rows=trimask_rows, build_trimask=build_trimask))
