@@ -264,6 +264,8 @@ Exact form (written by `src/sana_alpha/web_export.py`; all graph I/O float32 exc
 
 **Trimask editor GUI (m00684).** On top of the current matte editor: paint white / gray / black; soften (blur into gray), harden (snap to 3 levels); value remaps (white→gray, gray→black, black→white, …); dilate, erode, erode-into-gray, dilate-into-gray; polygon and line tools with a chosen value; all undoable. Several GUI designs are brainstormed and compared with an agentic user study (fresh weak-model participants, one design each, isolated).
 
+**Mask presets ×10 (m00685).** A batch 10 swarm (6 Sonnet, 4 Haiku) adds ~3,400 high-quality silhouettes in 19 new categories (strict quality bar, contact-sheet review, perceptual-hash dedup, license per item). Everything gets pushed and the user notified when done (m00686).
+
 **From scratch only (m00668).** The fine-tune run is dropped: one run, `control_tri_scratch`, on all 8 GPUs, for 20,000 steps (m00670). Every 3,000 steps the checkpoint is exported (λ web version only, m00650) and pushed to the GitHub models branch (m00670), and Sana sends one phone notification per pushed checkpoint, by hand, never from a script (m00673, m00674; these do not count against the remaining budget).
 
 **Training.** Two runs to compare (m00644: "fine-tune your current checkpoints, or maybe it's better just to do it from scratch"): `control_tri_ft` = init from control_v2 step 6000; `control_tri_scratch` = fresh LoRA + gates; both on adapter_v2 step 1000, 4 GPUs each, condition = trimask latent; ALL ten methods are used in training (m00646), sampled uniformly over methods, with per-method counts logged.
