@@ -293,3 +293,6 @@ Like, why don't we compact all the tables?
 
 ## m00663 — 2026-11-18 2:16 AM
 BlueJay has a compaction API. Why don't you go use that?
+
+## m00664 — 2026-11-18 2:22 AM
+Ohhh, it's not using fastlance!! That's why Sparrow is so slow?
