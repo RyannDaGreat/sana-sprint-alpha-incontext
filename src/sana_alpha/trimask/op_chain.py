@@ -8,7 +8,7 @@ The chain starts from the matte. 2-6 distinct primitives are drawn, shuffled, an
 parameters and seed (so the recorded params replay the trimask exactly). The final mask m becomes:
     sure white (1) where m >= hi and the matte is fully opaque, sure black (0) where m <= lo and the matte is fully transparent,
     gray (0.5) elsewhere.
-Sure pixels come only from the exact sure regions of the matte (restrict_to_matte at the end), so the result is consistent with the
+Sure pixels come only from the exact sure regions of the matte (finalize at the end), so the result is consistent with the
 matte (manifest §13 correctness). The unknown area is wherever the chain disagrees with the matte.
 
 Speed: the chain runs at half resolution (WORK_PX on the longer side, never upscaled) and m is resized back for the final cut.
@@ -27,7 +27,7 @@ Sources:
 import cv2
 import numpy as np
 
-from sana_alpha.trimask import OPAQUE, TRANSPARENT, restrict_to_matte
+from sana_alpha.trimask import OPAQUE, TRANSPARENT, finalize
 
 UNKNOWN = 0.5
 WORK_PX = 512  # The chain runs with the longer side at most this long
@@ -337,7 +337,7 @@ def sample_params(rng):
 def make_trimask(alpha, rng, ops, lo, hi):
     """
     Near-pure function (rng is unused: noise ops carry their seeds). Runs ops one after the other on the matte (at working
-    resolution), cutting the result with lo/hi (see cut) and restrict_to_matte. After each op the cut is checked at working
+    resolution), cutting the result with lo/hi (see cut) and finalize. After each op the cut is checked at working
     resolution (keeps_enough): an op that would leave too little sure area is not applied and is recorded.
 
     Args:
@@ -376,4 +376,4 @@ def make_trimask(alpha, rng, ops, lo, hi):
         records.append({**record, "gray_frac": round(gray_frac, 4)})
     final = cut(alpha, cv2.resize(mask, (width, height), interpolation=cv2.INTER_LINEAR), lo, hi)
     used = {"ops": records, "lo": lo, "hi": hi, "applied": [r["op"] for r in records if r["applied"]]}
-    return restrict_to_matte(alpha, final), used
+    return finalize(alpha, final, rng), used

@@ -11,7 +11,7 @@ so the result depends on the order.
     outer: the method runs on "running != 0", the object plus everything unknown. Its band grows the unknown rim outward.
 The step's trimask T is overlaid with merge_trimasks (combo_union): the result is unknown wherever either is unknown, and sure
 only where both agree. The running trimask starts as the exact one (sure everywhere except soft-alpha pixels) and a pixel never
-turns from gray to sure, so the result is consistent with the matte (manifest §13 correctness); restrict_to_matte runs at the end.
+turns from gray to sure, so the result is consistent with the matte (manifest §13 correctness); finalize runs at the end.
 
 Cost: the steps cost the sum of their methods, so the drawn methods must fit COST_BUDGET_S (CPU seconds measured per method on
 1024² mattes): 2-4 steps, fewer than drawn when the expensive ones would exceed the budget (noisy_band, skeleton_strokes only
@@ -26,7 +26,7 @@ Sources (random order, random depth, per-op skipping: the standard recipe of aug
 
 import numpy as np
 from sana_alpha import trimask as registry
-from sana_alpha.trimask import restrict_to_matte
+from sana_alpha.trimask import finalize
 from sana_alpha.trimask.combo_union import merge_trimasks
 
 STEP_COUNTS = (2, 3, 4)
@@ -178,7 +178,7 @@ def apply_step(alpha, running, step):
 
     Examples:
         >>> alpha = np.zeros((64, 64), np.float32); alpha[16:48, 16:48] = 1
-        >>> running = restrict_to_matte(alpha, alpha)
+        >>> running = finalize(alpha, alpha, np.random.default_rng(0))
         >>> step = {"method": "morph_band", "seed": 0, "view": "white", "skip": False, "params": {"erode_px": 4, "dilate_px": 4}}
         >>> new, record = apply_step(alpha, running, step)
         >>> record["applied"], sorted(np.unique(new).tolist()), bool((new == 0.5).sum() > (running == 0.5).sum())
@@ -230,7 +230,7 @@ def make_trimask(alpha, rng, steps):
     methods = [s["method"] for s in steps]
     if len(set(methods)) != len(methods) or any(m in EXCLUDED or m.startswith("combo_") for m in methods):
         raise ValueError(f"random_stack needs distinct methods, none of {EXCLUDED} or combo_*, got {methods}")
-    exact = restrict_to_matte(alpha, (alpha > 0.5).astype(np.float32))
+    exact = finalize(alpha, (alpha > 0.5).astype(np.float32), rng)
     running, records = exact, []
     for step in steps:
         candidate, record = apply_step(alpha, running, step)
@@ -240,4 +240,4 @@ def make_trimask(alpha, rng, steps):
             running = candidate
         records.append({**record, "gray_frac": round(float((running == 0.5).mean()), 4)})
     applied = [f"{r['method']}:{r['view']}" for r in records if r["applied"]]
-    return restrict_to_matte(alpha, running), {"steps": records, "applied": applied}
+    return finalize(alpha, running, rng), {"steps": records, "applied": applied}

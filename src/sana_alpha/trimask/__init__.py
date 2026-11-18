@@ -17,14 +17,16 @@ Methods must not read files or global state. generate() below is the only caller
 CORRECTNESS (user, m00647: "No incorrect trimasks"). A trimask is consistent with its matte (check_consistent) when
 white (1) is only where the matte is fully opaque, black (0) only where it is fully transparent, every soft-alpha pixel is
 strictly between 0 and 1, and (for fuzzy_ramp's continuous values) opaque pixels are >= 0.5 and transparent ones <= 0.5.
-Each method builds this by construction: it ends with restrict_to_matte, which only turns sure pixels gray where the matte
-does not allow them. generate() raises on any violation; it never repairs one.
+Each method builds this by construction: it ends with finalize, which turns sure pixels gray, coarsely (m00652: no
+pixel-level detail of the matte may get into a trimask): sure only inside the coarse allowed regions, the forced-gray set
+grown and smoothed, tiny sure islands gray. generate() raises on any violation; it never repairs one.
 """
 
 import hashlib
 import importlib
 import json
 
+import cv2
 import numpy as np
 
 METHODS = ("morph_band", "noisy_band", "blur_quantize", "scribbles", "bbox_unknown",
@@ -109,31 +111,137 @@ def check_consistent(alpha, trimask):
     return trimask
 
 
-def restrict_to_matte(alpha, trimask):
+OPEN_PX = 8  # Sure regions are openings of the opaque / transparent regions by this disk: no strand thinner than 16 px is sure
+MARGIN_PX = 3  # ... then eroded by this disk, so sure pixels keep a gap to every soft-alpha pixel
+FORCE_DILATE_PX = (6, 20)  # Sure pixels that must turn gray are first grown by a disk of a random radius in this range
+MIN_ISLAND_PX = 32 * 32  # A sure region smaller than this (scaled to a 1024² image) becomes gray
+
+
+def disk(radius):
     """
-    Pure function. The last step of every method: keeps a sure pixel only where the matte allows it, else makes it gray (0.5).
-    Never turns gray into sure. Soft-alpha pixels are kept strictly inside (0, 1) even after 8-bit storage.
+    Pure function. A filled disk structuring element.
+
+    Args:
+        radius (int): Pixels, >= 0
+
+    Returns:
+        np.ndarray: (2 radius + 1, 2 radius + 1) uint8 in {0, 1}
+
+    Examples:
+        >>> disk(1).tolist()
+        [[0, 1, 0], [1, 1, 1], [0, 1, 0]]
+    """
+    return cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * radius + 1, 2 * radius + 1))
+
+
+def coarse_allowed(region, open_px=OPEN_PX, margin_px=MARGIN_PX):
+    """
+    Pure function. The coarse part of a region where a sure value is allowed: its opening by a disk of open_px (thin strands
+    and specks go), eroded by a disk of margin_px. A subset of region, so sure pixels there stay correct.
+
+    Args:
+        region (np.ndarray): (H, W) bool, e.g. the fully opaque pixels
+
+    Returns:
+        np.ndarray: (H, W) bool
+
+    Examples:
+        >>> region = np.zeros((40, 40), bool); region[5:35, 5:35] = True; region[0:40, 19] = True  # a square and a 1 px strand
+        >>> allowed = coarse_allowed(region)
+        >>> bool(allowed[20, 20]), bool(allowed[1, 19]), bool((allowed & ~region).any())  # core kept, strand gone, a subset
+        (True, False, False)
+    """
+    opened = cv2.morphologyEx(region.astype(np.uint8), cv2.MORPH_OPEN, disk(open_px), borderType=cv2.BORDER_REPLICATE)
+    return cv2.erode(opened, disk(margin_px), borderType=cv2.BORDER_REPLICATE).astype(bool)
+
+
+def remove_small_islands(mask, min_px):
+    """
+    Pure function. Drops the 8-connected components of mask smaller than min_px pixels.
+
+    Args:
+        mask (np.ndarray): (H, W) bool
+        min_px (int): Smallest component kept
+
+    Returns:
+        np.ndarray: (H, W) bool, a subset of mask
+
+    Examples:
+        >>> mask = np.zeros((10, 10), bool); mask[0:4, 0:4] = True; mask[8, 8] = True
+        >>> int(remove_small_islands(mask, 4).sum())
+        16
+    """
+    count, labels, stats, _ = cv2.connectedComponentsWithStats(mask.astype(np.uint8), connectivity=8)
+    keep = stats[:, cv2.CC_STAT_AREA] >= min_px
+    keep[0] = False  # Label 0 is the background of mask
+    return keep[labels]
+
+
+def finalize(alpha, trimask, rng):
+    """
+    Near-pure function (advances rng). The last step of every method: makes trimask correct (check_consistent) by turning sure
+    pixels gray, coarsely, never gray into sure. The pixels that break the rule, or are sure outside coarse_allowed, are grown
+    by a disk of a random FORCE_DILATE_PX radius, smoothed (blur + threshold), and made 0.5; then sure regions smaller than
+    MIN_ISLAND_PX become 0.5. So no hair strand, speck or exact silhouette of the matte gets into the trimask.
 
     Args:
         alpha (np.ndarray): (H, W) float in [0, 1], white = object
-        trimask (np.ndarray): (H, W) float32 in [0, 1]
+        trimask (np.ndarray): (H, W) float32 in [0, 1] (3-level, or continuous for fuzzy_ramp)
+        rng (np.random.Generator): Draws the dilation radius
 
     Returns:
-        np.ndarray: (H, W) float32 in [0, 1] that passes check_consistent
+        np.ndarray: (H, W) float32 in [0, 1] that passes check_consistent after 8-bit storage
 
     Examples:
-        >>> alpha = np.array([[0, 0.3, 0.3, 1, 1]], np.float32)
-        >>> restrict_to_matte(alpha, np.array([[0, 0, 1, 0, 0.75]], np.float32)).tolist()
-        [[0.0, 0.5, 0.5, 0.5, 0.75]]
-        >>> to_uint8(restrict_to_matte(alpha, np.array([[0.9, 0.001, 0.999, 1, 1]], np.float32))).tolist()  # fuzzy values, stored
-        [[128, 1, 254, 255, 255]]
+        >>> alpha = np.zeros((128, 128), np.float32); alpha[32:96, 32:96] = 1; alpha[64, 0:32] = 1  # square + 1 px opaque strand
+        >>> trimask = np.where(alpha > 0.5, 1, 0).astype(np.float32)  # carved exactly from the matte
+        >>> out = finalize(alpha, trimask, np.random.default_rng(0))
+        >>> bool(out[64, 64] == 1), bool(out[64, 10] == 0.5), bool(out[5, 5] == 0)  # core sure, strand area gray, far bg sure
+        (True, True, True)
+        >>> check_consistent(alpha, to_uint8(out) / 255).shape
+        (128, 128)
     """
     opaque, transparent = alpha >= OPAQUE - 1e-6, alpha <= TRANSPARENT + 1e-6
-    soft = ~opaque & ~transparent
-    out = np.where((trimask >= 1) & ~opaque, 0.5, trimask)
-    out = np.where((out <= 0) & ~transparent, 0.5, out)
-    out = np.where(opaque, np.maximum(out, 0.5), np.where(transparent, np.minimum(out, 0.5), out))
-    return np.where(soft, np.clip(out, 1 / 255, 254 / 255), out).astype(np.float32)
+    white, black = trimask >= 1 - HALF_STEP, trimask <= HALF_STEP  # As the 8-bit PNG will store them
+    broken = ((white & ~coarse_allowed(opaque)) | (black & ~coarse_allowed(transparent))
+              | (opaque & (trimask < 0.5)) | (transparent & (trimask > 0.5)))
+    radius = int(rng.integers(FORCE_DILATE_PX[0], FORCE_DILATE_PX[1] + 1))
+    grown = cv2.dilate(broken.astype(np.uint8), disk(radius), borderType=cv2.BORDER_REPLICATE).astype(np.float32)
+    smooth = cv2.GaussianBlur(grown, (0, 0), radius / 3) > 0.5
+    out = np.where(smooth | broken, 0.5, trimask).astype(np.float32)  # broken is inside smooth already; the union makes it certain
+    min_px = max(1, round(MIN_ISLAND_PX * alpha.size / 1024 ** 2))
+    for sure in (out >= 1 - HALF_STEP, out <= HALF_STEP):
+        out = np.where(sure & ~remove_small_islands(sure, min_px), 0.5, out).astype(np.float32)
+    return out
+
+
+def detail_score(trimask):
+    """
+    Pure function. How much pixel-level detail a trimask has: its sure regions' boundary length per sqrt(area), and their
+    component counts. A few smooth shapes score ~4-20; strands and specks score far higher.
+
+    Args:
+        trimask (np.ndarray): (H, W) float in [0, 1], e.g. a stored PNG / 255
+
+    Returns:
+        dict: {"edge_ratio": float, "white_components": int, "black_components": int}
+
+    Examples:
+        >>> square = np.full((100, 100), 0.5, np.float32); square[25:75, 25:75] = 1
+        >>> detail_score(square)
+        {'edge_ratio': 3.92, 'white_components': 1, 'black_components': 0}
+        >>> speckle = square.copy(); speckle[::4, ::4] = 0
+        >>> detail_score(speckle)["black_components"]
+        625
+    """
+    out = {}
+    edge, area = 0, 0
+    for name, sure in (("white", trimask >= 1 - HALF_STEP), ("black", trimask <= HALF_STEP)):
+        eroded = cv2.erode(sure.astype(np.uint8), np.ones((3, 3), np.uint8), borderType=cv2.BORDER_REPLICATE).astype(bool)
+        edge += int((sure & ~eroded).sum())
+        area += int(sure.sum())
+        out[f"{name}_components"] = cv2.connectedComponents(sure.astype(np.uint8), connectivity=8)[0] - 1
+    return {"edge_ratio": round(edge / max(area, 1) ** 0.5, 2), **out}
 
 
 def check_trimask(trimask, alpha):

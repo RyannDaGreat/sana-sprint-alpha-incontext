@@ -14,7 +14,7 @@ Sources (the simulation recipe follows these, adapted to a known matte):
 
 import cv2
 import numpy as np
-from sana_alpha.trimask import restrict_to_matte
+from sana_alpha.trimask import finalize
 
 THRESHOLD = 0.5  # Alpha above this is object
 MARGIN_PX = (2, 30)  # Gap between a stroke's edge and the matte edge, in pixels of a 1024² matte
@@ -339,4 +339,4 @@ def make_trimask(alpha, rng, n_fg, n_bg, margin_px, width_lo_px, width_hi_px, le
     used = {"n_fg": n_fg, "n_bg": n_bg, "margin_px": margin_px, "width_lo_px": width_lo_px, "width_hi_px": width_hi_px,
             "length_px": length_px, "turn_rad": turn_rad, "bg_reach_px": bg_reach_px, "threshold": threshold,
             "n_fg_drawn": n_fg_drawn, "n_bg_drawn": n_bg_drawn, "margin_fg_px": margin_fg, "margin_bg_px": margin_bg}
-    return restrict_to_matte(alpha, trimask), used
+    return finalize(alpha, trimask, rng), used

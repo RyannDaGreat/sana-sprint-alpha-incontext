@@ -18,7 +18,7 @@ resolution, then upsampled (the field is smooth, so nothing is lost). Sources:
 import cv2
 import einx
 import numpy as np
-from sana_alpha.trimask import restrict_to_matte
+from sana_alpha.trimask import finalize
 
 # All pixel values are for a 1024² matte
 NOISE_DOWNSCALE = 4  # The noise is computed at 1/4 resolution and upsampled
@@ -268,4 +268,4 @@ def make_trimask(alpha, rng, base_cell_px, octaves, persistence, amplitude_px, b
     opaque, transparent = alpha >= 1 - 1 / 255, alpha <= 1 / 255
     used = {"base_cell_px": base_cell_px, "octaves": octaves, "persistence": persistence, "amplitude_px": amplitude_px,
             "band_px": band_px, "threshold": threshold, "noise_seed": noise_seed}
-    return restrict_to_matte(alpha, disagreement_trimask(opaque, transparent, guess, band_px)), used
+    return finalize(alpha, disagreement_trimask(opaque, transparent, guess, band_px), rng), used

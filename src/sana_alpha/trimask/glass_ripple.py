@@ -19,7 +19,7 @@ random displacement fields) and of the ripple / glass distortion filters of imag
 import cv2
 import einx
 import numpy as np
-from sana_alpha.trimask import restrict_to_matte
+from sana_alpha.trimask import finalize
 
 # All pixel values are for a 1024² matte; make_trimask scales them by sqrt(H W) / 1024
 REFERENCE_SIZE_PX = 1024
@@ -262,7 +262,7 @@ def make_trimask(alpha, rng, kind, amplitude_px, wavelength_px, band_px=0.0, ang
                  second_wave=None, center_x=0.5, center_y=0.5, decay_px=0.0, tilt_deg=0.0, jitter=0.0):
     """
     Near-pure function (fluted draws its per-flute offsets from rng; the other kinds ignore it). Displaces the binarized matte
-    by the chosen field; unknown where the true and the displaced matte disagree (plus band_px), sure elsewhere, then restrict_to_matte.
+    by the chosen field; unknown where the true and the displaced matte disagree (plus band_px), sure elsewhere, then finalize.
     Sure white therefore needs a fully opaque matte pixel that is also object after the distortion; sure black the same for transparent.
 
     Args:
@@ -312,4 +312,4 @@ def make_trimask(alpha, rng, kind, amplitude_px, wavelength_px, band_px=0.0, ang
     used = {"kind": kind, "amplitude_px": amplitude_px, "wavelength_px": wavelength_px, "band_px": band_px, "scale": scale,
             "angle_deg": angle_deg, "disp_angle_deg": disp_angle_deg, "phase": phase, "second_wave": second_wave,
             "center_x": center_x, "center_y": center_y, "decay_px": decay_px, "tilt_deg": tilt_deg, "jitter": jitter}
-    return restrict_to_matte(alpha, trimask), used
+    return finalize(alpha, trimask, rng), used

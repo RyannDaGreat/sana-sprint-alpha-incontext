@@ -24,7 +24,7 @@ import numpy as np
 
 from .morph_band import disk
 from .unknown_patches import padded_bbox
-from sana_alpha.trimask import restrict_to_matte
+from sana_alpha.trimask import finalize
 
 KINDS = ("halfplane", "wedge", "rect", "stripe")
 KIND_PROBABILITIES = (0.30, 0.25, 0.25, 0.20)
@@ -264,7 +264,7 @@ def sample_params(rng):
 def make_trimask(alpha, rng, kind, coverage, angle_deg, anchor_frac_x, anchor_frac_y, aspect, band_px, threshold):
     """
     Near-pure function (advances rng, only when the first region hides too little or too much of the object). Starts from the exact
-    binary matte (restrict_to_matte then makes soft alpha 0.5: 1 on fully opaque, 0 on fully transparent) and turns the hidden region, plus the optional band
+    binary matte (finalize then makes soft alpha 0.5: 1 on fully opaque, 0 on fully transparent) and turns the hidden region, plus the optional band
     along its boundary, gray. Gray never becomes sure, so the result is consistent with the matte by construction.
 
     The anchor fractions place the anchor inside the object's bounding box. If the region hides less than MIN_HIDDEN_OBJECT or more
@@ -332,4 +332,4 @@ def make_trimask(alpha, rng, kind, coverage, angle_deg, anchor_frac_x, anchor_fr
     trimask = np.where(unknown, np.float32(0.5), binary.astype(np.float32))  # Exact binary matte, gray where unknown
     used = dict(kind=kind, coverage=coverage, **geometry, band_px=band_px, threshold=threshold,
                 redraws=redraws, hidden_object_fraction=round(fraction, 4))
-    return restrict_to_matte(alpha, trimask), used  # Soft alpha becomes gray here; sure pixels stay only where the matte allows
+    return finalize(alpha, trimask, rng), used  # Soft alpha becomes gray here, coarsely; sure pixels stay only where the matte allows

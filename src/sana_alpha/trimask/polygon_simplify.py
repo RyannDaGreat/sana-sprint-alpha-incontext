@@ -19,7 +19,7 @@ Sources:
 import cv2
 import einx
 import numpy as np
-from sana_alpha.trimask import restrict_to_matte
+from sana_alpha.trimask import finalize
 
 THRESHOLD = 0.5  # Alpha above this is object
 EPS_FRAC = (0.003, 0.03)  # DP tolerance as a fraction of max(H, W), log-uniform: 3 to 31 px on a 1024² matte
@@ -194,4 +194,4 @@ def make_trimask(alpha, rng, eps_frac, jitter_ratio, erode_ratio, dilate_ratio, 
     used = {"eps_frac": eps_frac, "jitter_ratio": jitter_ratio, "erode_ratio": erode_ratio, "dilate_ratio": dilate_ratio,
             "threshold": threshold, "eps_px": float(eps_px), "jitter_px": float(jitter_px),
             "erode_px": float(erode_px), "dilate_px": float(dilate_px)}
-    return restrict_to_matte(alpha, band_trimask(polygon, erode_px, dilate_px)), used
+    return finalize(alpha, band_trimask(polygon, erode_px, dilate_px), rng), used

@@ -26,7 +26,7 @@ Sources:
 import cv2
 import einx
 import numpy as np
-from sana_alpha.trimask import restrict_to_matte
+from sana_alpha.trimask import finalize
 
 # All pixel values are for a 1024² matte
 RADIUS_PX = (4, 48)  # Guided filter window radius, log-uniform. Larger: the unknown band follows structure over a longer reach
@@ -233,4 +233,4 @@ def make_trimask(alpha, rng, radius_px, eps, pre_blur_sigma_px, gray_guide, low,
     filtered = guided_filter(make_guide(rgb, gray_guide), blurred, radius_px, eps, subsample)
     used = {"radius_px": radius_px, "eps": eps, "pre_blur_sigma_px": pre_blur_sigma_px, "gray_guide": gray_guide,
             "low": low, "high": high, "subsample": subsample}
-    return restrict_to_matte(alpha, quantize3(filtered, low, high)), used
+    return finalize(alpha, quantize3(filtered, low, high), rng), used

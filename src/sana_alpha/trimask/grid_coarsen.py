@@ -10,7 +10,7 @@ Sources (how coarse / imperfect guidance is simulated from a ground-truth matte)
 
 import einx
 import numpy as np
-from sana_alpha.trimask import restrict_to_matte
+from sana_alpha.trimask import finalize
 
 CELL_PX = (16, 128)  # Cell edge, log-uniform, in pixels of a 1024² matte
 ROTATED_PROBABILITY = 0.4  # Else the grid is axis-aligned (like a low-resolution mask)
@@ -119,4 +119,4 @@ def make_trimask(alpha, rng, cell_px, offset_x, offset_y, angle_deg, low, high):
     means = cell_means(alpha, cell_ids(alpha.shape, cell_px, (offset_x, offset_y), angle_deg))
     trimask = np.where(means >= high, 1, np.where(means <= low, 0, 0.5)).astype(np.float32)
     params = {"cell_px": cell_px, "offset_x": offset_x, "offset_y": offset_y, "angle_deg": angle_deg, "low": low, "high": high}
-    return restrict_to_matte(alpha, trimask), params
+    return finalize(alpha, trimask, rng), params

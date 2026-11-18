@@ -1,8 +1,8 @@
 """
 Trimask method combo_union: runs 2-3 distinct other methods (random, from the METHODS registry) on the same matte and
 merges their trimasks. Unknown wherever ANY of them is unknown; sure-white only where ALL are sure-white; sure-black only
-where ALL are sure-black. Every input is consistent with the matte (each ends with restrict_to_matte), so the merge is
-too: white means all inputs saw opaque pixels, black means all saw transparent ones. restrict_to_matte runs once more at the end.
+where ALL are sure-black. Every input is consistent with the matte (each ends with finalize), so the merge is
+too: white means all inputs saw opaque pixels, black means all saw transparent ones. finalize runs once more at the end.
 
 Why: a user-made trimap is rarely one clean recipe; a rough outline plus a few spray-painted unknown patches plus a
 brush stroke is typical. Taking the union of unknown regions stacks the failure modes of several recipes. Sources for
@@ -16,7 +16,7 @@ Merge rule = a three-valued AND on "sure" and an OR on "unknown".
 
 import numpy as np
 from sana_alpha import trimask as registry
-from sana_alpha.trimask import restrict_to_matte
+from sana_alpha.trimask import finalize
 
 N_METHODS = (2, 3)  # Inclusive range of other methods merged
 EXCLUDED = ("fuzzy_ramp",)  # Continuous values: the merge rule is for 3-level trimasks. Names starting with "combo_" are excluded too.
@@ -110,5 +110,5 @@ def make_trimask(alpha, rng, methods, seeds, method_params):
         raise ValueError(f"combo_union cannot merge {bad}")
     results = [registry.method_module(m).make_trimask(alpha, np.random.default_rng(s), **p)
                for m, s, p in zip(methods, seeds, method_params)]
-    merged = restrict_to_matte(alpha, merge_trimasks([trimask for trimask, _ in results]))
+    merged = finalize(alpha, merge_trimasks([trimask for trimask, _ in results]), rng)
     return merged, {"methods": list(methods), "seeds": list(seeds), "method_params": [used for _, used in results]}

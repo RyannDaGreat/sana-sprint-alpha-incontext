@@ -21,7 +21,7 @@ Sources (the skeleton-scribble simulation recipe, adapted from segmentation to a
 import cv2
 import numpy as np
 from skimage.morphology import skeletonize
-from sana_alpha.trimask import OPAQUE, TRANSPARENT, restrict_to_matte
+from sana_alpha.trimask import OPAQUE, TRANSPARENT, finalize
 
 # All pixel values are for a 1024² matte
 MARGIN_PX = (2, 30)  # Gap between a stroke and the matte edge, log-uniform
@@ -262,4 +262,4 @@ def make_trimask(alpha, rng, margin_px, radius_px, wobble, warp_px, n_dropouts, 
     trimask = np.where(strokes & core, 1, np.where(far_outside, 0, 0.5)).astype(np.float32)
     used = {"margin_px": round(margin_px, 1), "radius_px": radius_px, "wobble": wobble, "warp_px": warp_px, "n_dropouts": n_dropouts,
             "dropout_radius_px": dropout_radius_px, "far_px": far_px, "seed": seed}
-    return restrict_to_matte(alpha, trimask), used
+    return finalize(alpha, trimask, rng), used

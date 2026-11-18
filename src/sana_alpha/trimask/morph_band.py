@@ -14,7 +14,7 @@ rotated ellipse instead of a disk. This is the training-trimap recipe of deep ma
 
 import cv2
 import numpy as np
-from sana_alpha.trimask import restrict_to_matte
+from sana_alpha.trimask import finalize
 
 # All pixel values are for a 1024² matte
 DISK_RADIUS_PX = (2, 80)  # Disk radius range, drawn log-uniformly per side (eroded objects of ~100 px inscribed radius survive)
@@ -205,4 +205,4 @@ def make_trimask(alpha, rng, erode_px, dilate_px, erode_aspect=1.0, dilate_aspec
     maybe = dilate(binary, dilate_px, dilate_aspect, dilate_angle_deg)
     used = {"erode_px": erode_px, "dilate_px": dilate_px, "erode_aspect": erode_aspect, "dilate_aspect": dilate_aspect,
             "erode_angle_deg": erode_angle_deg, "dilate_angle_deg": dilate_angle_deg, "threshold": threshold}
-    return restrict_to_matte(alpha, band_trimask(sure, maybe)), used
+    return finalize(alpha, band_trimask(sure, maybe), rng), used

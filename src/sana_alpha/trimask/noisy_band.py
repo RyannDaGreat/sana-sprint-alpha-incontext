@@ -10,7 +10,7 @@ to imitate noisy trimaps). Those widths are constant along an object; here the w
 
 import cv2
 import numpy as np
-from sana_alpha.trimask import restrict_to_matte
+from sana_alpha.trimask import finalize
 
 BASE_PX = (4, 40)  # Base band half-width, log-uniform, drawn separately for the inside and the outside; pixels of a 1024² matte
 NOISE_CELLS = (2, 10)  # Coarse noise grid size per image side; fewer cells = slower variation along the boundary
@@ -148,4 +148,4 @@ def make_trimask(alpha, rng, base_in_px, base_out_px, sigma, cells, noise_seed, 
     trimask = np.where(sd >= w_in, 1, np.where(sd <= -w_out, 0, 0.5)).astype(np.float32)
     params = {"base_in_px": base_in_px, "base_out_px": base_out_px, "sigma": sigma, "cells": cells,
               "noise_seed": noise_seed, "threshold": threshold}
-    return restrict_to_matte(alpha, trimask), params
+    return finalize(alpha, trimask, rng), params

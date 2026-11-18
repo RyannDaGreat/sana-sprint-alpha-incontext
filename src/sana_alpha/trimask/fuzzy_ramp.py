@@ -16,7 +16,7 @@ Here the distance transform of the matte gives the signed distance; one profile 
 
 import cv2
 import numpy as np
-from sana_alpha.trimask import restrict_to_matte
+from sana_alpha.trimask import finalize
 
 PROFILES = ("tanh", "linear", "smoothstep")
 THRESHOLD = 0.5  # Alpha above this is object when the edge is located
@@ -156,4 +156,4 @@ def make_trimask(alpha, rng, profile, width_px, log2_ratio, shift_px, threshold)
     trimask = ramp(distance, width_in, width_out, profile, shift_px)
     used = {"profile": profile, "width_px": width_px, "log2_ratio": log2_ratio, "shift_px": shift_px,
             "threshold": threshold, "width_in_px": width_in, "width_out_px": width_out}
-    return restrict_to_matte(alpha, trimask), used
+    return finalize(alpha, trimask, rng), used

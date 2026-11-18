@@ -23,7 +23,7 @@ Sources (the chaining recipe follows these: a deterministic trimap, then an extr
 
 import numpy as np
 
-from sana_alpha.trimask import method_module, restrict_to_matte
+from sana_alpha.trimask import method_module, finalize
 
 UNKNOWN = 0.5
 SEED_MAX = 2**31
@@ -150,4 +150,4 @@ def make_trimask(alpha, rng, base_method, local_method, base_seed, local_seed, b
     used = {"base_method": base_method, "local_method": local_method, "base_seed": base_seed, "local_seed": local_seed,
             "base_params": base_params, "local_params": local_params, "base_used": base_used, "local_used": local_used,
             "added_gray_frac": round(float((result != base).mean()), 4)}
-    return restrict_to_matte(alpha, result), used
+    return finalize(alpha, result, rng), used

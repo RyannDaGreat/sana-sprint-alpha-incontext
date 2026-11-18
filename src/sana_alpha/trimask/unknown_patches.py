@@ -20,7 +20,7 @@ import einx
 import numpy as np
 
 from .morph_band import band_trimask, disk
-from sana_alpha.trimask import restrict_to_matte
+from sana_alpha.trimask import finalize
 
 N_EDGE = (0, 12)  # Edge blobs: inclusive range of the count
 N_FREE = (0, 8)  # Free blobs: inclusive range of the count
@@ -287,4 +287,4 @@ def make_trimask(alpha, rng, n_edge, n_free, radius_min_frac, radius_max_frac, i
     unknown = draw_blobs(binary.shape, outlines) | band_mask(binary, band_px)
     params = dict(n_edge=n_edge, n_free=n_free, radius_min_frac=radius_min_frac, radius_max_frac=radius_max_frac,
                   irregularity=irregularity, aspect_max=aspect_max, band_px=band_px, threshold=threshold)
-    return restrict_to_matte(alpha, band_trimask(binary & ~unknown, binary | unknown)), params
+    return finalize(alpha, band_trimask(binary & ~unknown, binary | unknown), rng), params
