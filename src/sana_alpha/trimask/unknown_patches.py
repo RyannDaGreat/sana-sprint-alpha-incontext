@@ -268,8 +268,9 @@ def make_trimask(alpha, rng, n_edge, n_free, radius_min_frac, radius_max_frac, i
         >>> bool(((trimask == 1) <= (alpha == 1)).all() and ((trimask == 0) <= (alpha == 0)).all())  # Gray never flips a sure pixel
         True
         >>> no_blobs = dict(params, n_edge=0, n_free=0)
-        >>> bool((make_trimask(alpha, np.random.default_rng(0), **no_blobs)[0] == alpha).all())  # Nothing painted: the exact matte
-        True
+        >>> make_trimask(alpha, np.random.default_rng(0), **no_blobs)[0][64, ::8].tolist()  # Nothing painted: only finalize's coarse ring on the edge
+        [0.0, 0.0, 0.5, 0.5, 0.5, 0.5, 0.5, 1.0, 1.0, 1.0, 0.5, 0.5, 0.5, 0.5, 0.5, 0.0]
+
     """
     binary = alpha > threshold
     height, width = binary.shape

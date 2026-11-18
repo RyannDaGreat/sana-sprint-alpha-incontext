@@ -121,14 +121,14 @@ def sample_params(rng):
 
 def make_trimask(alpha, rng, profile, width_px, log2_ratio, shift_px, threshold):
     """
-    Pure function (rng is unused: the ramp is deterministic given its params). Continuous trimask from a matte.
+    Near-pure function (advances rng, only in finalize; otherwise the ramp is deterministic given its params). Continuous trimask from a matte.
 
     The inside width is width_px * 2^(log2_ratio / 2) and the outside width width_px * 2^(-log2_ratio / 2), so their
     geometric mean stays width_px.
 
     Args:
         alpha (np.ndarray): (H, W) float32 in [0, 1], white = object
-        rng (np.random.Generator): Unused
+        rng (np.random.Generator): Only finalize uses it (draws its dilation radius)
         profile, width_px, log2_ratio, shift_px: See sample_params and ramp
         threshold (float): Alpha above this is object when the edge is located
 
@@ -139,14 +139,14 @@ def make_trimask(alpha, rng, profile, width_px, log2_ratio, shift_px, threshold)
     Examples:
         >>> yy, xx = np.mgrid[:64, :64]
         >>> alpha = (np.hypot(yy - 32, xx - 32) < 16).astype(np.float32)  # Disk, radius 16
-        >>> trimask, used = make_trimask(alpha, None, "linear", 8.0, 0.0, 0.0, 0.5)
+        >>> trimask, used = make_trimask(alpha, np.random.default_rng(0), "linear", 8.0, 0.0, 0.0, 0.5)
         >>> trimask.shape, trimask.dtype, float(trimask[32, 32]), float(trimask[0, 0])
         ((64, 64), dtype('float32'), 1.0, 0.0)
         >>> [round(float(v), 2) for v in trimask[32, 32 + 8:32 + 25:4]]  # Radius 8..24 along a row: 1 -> 0.5 -> 0
         [0.97, 0.72, 0.47, 0.22, 0.0]
         >>> sorted(used)
         ['log2_ratio', 'profile', 'shift_px', 'threshold', 'width_in_px', 'width_out_px', 'width_px']
-        >>> used = make_trimask(alpha, None, "linear", 8.0, 2.0, 0.0, 0.5)[1]  # Inside twice as wide as outside
+        >>> used = make_trimask(alpha, np.random.default_rng(0), "linear", 8.0, 2.0, 0.0, 0.5)[1]  # Inside twice as wide as outside
         >>> used["width_in_px"], used["width_out_px"]
         (16.0, 4.0)
     """

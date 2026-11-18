@@ -195,12 +195,12 @@ def sample_params(rng):
 
 def make_trimask(alpha, rng, radius_px, eps, pre_blur_sigma_px, gray_guide, low, high, rgb=None):
     """
-    Pure function (rng is unused: the method is deterministic given its params). Gaussian-blurs alpha, filters it with a guided
+    Near-pure function (advances rng, only in finalize; otherwise the method is deterministic given its params). Gaussian-blurs alpha, filters it with a guided
     filter whose guide is the RGB image, then quantizes to 3 levels. Raises ValueError when rgb is None or malformed.
 
     Args:
         alpha (np.ndarray): (H, W) float32 in [0, 1], white = object
-        rng (np.random.Generator): Unused
+        rng (np.random.Generator): Only finalize uses it (draws its dilation radius)
         radius_px (int): Guided filter window radius in pixels
         eps (float): Guided filter regularizer
         pre_blur_sigma_px (float): Gaussian sigma of the matte blur before filtering, pixels
@@ -215,15 +215,15 @@ def make_trimask(alpha, rng, radius_px, eps, pre_blur_sigma_px, gray_guide, low,
         >>> alpha = np.zeros((64, 128), np.float32); alpha[:, 64:] = 1  # a vertical matte edge between columns 63 and 64
         >>> rgb = np.full((64, 128, 3), 0.5, np.float32); rgb[:, 64:] = 0.9  # an image edge exactly there
         >>> kw = dict(radius_px=12, eps=1e-3, pre_blur_sigma_px=8.0, gray_guide=False, low=0.2, high=0.8)
-        >>> trimask, params = make_trimask(alpha, None, rgb=rgb, **kw)
+        >>> trimask, params = make_trimask(alpha, np.random.default_rng(0), rgb=rgb, **kw)
         >>> trimask[32, 56:72].tolist()  # image edge at the matte edge: the unknown band is 8 px wide, centered on it
         [0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 1.0, 1.0, 1.0, 1.0]
-        >>> flat_trimask, _ = make_trimask(alpha, None, rgb=np.full((64, 128, 3), 0.5, np.float32), **kw)  # no image structure: 3x wider
+        >>> flat_trimask, _ = make_trimask(alpha, np.random.default_rng(0), rgb=np.full((64, 128, 3), 0.5, np.float32), **kw)  # no image structure: 3x wider
         >>> int((trimask[32] == 0.5).sum()), int((flat_trimask[32] == 0.5).sum())
         (8, 24)
         >>> params["subsample"]
         4
-        >>> make_trimask(alpha, None, **kw)
+        >>> make_trimask(alpha, np.random.default_rng(0), **kw)
         Traceback (most recent call last):
         ValueError: bilateral_blur needs the RGB image (rgb_on_gray as (H, W, 3) float32 in [0, 1]) as the rgb keyword; got None
     """

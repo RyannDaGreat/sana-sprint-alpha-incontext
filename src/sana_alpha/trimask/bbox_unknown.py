@@ -136,12 +136,12 @@ def sample_params(rng):
 
 def make_trimask(alpha, rng, pad_top, pad_bottom, pad_left, pad_right, core_frac, threshold):
     """
-    Pure function (rng is unused: all randomness is in sample_params). Black outside the padded box of the binarized alpha,
+    Near-pure function (advances rng, only in finalize; otherwise all randomness is in sample_params). Black outside the padded box of the binarized alpha,
     gray inside, white on the deep core. An alpha with no object gives an all-black trimask (there is nothing to box).
 
     Args:
         alpha (np.ndarray): (H, W) float32 in [0, 1], white = object
-        rng (np.random.Generator): Unused
+        rng (np.random.Generator): Only finalize uses it (draws its dilation radius)
         pad_top, pad_bottom (float): Padding as a fraction of the tight box height
         pad_left, pad_right (float): Padding as a fraction of the tight box width
         core_frac (float): 0 for no core, else the depth fraction of the white core (see core_mask)
@@ -152,15 +152,17 @@ def make_trimask(alpha, rng, pad_top, pad_bottom, pad_left, pad_right, core_frac
             box = [y0, y1, x0, x1] (end-exclusive, after padding and clipping; null if empty)
 
     Examples:
-        >>> alpha = np.zeros((100, 100), np.float32); alpha[30:70, 40:60] = 1
-        >>> trimask, params = make_trimask(alpha, None, 0.1, 0.1, 0.5, 0.0, 0.8, 0.5)
+        >>> alpha = np.zeros((128, 128), np.float32); alpha[32:96, 32:96] = 1
+        >>> trimask, params = make_trimask(alpha, np.random.default_rng(0), 0.1, 0.1, 0.5, 0.0, 0.5, 0.5)
         >>> params["box"]
-        [26, 74, 30, 60]
-        >>> sorted(np.unique(trimask).tolist()), float(trimask[0, 0]), float(trimask[28, 35]), float(trimask[50, 50])
+        [26, 102, 0, 96]
+        >>> sorted(np.unique(trimask).tolist()), float(trimask[0, 0]), float(trimask[30, 10]), float(trimask[64, 64])
         ([0.0, 0.5, 1.0], 0.0, 0.5, 1.0)
-        >>> float(make_trimask(alpha, None, 0, 0, 0, 0, 0, 0.5)[0][30:70, 40:60].min())
+        >>> trimask[64, 92:128:4].tolist()  # No right padding: finalize grays the black next to the object (edge at x = 96)
+        [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.0, 0.0]
+        >>> float(make_trimask(alpha, np.random.default_rng(0), 0, 0, 0, 0, 0, 0.5)[0][32:96, 32:96].min())
         0.5
-        >>> float(make_trimask(np.zeros((8, 8), np.float32), None, 0, 0, 0, 0, 0.5, 0.5)[0].max())
+        >>> float(make_trimask(np.zeros((8, 8), np.float32), np.random.default_rng(0), 0, 0, 0, 0, 0.5, 0.5)[0].max())
         0.0
     """
     binary = alpha > threshold

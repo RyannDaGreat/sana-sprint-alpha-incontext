@@ -235,12 +235,12 @@ def sample_params(rng):
 
 def make_trimask(alpha, rng, base_cell_px, octaves, persistence, amplitude_px, band_px, threshold, noise_seed):
     """
-    Pure function (rng is unused: the noise comes from noise_seed). Warps the matte by a fractal-noise displacement field,
+    Near-pure function (advances rng, only in finalize; otherwise the noise comes from noise_seed). Warps the matte by a fractal-noise displacement field,
     binarizes the warp at threshold (the guess), and marks as unknown whatever disagrees with the true matte.
 
     Args:
         alpha (np.ndarray): (H, W) float32 in [0, 1], white = object
-        rng (np.random.Generator): Unused
+        rng (np.random.Generator): Only finalize uses it (draws its dilation radius)
         base_cell_px, octaves, persistence, amplitude_px: The displacement field, see displacement_field
         band_px (int): Extra unknown band radius around the disagreement
         threshold (float): The warped matte is object where above this
@@ -250,18 +250,18 @@ def make_trimask(alpha, rng, base_cell_px, octaves, persistence, amplitude_px, b
         tuple[np.ndarray, dict]: (H, W) float32 trimask in {0, 0.5, 1}, and the params
 
     Examples:
-        >>> disk = np.zeros((128, 128), np.float32); disk[np.hypot(*np.mgrid[-64:64, -64:64] + 0.5) <= 40] = 1
-        >>> params = dict(base_cell_px=80.0, octaves=2, persistence=0.5, amplitude_px=8.0, band_px=0, threshold=0.5, noise_seed=3)
-        >>> trimask, used = make_trimask(disk, None, **params)
+        >>> disk = np.zeros((256, 256), np.float32); disk[np.hypot(*np.mgrid[-128:128, -128:128] + 0.5) <= 80] = 1
+        >>> params = dict(base_cell_px=80.0, octaves=2, persistence=0.5, amplitude_px=200.0, band_px=0, threshold=0.5, noise_seed=3)
+        >>> trimask, used = make_trimask(disk, np.random.default_rng(0), **params)
         >>> sorted(np.unique(trimask).tolist()), used == params
         ([0.0, 0.5, 1.0], True)
         >>> bool((trimask[disk == 1] >= 0.5).all() and (trimask[disk == 0] <= 0.5).all())  # Never wrong, only unsure
         True
-        >>> gray = (trimask == 0.5).mean(); bool(0.01 < gray < 0.5)  # A ring of unknown, not everything
+        >>> gray = (trimask == 0.5).mean(); bool(0.01 < gray < 0.6)  # A ring of unknown, not everything
         True
-        >>> still, _ = make_trimask(disk, None, **{**params, "amplitude_px": 1e-3})  # A zero warp: the guess is the matte: no unknown
-        >>> bool((still == 0.5).mean() < 0.01)
-        True
+        >>> still, _ = make_trimask(disk, np.random.default_rng(0), **{**params, "amplitude_px": 1e-3})  # A zero warp: the guess is the matte
+        >>> round(float((still == 0.5).mean()), 3), round(float(gray), 3)  # Only finalize's coarse ring is gray; the warp adds more
+        (0.324, 0.495)
     """
     field = displacement_field(alpha.shape, base_cell_px, octaves, persistence, amplitude_px, np.random.default_rng(noise_seed))
     guess = warp(alpha, field) > threshold

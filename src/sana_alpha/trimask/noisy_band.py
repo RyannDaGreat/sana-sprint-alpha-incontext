@@ -114,12 +114,12 @@ def sample_params(rng):
 
 def make_trimask(alpha, rng, base_in_px, base_out_px, sigma, cells, noise_seed, threshold):
     """
-    Pure function (rng is unused: all randomness is in noise_seed). Binarizes alpha, takes its signed distance sd (positive
+    Near-pure function (advances rng, only in finalize; otherwise all randomness is in noise_seed). Binarizes alpha, takes its signed distance sd (positive
     inside), draws two independent smooth width fields w_in, w_out and sets 1 where sd >= w_in, 0 where sd <= -w_out, 0.5 between.
 
     Args:
         alpha (np.ndarray): (H, W) float32 in [0, 1], white = object
-        rng (np.random.Generator): Unused
+        rng (np.random.Generator): Only finalize uses it (draws its dilation radius)
         base_in_px, base_out_px (float): Base band width inside / outside the boundary, pixels
         sigma (float): Log-width noise strength
         cells (int): Coarse noise grid cells per side
@@ -132,7 +132,7 @@ def make_trimask(alpha, rng, base_in_px, base_out_px, sigma, cells, noise_seed, 
     Examples:
         >>> alpha = np.zeros((128, 128), np.float32); alpha[32:96, 32:96] = 1
         >>> params = dict(base_in_px=8, base_out_px=8, sigma=0.6, cells=3, noise_seed=1, threshold=0.5)
-        >>> trimask, used = make_trimask(alpha, None, **params)
+        >>> trimask, used = make_trimask(alpha, np.random.default_rng(0), **params)
         >>> sorted(np.unique(trimask).tolist()), used == params
         ([0.0, 0.5, 1.0], True)
         >>> float(trimask[64, 64]), float(trimask[0, 0]), float(trimask[64, 32])  # Object core, far background, on the boundary: unknown

@@ -168,13 +168,13 @@ def sample_params(rng):
 
 def make_trimask(alpha, rng, erode_px, dilate_px, erode_aspect=1.0, dilate_aspect=1.0, erode_angle_deg=0.0, dilate_angle_deg=0.0, threshold=0.5):
     """
-    Pure function (rng is unused: the method is deterministic given its params). Binarizes alpha, then
+    Near-pure function (advances rng, only in finalize; otherwise the method is deterministic given its params). Binarizes alpha, then
     object = eroded by the erode element, background = outside the dilation by the dilate element, unknown = between.
     Erosion is dilation of the complement, so both sides share dilate(). An erosion larger than the object leaves no white.
 
     Args:
         alpha (np.ndarray): (H, W) float32 in [0, 1], white = object
-        rng (np.random.Generator): Unused
+        rng (np.random.Generator): Only finalize uses it (draws its dilation radius)
         erode_px (int), dilate_px (int): Element radii in pixels (semi-major for an ellipse)
         erode_aspect (float), dilate_aspect (float): 1 for a disk, else semi-major / semi-minor
         erode_angle_deg (float), dilate_angle_deg (float): Ellipse rotation, see ellipse_kernel
@@ -184,17 +184,17 @@ def make_trimask(alpha, rng, erode_px, dilate_px, erode_aspect=1.0, dilate_aspec
         tuple[np.ndarray, dict]: (H, W) float32 trimask in {0, 0.5, 1}, and the params
 
     Examples:
-        >>> alpha = np.zeros((1, 9), np.float32); alpha[0, 3:6] = 1
-        >>> trimask, params = make_trimask(alpha, None, erode_px=1, dilate_px=2)
-        >>> trimask.tolist()
-        [[0.0, 0.5, 0.5, 0.5, 1.0, 0.5, 0.5, 0.5, 0.0]]
+        >>> alpha = np.zeros((128, 128), np.float32); alpha[32:96, 32:96] = 1
+        >>> trimask, params = make_trimask(alpha, np.random.default_rng(0), erode_px=8, dilate_px=12)
+        >>> trimask[64, ::4].tolist()  # Edges at x = 32 and 96: black below x = 20, unknown 20..39, white 40..87, unknown, black
+        [0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 0.5, 0.5, 0.5, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.5, 0.5, 0.5, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0]
         >>> params["threshold"]
         0.5
         >>> disk_alpha = np.zeros((101, 101), np.float32); disk_alpha[np.hypot(*np.mgrid[-50:51, -50:51]) <= 30] = 1
-        >>> trimask, _ = make_trimask(disk_alpha, None, erode_px=5, dilate_px=15)  # A ring of unknown, 20 px wide
+        >>> trimask, _ = make_trimask(disk_alpha, np.random.default_rng(0), erode_px=5, dilate_px=15)  # A ring of unknown, 20 px wide
         >>> trimask[50, 4:51:5].tolist()  # Along a row, edge at x=20: black below x=5, unknown 5..25, white from 26
         [0.0, 0.5, 0.5, 0.5, 0.5, 1.0, 1.0, 1.0, 1.0, 1.0]
-        >>> trimask, _ = make_trimask(disk_alpha, None, erode_px=20, dilate_px=1, erode_aspect=3.0, erode_angle_deg=0)  # Wide ellipse
+        >>> trimask, _ = make_trimask(disk_alpha, np.random.default_rng(0), erode_px=20, dilate_px=10, erode_aspect=3.0, erode_angle_deg=0)  # Wide ellipse
         >>> sorted(np.unique(trimask).tolist())
         [0.0, 0.5, 1.0]
         >>> trimask[50, 35].item(), trimask[35, 50].item()  # Wide element: erodes 20 px along x (unknown), only ~7 along y (still sure)

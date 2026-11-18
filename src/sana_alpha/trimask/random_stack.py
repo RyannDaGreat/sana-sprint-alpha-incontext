@@ -177,7 +177,7 @@ def apply_step(alpha, running, step):
         applied (bool), reason (str, only when not applied), used (the params the method reports back, when applied)
 
     Examples:
-        >>> alpha = np.zeros((64, 64), np.float32); alpha[16:48, 16:48] = 1
+        >>> alpha = np.zeros((128, 128), np.float32); alpha[32:96, 32:96] = 1
         >>> running = finalize(alpha, alpha, np.random.default_rng(0))
         >>> step = {"method": "morph_band", "seed": 0, "view": "white", "skip": False, "params": {"erode_px": 4, "dilate_px": 4}}
         >>> new, record = apply_step(alpha, running, step)
@@ -185,7 +185,7 @@ def apply_step(alpha, running, step):
         (True, [0.0, 0.5, 1.0], True)
         >>> apply_step(alpha, running, {**step, "skip": True})[1]["reason"]
         'skipped'
-        >>> apply_step(alpha, np.full((64, 64), 0.5, np.float32), step)[1]["reason"]  # Nothing is sure white any more
+        >>> apply_step(alpha, np.full((128, 128), 0.5, np.float32), step)[1]["reason"]  # Nothing is sure white any more
         'view has no object or no background'
     """
     if step["skip"]:
@@ -200,13 +200,13 @@ def apply_step(alpha, running, step):
 
 def make_trimask(alpha, rng, steps):
     """
-    Near-pure function (imports the method modules; rng is unused: each step has its own seed). Starts from the exact trimask of the matte
-    (sure white on opaque, sure black on transparent, soft pixels gray), then applies the steps in order with apply_step.
+    Near-pure function (imports the method modules; rng only feeds finalize; each step has its own seed). Starts from the exact trimask of the matte
+    (the binarized matte through finalize: sure white and black, coarsely, gray along the edge), then applies the steps in order with apply_step.
     A step that would leave less than MIN_KEEP_FRAC of the exact white or black (keeps_enough) is rejected and recorded as not applied.
 
     Args:
         alpha (np.ndarray): (H, W) float32 in [0, 1], white = object
-        rng (np.random.Generator): Unused
+        rng (np.random.Generator): Only finalize uses it (draws its dilation radius)
         steps (list[dict]): Ordered steps (see sample_params), method tags distinct, none in EXCLUDED or combo_*
 
     Returns:
@@ -214,16 +214,16 @@ def make_trimask(alpha, rng, steps):
         gray_frac (fraction of the image gray after that step), plus applied (list of "method:view" of the applied steps, in order)
 
     Examples:
-        >>> alpha = np.zeros((64, 64), np.float32); alpha[16:48, 16:48] = 1
+        >>> alpha = np.zeros((128, 128), np.float32); alpha[32:96, 32:96] = 1
         >>> p = sample_params(np.random.default_rng(3))
-        >>> trimask, used = make_trimask(alpha, None, **p)
+        >>> trimask, used = make_trimask(alpha, np.random.default_rng(0), **p)
         >>> set(np.unique(trimask).tolist()) <= {0.0, 0.5, 1.0}, [s["method"] for s in used["steps"]] == [s["method"] for s in p["steps"]]
         (True, True)
         >>> used["steps"][-1]["gray_frac"] == float((trimask == 0.5).mean()).__round__(4)
         True
-        >>> bool((make_trimask(alpha, None, **p)[0] == trimask).all())  # Deterministic in the params
+        >>> bool((make_trimask(alpha, np.random.default_rng(0), **p)[0] == trimask).all())  # Deterministic in the params
         True
-        >>> make_trimask(alpha, None, [p["steps"][0], p["steps"][0]])  # doctest: +ELLIPSIS
+        >>> make_trimask(alpha, np.random.default_rng(0), [p["steps"][0], p["steps"][0]])  # doctest: +ELLIPSIS
         Traceback (most recent call last):
         ValueError: random_stack needs distinct methods, none of ... or combo_*, got [...]
     """

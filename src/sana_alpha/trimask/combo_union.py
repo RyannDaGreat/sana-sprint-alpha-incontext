@@ -79,12 +79,12 @@ def sample_params(rng):
 
 def make_trimask(alpha, rng, methods, seeds, method_params):
     """
-    Near-pure function (imports the method modules; rng is unused: each method gets its own seeded rng from seeds).
+    Near-pure function (imports the method modules; rng only feeds finalize; each method gets its own seeded rng from seeds).
     Runs each method on the matte and merges the results with merge_trimasks.
 
     Args:
         alpha (np.ndarray): (H, W) float32 in [0, 1], white = object
-        rng (np.random.Generator): Unused
+        rng (np.random.Generator): Only finalize uses it (draws its dilation radius)
         methods (list[str]): Tags of the merged methods, at least 2, distinct, none fuzzy_ramp or combo_*
         seeds (list[int]): One rng seed per method
         method_params (list[dict]): One params dict per method (the keywords of its make_trimask)
@@ -96,7 +96,7 @@ def make_trimask(alpha, rng, methods, seeds, method_params):
     Examples:
         >>> alpha = np.zeros((64, 64), np.float32); alpha[16:48, 16:48] = 1
         >>> p = sample_params(np.random.default_rng(3))
-        >>> trimask, used = make_trimask(alpha, None, **p)
+        >>> trimask, used = make_trimask(alpha, np.random.default_rng(0), **p)
         >>> trimask.shape, sorted(np.unique(trimask).tolist()) <= [0.0, 0.5, 1.0], used["methods"] == p["methods"]
         ((64, 64), True, True)
         >>> a = registry.method_module(p["methods"][0]).make_trimask(alpha, np.random.default_rng(p["seeds"][0]), **p["method_params"][0])[0]

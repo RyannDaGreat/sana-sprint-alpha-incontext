@@ -212,13 +212,13 @@ def sample_params(rng):
 
 def make_trimask(alpha, rng, margin_px, radius_px, wobble, warp_px, n_dropouts, dropout_radius_px, far_px, seed):
     """
-    Near-pure function (noise and dropout positions come from np.random.default_rng(seed), not from rng, so they are reproducible from the params).
+    Near-pure function (advances rng, only in finalize; noise and dropout positions come from np.random.default_rng(seed), not from rng, so they are reproducible from the params).
     White = skeleton strokes inside the margin-eroded opaque region, black = beyond far_px from the object, else 0.5.
     The margin is capped at MAX_MARGIN_RATIO of the deepest point of the opaque region, so thin objects keep a skeleton.
 
     Args:
         alpha (np.ndarray): (H, W) float32 in [0, 1], white = object
-        rng (np.random.Generator): Unused
+        rng (np.random.Generator): Only finalize uses it (draws its dilation radius)
         margin_px (float): Minimum distance of a stroke from the nearest non-opaque pixel
         radius_px (float): Stroke half-width
         wobble (float): Std of the log of the local stroke width (0 = constant width)
@@ -232,7 +232,7 @@ def make_trimask(alpha, rng, margin_px, radius_px, wobble, warp_px, n_dropouts, 
 
     Examples:
         >>> alpha = np.zeros((60, 100), np.float32); alpha[10:50, 10:90] = 1  # A 40 x 80 rectangle
-        >>> trimask, used = make_trimask(alpha, None, 4, 2, 0, 0, 0, 0, 12, 0)
+        >>> trimask, used = make_trimask(alpha, np.random.default_rng(0), 4, 2, 0, 0, 0, 0, 12, 0)
         >>> sorted(np.unique(trimask).tolist())
         [0.0, 0.5, 1.0]
         >>> int(trimask[30, 50]), trimask[30, 50 + 20].item(), trimask[16, 50].item()  # On the stroke; inside, off the stroke
@@ -241,7 +241,7 @@ def make_trimask(alpha, rng, margin_px, radius_px, wobble, warp_px, n_dropouts, 
         (0.5, 0.0, 0.5)
         >>> bool((alpha[trimask == 1] == 1).all() and (alpha[trimask == 0] == 0).all())  # Correct by construction
         True
-        >>> make_trimask(np.zeros((8, 8), np.float32), None, 4, 2, 0, 0, 0, 0, 12, 0)[0].max().item()  # No opaque pixel: no white (all black)
+        >>> make_trimask(np.zeros((8, 8), np.float32), np.random.default_rng(0), 4, 2, 0, 0, 0, 0, 12, 0)[0].max().item()  # No opaque pixel: no white (all black)
         0.0
     """
     opaque, transparent = alpha >= OPAQUE - 1e-6, alpha <= TRANSPARENT + 1e-6

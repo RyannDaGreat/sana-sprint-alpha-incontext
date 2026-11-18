@@ -336,13 +336,13 @@ def sample_params(rng):
 
 def make_trimask(alpha, rng, ops, lo, hi):
     """
-    Near-pure function (rng is unused: noise ops carry their seeds). Runs ops one after the other on the matte (at working
+    Near-pure function (advances rng, only in finalize; noise ops carry their seeds). Runs ops one after the other on the matte (at working
     resolution), cutting the result with lo/hi (see cut) and finalize. After each op the cut is checked at working
     resolution (keeps_enough): an op that would leave too little sure area is not applied and is recorded.
 
     Args:
         alpha (np.ndarray): (H, W) float32 in [0, 1], white = object
-        rng (np.random.Generator): Unused
+        rng (np.random.Generator): Only finalize uses it (draws its dilation radius)
         ops (list[dict]): Op records in application order (see sample_params)
         lo (float), hi (float): Cut levels
 
@@ -353,12 +353,12 @@ def make_trimask(alpha, rng, ops, lo, hi):
     Examples:
         >>> alpha = np.zeros((128, 128), np.float32); alpha[32:96, 32:96] = 1
         >>> ops = [{"op": "dilate", "radius_frac": 0.04}, {"op": "blur", "sigma_frac": 0.02}]
-        >>> trimask, used = make_trimask(alpha, None, ops, 0.2, 0.8)
+        >>> trimask, used = make_trimask(alpha, np.random.default_rng(0), ops, 0.2, 0.8)
         >>> sorted(np.unique(trimask).tolist()), used["applied"]
         ([0.0, 0.5, 1.0], ['dilate', 'blur'])
         >>> trimask[64, 4].item(), trimask[64, 28].item(), trimask[64, 64].item()  # Far outside, in the dilated rim, inside
         (0.0, 0.5, 1.0)
-        >>> _, used = make_trimask(alpha, None, [{"op": "erode", "radius_frac": 0.4}], 0.2, 0.8)  # Erodes the object away
+        >>> _, used = make_trimask(alpha, np.random.default_rng(0), [{"op": "erode", "radius_frac": 0.4}], 0.2, 0.8)  # Erodes the object away
         >>> used["applied"], used["ops"][0]["reason"]
         ([], 'left too little sure area')
     """

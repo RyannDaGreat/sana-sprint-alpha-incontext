@@ -114,12 +114,12 @@ def sample_params(rng):
 
 def make_trimask(alpha, rng, base_method, local_method, base_seed, local_seed, base_params, local_params):
     """
-    Near-pure function (imports the two method modules; rng is unused: all randomness is in base_seed and local_seed).
+    Near-pure function (imports the two method modules; rng only feeds finalize; all randomness is in base_seed and local_seed).
     Runs the base method on alpha, runs the local method on alpha, and chains them (see chain).
 
     Args:
         alpha (np.ndarray): (H, W) float32 in [0, 1], white = object
-        rng (np.random.Generator): Unused
+        rng (np.random.Generator): Only finalize uses it (draws its dilation radius)
         base_method (str), local_method (str): Tags of two different methods of trimask.METHODS that give {0, 0.5, 1} trimasks
         base_seed (int), local_seed (int): Seed the rng handed to each method
         base_params (dict), local_params (dict): Keyword arguments of each method's make_trimask
@@ -129,18 +129,18 @@ def make_trimask(alpha, rng, base_method, local_method, base_seed, local_seed, b
         each method reports back) and added_gray_frac (fraction of the image the local method turned gray)
 
     Examples:
-        >>> alpha = np.zeros((64, 64), np.float32); alpha[16:48, 16:48] = 1
+        >>> alpha = np.zeros((128, 128), np.float32); alpha[32:96, 32:96] = 1
         >>> spec = dict(base_method="morph_band", local_method="unknown_patches", base_seed=1, local_seed=2,
-        ...             base_params=dict(erode_px=3, dilate_px=3),
+        ...             base_params=dict(erode_px=6, dilate_px=6),
         ...             local_params=dict(n_edge=0, n_free=2, radius_min_frac=0.08, radius_max_frac=0.12, irregularity=0.2,
         ...                               aspect_max=1.0, band_px=0, threshold=0.5))
-        >>> trimask, params = make_trimask(alpha, None, **spec)
+        >>> trimask, params = make_trimask(alpha, np.random.default_rng(0), **spec)
         >>> sorted(np.unique(trimask).tolist()), params["added_gray_frac"] > 0
         ([0.0, 0.5, 1.0], True)
-        >>> base, _ = method_module("morph_band").make_trimask(alpha, None, erode_px=3, dilate_px=3)
+        >>> base, _ = method_module("morph_band").make_trimask(alpha, np.random.default_rng(1), erode_px=6, dilate_px=6)  # base_seed
         >>> bool(((trimask == base) | (trimask == 0.5)).all())  # Only ever sure -> gray
         True
-        >>> trimask2, _ = make_trimask(alpha, None, **spec)
+        >>> trimask2, _ = make_trimask(alpha, np.random.default_rng(0), **spec)
         >>> bool((trimask == trimask2).all())  # Deterministic in the params
         True
     """

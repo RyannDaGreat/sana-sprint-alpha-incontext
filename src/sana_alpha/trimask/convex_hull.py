@@ -112,12 +112,12 @@ def sample_params(rng):
 
 def make_trimask(alpha, rng, mode, hull_dilate_px, erode_px, threshold):
     """
-    Pure function (rng is unused: the method is deterministic given its params). Binarizes alpha; black outside the hull
+    Near-pure function (advances rng, only in finalize; otherwise the method is deterministic given its params). Binarizes alpha; black outside the hull
     dilated by hull_dilate_px, white = the object eroded by erode_px (clipped to the dilated hull), gray in between.
 
     Args:
         alpha (np.ndarray): (H, W) float32 in [0, 1], white = object
-        rng (np.random.Generator): Unused
+        rng (np.random.Generator): Only finalize uses it (draws its dilation radius)
         mode (str): "global" (one hull) or "per_component" (union of one hull per connected part)
         hull_dilate_px (int): Hull dilation radius in pixels, >= 0
         erode_px (int): Core erosion radius in pixels, >= 0
@@ -127,14 +127,14 @@ def make_trimask(alpha, rng, mode, hull_dilate_px, erode_px, threshold):
         tuple[np.ndarray, dict]: (H, W) float32 trimask in {0, 0.5, 1}, and the params
 
     Examples:
-        >>> alpha = np.zeros((9, 9), np.float32); alpha[2:7, 1:4] = 1; alpha[2:7, 5:8] = 1
-        >>> trimask, _ = make_trimask(alpha, None, "global", 0, 1, 0.5)
-        >>> trimask[4].tolist()  # The gap between the two bars is inside the global hull, so unknown
-        [0.0, 0.5, 1.0, 0.5, 0.5, 0.5, 1.0, 0.5, 0.0]
-        >>> trimask, _ = make_trimask(alpha, None, "per_component", 0, 1, 0.5)
-        >>> trimask[4].tolist()
-        [0.0, 0.5, 1.0, 0.5, 0.0, 0.5, 1.0, 0.5, 0.0]
-        >>> float(make_trimask(np.zeros((4, 4), np.float32), None, "global", 3, 3, 0.5)[0].max())
+        >>> alpha = np.zeros((128, 128), np.float32); alpha[32:96, 8:40] = 1; alpha[32:96, 88:120] = 1  # two bars, a 48 px gap
+        >>> trimask, _ = make_trimask(alpha, np.random.default_rng(0), "global", 8, 8, 0.5)
+        >>> trimask[64, ::8].tolist()  # The gap between the two bars is inside the global hull, so unknown
+        [0.5, 0.5, 1.0, 1.0, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 1.0, 1.0, 0.5, 0.5]
+        >>> trimask, _ = make_trimask(alpha, np.random.default_rng(0), "per_component", 8, 8, 0.5)
+        >>> trimask[64, ::8].tolist()  # One hull per bar: the gap is black
+        [0.5, 0.5, 1.0, 1.0, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 1.0, 1.0, 0.5, 0.5]
+        >>> float(make_trimask(np.zeros((4, 4), np.float32), np.random.default_rng(0), "global", 3, 3, 0.5)[0].max())
         0.0
     """
     if mode not in MODES:

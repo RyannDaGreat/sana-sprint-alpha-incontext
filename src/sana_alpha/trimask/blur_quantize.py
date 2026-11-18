@@ -81,11 +81,11 @@ def sample_params(rng):
 
 def make_trimask(alpha, rng, sigma_x, sigma_y, low, high):
     """
-    Pure function (rng is unused: the method is deterministic given its params). Blurs alpha, then quantizes it to 3 levels.
+    Near-pure function (advances rng, only in finalize; otherwise the method is deterministic given its params). Blurs alpha, then quantizes it to 3 levels.
 
     Args:
         alpha (np.ndarray): (H, W) float32 in [0, 1], white = object
-        rng (np.random.Generator): Unused
+        rng (np.random.Generator): Only finalize uses it (draws its dilation radius)
         sigma_x (float), sigma_y (float): Blur standard deviations along W and H, in pixels
         low (float), high (float): Background / object thresholds on the blurred matte
 
@@ -94,7 +94,7 @@ def make_trimask(alpha, rng, sigma_x, sigma_y, low, high):
 
     Examples:
         >>> alpha = np.zeros((1, 41), np.float32); alpha[0, 20:] = 1  # a vertical edge between columns 19 and 20
-        >>> trimask, params = make_trimask(alpha, None, sigma_x=3.0, sigma_y=3.0, low=0.2, high=0.8)
+        >>> trimask, params = make_trimask(alpha, np.random.default_rng(0), sigma_x=3.0, sigma_y=3.0, low=0.2, high=0.8)
         >>> trimask[0, [0, 14, 16, 19, 20, 23, 25, 40]].tolist()
         [0.0, 0.0, 0.0, 0.5, 0.5, 1.0, 1.0, 1.0]
         >>> params

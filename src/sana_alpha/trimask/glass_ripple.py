@@ -282,8 +282,8 @@ def make_trimask(alpha, rng, kind, amplitude_px, wavelength_px, band_px=0.0, ang
         >>> trimask, used = make_trimask(alpha, np.random.default_rng(0), "sine", 10, 80, angle_deg=0, disp_angle_deg=0, phase=0)
         >>> sorted(np.unique(trimask).tolist()), used["scale"]
         ([0.0, 0.5, 1.0], 0.125)
-        >>> trimask[64, 30:36].tolist()  # Left edge at x = 32: the ripple moves it by ~1 px (10 x 0.125): one gray pixel
-        [0.0, 0.5, 1.0, 1.0, 1.0, 1.0]
+        >>> trimask[64, 0:64:4].tolist()  # Left edge at x = 32: the ripple moves it ~1 px (10 x 0.125); finalize widens the gray
+        [0.0, 0.0, 0.0, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 1.0, 1.0]
         >>> trimask, _ = make_trimask(alpha, np.random.default_rng(0), "radial", 400, 800, center_x=0.5, center_y=0.5)
         >>> bool((trimask == 0.5).any() and (trimask == 1).any() and (trimask == 0).any())  # Radial ripple centered in the square
         True

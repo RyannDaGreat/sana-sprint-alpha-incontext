@@ -94,12 +94,12 @@ def sample_params(rng):
 
 def make_trimask(alpha, rng, cell_px, offset_x, offset_y, angle_deg, low, high):
     """
-    Pure function (rng is unused: deterministic given its params). Averages alpha over the grid, then per cell:
+    Near-pure function (advances rng, only in finalize; otherwise deterministic given its params). Averages alpha over the grid, then per cell:
     mean >= high -> 1 (object), mean <= low -> 0 (background), else 0.5 (unknown). Every pixel of a cell gets its cell's value.
 
     Args:
         alpha (np.ndarray): (H, W) float32 in [0, 1], white = object
-        rng (np.random.Generator): Unused
+        rng (np.random.Generator): Only finalize uses it (draws its dilation radius)
         cell_px (int): Cell edge in pixels
         offset_x (float), offset_y (float): Grid shift in pixels
         angle_deg (float): Grid rotation in degrees
@@ -109,10 +109,10 @@ def make_trimask(alpha, rng, cell_px, offset_x, offset_y, angle_deg, low, high):
         tuple[np.ndarray, dict]: (H, W) float32 trimask in {0, 0.5, 1}, and the params
 
     Examples:
-        >>> alpha = np.zeros((8, 8), np.float32); alpha[:, 3:] = 1  # Edge at x = 3, inside the cell x in [2, 4)
-        >>> trimask, params = make_trimask(alpha, None, 2, 0, 0, 0, 0.05, 0.95)
-        >>> trimask[0].tolist()
-        [0.0, 0.0, 0.5, 0.5, 1.0, 1.0, 1.0, 1.0]
+        >>> alpha = np.zeros((128, 128), np.float32); alpha[:, 52:] = 1  # Edge at x = 52, inside the cell x in [48, 64)
+        >>> trimask, params = make_trimask(alpha, np.random.default_rng(0), 16, 0, 0, 0, 0.05, 0.95)
+        >>> trimask[0, ::8].tolist()  # Black cells, the one gray cell (x 48..63), white cells
+        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
         >>> sorted(params)
         ['angle_deg', 'cell_px', 'high', 'low', 'offset_x', 'offset_y']
     """
