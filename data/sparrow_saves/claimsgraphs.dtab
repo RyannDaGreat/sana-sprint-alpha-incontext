@@ -28,7 +28,7 @@ queries
 		    SELECT processor, processor AS label FROM bluejay_runs GROUP BY processor
 		),
 		pointers AS ( -- The claim pointer of a row holds the claim that made the row, or that holds it now. A row released and redone has its old claims in no pointer
-		    SELECT                                                                                       -- One scan of each table: a UNION of 23 scans of magick_samples made the server hang
+		    SELECT                                                                                       -- One scan of magick_samples for its 23 claim pointers
 		        p.processor,
 		        CASE p.processor
 		            WHEN 'download_image'           THEN m.download_claim
@@ -85,16 +85,28 @@ queries
 		    SELECT 'plan_eval'     AS processor, plan_eval_claim     AS claim_id FROM eval_models      UNION ALL
 		    SELECT 'generate_eval' AS processor, generate_eval_claim AS claim_id FROM eval_generations
 		),
+		claims_held AS ( -- One row per claim: its status, its run, and the processor whose claim pointer holds it (NULL: no pointer holds it)
+		    SELECT                                                                -- A GROUP BY, not a join. A hash join of the claims with the pointers made concurrent runs hang (agents/.scratchpad/fastlance_hang_repro.md)
+		        claim_id,
+		        max(claim_status) AS claim_status,
+		        max(run_id)       AS run_id,
+		        max(processor)    AS held_by
+		    FROM (
+		        SELECT claim_id, claim_status, run_id, CAST(NULL AS VARCHAR) AS processor FROM bluejay_claims UNION ALL
+		        SELECT claim_id, NULL,         NULL,   processor                          FROM pointers WHERE claim_id IS NOT NULL
+		    ) AS claims_and_pointers
+		    GROUP BY claim_id
+		    HAVING count(claim_status) > 0                                        -- Only the claims that the claims table holds
+		),
 		claim_counts AS ( -- The one pass over the claims
 		    SELECT
-		        COALESCE(r.processor, p.processor)                                   AS processor,
+		        COALESCE(r.processor, c.held_by)                                     AS processor,
 		        c.claim_status                                                       AS status,
-		        p.claim_id IS NOT NULL                                               AS current,
+		        c.held_by IS NOT NULL                                                AS current,
 		        CAST(FLOOR(date_part('epoch', to_timestamp(r.finished_at)) / 60) AS BIGINT) AS minute,
 		        count(*)                                                             AS claims
-		    FROM bluejay_claims    AS c                                       -- Every claim,
-		    LEFT JOIN bluejay_runs AS r ON r.run_id   = c.run_id   -- with its run if the run ended (Bluejay writes the run row at the end; minute is NULL before),
-		    LEFT JOIN pointers     AS p ON p.claim_id = c.claim_id -- and the row that still points to it, if any
+		    FROM claims_held       AS c                                       -- Every claim,
+		    LEFT JOIN bluejay_runs AS r ON r.run_id = c.run_id     -- with its run if the run ended (Bluejay writes the run row at the end; minute is NULL before)
 		    GROUP BY 1, 2, 3, 4
 		),
 		facts AS ( -- has_pointer: the processor has a claim pointer in the DTAB. Others (encode_trimask, now removed) count each completed claim as a row
@@ -193,7 +205,7 @@ queries
 		        ROW_NUMBER() OVER (PARTITION BY processor, bucket ORDER BY running_instances DESC, minute) AS high_rank
 		    FROM activity_buckets
 		),
-		per_processor AS ( -- One GROUP BY over the union of the minute rows, the running-run rows and the runs, so no join follows array_agg. Joins after it (as MulticamDailies did) made the server hang with the pointer scans
+		per_processor AS ( -- One GROUP BY over the union of the minute rows, the running-run rows and the runs
 		    SELECT
 		        processor,
 		        MAX(done)        AS done,
