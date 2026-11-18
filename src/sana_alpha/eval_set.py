@@ -196,7 +196,9 @@ def build_trimask(source="resources/showcase", out="resources/showcase_trimask",
                 (folder / link).symlink_to(os.path.relpath(source / target, folder))  # relative: the dump stays portable
         for item in items:
             alpha = np.asarray(Image.open(source / "mattes" / f"{item['page_id']}.png"), np.float32) / 255
-            stored = trimask.to_uint8(trimask.generate(alpha, item["page_id"], method, variant)[0])
+            rgb = (np.asarray(Image.open(source / "references" / f"{item['page_id']}.png").convert("RGB"), np.float32) / 255
+                   if method in trimask.RGB_METHODS else None)  # bilateral_blur follows the RGB on gray
+            stored = trimask.to_uint8(trimask.generate(alpha, item["page_id"], method, variant, rgb)[0])
             trimask.check_consistent(alpha, stored.astype(np.float32) / 255)  # m00647: the stored PNG, as load_eval_set reads it
             Image.fromarray(stored, "L").save(folder / "mattes" / f"{item['page_id']}.png")
         print(f"wrote {folder}: {len(items)} trimasks")
