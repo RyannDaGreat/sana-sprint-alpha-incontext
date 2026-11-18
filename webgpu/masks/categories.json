@@ -16,9 +16,44 @@
    "count": 39
   },
   {
+   "id": "birds",
+   "name": "Birds",
+   "count": 176
+  },
+  {
+   "id": "buildings",
+   "name": "Buildings",
+   "count": 160
+  },
+  {
+   "id": "fantasy",
+   "name": "Fantasy",
+   "count": 234
+  },
+  {
    "id": "fantasy_creatures",
    "name": "Fantasy creatures",
    "count": 25
+  },
+  {
+   "id": "fashion",
+   "name": "Fashion",
+   "count": 124
+  },
+  {
+   "id": "food",
+   "name": "Food",
+   "count": 166
+  },
+  {
+   "id": "heraldry",
+   "name": "Heraldry",
+   "count": 135
+  },
+  {
+   "id": "household",
+   "name": "Household",
+   "count": 322
   },
   {
    "id": "icons_symbols",
@@ -26,9 +61,29 @@
    "count": 41
   },
   {
+   "id": "insects_reptiles",
+   "name": "Insects reptiles",
+   "count": 153
+  },
+  {
+   "id": "mammals",
+   "name": "Mammals",
+   "count": 181
+  },
+  {
+   "id": "nature",
+   "name": "Nature",
+   "count": 96
+  },
+  {
    "id": "objects_tools",
    "name": "Objects tools",
    "count": 42
+  },
+  {
+   "id": "ornaments",
+   "name": "Ornaments",
+   "count": 180
   },
   {
    "id": "people_poses",
@@ -41,6 +96,26 @@
    "count": 38
   },
   {
+   "id": "poses",
+   "name": "Poses",
+   "count": 292
+  },
+  {
+   "id": "professions",
+   "name": "Professions",
+   "count": 348
+  },
+  {
+   "id": "sea_life",
+   "name": "Sea life",
+   "count": 116
+  },
+  {
+   "id": "sports",
+   "name": "Sports",
+   "count": 292
+  },
+  {
    "id": "sports_action",
    "name": "Sports action",
    "count": 35
@@ -49,6 +124,11 @@
    "id": "typography_ornaments",
    "name": "Typography ornaments",
    "count": 25
+  },
+  {
+   "id": "vehicles",
+   "name": "Vehicles",
+   "count": 156
   },
   {
    "id": "vehicles_architecture",

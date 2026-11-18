@@ -1,0 +1,816 @@
+{
+  "items": [
+    {
+      "file": "angler-fish.png",
+      "name": "Angler Fish",
+      "source_url": "https://game-icons.net/1x1/lorc/angler-fish.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "jellyfish.png",
+      "name": "Jellyfish",
+      "source_url": "https://game-icons.net/1x1/lorc/jellyfish.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "squid-head.png",
+      "name": "Squid Head",
+      "source_url": "https://game-icons.net/1x1/lorc/squid-head.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "octopus.png",
+      "name": "Octopus",
+      "source_url": "https://game-icons.net/1x1/lorc/octopus.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "squid.png",
+      "name": "Squid",
+      "source_url": "https://game-icons.net/1x1/lorc/squid.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "sea-dragon.png",
+      "name": "Sea Dragon",
+      "source_url": "https://game-icons.net/1x1/lorc/sea-dragon.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "sea-serpent.png",
+      "name": "Sea Serpent",
+      "source_url": "https://game-icons.net/1x1/lorc/sea-serpent.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "shark-jaws.png",
+      "name": "Shark Jaws",
+      "source_url": "https://game-icons.net/1x1/lorc/shark-jaws.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "suckered-tentacle.png",
+      "name": "Suckered Tentacle",
+      "source_url": "https://game-icons.net/1x1/lorc/suckered-tentacle.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "curled-tentacle.png",
+      "name": "Curled Tentacle",
+      "source_url": "https://game-icons.net/1x1/lorc/curled-tentacle.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "spiral-tentacle.png",
+      "name": "Spiral Tentacle",
+      "source_url": "https://game-icons.net/1x1/lorc/spiral-tentacle.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "thorny-tentacle.png",
+      "name": "Thorny Tentacle",
+      "source_url": "https://game-icons.net/1x1/lorc/thorny-tentacle.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "interlaced-tentacles.png",
+      "name": "Interlaced Tentacles",
+      "source_url": "https://game-icons.net/1x1/lorc/interlaced-tentacles.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "spiked-tentacle.png",
+      "name": "Spiked Tentacle",
+      "source_url": "https://game-icons.net/1x1/lorc/spiked-tentacle.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "crab.png",
+      "name": "Crab",
+      "source_url": "https://game-icons.net/1x1/lorc/crab.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "sad-crab.png",
+      "name": "Sad Crab",
+      "source_url": "https://game-icons.net/1x1/lorc/sad-crab.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "crab-claw.png",
+      "name": "Crab Claw",
+      "source_url": "https://game-icons.net/1x1/lorc/crab-claw.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "gold-shell.png",
+      "name": "Gold Shell",
+      "source_url": "https://game-icons.net/1x1/lorc/gold-shell.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "armoured-shell.png",
+      "name": "Armoured Shell",
+      "source_url": "https://game-icons.net/1x1/lorc/armoured-shell.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "spiked-shell.png",
+      "name": "Spiked Shell",
+      "source_url": "https://game-icons.net/1x1/lorc/spiked-shell.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "spiral-shell.png",
+      "name": "Spiral Shell",
+      "source_url": "https://game-icons.net/1x1/lorc/spiral-shell.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "sewed-shell.png",
+      "name": "Sewed Shell",
+      "source_url": "https://game-icons.net/1x1/lorc/sewed-shell.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "backbone-shell.png",
+      "name": "Backbone Shell",
+      "source_url": "https://game-icons.net/1x1/lorc/backbone-shell.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "fishbone.png",
+      "name": "Fishbone",
+      "source_url": "https://game-icons.net/1x1/lorc/fishbone.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "octoman.png",
+      "name": "Octoman",
+      "source_url": "https://game-icons.net/1x1/lorc/octoman.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Lorc"
+    },
+    {
+      "file": "manta-ray.png",
+      "name": "Manta Ray",
+      "source_url": "https://game-icons.net/1x1/delapouite/manta-ray.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Delapouite"
+    },
+    {
+      "file": "shark-fin.png",
+      "name": "Shark Fin",
+      "source_url": "https://game-icons.net/1x1/delapouite/shark-fin.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Delapouite"
+    },
+    {
+      "file": "giant-squid.png",
+      "name": "Giant Squid",
+      "source_url": "https://game-icons.net/1x1/delapouite/giant-squid.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Delapouite"
+    },
+    {
+      "file": "floating-tentacles.png",
+      "name": "Floating Tentacles",
+      "source_url": "https://game-icons.net/1x1/delapouite/floating-tentacles.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Delapouite"
+    },
+    {
+      "file": "sea-star.png",
+      "name": "Sea Star",
+      "source_url": "https://game-icons.net/1x1/delapouite/sea-star.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Delapouite"
+    },
+    {
+      "file": "sea-urchin.png",
+      "name": "Sea Urchin",
+      "source_url": "https://game-icons.net/1x1/delapouite/sea-urchin.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Delapouite"
+    },
+    {
+      "file": "whale-tail.png",
+      "name": "Whale Tail",
+      "source_url": "https://game-icons.net/1x1/delapouite/whale-tail.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Delapouite"
+    },
+    {
+      "file": "clownfish.png",
+      "name": "Clownfish",
+      "source_url": "https://game-icons.net/1x1/delapouite/clownfish.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Delapouite"
+    },
+    {
+      "file": "tropical-fish.png",
+      "name": "Tropical Fish",
+      "source_url": "https://game-icons.net/1x1/delapouite/tropical-fish.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Delapouite"
+    },
+    {
+      "file": "circling-fish.png",
+      "name": "Circling Fish",
+      "source_url": "https://game-icons.net/1x1/delapouite/circling-fish.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Delapouite"
+    },
+    {
+      "file": "school-of-fish.png",
+      "name": "School Of Fish",
+      "source_url": "https://game-icons.net/1x1/delapouite/school-of-fish.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Delapouite"
+    },
+    {
+      "file": "kraken-tentacle.png",
+      "name": "Kraken Tentacle",
+      "source_url": "https://game-icons.net/1x1/delapouite/kraken-tentacle.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Delapouite"
+    },
+    {
+      "file": "piranha.png",
+      "name": "Piranha",
+      "source_url": "https://game-icons.net/1x1/delapouite/piranha.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Delapouite"
+    },
+    {
+      "file": "porcupinefish.png",
+      "name": "Porcupinefish",
+      "source_url": "https://game-icons.net/1x1/delapouite/porcupinefish.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Delapouite"
+    },
+    {
+      "file": "shrimp.png",
+      "name": "Shrimp",
+      "source_url": "https://game-icons.net/1x1/delapouite/shrimp.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Delapouite"
+    },
+    {
+      "file": "flatfish.png",
+      "name": "Flatfish",
+      "source_url": "https://game-icons.net/1x1/delapouite/flatfish.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Delapouite"
+    },
+    {
+      "file": "seahorse.png",
+      "name": "Seahorse",
+      "source_url": "https://game-icons.net/1x1/delapouite/seahorse.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Delapouite"
+    },
+    {
+      "file": "eel.png",
+      "name": "Eel",
+      "source_url": "https://game-icons.net/1x1/delapouite/eel.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Delapouite"
+    },
+    {
+      "file": "coral.png",
+      "name": "Coral",
+      "source_url": "https://game-icons.net/1x1/delapouite/coral.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Delapouite"
+    },
+    {
+      "file": "shark-bite.png",
+      "name": "Shark Bite",
+      "source_url": "https://game-icons.net/1x1/delapouite/shark-bite.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Delapouite"
+    },
+    {
+      "file": "fish-monster.png",
+      "name": "Fish Monster",
+      "source_url": "https://game-icons.net/1x1/delapouite/fish-monster.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Delapouite"
+    },
+    {
+      "file": "double-fish.png",
+      "name": "Double Fish",
+      "source_url": "https://game-icons.net/1x1/delapouite/double-fish.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Delapouite"
+    },
+    {
+      "file": "sperm-whale.png",
+      "name": "Sperm Whale",
+      "source_url": "https://game-icons.net/1x1/delapouite/sperm-whale.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Delapouite"
+    },
+    {
+      "file": "dolphin.png",
+      "name": "Dolphin",
+      "source_url": "https://game-icons.net/1x1/delapouite/dolphin.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Delapouite"
+    },
+    {
+      "file": "oyster-pearl.png",
+      "name": "Oyster Pearl",
+      "source_url": "https://game-icons.net/1x1/delapouite/oyster-pearl.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Delapouite"
+    },
+    {
+      "file": "fish-scales.png",
+      "name": "Fish Scales",
+      "source_url": "https://game-icons.net/1x1/delapouite/fish-scales.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Delapouite"
+    },
+    {
+      "file": "fish-eggs.png",
+      "name": "Fish Eggs",
+      "source_url": "https://game-icons.net/1x1/delapouite/fish-eggs.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Delapouite"
+    },
+    {
+      "file": "sea-creature.png",
+      "name": "Sea Creature",
+      "source_url": "https://game-icons.net/1x1/skoll/sea-creature.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Skoll"
+    },
+    {
+      "file": "nautilus-shell.png",
+      "name": "Nautilus Shell",
+      "source_url": "https://game-icons.net/1x1/faithtoken/nautilus-shell.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Faithtoken"
+    },
+    {
+      "file": "flying-trout.png",
+      "name": "Flying Trout",
+      "source_url": "https://game-icons.net/1x1/cathelineau/flying-trout.html",
+      "license": "CC BY 3.0 (game-icons.net)",
+      "author": "Cathelineau"
+    },
+    {
+      "file": "shark.png",
+      "name": "Shark",
+      "source_url": "https://pictogrammers.com/library/mdi/icon/shark/",
+      "license": "Apache-2.0 (Material Design Icons)",
+      "author": "Pictogrammers"
+    },
+    {
+      "file": "shark-fin-mdi.png",
+      "name": "Shark Fin Mdi",
+      "source_url": "https://pictogrammers.com/library/mdi/icon/shark-fin/",
+      "license": "Apache-2.0 (Material Design Icons)",
+      "author": "Pictogrammers"
+    },
+    {
+      "file": "dolphin-mdi.png",
+      "name": "Dolphin Mdi",
+      "source_url": "https://pictogrammers.com/library/mdi/icon/dolphin/",
+      "license": "Apache-2.0 (Material Design Icons)",
+      "author": "Pictogrammers"
+    },
+    {
+      "file": "jellyfish-mdi.png",
+      "name": "Jellyfish Mdi",
+      "source_url": "https://pictogrammers.com/library/mdi/icon/jellyfish/",
+      "license": "Apache-2.0 (Material Design Icons)",
+      "author": "Pictogrammers"
+    },
+    {
+      "file": "inky.png",
+      "name": "Inky",
+      "source_url": "https://openclipart.org/detail/122101/inky",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "dear_theophilus"
+    },
+    {
+      "file": "large-narwhal.png",
+      "name": "Large Narwhal",
+      "source_url": "https://openclipart.org/detail/122227/large-narwhal",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "Squiggle"
+    },
+    {
+      "file": "small-narwhal.png",
+      "name": "Small Narwhal",
+      "source_url": "https://openclipart.org/detail/122233/small-narwhal",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "Squiggle"
+    },
+    {
+      "file": "seahorse-silhouette.png",
+      "name": "Seahorse Silhouette",
+      "source_url": "https://openclipart.org/detail/1662/seahorse-silhouette",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "molumen"
+    },
+    {
+      "file": "whale-by-rones.png",
+      "name": "Whale By Rones",
+      "source_url": "https://openclipart.org/detail/173515/whale-by-rones",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "rones"
+    },
+    {
+      "file": "shark-189850.png",
+      "name": "Shark 189850",
+      "source_url": "https://openclipart.org/detail/189850/shark",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "Dux_Phoenix"
+    },
+    {
+      "file": "jellyfish-192994.png",
+      "name": "Jellyfish 192994",
+      "source_url": "https://openclipart.org/detail/192994/jellyfish",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "Scout"
+    },
+    {
+      "file": "hammerhead-shark.png",
+      "name": "Hammerhead Shark",
+      "source_url": "https://openclipart.org/detail/20224/hammerhead-shark",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "wsnaccad"
+    },
+    {
+      "file": "whale-icon.png",
+      "name": "Whale Icon",
+      "source_url": "https://openclipart.org/detail/2148/whale-icon",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "johnny_automatic"
+    },
+    {
+      "file": "fish-icon.png",
+      "name": "Fish Icon",
+      "source_url": "https://openclipart.org/detail/2151/fish-icon",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "johnny_automatic"
+    },
+    {
+      "file": "seahorse-silhouette-220792.png",
+      "name": "Seahorse Silhouette 220792",
+      "source_url": "https://openclipart.org/detail/220792/seahorse-silhouette",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "GDJ"
+    },
+    {
+      "file": "shark-silhouette.png",
+      "name": "Shark Silhouette",
+      "source_url": "https://openclipart.org/detail/222313/shark-silhouette",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "Firkin"
+    },
+    {
+      "file": "seastar-silhouette.png",
+      "name": "Seastar Silhouette",
+      "source_url": "https://openclipart.org/detail/230013/seastar-silhouette",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "Firkin"
+    },
+    {
+      "file": "squid-silhouette.png",
+      "name": "Squid Silhouette",
+      "source_url": "https://openclipart.org/detail/230694/squid-silhouette",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "Firkin"
+    },
+    {
+      "file": "dolphin-silhouette.png",
+      "name": "Dolphin Silhouette",
+      "source_url": "https://openclipart.org/detail/233322/dolphin-silhouette",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "rones"
+    },
+    {
+      "file": "silhouette-whale.png",
+      "name": "Silhouette Whale",
+      "source_url": "https://openclipart.org/detail/235011/silhouette-whale",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "SeriousTux"
+    },
+    {
+      "file": "tribal-dolphin.png",
+      "name": "Tribal Dolphin",
+      "source_url": "https://openclipart.org/detail/235598/tribal-dolphin",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "GDJ"
+    },
+    {
+      "file": "kid-octopi-redrawn.png",
+      "name": "Kid Octopi Redrawn",
+      "source_url": "https://openclipart.org/detail/245075/kid-octopi-redrawn",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "GDJ"
+    },
+    {
+      "file": "prismatic-stylized-seahorse-silhouette-6.png",
+      "name": "Prismatic Stylized Seahorse Silhouette 6",
+      "source_url": "https://openclipart.org/detail/246587/prismatic-stylized-seahorse-silhouette-6",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "GDJ"
+    },
+    {
+      "file": "crab-silhouette.png",
+      "name": "Crab Silhouette",
+      "source_url": "https://openclipart.org/detail/270221/crab-silhouette",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "Firkin"
+    },
+    {
+      "file": "detailed-seahorse-silhouette.png",
+      "name": "Detailed Seahorse Silhouette",
+      "source_url": "https://openclipart.org/detail/274631/detailed-seahorse-silhouette",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "GDJ"
+    },
+    {
+      "file": "dolphin-284798.png",
+      "name": "Dolphin 284798",
+      "source_url": "https://openclipart.org/detail/284798/dolphin",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "cactus_cowboy"
+    },
+    {
+      "file": "the-orca.png",
+      "name": "The Orca",
+      "source_url": "https://openclipart.org/detail/287994/the-orca",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "cactus_cowboy"
+    },
+    {
+      "file": "a-tropical-fish.png",
+      "name": "A Tropical Fish",
+      "source_url": "https://openclipart.org/detail/288008/a-tropical-fish",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "cactus_cowboy"
+    },
+    {
+      "file": "blue-shark.png",
+      "name": "Blue Shark",
+      "source_url": "https://openclipart.org/detail/28846/blue-shark",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "Sullivanwarriors12"
+    },
+    {
+      "file": "starfish.png",
+      "name": "Starfish",
+      "source_url": "https://openclipart.org/detail/288935/starfish",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "cactus_cowboy"
+    },
+    {
+      "file": "stylized-octopus.png",
+      "name": "Stylized Octopus",
+      "source_url": "https://openclipart.org/detail/292604/stylized-octopus",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "cactus_cowboy"
+    },
+    {
+      "file": "crab-310747.png",
+      "name": "Crab 310747",
+      "source_url": "https://openclipart.org/detail/310747/crab",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "cactus_cowboy"
+    },
+    {
+      "file": "crustacean.png",
+      "name": "Crustacean",
+      "source_url": "https://openclipart.org/detail/311571/crustacean",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "cactus_cowboy"
+    },
+    {
+      "file": "octopus-315201.png",
+      "name": "Octopus 315201",
+      "source_url": "https://openclipart.org/detail/315201/octopus",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "cactus_cowboy"
+    },
+    {
+      "file": "octopus-silhouette-ernst-haeckel.png",
+      "name": "Octopus Silhouette Ernst Haeckel",
+      "source_url": "https://openclipart.org/detail/316053/octopus-silhouette-ernst-haeckel",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "GDJ"
+    },
+    {
+      "file": "sharks-silhouette.png",
+      "name": "Sharks Silhouette",
+      "source_url": "https://openclipart.org/detail/319311/sharks-silhouette",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "liftarn"
+    },
+    {
+      "file": "shark-outline-silhouette.png",
+      "name": "Shark Outline Silhouette",
+      "source_url": "https://openclipart.org/detail/319313/shark-outline-silhouette",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "liftarn"
+    },
+    {
+      "file": "crab-silhouette-319455.png",
+      "name": "Crab Silhouette 319455",
+      "source_url": "https://openclipart.org/detail/319455/crab-silhouette",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "liftarn"
+    },
+    {
+      "file": "shark-silhouette-graphics.png",
+      "name": "Shark Silhouette Graphics",
+      "source_url": "https://openclipart.org/detail/320628/shark-silhouette-graphics",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "liftarn"
+    },
+    {
+      "file": "seashell-silhouette-clip-art.png",
+      "name": "Seashell Silhouette Clip Art",
+      "source_url": "https://openclipart.org/detail/320680/seashell-silhouette-clip-art",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "liftarn"
+    },
+    {
+      "file": "fish-322392.png",
+      "name": "Fish 322392",
+      "source_url": "https://openclipart.org/detail/322392/fish",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "NicholasJudy567"
+    },
+    {
+      "file": "jellyfish-322401.png",
+      "name": "Jellyfish 322401",
+      "source_url": "https://openclipart.org/detail/322401/jellyfish",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "NicholasJudy567"
+    },
+    {
+      "file": "eight-headed-starfish-family.png",
+      "name": "Eight Headed Starfish Family",
+      "source_url": "https://openclipart.org/detail/322424/eight-headed-starfish-family",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "NicholasJudy567"
+    },
+    {
+      "file": "octopus-silhouette-clip-art-graphics.png",
+      "name": "Octopus Silhouette Clip Art Graphics",
+      "source_url": "https://openclipart.org/detail/323055/octopus-silhouette-clip-art-graphics",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "liftarn"
+    },
+    {
+      "file": "crab-323196.png",
+      "name": "Crab 323196",
+      "source_url": "https://openclipart.org/detail/323196/crab",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "NicholasJudy567"
+    },
+    {
+      "file": "fish-323205.png",
+      "name": "Fish 323205",
+      "source_url": "https://openclipart.org/detail/323205/fish",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "NicholasJudy567"
+    },
+    {
+      "file": "dolphin-323288.png",
+      "name": "Dolphin 323288",
+      "source_url": "https://openclipart.org/detail/323288/dolphin",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "NicholasJudy567"
+    },
+    {
+      "file": "fish-323296.png",
+      "name": "Fish 323296",
+      "source_url": "https://openclipart.org/detail/323296/fish",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "NicholasJudy567"
+    },
+    {
+      "file": "fish-feet.png",
+      "name": "Fish Feet",
+      "source_url": "https://openclipart.org/detail/323297/fish-feet",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "NicholasJudy567"
+    },
+    {
+      "file": "fish-323298.png",
+      "name": "Fish 323298",
+      "source_url": "https://openclipart.org/detail/323298/fish",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "NicholasJudy567"
+    },
+    {
+      "file": "shark-323415.png",
+      "name": "Shark 323415",
+      "source_url": "https://openclipart.org/detail/323415/shark",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "NicholasJudy567"
+    },
+    {
+      "file": "lobster.png",
+      "name": "Lobster",
+      "source_url": "https://openclipart.org/detail/323607/lobster",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "NicholasJudy567"
+    },
+    {
+      "file": "fish-silhouette-monochrome-clip-art.png",
+      "name": "Fish Silhouette Monochrome Clip Art",
+      "source_url": "https://openclipart.org/detail/323907/fish-silhouette-monochrome-clip-art",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "liftarn"
+    },
+    {
+      "file": "silhouette-of-a-shark.png",
+      "name": "Silhouette Of A Shark",
+      "source_url": "https://openclipart.org/detail/324228/silhouette-of-a-shark",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "liftarn"
+    },
+    {
+      "file": "crab-330487.png",
+      "name": "Crab 330487",
+      "source_url": "https://openclipart.org/detail/330487/crab",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "NicholasJudy567"
+    },
+    {
+      "file": "whale.png",
+      "name": "Whale",
+      "source_url": "https://openclipart.org/detail/330512/whale",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "NicholasJudy567"
+    },
+    {
+      "file": "koi-fish-silhouette.png",
+      "name": "Koi Fish Silhouette",
+      "source_url": "https://openclipart.org/detail/336165/koi-fish-silhouette",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "GDJ"
+    },
+    {
+      "file": "abstract-fish.png",
+      "name": "Abstract Fish",
+      "source_url": "https://openclipart.org/detail/337423/abstract-fish",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "elizavella"
+    },
+    {
+      "file": "al-generated-mermaid-isolated-silhouette.png",
+      "name": "Al Generated Mermaid Isolated Silhouette",
+      "source_url": "https://openclipart.org/detail/348014/al-generated-mermaid-isolated-silhouette",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "GDJ"
+    },
+    {
+      "file": "fish-354460.png",
+      "name": "Fish 354460",
+      "source_url": "https://openclipart.org/detail/354460/fish",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "qubodup"
+    },
+    {
+      "file": "decor08.png",
+      "name": "Decor08",
+      "source_url": "https://openclipart.org/detail/82153/decor08",
+      "license": "CC0 1.0 (openclipart.org)",
+      "author": "waferd"
+    }
+  ]
+}

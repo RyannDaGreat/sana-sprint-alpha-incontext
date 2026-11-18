@@ -1,0 +1,1166 @@
+{
+  "items": [
+    {
+      "file": "artichoke.png",
+      "name": "Artichoke",
+      "source_url": "https://game-icons.net/1x1/caro-asercion/artichoke.html",
+      "license": "CC BY 3.0",
+      "author": "Caro Asercion"
+    },
+    {
+      "file": "apple-core.png",
+      "name": "Apple Core",
+      "source_url": "https://game-icons.net/1x1/delapouite/apple-core.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "asparagus.png",
+      "name": "Asparagus",
+      "source_url": "https://game-icons.net/1x1/delapouite/asparagus.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "avocado.png",
+      "name": "Avocado",
+      "source_url": "https://game-icons.net/1x1/delapouite/avocado.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "bacon.png",
+      "name": "Bacon",
+      "source_url": "https://game-icons.net/1x1/delapouite/bacon.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "banana-bunch.png",
+      "name": "Banana Bunch",
+      "source_url": "https://game-icons.net/1x1/delapouite/banana-bunch.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "banana-peeled.png",
+      "name": "Banana Peeled",
+      "source_url": "https://game-icons.net/1x1/delapouite/banana-peeled.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "banana.png",
+      "name": "Banana",
+      "source_url": "https://game-icons.net/1x1/delapouite/banana.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "beet.png",
+      "name": "Beet",
+      "source_url": "https://game-icons.net/1x1/delapouite/beet.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "bell-pepper.png",
+      "name": "Bell Pepper",
+      "source_url": "https://game-icons.net/1x1/delapouite/bell-pepper.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "bread-slice.png",
+      "name": "Bread Slice",
+      "source_url": "https://game-icons.net/1x1/delapouite/bread-slice.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "broccoli.png",
+      "name": "Broccoli",
+      "source_url": "https://game-icons.net/1x1/delapouite/broccoli.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "butter-toast.png",
+      "name": "Butter Toast",
+      "source_url": "https://game-icons.net/1x1/delapouite/butter-toast.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "cabbage.png",
+      "name": "Cabbage",
+      "source_url": "https://game-icons.net/1x1/delapouite/cabbage.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "candy-canes.png",
+      "name": "Candy Canes",
+      "source_url": "https://game-icons.net/1x1/delapouite/candy-canes.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "carrot.png",
+      "name": "Carrot",
+      "source_url": "https://game-icons.net/1x1/delapouite/carrot.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "cellar-barrels.png",
+      "name": "Cellar Barrels",
+      "source_url": "https://game-icons.net/1x1/delapouite/cellar-barrels.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "cherry.png",
+      "name": "Cherry",
+      "source_url": "https://game-icons.net/1x1/delapouite/cherry.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "chicken-oven.png",
+      "name": "Chicken Oven",
+      "source_url": "https://game-icons.net/1x1/delapouite/chicken-oven.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "chili-pepper.png",
+      "name": "Chili Pepper",
+      "source_url": "https://game-icons.net/1x1/delapouite/chili-pepper.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "coconuts.png",
+      "name": "Coconuts",
+      "source_url": "https://game-icons.net/1x1/delapouite/coconuts.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "cookie.png",
+      "name": "Cookie",
+      "source_url": "https://game-icons.net/1x1/delapouite/cookie.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "corn.png",
+      "name": "Corn",
+      "source_url": "https://game-icons.net/1x1/delapouite/corn.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "croissant.png",
+      "name": "Croissant",
+      "source_url": "https://game-icons.net/1x1/delapouite/croissant.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "cupcake.png",
+      "name": "Cupcake",
+      "source_url": "https://game-icons.net/1x1/delapouite/cupcake.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "cut-lemon.png",
+      "name": "Cut Lemon",
+      "source_url": "https://game-icons.net/1x1/delapouite/cut-lemon.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "donut.png",
+      "name": "Donut",
+      "source_url": "https://game-icons.net/1x1/delapouite/donut.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "easter-egg.png",
+      "name": "Easter Egg",
+      "source_url": "https://game-icons.net/1x1/delapouite/easter-egg.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "fast-noodles.png",
+      "name": "Fast Noodles",
+      "source_url": "https://game-icons.net/1x1/delapouite/fast-noodles.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "french-fries.png",
+      "name": "French Fries",
+      "source_url": "https://game-icons.net/1x1/delapouite/french-fries.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "fried-eggs.png",
+      "name": "Fried Eggs",
+      "source_url": "https://game-icons.net/1x1/delapouite/fried-eggs.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "full-pizza.png",
+      "name": "Full Pizza",
+      "source_url": "https://game-icons.net/1x1/delapouite/full-pizza.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "garlic.png",
+      "name": "Garlic",
+      "source_url": "https://game-icons.net/1x1/delapouite/garlic.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "grain-bundle.png",
+      "name": "Grain Bundle",
+      "source_url": "https://game-icons.net/1x1/delapouite/grain-bundle.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "grain.png",
+      "name": "Grain",
+      "source_url": "https://game-icons.net/1x1/delapouite/grain.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "hamburger.png",
+      "name": "Hamburger",
+      "source_url": "https://game-icons.net/1x1/delapouite/hamburger.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "herbs-bundle.png",
+      "name": "Herbs Bundle",
+      "source_url": "https://game-icons.net/1x1/delapouite/herbs-bundle.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "hot-meal.png",
+      "name": "Hot Meal",
+      "source_url": "https://game-icons.net/1x1/delapouite/hot-meal.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "jelly-beans.png",
+      "name": "Jelly Beans",
+      "source_url": "https://game-icons.net/1x1/delapouite/jelly-beans.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "jelly.png",
+      "name": "Jelly",
+      "source_url": "https://game-icons.net/1x1/delapouite/jelly.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "kiwi-fruit.png",
+      "name": "Kiwi Fruit",
+      "source_url": "https://game-icons.net/1x1/delapouite/kiwi-fruit.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "leek.png",
+      "name": "Leek",
+      "source_url": "https://game-icons.net/1x1/delapouite/leek.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "lemon.png",
+      "name": "Lemon",
+      "source_url": "https://game-icons.net/1x1/delapouite/lemon.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "meal.png",
+      "name": "Meal",
+      "source_url": "https://game-icons.net/1x1/delapouite/meal.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "noodles.png",
+      "name": "Noodles",
+      "source_url": "https://game-icons.net/1x1/delapouite/noodles.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "olive.png",
+      "name": "Olive",
+      "source_url": "https://game-icons.net/1x1/delapouite/olive.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "orange-slice.png",
+      "name": "Orange Slice",
+      "source_url": "https://game-icons.net/1x1/delapouite/orange-slice.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "orange.png",
+      "name": "Orange",
+      "source_url": "https://game-icons.net/1x1/delapouite/orange.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "peach.png",
+      "name": "Peach",
+      "source_url": "https://game-icons.net/1x1/delapouite/peach.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "pear.png",
+      "name": "Pear",
+      "source_url": "https://game-icons.net/1x1/delapouite/pear.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "peas.png",
+      "name": "Peas",
+      "source_url": "https://game-icons.net/1x1/delapouite/peas.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "pickle.png",
+      "name": "Pickle",
+      "source_url": "https://game-icons.net/1x1/delapouite/pickle.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "pineapple.png",
+      "name": "Pineapple",
+      "source_url": "https://game-icons.net/1x1/delapouite/pineapple.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "pizza-slice.png",
+      "name": "Pizza Slice",
+      "source_url": "https://game-icons.net/1x1/delapouite/pizza-slice.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "popcorn.png",
+      "name": "Popcorn",
+      "source_url": "https://game-icons.net/1x1/delapouite/popcorn.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "potato.png",
+      "name": "Potato",
+      "source_url": "https://game-icons.net/1x1/delapouite/potato.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "pretzel.png",
+      "name": "Pretzel",
+      "source_url": "https://game-icons.net/1x1/delapouite/pretzel.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "pumpkin.png",
+      "name": "Pumpkin",
+      "source_url": "https://game-icons.net/1x1/delapouite/pumpkin.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "raw-egg.png",
+      "name": "Raw Egg",
+      "source_url": "https://game-icons.net/1x1/delapouite/raw-egg.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "sandwich.png",
+      "name": "Sandwich",
+      "source_url": "https://game-icons.net/1x1/delapouite/sandwich.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "sausage.png",
+      "name": "Sausage",
+      "source_url": "https://game-icons.net/1x1/delapouite/sausage.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "shrimp.png",
+      "name": "Shrimp",
+      "source_url": "https://game-icons.net/1x1/delapouite/shrimp.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "sliced-sausage.png",
+      "name": "Sliced Sausage",
+      "source_url": "https://game-icons.net/1x1/delapouite/sliced-sausage.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "spiral-lollipop.png",
+      "name": "Spiral Lollipop",
+      "source_url": "https://game-icons.net/1x1/delapouite/spiral-lollipop.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "stairs-cake.png",
+      "name": "Stairs Cake",
+      "source_url": "https://game-icons.net/1x1/delapouite/stairs-cake.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "steak.png",
+      "name": "Steak",
+      "source_url": "https://game-icons.net/1x1/delapouite/steak.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "sugar-cane.png",
+      "name": "Sugar Cane",
+      "source_url": "https://game-icons.net/1x1/delapouite/sugar-cane.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "sushis.png",
+      "name": "Sushis",
+      "source_url": "https://game-icons.net/1x1/delapouite/sushis.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "tacos.png",
+      "name": "Tacos",
+      "source_url": "https://game-icons.net/1x1/delapouite/tacos.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "tomato.png",
+      "name": "Tomato",
+      "source_url": "https://game-icons.net/1x1/delapouite/tomato.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "watermelon.png",
+      "name": "Watermelon",
+      "source_url": "https://game-icons.net/1x1/delapouite/watermelon.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "cake-slice.png",
+      "name": "Cake Slice",
+      "source_url": "https://game-icons.net/1x1/lorc/cake-slice.html",
+      "license": "CC BY 3.0",
+      "author": "Lorc"
+    },
+    {
+      "file": "chicken-leg.png",
+      "name": "Chicken Leg",
+      "source_url": "https://game-icons.net/1x1/lorc/chicken-leg.html",
+      "license": "CC BY 3.0",
+      "author": "Lorc"
+    },
+    {
+      "file": "dripping-honey.png",
+      "name": "Dripping Honey",
+      "source_url": "https://game-icons.net/1x1/lorc/dripping-honey.html",
+      "license": "CC BY 3.0",
+      "author": "Lorc"
+    },
+    {
+      "file": "egg-clutch.png",
+      "name": "Egg Clutch",
+      "source_url": "https://game-icons.net/1x1/lorc/egg-clutch.html",
+      "license": "CC BY 3.0",
+      "author": "Lorc"
+    },
+    {
+      "file": "meat.png",
+      "name": "Meat",
+      "source_url": "https://game-icons.net/1x1/lorc/meat.html",
+      "license": "CC BY 3.0",
+      "author": "Lorc"
+    },
+    {
+      "file": "pie-slice.png",
+      "name": "Pie Slice",
+      "source_url": "https://game-icons.net/1x1/lorc/pie-slice.html",
+      "license": "CC BY 3.0",
+      "author": "Lorc"
+    },
+    {
+      "file": "pumpkin-mask.png",
+      "name": "Pumpkin Mask",
+      "source_url": "https://game-icons.net/1x1/lorc/pumpkin-mask.html",
+      "license": "CC BY 3.0",
+      "author": "Lorc"
+    },
+    {
+      "file": "shiny-apple.png",
+      "name": "Shiny Apple",
+      "source_url": "https://game-icons.net/1x1/lorc/shiny-apple.html",
+      "license": "CC BY 3.0",
+      "author": "Lorc"
+    },
+    {
+      "file": "sliced-bread.png",
+      "name": "Sliced Bread",
+      "source_url": "https://game-icons.net/1x1/lorc/sliced-bread.html",
+      "license": "CC BY 3.0",
+      "author": "Lorc"
+    },
+    {
+      "file": "wheat.png",
+      "name": "Wheat",
+      "source_url": "https://game-icons.net/1x1/lorc/wheat.html",
+      "license": "CC BY 3.0",
+      "author": "Lorc"
+    },
+    {
+      "file": "chocolate-bar.png",
+      "name": "Chocolate Bar",
+      "source_url": "https://game-icons.net/1x1/rihlsul/chocolate-bar.html",
+      "license": "CC BY 3.0",
+      "author": "Rihlsul"
+    },
+    {
+      "file": "egg-pod.png",
+      "name": "Egg Pod",
+      "source_url": "https://game-icons.net/1x1/sbed/egg-pod.html",
+      "license": "CC BY 3.0",
+      "author": "Sbed"
+    },
+    {
+      "file": "fruit-bowl.png",
+      "name": "Fruit Bowl",
+      "source_url": "https://game-icons.net/1x1/skoll/fruit-bowl.html",
+      "license": "CC BY 3.0",
+      "author": "Skoll"
+    },
+    {
+      "file": "ham-shank.png",
+      "name": "Ham Shank",
+      "source_url": "https://game-icons.net/1x1/skoll/ham-shank.html",
+      "license": "CC BY 3.0",
+      "author": "Skoll"
+    },
+    {
+      "file": "aubergine.png",
+      "name": "Aubergine",
+      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f346.svg",
+      "license": "Apache-2.0",
+      "author": "Google (Noto Emoji)"
+    },
+    {
+      "file": "grapes.png",
+      "name": "Grapes",
+      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f347.svg",
+      "license": "Apache-2.0",
+      "author": "Google (Noto Emoji)"
+    },
+    {
+      "file": "banana-noto-emoji.png",
+      "name": "Banana",
+      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f34c.svg",
+      "license": "Apache-2.0",
+      "author": "Google (Noto Emoji)"
+    },
+    {
+      "file": "pineapple-noto-emoji.png",
+      "name": "Pineapple",
+      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f34d.svg",
+      "license": "Apache-2.0",
+      "author": "Google (Noto Emoji)"
+    },
+    {
+      "file": "red-apple.png",
+      "name": "Red Apple",
+      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f34e.svg",
+      "license": "Apache-2.0",
+      "author": "Google (Noto Emoji)"
+    },
+    {
+      "file": "pear-noto-emoji.png",
+      "name": "Pear",
+      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f350.svg",
+      "license": "Apache-2.0",
+      "author": "Google (Noto Emoji)"
+    },
+    {
+      "file": "peach-noto-emoji.png",
+      "name": "Peach",
+      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f351.svg",
+      "license": "Apache-2.0",
+      "author": "Google (Noto Emoji)"
+    },
+    {
+      "file": "cherries.png",
+      "name": "Cherries",
+      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f352.svg",
+      "license": "Apache-2.0",
+      "author": "Google (Noto Emoji)"
+    },
+    {
+      "file": "slice-of-pizza.png",
+      "name": "Slice Of Pizza",
+      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f355.svg",
+      "license": "Apache-2.0",
+      "author": "Google (Noto Emoji)"
+    },
+    {
+      "file": "poultry-leg.png",
+      "name": "Poultry Leg",
+      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f357.svg",
+      "license": "Apache-2.0",
+      "author": "Google (Noto Emoji)"
+    },
+    {
+      "file": "steaming-bowl.png",
+      "name": "Steaming Bowl",
+      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f35c.svg",
+      "license": "Apache-2.0",
+      "author": "Google (Noto Emoji)"
+    },
+    {
+      "file": "french-fries-noto-emoji.png",
+      "name": "French Fries",
+      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f35f.svg",
+      "license": "Apache-2.0",
+      "author": "Google (Noto Emoji)"
+    },
+    {
+      "file": "oden.png",
+      "name": "Oden",
+      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f362.svg",
+      "license": "Apache-2.0",
+      "author": "Google (Noto Emoji)"
+    },
+    {
+      "file": "fried-shrimp.png",
+      "name": "Fried Shrimp",
+      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f364.svg",
+      "license": "Apache-2.0",
+      "author": "Google (Noto Emoji)"
+    },
+    {
+      "file": "soft-ice-cream.png",
+      "name": "Soft Ice Cream",
+      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f366.svg",
+      "license": "Apache-2.0",
+      "author": "Google (Noto Emoji)"
+    },
+    {
+      "file": "candy.png",
+      "name": "Candy",
+      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f36c.svg",
+      "license": "Apache-2.0",
+      "author": "Google (Noto Emoji)"
+    },
+    {
+      "file": "honey-pot.png",
+      "name": "Honey Pot",
+      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f36f.svg",
+      "license": "Apache-2.0",
+      "author": "Google (Noto Emoji)"
+    },
+    {
+      "file": "sake-bottle-and-cup.png",
+      "name": "Sake Bottle And Cup",
+      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f376.svg",
+      "license": "Apache-2.0",
+      "author": "Google (Noto Emoji)"
+    },
+    {
+      "file": "bottle-with-popping-cork.png",
+      "name": "Bottle With Popping Cork",
+      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f37e.svg",
+      "license": "Apache-2.0",
+      "author": "Google (Noto Emoji)"
+    },
+    {
+      "file": "popcorn-noto-emoji.png",
+      "name": "Popcorn",
+      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f37f.svg",
+      "license": "Apache-2.0",
+      "author": "Google (Noto Emoji)"
+    },
+    {
+      "file": "croissant-noto-emoji.png",
+      "name": "Croissant",
+      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f950.svg",
+      "license": "Apache-2.0",
+      "author": "Google (Noto Emoji)"
+    },
+    {
+      "file": "bacon-noto-emoji.png",
+      "name": "Bacon",
+      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f953.svg",
+      "license": "Apache-2.0",
+      "author": "Google (Noto Emoji)"
+    },
+    {
+      "file": "carrot-noto-emoji.png",
+      "name": "Carrot",
+      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f955.svg",
+      "license": "Apache-2.0",
+      "author": "Google (Noto Emoji)"
+    },
+    {
+      "file": "baguette-bread.png",
+      "name": "Baguette Bread",
+      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f956.svg",
+      "license": "Apache-2.0",
+      "author": "Google (Noto Emoji)"
+    },
+    {
+      "file": "peanuts.png",
+      "name": "Peanuts",
+      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f95c.svg",
+      "license": "Apache-2.0",
+      "author": "Google (Noto Emoji)"
+    },
+    {
+      "file": "broccoli-noto-emoji.png",
+      "name": "Broccoli",
+      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f966.svg",
+      "license": "Apache-2.0",
+      "author": "Google (Noto Emoji)"
+    },
+    {
+      "file": "pretzel-noto-emoji.png",
+      "name": "Pretzel",
+      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f968.svg",
+      "license": "Apache-2.0",
+      "author": "Google (Noto Emoji)"
+    },
+    {
+      "file": "mango.png",
+      "name": "Mango",
+      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f96d.svg",
+      "license": "Apache-2.0",
+      "author": "Google (Noto Emoji)"
+    },
+    {
+      "file": "salt-shaker.png",
+      "name": "Salt Shaker",
+      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f9c2.svg",
+      "license": "Apache-2.0",
+      "author": "Google (Noto Emoji)"
+    },
+    {
+      "file": "beverage-box.png",
+      "name": "Beverage Box",
+      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f9c3.svg",
+      "license": "Apache-2.0",
+      "author": "Google (Noto Emoji)"
+    },
+    {
+      "file": "onion.png",
+      "name": "Onion",
+      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f9c5.svg",
+      "license": "Apache-2.0",
+      "author": "Google (Noto Emoji)"
+    },
+    {
+      "file": "mate-drink.png",
+      "name": "Mate Drink",
+      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f9c9.svg",
+      "license": "Apache-2.0",
+      "author": "Google (Noto Emoji)"
+    },
+    {
+      "file": "olive-noto-emoji.png",
+      "name": "Olive",
+      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1fad2.svg",
+      "license": "Apache-2.0",
+      "author": "Google (Noto Emoji)"
+    },
+    {
+      "file": "fondue.png",
+      "name": "Fondue",
+      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1fad5.svg",
+      "license": "Apache-2.0",
+      "author": "Google (Noto Emoji)"
+    },
+    {
+      "file": "teapot.png",
+      "name": "Teapot",
+      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1fad6.svg",
+      "license": "Apache-2.0",
+      "author": "Google (Noto Emoji)"
+    },
+    {
+      "file": "pea-pod.png",
+      "name": "Pea Pod",
+      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1fadb.svg",
+      "license": "Apache-2.0",
+      "author": "Google (Noto Emoji)"
+    },
+    {
+      "file": "hot-beverage.png",
+      "name": "Hot Beverage",
+      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u2615.svg",
+      "license": "Apache-2.0",
+      "author": "Google (Noto Emoji)"
+    },
+    {
+      "file": "corn-mdi.png",
+      "name": "Corn",
+      "source_url": "https://pictogrammers.com/library/mdi/icon/corn/",
+      "license": "Apache-2.0",
+      "author": "Pictogrammers (Material Design Icons)"
+    },
+    {
+      "file": "food-hot-dog.png",
+      "name": "Food Hot Dog",
+      "source_url": "https://pictogrammers.com/library/mdi/icon/food-hot-dog/",
+      "license": "Apache-2.0",
+      "author": "Pictogrammers (Material Design Icons)"
+    },
+    {
+      "file": "food-turkey.png",
+      "name": "Food Turkey",
+      "source_url": "https://pictogrammers.com/library/mdi/icon/food-turkey/",
+      "license": "Apache-2.0",
+      "author": "Pictogrammers (Material Design Icons)"
+    },
+    {
+      "file": "kettle-pour-over.png",
+      "name": "Kettle Pour Over",
+      "source_url": "https://pictogrammers.com/library/mdi/icon/kettle-pour-over/",
+      "license": "Apache-2.0",
+      "author": "Pictogrammers (Material Design Icons)"
+    },
+    {
+      "file": "sausage-mdi.png",
+      "name": "Sausage",
+      "source_url": "https://pictogrammers.com/library/mdi/icon/sausage/",
+      "license": "Apache-2.0",
+      "author": "Pictogrammers (Material Design Icons)"
+    },
+    {
+      "file": "champagne-glasses.png",
+      "name": "Champagne Glasses",
+      "source_url": "https://fontawesome.com/icons/champagne-glasses?style=solid",
+      "license": "CC BY 4.0",
+      "author": "Font Awesome Free"
+    },
+    {
+      "file": "ice-cream-cone.png",
+      "name": "Ice Cream Cone",
+      "source_url": "https://game-icons.net/1x1/delapouite/ice-cream-cone.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "apple-seeds.png",
+      "name": "Apple Seeds",
+      "source_url": "https://game-icons.net/1x1/lorc/apple-seeds.html",
+      "license": "CC BY 3.0",
+      "author": "Lorc"
+    },
+    {
+      "file": "beer-mug.png",
+      "name": "Beer Mug",
+      "source_url": "https://github.com/microsoft/fluentui-emoji/tree/main/assets/Beer%20mug",
+      "license": "MIT",
+      "author": "Microsoft (Fluent Emoji)"
+    },
+    {
+      "file": "bento-box.png",
+      "name": "Bento Box",
+      "source_url": "https://github.com/microsoft/fluentui-emoji/tree/main/assets/Bento%20box",
+      "license": "MIT",
+      "author": "Microsoft (Fluent Emoji)"
+    },
+    {
+      "file": "birthday-cake.png",
+      "name": "Birthday Cake",
+      "source_url": "https://github.com/microsoft/fluentui-emoji/tree/main/assets/Birthday%20cake",
+      "license": "MIT",
+      "author": "Microsoft (Fluent Emoji)"
+    },
+    {
+      "file": "bubble-tea.png",
+      "name": "Bubble Tea",
+      "source_url": "https://github.com/microsoft/fluentui-emoji/tree/main/assets/Bubble%20tea",
+      "license": "MIT",
+      "author": "Microsoft (Fluent Emoji)"
+    },
+    {
+      "file": "burrito.png",
+      "name": "Burrito",
+      "source_url": "https://github.com/microsoft/fluentui-emoji/tree/main/assets/Burrito",
+      "license": "MIT",
+      "author": "Microsoft (Fluent Emoji)"
+    },
+    {
+      "file": "clinking-beer-mugs.png",
+      "name": "Clinking Beer Mugs",
+      "source_url": "https://github.com/microsoft/fluentui-emoji/tree/main/assets/Clinking%20beer%20mugs",
+      "license": "MIT",
+      "author": "Microsoft (Fluent Emoji)"
+    },
+    {
+      "file": "clinking-glasses.png",
+      "name": "Clinking Glasses",
+      "source_url": "https://github.com/microsoft/fluentui-emoji/tree/main/assets/Clinking%20glasses",
+      "license": "MIT",
+      "author": "Microsoft (Fluent Emoji)"
+    },
+    {
+      "file": "cocktail-glass.png",
+      "name": "Cocktail Glass",
+      "source_url": "https://github.com/microsoft/fluentui-emoji/tree/main/assets/Cocktail%20glass",
+      "license": "MIT",
+      "author": "Microsoft (Fluent Emoji)"
+    },
+    {
+      "file": "crab.png",
+      "name": "Crab",
+      "source_url": "https://github.com/microsoft/fluentui-emoji/tree/main/assets/Crab",
+      "license": "MIT",
+      "author": "Microsoft (Fluent Emoji)"
+    },
+    {
+      "file": "dumpling.png",
+      "name": "Dumpling",
+      "source_url": "https://github.com/microsoft/fluentui-emoji/tree/main/assets/Dumpling",
+      "license": "MIT",
+      "author": "Microsoft (Fluent Emoji)"
+    },
+    {
+      "file": "hot-dog.png",
+      "name": "Hot Dog",
+      "source_url": "https://github.com/microsoft/fluentui-emoji/tree/main/assets/Hot%20dog",
+      "license": "MIT",
+      "author": "Microsoft (Fluent Emoji)"
+    },
+    {
+      "file": "ice-cream.png",
+      "name": "Ice Cream",
+      "source_url": "https://github.com/microsoft/fluentui-emoji/tree/main/assets/Ice%20cream",
+      "license": "MIT",
+      "author": "Microsoft (Fluent Emoji)"
+    },
+    {
+      "file": "lobster.png",
+      "name": "Lobster",
+      "source_url": "https://github.com/microsoft/fluentui-emoji/tree/main/assets/Lobster",
+      "license": "MIT",
+      "author": "Microsoft (Fluent Emoji)"
+    },
+    {
+      "file": "moon-cake.png",
+      "name": "Moon Cake",
+      "source_url": "https://github.com/microsoft/fluentui-emoji/tree/main/assets/Moon%20cake",
+      "license": "MIT",
+      "author": "Microsoft (Fluent Emoji)"
+    },
+    {
+      "file": "pancakes.png",
+      "name": "Pancakes",
+      "source_url": "https://github.com/microsoft/fluentui-emoji/tree/main/assets/Pancakes",
+      "license": "MIT",
+      "author": "Microsoft (Fluent Emoji)"
+    },
+    {
+      "file": "rice-ball.png",
+      "name": "Rice Ball",
+      "source_url": "https://github.com/microsoft/fluentui-emoji/tree/main/assets/Rice%20ball",
+      "license": "MIT",
+      "author": "Microsoft (Fluent Emoji)"
+    },
+    {
+      "file": "shaved-ice.png",
+      "name": "Shaved Ice",
+      "source_url": "https://github.com/microsoft/fluentui-emoji/tree/main/assets/Shaved%20ice",
+      "license": "MIT",
+      "author": "Microsoft (Fluent Emoji)"
+    },
+    {
+      "file": "strawberry.png",
+      "name": "Strawberry",
+      "source_url": "https://github.com/microsoft/fluentui-emoji/tree/main/assets/Strawberry",
+      "license": "MIT",
+      "author": "Microsoft (Fluent Emoji)"
+    },
+    {
+      "file": "tropical-drink.png",
+      "name": "Tropical Drink",
+      "source_url": "https://github.com/microsoft/fluentui-emoji/tree/main/assets/Tropical%20drink",
+      "license": "MIT",
+      "author": "Microsoft (Fluent Emoji)"
+    },
+    {
+      "file": "cornucopia.png",
+      "name": "Cornucopia",
+      "source_url": "https://game-icons.net/1x1/delapouite/cornucopia.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "dumpling-game-icons.png",
+      "name": "Dumpling",
+      "source_url": "https://game-icons.net/1x1/caro-asercion/dumpling.html",
+      "license": "CC BY 3.0",
+      "author": "Caro Asercion"
+    },
+    {
+      "file": "dumpling-bao.png",
+      "name": "Dumpling Bao",
+      "source_url": "https://game-icons.net/1x1/caro-asercion/dumpling-bao.html",
+      "license": "CC BY 3.0",
+      "author": "Caro Asercion"
+    },
+    {
+      "file": "elderberry.png",
+      "name": "Elderberry",
+      "source_url": "https://game-icons.net/1x1/lorc/elderberry.html",
+      "license": "CC BY 3.0",
+      "author": "Lorc"
+    },
+    {
+      "file": "raspberry.png",
+      "name": "Raspberry",
+      "source_url": "https://game-icons.net/1x1/delapouite/raspberry.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "strawberry-game-icons.png",
+      "name": "Strawberry",
+      "source_url": "https://game-icons.net/1x1/delapouite/strawberry.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "doner-kebab.png",
+      "name": "Doner Kebab",
+      "source_url": "https://game-icons.net/1x1/delapouite/doner-kebab.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "almond.png",
+      "name": "Almond",
+      "source_url": "https://game-icons.net/1x1/delapouite/almond.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "aubergine-game-icons.png",
+      "name": "Aubergine",
+      "source_url": "https://game-icons.net/1x1/lorc/aubergine.html",
+      "license": "CC BY 3.0",
+      "author": "Lorc"
+    },
+    {
+      "file": "bok-choy.png",
+      "name": "Bok Choy",
+      "source_url": "https://game-icons.net/1x1/caro-asercion/bok-choy.html",
+      "license": "CC BY 3.0",
+      "author": "Caro Asercion"
+    },
+    {
+      "file": "chanterelles.png",
+      "name": "Chanterelles",
+      "source_url": "https://game-icons.net/1x1/delapouite/chanterelles.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "mussel.png",
+      "name": "Mussel",
+      "source_url": "https://game-icons.net/1x1/delapouite/mussel.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "nachos.png",
+      "name": "Nachos",
+      "source_url": "https://game-icons.net/1x1/delapouite/nachos.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "raddish.png",
+      "name": "Raddish",
+      "source_url": "https://game-icons.net/1x1/delapouite/raddish.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "scallop.png",
+      "name": "Scallop",
+      "source_url": "https://game-icons.net/1x1/lorc/scallop.html",
+      "license": "CC BY 3.0",
+      "author": "Lorc"
+    },
+    {
+      "file": "tangerine.png",
+      "name": "Tangerine",
+      "source_url": "https://game-icons.net/1x1/delapouite/tangerine.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    },
+    {
+      "file": "chips-bag.png",
+      "name": "Chips Bag",
+      "source_url": "https://game-icons.net/1x1/delapouite/chips-bag.html",
+      "license": "CC BY 3.0",
+      "author": "Delapouite"
+    }
+  ]
+}
