@@ -335,3 +335,6 @@ Also, I don't know why there's two Sparrow saves. There should only be one.
 
 ## m00677 — 2026-11-18 3:38 AM
 That's lame, that's really lame. Why don't you have BlueJay then go and [encode, transcribed as "code"] those? You still have enough VRAM, I'm sure. You can do both. You can multitask your GPUs.
+
+## m00678 — 2026-11-18 3:39 AM
+Or you just cancel training right now and resume it after you finish. That's probably better. Do that.
