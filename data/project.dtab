@@ -21,7 +21,7 @@ environ
 	EVAL_BATCH_SIZE 16	      eval_generations rows per run of generate_eval. A run costs ~12 s besides the GPU: 8 rows took 15 s
 
 	 Trimask augmentations (trimask_<method>, manifest §13)
-	TRIMASK_SUBSET 012	 A method uses a train image when the first hex digit of sha256(page_id + method) is one of these: about 26k images
+	TRIMASK_SUBSET 01	 A method uses a train image when the first hex digit of sha256(page_id + method) is one of these: about 17.6k images (m00653: ~16k)
 	TRIMASK_COMPARE_MAX 005	 Every method also uses the train images whose sha256(page_id) starts at most with these 3 hex digits: about 200 images, the full rows of view_trimasks
 	TRIMASK_VARIANTS 1	 Trimasks per image and method
 
@@ -1827,7 +1827,7 @@ tables
 			seconds, exterior_gray_error, border_gray_error, border_std, iou, foreground_fraction float64
 
 	trimask_augmentations
-		 One row per trimask: the condition of the trimask model (manifest §13). Nineteen methods, about 26k train images each
+		 One row per trimask: the condition of the trimask model (manifest §13). Nineteen methods, about 17.6k train images each, plus the comparison set
 		primary_key page_id,method,variant
 		columns
 			page_id, method string
