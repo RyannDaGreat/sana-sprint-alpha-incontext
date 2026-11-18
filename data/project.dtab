@@ -2450,6 +2450,40 @@ queries
 		JOIN magick_samples s ON s.page_id = t.page_id                                        -- with its matte,
 		GROUP BY r.run_step, t.page_id, s.split, t.prompt_variant                             -- one row per step, item and prompt,
 		ORDER BY r.run_step, split, t.page_id, t.prompt_variant DESC                          -- held-out items first, caption before detailed prompt
+	view_trimasks sql
+		-- One row per image of trimask_augmentations: its matte, then the trimask of each method that used it (variant 0).
+		-- Each caption is the trimask's unknown (gray) fraction and its hyperparameters. Images with the most methods come first
+		WITH FUNCTION shot(src, method, caption, name) AS (struct(
+		    'image'                                          AS widget,
+		    first_value(src)     FILTER (WHERE method = name) AS src,
+		    first_value(caption) FILTER (WHERE method = name) AS caption
+		))
+		WITH captioned AS (
+		    SELECT *, concat('gray ', round(gray_fraction, 2), ' ', params) AS caption
+		    FROM trimask_augmentations -- Each trimask,
+		    WHERE variant = 0          -- the first variant
+		)
+		SELECT
+		    t.page_id,
+		    count(*)                                                                   AS methods,
+		    struct('image' AS widget, first_value(s.alpha) AS src, 'matte' AS caption) AS matte,
+		    shot(t.trimask, t.method, t.caption, 'morph_band')                         AS morph_band,
+		    shot(t.trimask, t.method, t.caption, 'noisy_band')                         AS noisy_band,
+		    shot(t.trimask, t.method, t.caption, 'blur_quantize')                      AS blur_quantize,
+		    shot(t.trimask, t.method, t.caption, 'scribbles')                          AS scribbles,
+		    shot(t.trimask, t.method, t.caption, 'bbox_unknown')                       AS bbox_unknown,
+		    shot(t.trimask, t.method, t.caption, 'convex_hull')                        AS convex_hull,
+		    shot(t.trimask, t.method, t.caption, 'grid_coarsen')                       AS grid_coarsen,
+		    shot(t.trimask, t.method, t.caption, 'polygon_simplify')                   AS polygon_simplify,
+		    shot(t.trimask, t.method, t.caption, 'unknown_patches')                    AS unknown_patches,
+		    shot(t.trimask, t.method, t.caption, 'fuzzy_ramp')                         AS fuzzy_ramp,
+		    avg(t.white_fraction)                                                      AS white_fraction,
+		    avg(t.gray_fraction)                                                       AS gray_fraction,
+		    avg(t.black_fraction)                                                      AS black_fraction
+		FROM captioned t                               -- Each trimask,
+		JOIN magick_samples s ON s.page_id = t.page_id -- with its matte,
+		GROUP BY t.page_id                             -- one row per image,
+		ORDER BY methods DESC, t.page_id               -- the images with the most methods first
 
 sparrow
 	saves sparrow_saves
