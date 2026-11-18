@@ -311,3 +311,10 @@
 - Lesson: before blaming a setting, toggle it off and check; here every toggle hung, which pointed away from fastlance's leaves. A pure-library repro (in-memory tables) separated our code from the library in 10 minutes.
 - Lesson: zsh does not split `$args`; a loop of argument strings ran the defaults each time. Use bash, or read lines into an array.
 - 4:14 AM (m00677): latent_trimask_768/512/256 now on all 337,934 rows too (16 workers, ~92 rows/s at all three sizes, GPUs 99-100%).
+
+## 2026-11-18 ~4:18 AM ET — fastlance greedy pool verified on the live server (subagent 21, m00682)
+- The coordinator applied the user-approved fix: data/Aviary commit 15841895 (local, not pushed), `with_fair_spill_pool` -> `with_greedy_memory_pool` in fastlance `_tables.py` `_build`; wheel nflx-aviary 0.0.0+15841895; server 23947 and Sparrow 26400 restarted on it at ~4:17 AM.
+- Live server, 5 concurrent copies x 10 rounds, no hang: claims_graph (save) 0.88-1.40 s per run; multires_progress 0.16-2.05 s (first round cold); the OLD hash-join claims_graph (1e2b9e1), which hung with 3 copies before, 0.47-0.84 s.
+- Pure DataFusion repro, old hash-join query, 5 concurrent x 10 rounds: greedy pool 0.29-0.36 s, no hang; fair pool hung all 5 runs in round 1. So the pool alone decides the hang.
+- Sparrow (Puppeteer), 5 sequential opens each, all done, 1 query in flight at a time: claims_graph 0.66, 0.80, 1.31, 1.23, 1.29 s; multires_progress 0.73, 0.17, 0.16, 0.16, 0.17 s. No py-spy needed (no hang).
+- The save keeps the GROUP BY form (same counts, no cost). The pool fix is still local in data/Aviary until the user reviews and pushes it.
