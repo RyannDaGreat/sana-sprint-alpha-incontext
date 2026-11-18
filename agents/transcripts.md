@@ -338,3 +338,12 @@ That's lame, that's really lame. Why don't you have BlueJay then go and [encode,
 
 ## m00678 — 2026-11-18 3:39 AM
 Or you just cancel training right now and resume it after you finish. That's probably better. Do that.
+
+## m00679 — 2026-11-18 3:45 AM
+Wait, when I said 20,000 — does that mean we do 60,000 total because of different stages?
+
+## m00680 — 2026-11-18 3:46 AM
+When does it get distilled then?
+
+## m00681 — 2026-11-18 3:47 AM
+Alright. Proceed with [the] original plan.
