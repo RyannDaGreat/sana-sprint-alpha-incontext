@@ -64,7 +64,9 @@ def step_models(run, step):
 
 def dtab_rows(models, variant, eval_set=SHOWCASE):
     """
-    Pure function. eval_models initial_rows text (DTAB, tab-indented) for models on the showcase set.
+    Pure function. eval_models initial_rows text for models on the showcase set: one DTAB line per row, each cell
+    tab-padded to the column the dtab's rows use (tab = 4 columns: 16, 76, 96, 168, 196, 208, 224). Longer model tags
+    (the trimask gallery's) move every later column right by the same whole number of tabs.
 
     Args:
         models (list[tuple]): from step_models or STOCK
@@ -75,20 +77,24 @@ def dtab_rows(models, variant, eval_set=SHOWCASE):
         str
 
     Examples:
-        >>> print(dtab_rows(STOCK[:1], "detailed").replace("\\t", "  "))
-              ,
-                model_tag show_stock_sprint1_detailed
-                pipeline sprint
-                checkpoint stock
-                prompt_variant detailed
-                steps 1
-                guidance 4.5
-                eval_set resources/showcase
-        <BLANKLINE>
+        >>> line = dtab_rows(STOCK[:1], "detailed").expandtabs(4)
+        >>> line.split()[1:4], [line.index(k) for k in ("model_tag", "pipeline", "checkpoint", "prompt_variant", "eval_set")]
+        (['model_tag', 'show_stock_sprint1_detailed', 'pipeline'], [16, 76, 96, 168, 224])
+        >>> line = dtab_rows([("tri_polygon_simplify_tri_scratch_step003000_sprint_lam0_2step_r768", "sprint", "x", 2, "")], "plain")
+        >>> [line.expandtabs(4).index(k) for k in ("pipeline", "eval_set")]
+        [96, 244]
     """
     keys = "model_tag pipeline checkpoint prompt_variant steps guidance eval_set".split()
-    return "".join("\t\t\t,\n" + "".join(f"\t\t\t\t{k} {v}\n" for k, v in zip(keys, (variant_tag(tag, variant), pipeline, checkpoint,
-                   variant, steps, 4.5, eval_set))) for tag, pipeline, checkpoint, steps, _ in models)
+    longest = max(len(variant_tag(m[0], variant)) for m in models) + len("model_tag ")
+    shift = max(0, 16 + longest + 1 - 76 + 3) // 4 * 4  # the first column needs at least one tab after its cell
+    stops = tuple(s + shift for s in (76, 96, 168, 196, 208, 224))
+    pad = lambda text, start, stop: text + "\t" * -(-(stop - start - len(text)) // 4)  # start and stop are multiples of 4
+    def line(values):
+        cells = [f"{k} {v}" for k, v in zip(keys, values)]
+        assert all(len(c) < b - a for c, a, b in zip(cells, (16,) + stops, stops)), f"a cell is too wide for its column: {cells}"
+        return "\t\t\t,\t" + "".join(pad(c, a, b) for c, a, b in zip(cells, (16,) + stops, stops)) + cells[-1] + "\n"
+    return "".join(line((variant_tag(tag, variant), pipeline, checkpoint, variant, steps, 4.5, eval_set))
+                   for tag, pipeline, checkpoint, steps, _ in models)
 
 
 def variant_tag(tag, variant):
@@ -109,8 +115,9 @@ def rows(run, step, *variants, stock=False):
 
 def trimask_models(run_step):
     """
-    Pure function. The full-subtraction (λ = 0) models of one control step, for the trimask gallery: teacher 20 steps,
-    Sprint 2 steps and 1 step.
+    Pure function. The model of one control step for the trimask gallery: the shipped one, Sprint 2 steps at full
+    subtraction (λ = 0). Only it: 19 methods × 4 resolutions are 76 eval_models rows per step, and the eval GPUs are
+    shared with training.
 
     Args:
         run_step (str): "RUN:STEP", e.g. "control_tri_ft:6000"
@@ -120,10 +127,10 @@ def trimask_models(run_step):
 
     Examples:
         >>> [m[0] for m in trimask_models("control_tri_ft:6000")]
-        ['show_tri_ft_step006000_lam0', 'show_tri_ft_step006000_sprint_lam0_2step', 'show_tri_ft_step006000_sprint_lam0_1step']
+        ['show_tri_ft_step006000_sprint_lam0_2step']
     """
     run, step = run_step.split(":")
-    return [m for m in step_models(run, int(step)) if m[0].endswith(("_lam0", "_lam0_2step", "_lam0_1step"))]
+    return [m for m in step_models(run, int(step)) if m[0].endswith("_lam0_2step")]
 
 
 def trimask_tag(tag, method, resolution=1024):
