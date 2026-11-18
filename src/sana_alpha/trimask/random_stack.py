@@ -46,8 +46,8 @@ SEED_BOUND = 2 ** 63  # Per-step rng seeds are drawn below this, so that each st
 
 
 def step_pool():
-    """Query. The method tags a step may use: the registry METHODS minus EXCLUDED and every combo_* tag."""
-    return tuple(m for m in registry.METHODS if m not in EXCLUDED and not m.startswith("combo_"))
+    """Query. The method tags a step may use: the METHODS with a COST_S entry (a fixed set, so methods added later do not change this draw)."""
+    return tuple(m for m in registry.METHODS if m in COST_S)
 
 
 def draw_methods(rng, count, pool):
