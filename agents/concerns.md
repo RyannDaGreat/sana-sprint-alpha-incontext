@@ -333,3 +333,10 @@
 - Fix, with the same math: every batch is padded to one caption length, the max over all ranks (all_reduce, 133 tokens; padding is masked as before), and the dynamo limits are raised to 256 per function / 4096 total (20 blocks × 4 resolutions). Result: 55–89 img/s (≈ 70 average). Steady state, first 250 steps (including the first compile of each size): 1024 2.76 s/step, 768 1.95, 512 1.27, 256 1.09; steps 100–250 averaged 1.88 s/step.
 - Lesson: with torch.compile, keep the input shapes few and identical on all ranks. Pad variable-length inputs to a fixed size and size the cache for (modules × shapes). A recompile_limit warning in a DDP log is a throughput bug.
 - The relaunch started from scratch (no checkpoint existed, ~100 steps lost); the slow log is agents/.scratchpad/logs/train_control_tri_scratch_slow_recompile.log. Pools: 337,934 trimask rows at all four resolutions (rank 0 shard 41,250; 2.1–2.25k per method at each size); all 19 methods drawn ~190–225 times per 250 steps on rank 0. Step-250 preview already follows the trimask.
+
+## 2026-11-18 FIBO2 setup (fork Fibo2Train)
+- The official briaai/Fibo-2.0-* repos are gated: the file list is visible but downloads return 403 for our token. Open mirrors ml-resources/Fibo-2.0-dev and -edit-turbo have the same file sizes; the official sha256 values are hidden, so the mirror is not verified byte for byte.
+- The coordinator's brief said the project venv had diffusers 0.38; it has 0.43.0 (with BriaFibo2). `uv pip show` outside the venv reported another environment. Check versions with the venv's own python.
+- models.localize treats an existing folder as complete. Localizing models/Fibo-2.0-dev/vae first made the parent folder, so localizing models/Fibo-2.0-dev afterwards copied nothing and the text encoder load failed. Lesson: always localize the same unit (here: each subfolder).
+- A watcher `grep -c ChildFailed` counted two lines of one old failure in an appended (tee -a) log and fired early. Lesson: in appended logs, watch only the lines after the run's start.
+- I redirected one smoke run's terminal output to /dev/null (the log file still had it), against the stdout rule. Do not.
