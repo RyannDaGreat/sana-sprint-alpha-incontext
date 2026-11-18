@@ -320,3 +320,9 @@ Oh, and before we do anything else, why don't you go ahead and compact all the t
 
 ## m00672 — 2026-11-18 3:30 AM
 Why does the claims graph here still not work correctly? Or at any time? It doesn't finish, it just goes forever.
+
+## m00673 — 2026-11-18 3:32 AM
+Notify me at each checkpoint, by the way.
+
+## m00674 — 2026-11-18 3:32 AM
+Not automatically, mind you. You do it manually.
