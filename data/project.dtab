@@ -22,6 +22,7 @@ environ
 
 	 Trimask augmentations (trimask_<method>, manifest §13)
 	TRIMASK_SUBSET 012	 A method uses a train image when the first hex digit of sha256(page_id + method) is one of these: about 26k images
+	TRIMASK_COMPARE_MAX 005	 Every method also uses the train images whose sha256(page_id) starts at most with these 3 hex digits: about 200 images, the full rows of view_trimasks
 	TRIMASK_VARIANTS 1	 Trimasks per image and method
 
 	 Database
@@ -2001,16 +2002,17 @@ processors
 
 	trimask_morph_band	 Makes the trimasks of method morph_band (src/sana_alpha/trimask/morph_band.py) for its train images
 		query sql
-			SELECT page_id, alpha, split FROM magick_samples                                                   -- MAGICK images
-			WHERE   trimask_morph_band_claim IS NULL                                                           -- not yet claimed,
-			    AND alpha                    IS NOT NULL                                                       -- that split_alpha did,
-			    AND split                    = 'train'                                                         -- not eval,
-			    AND page_id NOT IN (SELECT page_id FROM _no_trimask_items)                                 -- not a showcase image or an empty matte,
-			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'morph_band')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
-			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                        -- one batch at a time, in random order
+			SELECT page_id, alpha, split FROM magick_samples                                                    -- MAGICK images
+			WHERE   trimask_morph_band_claim IS NULL                                                            -- not yet claimed,
+			    AND alpha                    IS NOT NULL                                                        -- that split_alpha did,
+			    AND split                    = 'train'                                                          -- not eval,
+			    AND page_id NOT IN (SELECT page_id FROM _no_trimask_items)                                      -- not a showcase image or an empty matte,
+			    AND (contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'morph_band')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET)
+			         OR left(encode(sha256(page_id), 'hex'), 3) <= '$TRIMASK_COMPARE_MAX')                      -- or in the comparison set,
+			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                         -- one batch at a time, in random order
 		claim	trimask_morph_band_claim magick_samples
 		command bash
-			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" morph_band $TRIMASK_VARIANTS $TRIMASK_SUBSET
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" morph_band $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
 		materialize	               TYPE  DESCRIPTION                            EXAMPLE
 			alpha.png alpha	        blob  The matte                              120 KB .png
 			input.json	           TYPE  DESCRIPTION                            EXAMPLE
@@ -2032,16 +2034,17 @@ processors
 
 	trimask_noisy_band	 Makes the trimasks of method noisy_band (src/sana_alpha/trimask/noisy_band.py) for its train images
 		query sql
-			SELECT page_id, alpha, split FROM magick_samples                                                   -- MAGICK images
-			WHERE   trimask_noisy_band_claim IS NULL                                                           -- not yet claimed,
-			    AND alpha                    IS NOT NULL                                                       -- that split_alpha did,
-			    AND split                    = 'train'                                                         -- not eval,
-			    AND page_id NOT IN (SELECT page_id FROM _no_trimask_items)                                 -- not a showcase image or an empty matte,
-			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'noisy_band')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
-			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                        -- one batch at a time, in random order
+			SELECT page_id, alpha, split FROM magick_samples                                                    -- MAGICK images
+			WHERE   trimask_noisy_band_claim IS NULL                                                            -- not yet claimed,
+			    AND alpha                    IS NOT NULL                                                        -- that split_alpha did,
+			    AND split                    = 'train'                                                          -- not eval,
+			    AND page_id NOT IN (SELECT page_id FROM _no_trimask_items)                                      -- not a showcase image or an empty matte,
+			    AND (contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'noisy_band')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET)
+			         OR left(encode(sha256(page_id), 'hex'), 3) <= '$TRIMASK_COMPARE_MAX')                      -- or in the comparison set,
+			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                         -- one batch at a time, in random order
 		claim	trimask_noisy_band_claim magick_samples
 		command bash
-			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" noisy_band $TRIMASK_VARIANTS $TRIMASK_SUBSET
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" noisy_band $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
 		materialize	               TYPE  DESCRIPTION                            EXAMPLE
 			alpha.png alpha	        blob  The matte                              120 KB .png
 			input.json	           TYPE  DESCRIPTION                            EXAMPLE
@@ -2063,16 +2066,17 @@ processors
 
 	trimask_blur_quantize	 Makes the trimasks of method blur_quantize (src/sana_alpha/trimask/blur_quantize.py) for its train images
 		query sql
-			SELECT page_id, alpha, split FROM magick_samples                                                      -- MAGICK images
-			WHERE   trimask_blur_quantize_claim IS NULL                                                           -- not yet claimed,
-			    AND alpha                       IS NOT NULL                                                       -- that split_alpha did,
-			    AND split                       = 'train'                                                         -- not eval,
-			    AND page_id NOT IN (SELECT page_id FROM _no_trimask_items)                                    -- not a showcase image or an empty matte,
-			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'blur_quantize')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
-			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                           -- one batch at a time, in random order
+			SELECT page_id, alpha, split FROM magick_samples                                                       -- MAGICK images
+			WHERE   trimask_blur_quantize_claim IS NULL                                                            -- not yet claimed,
+			    AND alpha                       IS NOT NULL                                                        -- that split_alpha did,
+			    AND split                       = 'train'                                                          -- not eval,
+			    AND page_id NOT IN (SELECT page_id FROM _no_trimask_items)                                         -- not a showcase image or an empty matte,
+			    AND (contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'blur_quantize')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET)
+			         OR left(encode(sha256(page_id), 'hex'), 3) <= '$TRIMASK_COMPARE_MAX')                         -- or in the comparison set,
+			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                            -- one batch at a time, in random order
 		claim	trimask_blur_quantize_claim magick_samples
 		command bash
-			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" blur_quantize $TRIMASK_VARIANTS $TRIMASK_SUBSET
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" blur_quantize $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
 		materialize	               TYPE  DESCRIPTION                            EXAMPLE
 			alpha.png alpha	        blob  The matte                              120 KB .png
 			input.json	           TYPE  DESCRIPTION                            EXAMPLE
@@ -2094,16 +2098,17 @@ processors
 
 	trimask_scribbles	 Makes the trimasks of method scribbles (src/sana_alpha/trimask/scribbles.py) for its train images
 		query sql
-			SELECT page_id, alpha, split FROM magick_samples                                                  -- MAGICK images
-			WHERE   trimask_scribbles_claim IS NULL                                                           -- not yet claimed,
-			    AND alpha                   IS NOT NULL                                                       -- that split_alpha did,
-			    AND split                   = 'train'                                                         -- not eval,
-			    AND page_id NOT IN (SELECT page_id FROM _no_trimask_items)                                -- not a showcase image or an empty matte,
-			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'scribbles')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
-			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                       -- one batch at a time, in random order
+			SELECT page_id, alpha, split FROM magick_samples                                                   -- MAGICK images
+			WHERE   trimask_scribbles_claim IS NULL                                                            -- not yet claimed,
+			    AND alpha                   IS NOT NULL                                                        -- that split_alpha did,
+			    AND split                   = 'train'                                                          -- not eval,
+			    AND page_id NOT IN (SELECT page_id FROM _no_trimask_items)                                     -- not a showcase image or an empty matte,
+			    AND (contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'scribbles')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET)
+			         OR left(encode(sha256(page_id), 'hex'), 3) <= '$TRIMASK_COMPARE_MAX')                     -- or in the comparison set,
+			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                        -- one batch at a time, in random order
 		claim	trimask_scribbles_claim magick_samples
 		command bash
-			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" scribbles $TRIMASK_VARIANTS $TRIMASK_SUBSET
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" scribbles $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
 		materialize	               TYPE  DESCRIPTION                            EXAMPLE
 			alpha.png alpha	        blob  The matte                              120 KB .png
 			input.json	           TYPE  DESCRIPTION                            EXAMPLE
@@ -2125,16 +2130,17 @@ processors
 
 	trimask_bbox_unknown	 Makes the trimasks of method bbox_unknown (src/sana_alpha/trimask/bbox_unknown.py) for its train images
 		query sql
-			SELECT page_id, alpha, split FROM magick_samples                                                     -- MAGICK images
-			WHERE   trimask_bbox_unknown_claim IS NULL                                                           -- not yet claimed,
-			    AND alpha                      IS NOT NULL                                                       -- that split_alpha did,
-			    AND split                      = 'train'                                                         -- not eval,
-			    AND page_id NOT IN (SELECT page_id FROM _no_trimask_items)                                   -- not a showcase image or an empty matte,
-			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'bbox_unknown')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
-			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                          -- one batch at a time, in random order
+			SELECT page_id, alpha, split FROM magick_samples                                                      -- MAGICK images
+			WHERE   trimask_bbox_unknown_claim IS NULL                                                            -- not yet claimed,
+			    AND alpha                      IS NOT NULL                                                        -- that split_alpha did,
+			    AND split                      = 'train'                                                          -- not eval,
+			    AND page_id NOT IN (SELECT page_id FROM _no_trimask_items)                                        -- not a showcase image or an empty matte,
+			    AND (contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'bbox_unknown')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET)
+			         OR left(encode(sha256(page_id), 'hex'), 3) <= '$TRIMASK_COMPARE_MAX')                        -- or in the comparison set,
+			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                           -- one batch at a time, in random order
 		claim	trimask_bbox_unknown_claim magick_samples
 		command bash
-			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" bbox_unknown $TRIMASK_VARIANTS $TRIMASK_SUBSET
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" bbox_unknown $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
 		materialize	               TYPE  DESCRIPTION                            EXAMPLE
 			alpha.png alpha	        blob  The matte                              120 KB .png
 			input.json	           TYPE  DESCRIPTION                            EXAMPLE
@@ -2156,16 +2162,17 @@ processors
 
 	trimask_convex_hull	 Makes the trimasks of method convex_hull (src/sana_alpha/trimask/convex_hull.py) for its train images
 		query sql
-			SELECT page_id, alpha, split FROM magick_samples                                                    -- MAGICK images
-			WHERE   trimask_convex_hull_claim IS NULL                                                           -- not yet claimed,
-			    AND alpha                     IS NOT NULL                                                       -- that split_alpha did,
-			    AND split                     = 'train'                                                         -- not eval,
-			    AND page_id NOT IN (SELECT page_id FROM _no_trimask_items)                                  -- not a showcase image or an empty matte,
-			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'convex_hull')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
-			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                         -- one batch at a time, in random order
+			SELECT page_id, alpha, split FROM magick_samples                                                     -- MAGICK images
+			WHERE   trimask_convex_hull_claim IS NULL                                                            -- not yet claimed,
+			    AND alpha                     IS NOT NULL                                                        -- that split_alpha did,
+			    AND split                     = 'train'                                                          -- not eval,
+			    AND page_id NOT IN (SELECT page_id FROM _no_trimask_items)                                       -- not a showcase image or an empty matte,
+			    AND (contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'convex_hull')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET)
+			         OR left(encode(sha256(page_id), 'hex'), 3) <= '$TRIMASK_COMPARE_MAX')                       -- or in the comparison set,
+			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                          -- one batch at a time, in random order
 		claim	trimask_convex_hull_claim magick_samples
 		command bash
-			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" convex_hull $TRIMASK_VARIANTS $TRIMASK_SUBSET
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" convex_hull $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
 		materialize	               TYPE  DESCRIPTION                            EXAMPLE
 			alpha.png alpha	        blob  The matte                              120 KB .png
 			input.json	           TYPE  DESCRIPTION                            EXAMPLE
@@ -2187,16 +2194,17 @@ processors
 
 	trimask_grid_coarsen	 Makes the trimasks of method grid_coarsen (src/sana_alpha/trimask/grid_coarsen.py) for its train images
 		query sql
-			SELECT page_id, alpha, split FROM magick_samples                                                     -- MAGICK images
-			WHERE   trimask_grid_coarsen_claim IS NULL                                                           -- not yet claimed,
-			    AND alpha                      IS NOT NULL                                                       -- that split_alpha did,
-			    AND split                      = 'train'                                                         -- not eval,
-			    AND page_id NOT IN (SELECT page_id FROM _no_trimask_items)                                   -- not a showcase image or an empty matte,
-			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'grid_coarsen')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
-			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                          -- one batch at a time, in random order
+			SELECT page_id, alpha, split FROM magick_samples                                                      -- MAGICK images
+			WHERE   trimask_grid_coarsen_claim IS NULL                                                            -- not yet claimed,
+			    AND alpha                      IS NOT NULL                                                        -- that split_alpha did,
+			    AND split                      = 'train'                                                          -- not eval,
+			    AND page_id NOT IN (SELECT page_id FROM _no_trimask_items)                                        -- not a showcase image or an empty matte,
+			    AND (contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'grid_coarsen')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET)
+			         OR left(encode(sha256(page_id), 'hex'), 3) <= '$TRIMASK_COMPARE_MAX')                        -- or in the comparison set,
+			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                           -- one batch at a time, in random order
 		claim	trimask_grid_coarsen_claim magick_samples
 		command bash
-			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" grid_coarsen $TRIMASK_VARIANTS $TRIMASK_SUBSET
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" grid_coarsen $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
 		materialize	               TYPE  DESCRIPTION                            EXAMPLE
 			alpha.png alpha	        blob  The matte                              120 KB .png
 			input.json	           TYPE  DESCRIPTION                            EXAMPLE
@@ -2218,16 +2226,17 @@ processors
 
 	trimask_polygon_simplify	 Makes the trimasks of method polygon_simplify (src/sana_alpha/trimask/polygon_simplify.py) for its train images
 		query sql
-			SELECT page_id, alpha, split FROM magick_samples                                                         -- MAGICK images
-			WHERE   trimask_polygon_simplify_claim IS NULL                                                           -- not yet claimed,
-			    AND alpha                          IS NOT NULL                                                       -- that split_alpha did,
-			    AND split                          = 'train'                                                         -- not eval,
-			    AND page_id NOT IN (SELECT page_id FROM _no_trimask_items)                                       -- not a showcase image or an empty matte,
-			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'polygon_simplify')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
-			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                              -- one batch at a time, in random order
+			SELECT page_id, alpha, split FROM magick_samples                                                          -- MAGICK images
+			WHERE   trimask_polygon_simplify_claim IS NULL                                                            -- not yet claimed,
+			    AND alpha                          IS NOT NULL                                                        -- that split_alpha did,
+			    AND split                          = 'train'                                                          -- not eval,
+			    AND page_id NOT IN (SELECT page_id FROM _no_trimask_items)                                            -- not a showcase image or an empty matte,
+			    AND (contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'polygon_simplify')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET)
+			         OR left(encode(sha256(page_id), 'hex'), 3) <= '$TRIMASK_COMPARE_MAX')                            -- or in the comparison set,
+			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                               -- one batch at a time, in random order
 		claim	trimask_polygon_simplify_claim magick_samples
 		command bash
-			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" polygon_simplify $TRIMASK_VARIANTS $TRIMASK_SUBSET
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" polygon_simplify $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
 		materialize	               TYPE  DESCRIPTION                            EXAMPLE
 			alpha.png alpha	        blob  The matte                              120 KB .png
 			input.json	           TYPE  DESCRIPTION                            EXAMPLE
@@ -2249,16 +2258,17 @@ processors
 
 	trimask_unknown_patches	 Makes the trimasks of method unknown_patches (src/sana_alpha/trimask/unknown_patches.py) for its train images
 		query sql
-			SELECT page_id, alpha, split FROM magick_samples                                                        -- MAGICK images
-			WHERE   trimask_unknown_patches_claim IS NULL                                                           -- not yet claimed,
-			    AND alpha                         IS NOT NULL                                                       -- that split_alpha did,
-			    AND split                         = 'train'                                                         -- not eval,
-			    AND page_id NOT IN (SELECT page_id FROM _no_trimask_items)                                      -- not a showcase image or an empty matte,
-			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'unknown_patches')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
-			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                             -- one batch at a time, in random order
+			SELECT page_id, alpha, split FROM magick_samples                                                         -- MAGICK images
+			WHERE   trimask_unknown_patches_claim IS NULL                                                            -- not yet claimed,
+			    AND alpha                         IS NOT NULL                                                        -- that split_alpha did,
+			    AND split                         = 'train'                                                          -- not eval,
+			    AND page_id NOT IN (SELECT page_id FROM _no_trimask_items)                                           -- not a showcase image or an empty matte,
+			    AND (contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'unknown_patches')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET)
+			         OR left(encode(sha256(page_id), 'hex'), 3) <= '$TRIMASK_COMPARE_MAX')                           -- or in the comparison set,
+			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                              -- one batch at a time, in random order
 		claim	trimask_unknown_patches_claim magick_samples
 		command bash
-			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" unknown_patches $TRIMASK_VARIANTS $TRIMASK_SUBSET
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" unknown_patches $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
 		materialize	               TYPE  DESCRIPTION                            EXAMPLE
 			alpha.png alpha	        blob  The matte                              120 KB .png
 			input.json	           TYPE  DESCRIPTION                            EXAMPLE
@@ -2280,16 +2290,17 @@ processors
 
 	trimask_fuzzy_ramp	 Makes the trimasks of method fuzzy_ramp (src/sana_alpha/trimask/fuzzy_ramp.py) for its train images
 		query sql
-			SELECT page_id, alpha, split FROM magick_samples                                                   -- MAGICK images
-			WHERE   trimask_fuzzy_ramp_claim IS NULL                                                           -- not yet claimed,
-			    AND alpha                    IS NOT NULL                                                       -- that split_alpha did,
-			    AND split                    = 'train'                                                         -- not eval,
-			    AND page_id NOT IN (SELECT page_id FROM _no_trimask_items)                                 -- not a showcase image or an empty matte,
-			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'fuzzy_ramp')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
-			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                        -- one batch at a time, in random order
+			SELECT page_id, alpha, split FROM magick_samples                                                    -- MAGICK images
+			WHERE   trimask_fuzzy_ramp_claim IS NULL                                                            -- not yet claimed,
+			    AND alpha                    IS NOT NULL                                                        -- that split_alpha did,
+			    AND split                    = 'train'                                                          -- not eval,
+			    AND page_id NOT IN (SELECT page_id FROM _no_trimask_items)                                      -- not a showcase image or an empty matte,
+			    AND (contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'fuzzy_ramp')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET)
+			         OR left(encode(sha256(page_id), 'hex'), 3) <= '$TRIMASK_COMPARE_MAX')                      -- or in the comparison set,
+			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                         -- one batch at a time, in random order
 		claim	trimask_fuzzy_ramp_claim magick_samples
 		command bash
-			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" fuzzy_ramp $TRIMASK_VARIANTS $TRIMASK_SUBSET
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" fuzzy_ramp $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
 		materialize	               TYPE  DESCRIPTION                            EXAMPLE
 			alpha.png alpha	        blob  The matte                              120 KB .png
 			input.json	           TYPE  DESCRIPTION                            EXAMPLE
@@ -2311,16 +2322,17 @@ processors
 
 	trimask_combo_union	 Makes the trimasks of method combo_union (src/sana_alpha/trimask/combo_union.py) for its train images
 		query sql
-			SELECT page_id, alpha, split FROM magick_samples                                                    -- MAGICK images
-			WHERE   trimask_combo_union_claim IS NULL                                                           -- not yet claimed,
-			    AND alpha                     IS NOT NULL                                                       -- that split_alpha did,
-			    AND split                     = 'train'                                                         -- not eval,
-			    AND page_id NOT IN (SELECT page_id FROM _no_trimask_items)                                  -- not a showcase image or an empty matte,
-			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'combo_union')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
-			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                         -- one batch at a time, in random order
+			SELECT page_id, alpha, split FROM magick_samples                                                     -- MAGICK images
+			WHERE   trimask_combo_union_claim IS NULL                                                            -- not yet claimed,
+			    AND alpha                     IS NOT NULL                                                        -- that split_alpha did,
+			    AND split                     = 'train'                                                          -- not eval,
+			    AND page_id NOT IN (SELECT page_id FROM _no_trimask_items)                                       -- not a showcase image or an empty matte,
+			    AND (contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'combo_union')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET)
+			         OR left(encode(sha256(page_id), 'hex'), 3) <= '$TRIMASK_COMPARE_MAX')                       -- or in the comparison set,
+			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                          -- one batch at a time, in random order
 		claim	trimask_combo_union_claim magick_samples
 		command bash
-			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" combo_union $TRIMASK_VARIANTS $TRIMASK_SUBSET
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" combo_union $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
 		materialize	               TYPE  DESCRIPTION                            EXAMPLE
 			alpha.png alpha	        blob  The matte                              120 KB .png
 			input.json	           TYPE  DESCRIPTION                            EXAMPLE
@@ -2342,16 +2354,17 @@ processors
 
 	trimask_combo_chain	 Makes the trimasks of method combo_chain (src/sana_alpha/trimask/combo_chain.py) for its train images
 		query sql
-			SELECT page_id, alpha, split FROM magick_samples                                                    -- MAGICK images
-			WHERE   trimask_combo_chain_claim IS NULL                                                           -- not yet claimed,
-			    AND alpha                     IS NOT NULL                                                       -- that split_alpha did,
-			    AND split                     = 'train'                                                         -- not eval,
-			    AND page_id NOT IN (SELECT page_id FROM _no_trimask_items)                                  -- not a showcase image or an empty matte,
-			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'combo_chain')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
-			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                         -- one batch at a time, in random order
+			SELECT page_id, alpha, split FROM magick_samples                                                     -- MAGICK images
+			WHERE   trimask_combo_chain_claim IS NULL                                                            -- not yet claimed,
+			    AND alpha                     IS NOT NULL                                                        -- that split_alpha did,
+			    AND split                     = 'train'                                                          -- not eval,
+			    AND page_id NOT IN (SELECT page_id FROM _no_trimask_items)                                       -- not a showcase image or an empty matte,
+			    AND (contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'combo_chain')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET)
+			         OR left(encode(sha256(page_id), 'hex'), 3) <= '$TRIMASK_COMPARE_MAX')                       -- or in the comparison set,
+			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                          -- one batch at a time, in random order
 		claim	trimask_combo_chain_claim magick_samples
 		command bash
-			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" combo_chain $TRIMASK_VARIANTS $TRIMASK_SUBSET
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" combo_chain $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
 		materialize	               TYPE  DESCRIPTION                            EXAMPLE
 			alpha.png alpha	        blob  The matte                              120 KB .png
 			input.json	           TYPE  DESCRIPTION                            EXAMPLE
@@ -2373,16 +2386,17 @@ processors
 
 	trimask_skeleton_strokes	 Makes the trimasks of method skeleton_strokes (src/sana_alpha/trimask/skeleton_strokes.py) for its train images
 		query sql
-			SELECT page_id, alpha, split FROM magick_samples                                                         -- MAGICK images
-			WHERE   trimask_skeleton_strokes_claim IS NULL                                                           -- not yet claimed,
-			    AND alpha                          IS NOT NULL                                                       -- that split_alpha did,
-			    AND split                          = 'train'                                                         -- not eval,
-			    AND page_id NOT IN (SELECT page_id FROM _no_trimask_items)                                       -- not a showcase image or an empty matte,
-			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'skeleton_strokes')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
-			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                              -- one batch at a time, in random order
+			SELECT page_id, alpha, split FROM magick_samples                                                          -- MAGICK images
+			WHERE   trimask_skeleton_strokes_claim IS NULL                                                            -- not yet claimed,
+			    AND alpha                          IS NOT NULL                                                        -- that split_alpha did,
+			    AND split                          = 'train'                                                          -- not eval,
+			    AND page_id NOT IN (SELECT page_id FROM _no_trimask_items)                                            -- not a showcase image or an empty matte,
+			    AND (contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'skeleton_strokes')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET)
+			         OR left(encode(sha256(page_id), 'hex'), 3) <= '$TRIMASK_COMPARE_MAX')                            -- or in the comparison set,
+			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                               -- one batch at a time, in random order
 		claim	trimask_skeleton_strokes_claim magick_samples
 		command bash
-			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" skeleton_strokes $TRIMASK_VARIANTS $TRIMASK_SUBSET
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" skeleton_strokes $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
 		materialize	               TYPE  DESCRIPTION                            EXAMPLE
 			alpha.png alpha	        blob  The matte                              120 KB .png
 			input.json	           TYPE  DESCRIPTION                            EXAMPLE
@@ -2404,16 +2418,17 @@ processors
 
 	trimask_partial_view	 Makes the trimasks of method partial_view (src/sana_alpha/trimask/partial_view.py) for its train images
 		query sql
-			SELECT page_id, alpha, split FROM magick_samples                                                     -- MAGICK images
-			WHERE   trimask_partial_view_claim IS NULL                                                           -- not yet claimed,
-			    AND alpha                      IS NOT NULL                                                       -- that split_alpha did,
-			    AND split                      = 'train'                                                         -- not eval,
-			    AND page_id NOT IN (SELECT page_id FROM _no_trimask_items)                                   -- not a showcase image or an empty matte,
-			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'partial_view')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
-			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                          -- one batch at a time, in random order
+			SELECT page_id, alpha, split FROM magick_samples                                                      -- MAGICK images
+			WHERE   trimask_partial_view_claim IS NULL                                                            -- not yet claimed,
+			    AND alpha                      IS NOT NULL                                                        -- that split_alpha did,
+			    AND split                      = 'train'                                                          -- not eval,
+			    AND page_id NOT IN (SELECT page_id FROM _no_trimask_items)                                        -- not a showcase image or an empty matte,
+			    AND (contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'partial_view')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET)
+			         OR left(encode(sha256(page_id), 'hex'), 3) <= '$TRIMASK_COMPARE_MAX')                        -- or in the comparison set,
+			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                           -- one batch at a time, in random order
 		claim	trimask_partial_view_claim magick_samples
 		command bash
-			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" partial_view $TRIMASK_VARIANTS $TRIMASK_SUBSET
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" partial_view $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
 		materialize	               TYPE  DESCRIPTION                            EXAMPLE
 			alpha.png alpha	        blob  The matte                              120 KB .png
 			input.json	           TYPE  DESCRIPTION                            EXAMPLE
@@ -2435,16 +2450,17 @@ processors
 
 	trimask_bilateral_blur	 Makes the trimasks of method bilateral_blur (src/sana_alpha/trimask/bilateral_blur.py) for its train images
 		query sql
-			SELECT page_id, alpha, rgb_on_gray, split FROM magick_samples                                          -- MAGICK images
-			WHERE   trimask_bilateral_blur_claim IS NULL                                                           -- not yet claimed,
-			    AND alpha                        IS NOT NULL                                                       -- that split_alpha did,
-			    AND split                        = 'train'                                                         -- not eval,
-			    AND page_id NOT IN (SELECT page_id FROM _no_trimask_items)                                     -- not a showcase image or an empty matte,
-			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'bilateral_blur')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
-			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                            -- one batch at a time, in random order
+			SELECT page_id, alpha, rgb_on_gray, split FROM magick_samples                                           -- MAGICK images
+			WHERE   trimask_bilateral_blur_claim IS NULL                                                            -- not yet claimed,
+			    AND alpha                        IS NOT NULL                                                        -- that split_alpha did,
+			    AND split                        = 'train'                                                          -- not eval,
+			    AND page_id NOT IN (SELECT page_id FROM _no_trimask_items)                                          -- not a showcase image or an empty matte,
+			    AND (contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'bilateral_blur')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET)
+			         OR left(encode(sha256(page_id), 'hex'), 3) <= '$TRIMASK_COMPARE_MAX')                          -- or in the comparison set,
+			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                             -- one batch at a time, in random order
 		claim	trimask_bilateral_blur_claim magick_samples
 		command bash
-			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" bilateral_blur $TRIMASK_VARIANTS $TRIMASK_SUBSET
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" bilateral_blur $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
 		materialize	                           TYPE  DESCRIPTION                                     EXAMPLE
 			alpha.png alpha	                    blob  The matte                                       120 KB .png
 			rgb_on_gray.png rgb_on_gray	        blob  The RGB on gray: this method follows its edges  1.4 MB .png
@@ -2467,16 +2483,17 @@ processors
 
 	trimask_random_stack	 Makes the trimasks of method random_stack (src/sana_alpha/trimask/random_stack.py) for its train images
 		query sql
-			SELECT page_id, alpha, split FROM magick_samples                                                     -- MAGICK images
-			WHERE   trimask_random_stack_claim IS NULL                                                           -- not yet claimed,
-			    AND alpha                      IS NOT NULL                                                       -- that split_alpha did,
-			    AND split                      = 'train'                                                         -- not eval,
-			    AND page_id NOT IN (SELECT page_id FROM _no_trimask_items)                                   -- not a showcase image or an empty matte,
-			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'random_stack')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
-			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                          -- one batch at a time, in random order
+			SELECT page_id, alpha, split FROM magick_samples                                                      -- MAGICK images
+			WHERE   trimask_random_stack_claim IS NULL                                                            -- not yet claimed,
+			    AND alpha                      IS NOT NULL                                                        -- that split_alpha did,
+			    AND split                      = 'train'                                                          -- not eval,
+			    AND page_id NOT IN (SELECT page_id FROM _no_trimask_items)                                        -- not a showcase image or an empty matte,
+			    AND (contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'random_stack')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET)
+			         OR left(encode(sha256(page_id), 'hex'), 3) <= '$TRIMASK_COMPARE_MAX')                        -- or in the comparison set,
+			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                           -- one batch at a time, in random order
 		claim	trimask_random_stack_claim magick_samples
 		command bash
-			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" random_stack $TRIMASK_VARIANTS $TRIMASK_SUBSET
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" random_stack $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
 		materialize	               TYPE  DESCRIPTION                            EXAMPLE
 			alpha.png alpha	        blob  The matte                              120 KB .png
 			input.json	           TYPE  DESCRIPTION                            EXAMPLE
@@ -2498,16 +2515,17 @@ processors
 
 	trimask_perlin_warp	 Makes the trimasks of method perlin_warp (src/sana_alpha/trimask/perlin_warp.py) for its train images
 		query sql
-			SELECT page_id, alpha, split FROM magick_samples                                                    -- MAGICK images
-			WHERE   trimask_perlin_warp_claim IS NULL                                                           -- not yet claimed,
-			    AND alpha                     IS NOT NULL                                                       -- that split_alpha did,
-			    AND split                     = 'train'                                                         -- not eval,
-			    AND page_id NOT IN (SELECT page_id FROM _no_trimask_items)                                  -- not a showcase image or an empty matte,
-			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'perlin_warp')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
-			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                         -- one batch at a time, in random order
+			SELECT page_id, alpha, split FROM magick_samples                                                     -- MAGICK images
+			WHERE   trimask_perlin_warp_claim IS NULL                                                            -- not yet claimed,
+			    AND alpha                     IS NOT NULL                                                        -- that split_alpha did,
+			    AND split                     = 'train'                                                          -- not eval,
+			    AND page_id NOT IN (SELECT page_id FROM _no_trimask_items)                                       -- not a showcase image or an empty matte,
+			    AND (contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'perlin_warp')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET)
+			         OR left(encode(sha256(page_id), 'hex'), 3) <= '$TRIMASK_COMPARE_MAX')                       -- or in the comparison set,
+			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                          -- one batch at a time, in random order
 		claim	trimask_perlin_warp_claim magick_samples
 		command bash
-			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" perlin_warp $TRIMASK_VARIANTS $TRIMASK_SUBSET
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" perlin_warp $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
 		materialize	               TYPE  DESCRIPTION                            EXAMPLE
 			alpha.png alpha	        blob  The matte                              120 KB .png
 			input.json	           TYPE  DESCRIPTION                            EXAMPLE
@@ -2529,16 +2547,17 @@ processors
 
 	trimask_op_chain	 Makes the trimasks of method op_chain (src/sana_alpha/trimask/op_chain.py) for its train images
 		query sql
-			SELECT page_id, alpha, split FROM magick_samples                                                 -- MAGICK images
-			WHERE   trimask_op_chain_claim IS NULL                                                           -- not yet claimed,
-			    AND alpha                  IS NOT NULL                                                       -- that split_alpha did,
-			    AND split                  = 'train'                                                         -- not eval,
-			    AND page_id NOT IN (SELECT page_id FROM _no_trimask_items)                               -- not a showcase image or an empty matte,
-			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'op_chain')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
-			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                      -- one batch at a time, in random order
+			SELECT page_id, alpha, split FROM magick_samples                                                  -- MAGICK images
+			WHERE   trimask_op_chain_claim IS NULL                                                            -- not yet claimed,
+			    AND alpha                  IS NOT NULL                                                        -- that split_alpha did,
+			    AND split                  = 'train'                                                          -- not eval,
+			    AND page_id NOT IN (SELECT page_id FROM _no_trimask_items)                                    -- not a showcase image or an empty matte,
+			    AND (contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'op_chain')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET)
+			         OR left(encode(sha256(page_id), 'hex'), 3) <= '$TRIMASK_COMPARE_MAX')                    -- or in the comparison set,
+			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                       -- one batch at a time, in random order
 		claim	trimask_op_chain_claim magick_samples
 		command bash
-			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" op_chain $TRIMASK_VARIANTS $TRIMASK_SUBSET
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" op_chain $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
 		materialize	               TYPE  DESCRIPTION                            EXAMPLE
 			alpha.png alpha	        blob  The matte                              120 KB .png
 			input.json	           TYPE  DESCRIPTION                            EXAMPLE
@@ -2560,16 +2579,17 @@ processors
 
 	trimask_glass_ripple	 Makes the trimasks of method glass_ripple (src/sana_alpha/trimask/glass_ripple.py) for its train images
 		query sql
-			SELECT page_id, alpha, split FROM magick_samples                                                     -- MAGICK images
-			WHERE   trimask_glass_ripple_claim IS NULL                                                           -- not yet claimed,
-			    AND alpha                      IS NOT NULL                                                       -- that split_alpha did,
-			    AND split                      = 'train'                                                         -- not eval,
-			    AND page_id NOT IN (SELECT page_id FROM _no_trimask_items)                                   -- not a showcase image or an empty matte,
-			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'glass_ripple')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
-			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                          -- one batch at a time, in random order
+			SELECT page_id, alpha, split FROM magick_samples                                                      -- MAGICK images
+			WHERE   trimask_glass_ripple_claim IS NULL                                                            -- not yet claimed,
+			    AND alpha                      IS NOT NULL                                                        -- that split_alpha did,
+			    AND split                      = 'train'                                                          -- not eval,
+			    AND page_id NOT IN (SELECT page_id FROM _no_trimask_items)                                        -- not a showcase image or an empty matte,
+			    AND (contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'glass_ripple')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET)
+			         OR left(encode(sha256(page_id), 'hex'), 3) <= '$TRIMASK_COMPARE_MAX')                        -- or in the comparison set,
+			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                           -- one batch at a time, in random order
 		claim	trimask_glass_ripple_claim magick_samples
 		command bash
-			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" glass_ripple $TRIMASK_VARIANTS $TRIMASK_SUBSET
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" glass_ripple $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
 		materialize	               TYPE  DESCRIPTION                            EXAMPLE
 			alpha.png alpha	        blob  The matte                              120 KB .png
 			input.json	           TYPE  DESCRIPTION                            EXAMPLE
