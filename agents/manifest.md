@@ -256,6 +256,8 @@ Exact form (written by `src/sana_alpha/web_export.py`; all graph I/O float32 exc
 
 **Correctness (m00647).** No incorrect trimasks: sure-white only on fully opaque pixels (alpha ≥ 1 − 1/255), sure-black only on fully transparent pixels (alpha ≤ 1/255), every soft-alpha pixel gray (fuzzy_ramp: ≥ 0.5 on opaque, ≤ 0.5 on transparent, strictly between on soft). `check_consistent` enforces it in `generate()` (raises), and a full table scan must show 0 violations before training.
 
+**GPU use and exports (m00650).** While the trimask table encodes, all 8 GPUs do DC-AE encoding (no training at the same time); the trimask runs start only after. From now on only the λ web versions (`-int4-lambda`) are exported: at λ = 0 they equal the plain int4 output exactly, so plain int4 versions are redundant.
+
 **Training.** Two runs to compare (m00644: "fine-tune your current checkpoints, or maybe it's better just to do it from scratch"): `control_tri_ft` = init from control_v2 step 6000; `control_tri_scratch` = fresh LoRA + gates; both on adapter_v2 step 1000, 4 GPUs each, condition = trimask latent; ALL ten methods are used in training (m00646), sampled uniformly over methods, with per-method counts logged.
 
 **Agenda (16 h, 10:15 PM → 2:15 PM ET 2026-11-18).** 11:15 PM processors written; 12:30 AM table filled and encoded; 12:45 AM both runs start (babysat); ~4:30 AM evals + gallery; 9:00 AM web demo trimask class + export; 11:00 AM journal page; 2:15 PM hard stop.

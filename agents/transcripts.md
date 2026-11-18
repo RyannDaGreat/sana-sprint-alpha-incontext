@@ -251,3 +251,6 @@ And why not have 4 more augmentation methods, including combinations of the othe
 
 ## m00649 — 2026-11-17 11:50 PM
 What about bilateral blurs? Overlaying others? Applying others in random orders? 2 more?
+
+## m00650 — 2026-11-17 11:56 PM
+When all data is ready, have all GPUs do VAE processing. Cancel [the] old training run and make this new one. BTW, we only need lambda checkpoints from now on.
