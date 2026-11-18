@@ -32,6 +32,14 @@ database
 	host 0.0.0.0
 	port $DATABASE_PORT
 	root lance
+	fastlance	 Copied from MulticamDailies. Each setting is optional. Each comment tells what it does and its default
+		commit_retry_time 365d	     When two processes save to one table at the same time, one must try again. This is how long it tries. Default 30s, then the save fails
+		io_threads 256	             How many file reads one query does at the same time. Default 8 on local disk. 256 was 5-11% faster than 64 in MulticamDailies
+		mem_pool 32GB	             Memory for large jobs, such as compaction. Default 150MB, which is too small for our large tables
+		max_stale_time 0	         Fast mode: a query does not first look for new saves, so for this long it can miss rows that other processes saved. Default 0 (off)
+		all_blobs_are_files true	 Each Blob value (a PNG or latent) is stored as its own file. Default true
+		ram_cache 300GB	             Keeps the columns that queries read in RAM, so the next queries are faster. Never Blobs. Default off
+		claim_pipeline write_behind	 Gives Claims faster, from rows that it found earlier and keeps in RAM; saves them after it answers. Default off
 
 claims_table bluejay_claims
 runs_table bluejay_runs
