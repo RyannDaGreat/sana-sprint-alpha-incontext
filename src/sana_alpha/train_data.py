@@ -84,10 +84,24 @@ def load_lance_records(path, rank, world_size, seed, column="latent_rgb_1024"):
                         filter=f"{column} IS NOT NULL AND split = 'train' AND nsfw = false").to_pandas()
     table = table.sort_values("page_id").reset_index(drop=True)
     table = table.iloc[rank_shard(len(table), rank, world_size, seed).numpy()]
-    blobs = ds.take_blobs(column, ids=table["_rowid"].tolist())
+    return dict(latents=read_latent_blobs(ds, column, table["_rowid"].tolist()), captions=table.subject.astype(str).tolist(),
+                page_ids=table.page_id.tolist())
+
+
+def read_latent_blobs(ds, column, ids):
+    """
+    Query. Reads safetensors blobs {"latent": (32, 32, 32)} of a lance blob column, in the order of ids.
+
+    Args:
+        ds (lance.LanceDataset): e.g. magick_samples or trimask_augmentations
+        column (str): blob column, e.g. latent_rgb_1024
+        ids (list[int]): row ids (_rowid)
+
+    Returns:
+        torch.Tensor: (len(ids), 32, 32, 32) as stored (raw, unscaled bf16)
+    """
     with ThreadPoolExecutor(BLOB_READ_THREADS) as pool:
-        latents = list(pool.map(lambda b: safetensors.torch.load(b.read())["latent"], blobs))
-    return dict(latents=torch.stack(latents), captions=table.subject.astype(str).tolist(), page_ids=table.page_id.tolist())
+        return torch.stack(list(pool.map(lambda b: safetensors.torch.load(b.read())["latent"], ds.take_blobs(column, ids=ids))))
 
 
 def rank_shard(count, rank, world_size, seed):

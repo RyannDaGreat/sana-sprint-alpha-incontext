@@ -32,8 +32,9 @@ from torch import nn
 from torch.nn.parallel import DistributedDataParallel
 
 from sana_alpha import gatecontrol as gc, models
+from sana_alpha.trimask import METHODS
 from sana_alpha.train_adapter import setup_distributed
-from sana_alpha.train_data import epoch_batches, rank_shard
+from sana_alpha.train_data import epoch_batches, rank_shard, read_latent_blobs
 from sana_alpha.train_objective import add_flow_noise, flow_velocity_target, sample_sigmas
 from sana_alpha.train_text import encode_captions, pad_embeddings
 
@@ -42,7 +43,9 @@ TEACHER = models.TEACHER_DIR  # repo-relative; always loaded through models.loca
 CONTROL_DIR = ROOT / "models/control"
 OVERFIT_DIR = ROOT / "agents/.scratchpad/control_overfit"
 LANCE = ROOT / "data/lance/magick_samples.lance"
+TRIMASK_LANCE = ROOT / "data/lance/trimask_augmentations.lance"
 PREVIEW_COUNT = 4  # rows in each preview grid
+METHOD_LOG_EVERY = 250  # steps between logs of the trimask methods drawn
 PREVIEW_STEPS = 20  # teacher sampling steps (models.TEACHER_DEFAULTS)
 PREVIEW_CFG = 4.5  # teacher text CFG (models.TEACHER_DEFAULTS)
 
@@ -99,27 +102,103 @@ def load_lance_shard(path, version, rank, world, seed):
                 captions=[rows["subject"][i].as_py() for i in keep], page_ids=[rows["page_id"][i].as_py() for i in keep])
 
 
-def load_shard(data, rank, world, seed):
+def load_trimask_shard(versions, rank, world, seed):
+    """
+    Query. This rank's shard for trimask control: targets from magick_samples, conditions from trimask_augmentations.
+
+    Records = train, non-nsfw magick_samples rows with latent_rgb_1024 and at least one encoded trimask, sorted by
+    page_id, then rank_shard. Condition rows = every encoded trimask of those records (any method and variant).
+    Raises unless every trimask.METHODS tag has encoded rows in this shard.
+
+    Args:
+        versions (tuple[int, int]): lance versions of magick_samples and trimask_augmentations (equal on all ranks)
+        rank, world, seed (int): see load_lance_shard
+
+    Returns:
+        dict: latents (N, 32, 32, 32), captions, page_ids (N records); cond_latents (M, 32, 32, 32), cond_owner (M,)
+              record index, cond_method (M,) index into trimask.METHODS (raw, unscaled bf16 latents)
+    """
+    import lance
+
+    ds, tri = lance.dataset(str(LANCE), version=versions[0]), lance.dataset(str(TRIMASK_LANCE), version=versions[1])
+    options = tri.to_table(columns=["page_id", "method"], with_row_id=True,
+                           filter="latent_trimask_1024 IS NOT NULL").to_pandas()
+    rows = ds.to_table(columns=["page_id", "subject"], with_row_id=True, filter="latent_rgb_1024 IS NOT NULL AND "
+                       "split = 'train' AND NOT nsfw").to_pandas()
+    rows = rows[rows.page_id.isin(options.page_id)].sort_values("page_id").reset_index(drop=True)
+    rows = rows.iloc[rank_shard(len(rows), rank, world, seed).numpy()].reset_index(drop=True)
+    options = options[options.page_id.isin(rows.page_id)].sort_values("_rowid")
+    per_method = options.method.value_counts().reindex(METHODS, fill_value=0)
+    assert (per_method > 0).all(), f"trimask methods without encoded rows in rank {rank}'s shard: {per_method.to_dict()}"
+    return dict(latents=read_latent_blobs(ds, "latent_rgb_1024", rows._rowid.tolist()),
+                captions=rows.subject.astype(str).tolist(), page_ids=rows.page_id.tolist(),
+                cond_latents=read_latent_blobs(tri, "latent_trimask_1024", options._rowid.tolist()),
+                cond_owner=torch.from_numpy(options.page_id.map(pd.Series(rows.index, index=rows.page_id)).to_numpy()),
+                cond_method=torch.from_numpy(options.method.map({m: i for i, m in enumerate(METHODS)}).to_numpy()))
+
+
+def epoch_draws(records, batch_size, epoch, seed, gen):
+    """
+    Near-pure function (advances gen for trimask records). One epoch of (record indices, condition rows) batches,
+    len(captions) // batch_size of them. Mattes: shuffled records (epoch_batches), condition row = record.
+    Trimasks: each example draws a method uniformly from trimask.METHODS, then one of that method's rows uniformly
+    (so a method with fewer rows is not under-represented); its record is the row's owner.
+
+    Args:
+        records (dict): from load_shard
+        batch_size (int): per rank
+        epoch, seed (int): see epoch_batches
+        gen (torch.Generator): CPU generator for the trimask draws
+
+    Returns:
+        list[tuple[torch.Tensor, torch.Tensor]]: (records (B,), condition rows (B,)) int64
+
+    Examples:
+        >>> r = dict(captions=["a", "b"] * 50, cond_owner=torch.arange(30) % 3, cond_method=torch.arange(30) % len(METHODS))
+        >>> draws = epoch_draws(r, 10, 0, 0, torch.Generator().manual_seed(0))
+        >>> len(draws), bool((r["cond_owner"][draws[0][1]] == draws[0][0]).all())
+        (10, True)
+        >>> torch.bincount(r["cond_method"][torch.cat([c for _, c in draws])], minlength=len(METHODS)).tolist()
+        [9, 11, 8, 15, 6, 8, 12, 6, 9, 16]
+        >>> [(a.tolist(), b.tolist()) for a, b in epoch_draws(dict(captions="abcd"), 2, 0, 0, None)]
+        [([0, 1], [0, 1]), ([3, 2], [3, 2])]
+    """
+    if "cond_method" not in records:
+        return [(idx, idx) for idx in epoch_batches(len(records["captions"]), batch_size, epoch, seed)]
+    methods = torch.randint(len(METHODS), (len(records["captions"]) // batch_size * batch_size,), generator=gen)
+    rows = torch.zeros_like(methods)
+    for m in range(len(METHODS)):
+        options, pick = torch.nonzero(records["cond_method"] == m).flatten(), methods == m
+        rows[pick] = options[torch.randint(len(options), (int(pick.sum()),), generator=gen)]
+    return [(records["cond_owner"][r], r) for r in rows.split(batch_size)]
+
+
+def load_shard(data, rank, world, seed, cond="matte"):
     """
     Query. This rank's training records from a latent cache folder, or from the lance table when data == "lance".
 
     Args:
         data (str): "lance" or a folder for load_control_records
         rank, world, seed (int): see load_lance_shard
+        cond (str): "matte" (latent_alpha_1024) or "trimask" (load_trimask_shard; needs data == "lance")
 
     Returns:
-        dict: latents, cond_latents, captions, page_ids for this rank only
+        dict: latents, cond_latents, captions, page_ids (+ cond_owner, cond_method for trimask) for this rank only
     """
+    assert cond in ("matte", "trimask") and (cond == "matte" or data == "lance"), f"cond {cond!r} with data {data!r}"
     if data != "lance":
         records = load_control_records(data)
         keep = rank_shard(len(records["captions"]), rank, world, seed)
         return dict(latents=records["latents"][keep], cond_latents=records["cond_latents"][keep],
                     captions=[records["captions"][i] for i in keep], page_ids=[records["page_ids"][i] for i in keep])
     import lance
-    version = [lance.dataset(str(LANCE)).version if rank == 0 else None]
+    tables = [LANCE] + [TRIMASK_LANCE] * (cond == "trimask")
+    versions = [[lance.dataset(str(t)).version for t in tables] if rank == 0 else None]
     if world > 1:
-        dist.broadcast_object_list(version, src=0)
-    return load_lance_shard(LANCE, version[0], rank, world, seed)
+        dist.broadcast_object_list(versions, src=0)
+    if cond == "trimask":
+        return load_trimask_shard(versions[0], rank, world, seed)
+    return load_lance_shard(LANCE, versions[0][0], rank, world, seed)
 
 
 def load_base_transformer(adapter=None, device="cuda", dtype=torch.bfloat16):
@@ -172,7 +251,7 @@ def control_param_groups(transformer, weight_decay):
 
 
 @torch.no_grad()
-def write_preview(pipe, transformer, records, indices, path):
+def write_preview(pipe, transformer, records, indices, cond_indices, path):
     """
     Command. Samples with the stock SanaPipeline (20 steps, CFG 4.5) driven by the gated model; writes a PNG grid.
 
@@ -184,11 +263,13 @@ def write_preview(pipe, transformer, records, indices, path):
         transformer (SanaTransformer2DModel): with control LoRA + gates (gatecontrol enabled)
         records (dict): from load_control_records (raw latents)
         indices (list[int]): records to show
+        cond_indices (list[int]): their rows of records["cond_latents"] (= indices for mattes)
         path (Path): output PNG
     """
     sf = pipe.vae.config.scaling_factor
     device = pipe.vae.device
-    cond = records["cond_latents"][indices].to(device, transformer.dtype) * sf
+    cond_latents = records["cond_latents"][cond_indices]
+    cond = cond_latents.to(device, transformer.dtype) * sf
     noise = torch.stack([torch.randn(32, 32, 32, generator=torch.Generator().manual_seed(i)) for i in range(len(indices))])
     was_training = transformer.training
     transformer.eval()
@@ -199,7 +280,7 @@ def write_preview(pipe, transformer, records, indices, path):
     pipe.transformer = old
     transformer.train(was_training)
     decode = lambda z: ((pipe.vae.decode(z.to(device, pipe.vae.dtype)).sample.float().clamp(-1, 1) + 1) / 2)
-    mattes = decode(records["cond_latents"][indices])
+    mattes = decode(cond_latents)
     refs = decode(records["latents"][indices])
     rows = [np.concatenate([m.permute(1, 2, 0).cpu().numpy(), o, r.permute(1, 2, 0).cpu().numpy()], axis=1)
             for m, o, r in zip(mattes, out, refs)]
@@ -210,7 +291,8 @@ def write_preview(pipe, transformer, records, indices, path):
 
 def train(run, data=str(OVERFIT_DIR), adapter=None, rank=16, batch_size=16, max_steps=10000, warmup=500,
           lr=1.0, weight_decay=0.01, max_grad_norm=1.0, cond_drop=0.1, text_drop=0.1, save_every=1000,
-          preview_every=500, log_every=10, grad_checkpointing=False, compile=True, seed=0, init_from=None, start_step=0):
+          preview_every=500, log_every=10, grad_checkpointing=False, compile=True, seed=0, init_from=None, start_step=0,
+          cond="matte"):
     """
     Command. Trains the control LoRA + gates with DDP (torchrun) or on one GPU (plain python); writes models/control/<run>/.
 
@@ -233,6 +315,7 @@ def train(run, data=str(OVERFIT_DIR), adapter=None, rank=16, batch_size=16, max_
         seed (int): data order and noise seed (offset by rank)
         init_from (str | None): a saved control step folder to start from (same adapter and rank); the optimizer starts fresh
         start_step (int): step number of init_from, so checkpoints keep counting (e.g. 4000)
+        cond (str): "matte" (latent_alpha_1024) or "trimask" (trimask_augmentations; method uniform per example, epoch_draws)
     """
     import prodigyopt
 
@@ -240,15 +323,17 @@ def train(run, data=str(OVERFIT_DIR), adapter=None, rank=16, batch_size=16, max_
     torch.backends.cuda.matmul.allow_tf32 = True
     torch.backends.cudnn.allow_tf32 = True
     main = rank_id == 0
+    trimask = cond == "trimask"  # `cond` is reused below for the condition latents
     out_dir = CONTROL_DIR / run
     log = lambda *a: print(f"[{time.strftime('%H:%M:%S')}]", *a, flush=True) if main else None
 
-    records = load_shard(data, rank_id, world, seed)  # this rank only
+    records = load_shard(data, rank_id, world, seed, cond)  # this rank only
     pipe = SanaPipeline.from_pretrained(models.localize(TEACHER), transformer=None, torch_dtype=torch.bfloat16).to(device)
     pipe.set_progress_bar_config(disable=True)
     text = encode_captions(pipe, records["captions"])
     null = encode_captions(pipe, [""], null=True)[0]
-    log(f"world {world}, shard {len(text)} records, text tokens/caption {len(text[0])}")
+    log(f"world {world}, shard {len(text)} records, {len(records['cond_latents'])} conditions, "
+        f"text tokens/caption {len(text[0])}")
     if not main:
         del pipe  # only rank 0 keeps text encoder + vae, for previews
         torch.cuda.empty_cache()
@@ -282,16 +367,21 @@ def train(run, data=str(OVERFIT_DIR), adapter=None, rank=16, batch_size=16, max_
 
     sf = AutoencoderDC.load_config(models.localize(TEACHER) / "vae")["scaling_factor"]  # 0.41407
     gen = torch.Generator().manual_seed(seed * 1000 + rank_id)
-    preview_idx = list(range(PREVIEW_COUNT))
-    meta = dict(run=run, adapter=str(adapter), data=str(data), objective="flow v=eps-x0, sigma timestep")
+    preview_idx = preview_cond = list(range(PREVIEW_COUNT))
+    drawn = torch.zeros(len(METHODS), dtype=torch.long)  # trimask methods drawn on this rank since the last log
+    if trimask:  # preview one row each of PREVIEW_COUNT methods spread over METHODS
+        preview_cond = [int(torch.nonzero(records["cond_method"] == m)[0]) for m in torch.linspace(0, len(METHODS) - 1, PREVIEW_COUNT).long()]
+        preview_idx = records["cond_owner"][preview_cond].tolist()
+        log(f"trimask rows per method (rank 0 shard): {dict(zip(METHODS, torch.bincount(records['cond_method'], minlength=len(METHODS)).tolist()))}")
+    meta = dict(run=run, adapter=str(adapter), data=str(data), cond=cond, objective="flow v=eps-x0, sigma timestep")
     if main and preview_every:
-        write_preview(pipe, transformer, records, preview_idx, out_dir / "previews" / "step_000000.png")
+        write_preview(pipe, transformer, records, preview_idx, preview_cond, out_dir / "previews" / "step_000000.png")
     step, epoch, t_last, seen = start_step, 0, time.time(), 0
     torch.cuda.reset_peak_memory_stats(device)
     while step < max_steps:
-        for idx in epoch_batches(len(text), batch_size, epoch, seed):
+        for idx, rows in epoch_draws(records, batch_size, epoch, seed, gen):
             x0 = records["latents"][idx].to(device, torch.float32) * sf
-            cond = records["cond_latents"][idx].to(device, torch.float32) * sf
+            cond = records["cond_latents"][rows].to(device, torch.float32) * sf
             drop_text = torch.rand(len(idx), generator=gen) < text_drop
             emb, mask = pad_embeddings([null if d else text[j] for d, j in zip(drop_text.tolist(), idx.tolist())])
             keep = torch.rand(len(idx), generator=gen) >= cond_drop
@@ -320,12 +410,17 @@ def train(run, data=str(OVERFIT_DIR), adapter=None, rank=16, batch_size=16, max_
                     f"mem {torch.cuda.max_memory_allocated(device) / 2**30:.1f}GB prodigy_d {d:.2e} "
                     f"sigmoid(c_gate bias) {gate_bias:.3f}")
                 t_last, seen = time.time(), 0
+            if trimask:
+                drawn += torch.bincount(records["cond_method"][rows], minlength=len(METHODS))
+                if step % METHOD_LOG_EVERY == 0:
+                    log(f"trimask methods drawn (rank 0, last {METHOD_LOG_EVERY} steps): {dict(zip(METHODS, drawn.tolist()))}")
+                    drawn.zero_()
             if main and (step % save_every == 0 or step == max_steps):
                 gc.save_control(transformer, out_dir / f"step_{step:06d}", lora_config, dict(meta, step=step))
                 (out_dir / "latest.txt").write_text(f"step_{step:06d}\n")
                 log(f"saved {out_dir / f'step_{step:06d}'}")
             if main and preview_every and (step % preview_every == 0 or step == max_steps):
-                write_preview(pipe, transformer, records, preview_idx, out_dir / "previews" / f"step_{step:06d}.png")
+                write_preview(pipe, transformer, records, preview_idx, preview_cond, out_dir / "previews" / f"step_{step:06d}.png")
                 log(f"preview {out_dir / 'previews' / f'step_{step:06d}.png'}")
             if step >= max_steps:
                 break
