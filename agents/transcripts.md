@@ -317,3 +317,6 @@ Also, I don't see why we should stop at 6000 steps. Why don't we go to, like, 20
 
 ## m00671 — 2026-11-18 3:26 AM
 Oh, and before we do anything else, why don't you go ahead and compact all the tables. By the way, I'm curious: how are you keeping track of the dataset? Did you, like, export it to a parquet or something? Or are you using BlueJay natively? Like, what are you doing?
+
+## m00672 — 2026-11-18 3:30 AM
+Why does the claims graph here still not work correctly? Or at any time? It doesn't finish, it just goes forever.
