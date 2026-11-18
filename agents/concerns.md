@@ -233,3 +233,8 @@
 
 ## 2026-11-17 10:03 PM — control_v2 step 8000: plateau; step 6000 is the final model
 - Full subtraction, showcase, MAGICK captions: teacher IoU 0.970 / gray 0.011 (step 6000: 0.969 / 0.009); Sprint 1 step 0.947 / 0.016 (0.954 / 0.018); 2 steps 0.965 / 0.018 (0.970 / 0.014). No gain past step 6000, so training stops and step 6000 becomes the web default.
+
+## 2026-11-18 — final model control_v2 step 6000 is the live default (subagent 16)
+- Exported `models/control/control_v2/sprint_step_006000` as int4 (dynamic sizes) and int4-lambda (rank 128, D from the step 6000 merge pair) with `agents/.scratchpad/agent16_step6000.sh`. This added 1.21 GB + 0.32 GB; the models branch is now 10.44 GB.
+- The live list is shortened to: step 6000 int4 (default), step 6000 int4-lambda, step 4000 int4, v1 int4. The older versions stay on the branch, only off the list. `agents/.scratchpad/scratchpad_agent_16_setindex.py` sets the exact list on the branch and in local `models/web/index.json`. A plain `publish_models` run puts the versions it is given first and keeps the old entries after them, so it cannot drop entries.
+- Pages rebuilt with --build_web; the app code was unchanged, so there was nothing to push. Live Puppeteer: the 4 versions are listed with step 6000 first, and Load streams at ~55 MB/s.
