@@ -299,3 +299,6 @@ Ohhh, it's not using fastlance!! That's why Sparrow is so slow?
 
 ## m00665 — 2026-11-18 2:23 AM
 Look at MulticamDailies.
+
+## m00666 — 2026-11-18 2:26 AM
+Do it. Just make Sparrow launch a 2nd server, maybe, if that would cause havoc for now? You can inline the env var in your command. Start Sparrow at the same port it is now, then NWD, talk out loud.
