@@ -133,8 +133,8 @@ def load_trimask_shard(versions, rank, world, seed):
     return dict(latents=read_latent_blobs(ds, "latent_rgb_1024", rows._rowid.tolist()),
                 captions=rows.subject.astype(str).tolist(), page_ids=rows.page_id.tolist(),
                 cond_latents=read_latent_blobs(tri, "latent_trimask_1024", options._rowid.tolist()),
-                cond_owner=torch.from_numpy(options.page_id.map(pd.Series(rows.index, index=rows.page_id)).to_numpy()),
-                cond_method=torch.from_numpy(options.method.map({m: i for i, m in enumerate(METHODS)}).to_numpy()))
+                cond_owner=torch.tensor(options.page_id.map(pd.Series(rows.index, index=rows.page_id)).to_numpy()),
+                cond_method=torch.tensor(options.method.map({m: i for i, m in enumerate(METHODS)}).to_numpy()))
 
 
 def epoch_draws(records, batch_size, epoch, seed, gen):
