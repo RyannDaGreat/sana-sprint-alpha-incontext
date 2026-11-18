@@ -230,3 +230,6 @@
 
 ## 2026-11-17 8:30 PM — control_v2 step 6000 (continued from step 4000 with init_from)
 - Full subtraction, showcase, MAGICK captions: teacher IoU 0.969 / gray 0.009 (step 4000: 0.942 / 0.012); Sprint 1 step 0.954 / 0.018 (0.941 / 0.021); 2 steps 0.970 / 0.014 (0.969 / 0.014). The continued run (fresh Prodigy state, re-warmed for ~500 steps) still improves. Web export waits for step 8000 so the models branch grows once.
+
+## 2026-11-17 10:03 PM — control_v2 step 8000: plateau; step 6000 is the final model
+- Full subtraction, showcase, MAGICK captions: teacher IoU 0.970 / gray 0.011 (step 6000: 0.969 / 0.009); Sprint 1 step 0.947 / 0.016 (0.954 / 0.018); 2 steps 0.965 / 0.018 (0.970 / 0.014). No gain past step 6000, so training stops and step 6000 becomes the web default.
