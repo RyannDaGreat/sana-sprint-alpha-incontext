@@ -263,3 +263,6 @@ Right now, even though the trimasks are technically correct, now you're introduc
 
 ## m00653 — 2026-11-18 12:31 AM
 You may have to redo all the data. Hopefully you can do this efficiently and quickly.
+
+## m00654 — 2026-11-18 12:32 AM
+The beauty of BlueJay is that you can be encoding while the other things, images, are processing, right?
