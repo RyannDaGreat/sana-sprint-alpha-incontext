@@ -5,6 +5,8 @@ import './style.css';
 import { MatteEditor } from './matte.js';
 import { fillFontSelect, ensureFont } from './fonts.js';
 import { MaskGallery } from './gallery.js';
+import { buildTrimaskUi, DEFAULT_GUI } from './trimask_ui.js';
+import { levelFractions, rgbaToMask } from './trimask_ops.js';
 import { loadVersions, versionFiles, cachedFlags, cacheBytes, clearCache } from './models.js';
 import { countEmbeddings, clearEmbeddings } from './embcache.js';
 import { formatBytes, formatEta, rate, mattePixelsToTensor, decodeToPixels, fitRect, cropRect, SIZE } from './util.js';
@@ -53,7 +55,16 @@ function toggleTheme() {
 
 // ---------- matte editor ----------
 
-const editor = new MatteEditor($('matte'), $('overlay'), () => scheduleRealtime());
+let levelsFrame = 0; // pending readout frame (declared first: the editor's constructor already reports a change)
+const editor = new MatteEditor($('matte'), $('overlay'), () => { scheduleRealtime(); scheduleLevels(); });
+/** Command. Next frame, shows how much of the matte is white / gray / black (readout under the title). */
+function scheduleLevels() {
+  cancelAnimationFrame(levelsFrame);
+  levelsFrame = requestAnimationFrame(() => {
+    const f = levelFractions(rgbaToMask(editor.pixels())), pct = (v) => `${(100 * v).toFixed(1)}%`;
+    $('levels').textContent = `· now: white ${pct(f.white)} · gray ${pct(f.gray)} · black ${pct(f.black)}`;
+  });
+}
 
 /** Command. Draws the starter matte: a white disc, so Generate works right away. */
 function starterMatte() {
@@ -66,7 +77,8 @@ function starterMatte() {
 function syncHistoryUi() {
   $('undo').disabled = !editor.canUndo();
   $('redo').disabled = !editor.canRedo();
-  $('th-apply').disabled = $('th-cancel').disabled = !editor.preview;
+  $('th-apply').disabled = $('th-cancel').disabled = !editor.preview || editor.preview.flat;
+  $('preview-badge').hidden = !editor.preview;
 }
 editor.onHistory = syncHistoryUi;
 
@@ -98,6 +110,8 @@ async function loadMask(url) {
   showPhoto(null);
 }
 
+buildTrimaskUi($('trimask-ui'), editor, (params.get('gui') ?? DEFAULT_GUI).toUpperCase());
+
 const gallery = new MaskGallery($('gallery'), (url) => loadMask(url).catch(fail));
 $('masks').addEventListener('click', () => gallery.open().catch(fail));
 
@@ -117,8 +131,8 @@ $('text-size').addEventListener('input', (e) => editor.setText({ size: Number(e.
 for (const id of ['text-value', 'text-size']) $(id).addEventListener('change', commitText);
 $('th-level').addEventListener('input', previewThreshold);
 $('th-soft').addEventListener('input', previewThreshold);
-$('th-apply').addEventListener('click', () => { editor.applyThreshold(); syncHistoryUi(); });
-$('th-cancel').addEventListener('click', () => { editor.cancelThreshold(); syncHistoryUi(); });
+$('th-apply').addEventListener('click', () => { editor.applyPreview(); syncHistoryUi(); });
+$('th-cancel').addEventListener('click', () => { editor.cancelPreview(); syncHistoryUi(); });
 $('undo').addEventListener('click', () => editor.undo());
 $('redo').addEventListener('click', () => editor.redo());
 $('invert').addEventListener('click', () => editor.toggleInvert());
@@ -130,7 +144,10 @@ $('upload').addEventListener('change', async (e) => {
   e.target.value = '';
 });
 addEventListener('keydown', (e) => {
-  if ((e.key === 'Delete' || e.key === 'Backspace') && !e.target.closest('input, textarea, select')) editor.deleteSelected();
+  const inField = e.target.closest('input, textarea, select');
+  if ((e.key === 'Delete' || e.key === 'Backspace') && !inField) editor.deleteSelected();
+  if (e.key === 'Enter' && editor.path && !inField) { e.preventDefault(); editor.finishPath(); }
+  if (e.key === 'Escape' && editor.path) editor.cancelPath();
   // Undo/redo shortcuts; text fields keep their own native undo.
   if (!(e.ctrlKey || e.metaKey) || e.target.closest('input[type="text"], input[type="number"], textarea')) return;
   const key = e.key.toLowerCase();

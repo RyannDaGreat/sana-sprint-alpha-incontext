@@ -24,12 +24,13 @@
 
   <main class="grid">
     <section class="panel matte-panel">
-      <h2>Matte <span class="meta">1024 × 1024 · white = object</span></h2>
+      <h2>Matte <span class="meta">1024 × 1024 · white = object · gray = unknown · black = background</span> <span id="levels" class="meta"></span></h2>
       <div class="square" id="matte-square">
         <canvas id="photo" width="1024" height="1024"></canvas>
         <canvas id="matte" width="1024" height="1024"></canvas>
         <canvas id="overlay" width="1024" height="1024"></canvas>
         <div id="crop-frame" class="crop-frame" hidden></div>
+        <span id="preview-badge" class="preview-badge" hidden>Preview · not applied yet</span>
       </div>
     </section>
 
@@ -55,13 +56,17 @@
         <button class="tool" data-tool="text">Text</button>
         <button class="tool" data-tool="rect">Rectangle</button>
         <button class="tool" data-tool="ellipse">Ellipse</button>
+        <button class="tool" data-tool="polygon" title="Click to place corners; click the first corner, double-click or press Enter to close. Esc cancels.">Polygon</button>
+        <button class="tool" data-tool="line" title="Click to place points (width = Brush size); double-click or Enter to finish. Esc cancels.">Line</button>
+        <button class="tool" data-tool="lasso" title="Not a drawing tool: drag around a region and the filters change only inside it. Click once to drop it." hidden>Lasso (filter region)</button>
         <button class="tool" data-tool="move">Move</button>
         <button id="undo" title="Undo (Ctrl/Cmd+Z)" disabled>Undo</button>
         <button id="redo" title="Redo (Ctrl/Cmd+Shift+Z or Ctrl+Y)" disabled>Redo</button>
       </div>
       <div class="row">
-        <label class="field">Brush <input id="brush-size" type="range" min="4" max="400" value="64"><span id="brush-size-v" class="meta">64</span></label>
+        <label class="field">Size (brush, eraser, line width) <input id="brush-size" type="range" min="4" max="400" value="64"><span id="brush-size-v" class="meta">64</span></label>
       </div>
+      <div id="trimask-ui" class="trimask"></div>
       <div class="row" title="Binarizes the drawn/uploaded layer at a gray level (live preview). Softness > 0 keeps a linear ramp of that width instead of a hard edge. Apply is one undo step; any other edit cancels the preview.">
         <label class="field">Threshold <input id="th-level" type="range" min="0" max="255" value="128"><span id="th-level-v" class="meta">128</span></label>
         <label class="field">Softness <input id="th-soft" type="range" min="0" max="128" value="0"><span id="th-soft-v" class="meta">0</span></label>
@@ -96,7 +101,7 @@
         <span id="seg-status" class="meta">Finds the foreground in any photo (BEN2, runs in your browser).</span>
       </div>
       <div id="seg-files" class="files"></div>
-      <p class="meta hint">Upload: a PNG with transparency uses its alpha, any other image its brightness. Text, rectangles and ellipses stay movable: drag them, drag the corner square to resize, Delete removes the selected one.</p>
+      <p class="meta hint">Upload: a PNG with transparency uses its alpha, any other image its brightness. Text, rectangles, ellipses, polygons and lines stay movable: drag them, drag the corner square to resize, Delete removes the selected one; with Move, picking a paint value recolors the selected one. Filters flatten everything into one layer (Undo brings the shapes back).</p>
     </section>
 
     <section class="panel prompt-panel">
@@ -156,6 +161,7 @@
   <dialog id="gallery" class="gallery">
     <header class="gallery-head">
       <h2>Masks <span class="meta">click one to load it into the matte (Undo brings the old one back)</span></h2>
+      <input id="gallery-search" type="search" placeholder="Search masks (e.g. heart)">
       <button id="gallery-close">Close</button>
     </header>
     <div id="gallery-filter" class="gallery-filter"></div>

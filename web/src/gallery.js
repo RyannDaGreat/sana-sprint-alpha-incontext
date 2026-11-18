@@ -33,14 +33,17 @@ export class MaskGallery {
    */
   constructor(dialog, onPick) {
     this.dialog = dialog; this.onPick = onPick;
-    this.categories = null; this.filter = ALL;
+    this.categories = null; this.filter = ALL; this.query = '';
+    this.search = dialog.querySelector('#gallery-search');
+    this.search.addEventListener('input', () => { this.query = this.search.value.trim().toLowerCase(); if (this.categories) this.render(); });
     dialog.querySelector('#gallery-close').addEventListener('click', () => dialog.close());
     dialog.addEventListener('click', (e) => { if (e.target === dialog) dialog.close(); }); // backdrop click
   }
 
-  /** Command. Opens the dialog; the first time, loads every category index. */
+  /** Command. Opens the dialog (search field focused); the first time, loads every category index. */
   async open() {
     this.dialog.showModal();
+    this.search.focus();
     if (this.categories) return;
     const { categories } = await getJson(`${MASKS}categories.json`);
     this.categories = await Promise.all(categories.map(async (c) => ({ ...c, items: (await getJson(`${MASKS}${c.id}/index.json`)).items })));
@@ -61,11 +64,14 @@ export class MaskGallery {
     }
     grid.innerHTML = '';
     for (const c of this.categories.filter((x) => this.filter === ALL || x.id === this.filter)) {
+      const items = c.items.filter((item) => item.name.toLowerCase().includes(this.query));
+      if (!items.length) continue;
       const h = document.createElement('h3');
       h.textContent = c.name;
       grid.append(h);
-      for (const item of c.items) grid.append(this.tile(c, item));
+      for (const item of items) grid.append(this.tile(c, item));
     }
+    if (!grid.children.length) grid.innerHTML = '<p class="meta">No mask matches.</p>';
   }
 
   /** Command. Builds one thumbnail tile (pure DOM construction, no I/O until the lazy image loads). */
