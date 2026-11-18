@@ -260,3 +260,6 @@ By the way, [what if] combining them meant literally applying their transforms o
 
 ## m00652 — 2026-11-18 12:28 AM
 Right now, even though the trimasks are technically correct, now you're introducing a lot of data into them because of the correctness. That's wrong. The way you should have done it is probably just fix the processors. Like, my god, I see pixel-level detail inside the trimasks. That's, like, not reasonable, because of your correction.
+
+## m00653 — 2026-11-18 12:31 AM
+You may have to redo all the data. Hopefully you can do this efficiently and quickly.
