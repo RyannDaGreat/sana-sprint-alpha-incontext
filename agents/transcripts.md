@@ -329,3 +329,6 @@ Not automatically, mind you. You do it manually.
 
 ## m00675 — 2026-11-18 3:33 AM
 Well, I'm not gonna be waiting for it, so once it works, go fix it and rewrite this [Sparrow save, transcribed as "barosave"].
+
+## m00676 — 2026-11-18 3:34 AM
+Also, I don't know why there's two Sparrow saves. There should only be one.
