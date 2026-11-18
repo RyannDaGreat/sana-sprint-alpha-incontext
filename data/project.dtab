@@ -4,8 +4,8 @@ environ
 	SPLIT_BATCH_SIZE 64	     Images per run of split_alpha. CPU only: it reads 1 PNG and writes 2
 	ENCODE_BATCH_SIZE 128	 Images per run of encode_latents (about 40 s on one A100). run_proc_curate.fish starts two loops per GPU
 	COLORBG_BATCH_SIZE 512	 Images per run of encode_colorbg. Big: a run costs ~40 s besides the encoding. run_proc_colorbg.fish starts 1 loop per GPU
-	TRIMASK_BATCH_SIZE 512	        Images per run of each trimask_<method>. CPU only: it reads 1 PNG and writes 1 per variant. run_proc_trimask.fish starts 4 loops per method
-	TRIMASK_ENCODE_BATCH_SIZE 256	 Trimasks per run of encode_trimask. run_proc_trimask.fish starts two loops per GPU
+	TRIMASK_BATCH_SIZE 512	        Images per run of each trimask_<method>. CPU only: it reads 1 PNG and writes 1 per variant. run_proc_trimask.fish starts 2 loops per method
+	TRIMASK_ENCODE_BATCH_SIZE 1024	 Trimasks per run of encode_trimask: big, so the ~40 s per-run cost is shared. run_proc_trimask.fish starts two loops per GPU
 
 	 Data
 	MAGICK_REPO OneOverZero/MAGICK	 Hugging Face dataset: 140,955 RGBA PNGs, 1024 x 1024, straight alpha, 191 GB

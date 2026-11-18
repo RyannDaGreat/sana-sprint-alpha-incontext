@@ -9,7 +9,7 @@ set dtab project.dtab
 set stage recipes/loops/stage.fish
 
 set METHODS (string replace -rf '^\ttrimask_(\w+)\t.*' '$1' < $dtab)  # The ten trimask_<method> processors of the dtab
-set AUGMENT_LOOPS 4  # Per method. Each run uses 8 threads (trimask_augment.WORKERS): 10 methods x 4 x 8 = 320 threads on 96 CPUs
+set AUGMENT_LOOPS 2  # Per method. Each run uses 8 threads (trimask_augment.WORKERS). 4 per method saturated the 96 CPUs and starved encode_trimask
 set ENCODE_LOOPS  (math 2 x (nvidia-smi -L | count))  # Two per GPU: one loads its batch while the other encodes
 
 set -gx FAIL_FLAG (mktemp -u)
