@@ -1,0 +1,1075 @@
+{
+ "items": [
+  {
+   "file": "Dragonfly-outline.png",
+   "name": "Dragonfly Outline",
+   "source_url": "https://openclipart.org/detail/221782/Dragonfly-outline",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "rejon"
+  },
+  {
+   "file": "abstract-butterfly-silhouette-2.png",
+   "name": "Abstract Butterfly Silhouette 2",
+   "source_url": "https://openclipart.org/detail/280510/abstract-butterfly-silhouette-2",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "GDJ"
+  },
+  {
+   "file": "abstract-butterfly-silhouette.png",
+   "name": "Abstract Butterfly Silhouette",
+   "source_url": "https://openclipart.org/detail/297283/abstract-butterfly-silhouette",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "GDJ"
+  },
+  {
+   "file": "acrobat-ant.png",
+   "name": "Acrobat Ant",
+   "source_url": "https://openclipart.org/detail/170428/acrobat-ant",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "jerome02"
+  },
+  {
+   "file": "alien-bug.png",
+   "name": "Alien Bug",
+   "source_url": "https://game-icons.net/1x1/delapouite/alien-bug.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Delapouite"
+  },
+  {
+   "file": "alligator-silhouette.png",
+   "name": "Alligator Silhouette",
+   "source_url": "https://openclipart.org/detail/285150/alligator-silhouette",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "GDJ"
+  },
+  {
+   "file": "angular-spider.png",
+   "name": "Angular Spider",
+   "source_url": "https://game-icons.net/1x1/lorc/angular-spider.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Lorc"
+  },
+  {
+   "file": "ant-192948.png",
+   "name": "Ant 192948",
+   "source_url": "https://openclipart.org/detail/192948/ant",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "NunoPequito"
+  },
+  {
+   "file": "ant-icon.png",
+   "name": "Ant Icon",
+   "source_url": "https://openclipart.org/detail/69/ant-icon",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "rejon"
+  },
+  {
+   "file": "ant-silhouette-1.png",
+   "name": "Ant Silhouette 1",
+   "source_url": "https://openclipart.org/detail/193473/ant-silhouette-1",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "tulvur"
+  },
+  {
+   "file": "ant-silhouette-2.png",
+   "name": "Ant Silhouette 2",
+   "source_url": "https://openclipart.org/detail/193472/ant-silhouette-2",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "tulvur"
+  },
+  {
+   "file": "ant-silhouette-229519.png",
+   "name": "Ant Silhouette 229519",
+   "source_url": "https://openclipart.org/detail/229519/ant-silhouette",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "Firkin"
+  },
+  {
+   "file": "ant-silhouette-3.png",
+   "name": "Ant Silhouette 3",
+   "source_url": "https://openclipart.org/detail/193474/ant-silhouette-3",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "tulvur"
+  },
+  {
+   "file": "ant-silhouette-319400.png",
+   "name": "Ant Silhouette 319400",
+   "source_url": "https://openclipart.org/detail/319400/ant-silhouette",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "liftarn"
+  },
+  {
+   "file": "ant-silhouette.png",
+   "name": "Ant Silhouette",
+   "source_url": "https://openclipart.org/detail/195746/ant-silhouette",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "rdevries"
+  },
+  {
+   "file": "ant.png",
+   "name": "Ant",
+   "source_url": "https://game-icons.net/1x1/delapouite/ant.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Delapouite"
+  },
+  {
+   "file": "ants.png",
+   "name": "Ants",
+   "source_url": "https://game-icons.net/1x1/delapouite/ants.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Delapouite"
+  },
+  {
+   "file": "bee-silhouette-319768.png",
+   "name": "Bee Silhouette 319768",
+   "source_url": "https://openclipart.org/detail/319768/bee-silhouette",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "liftarn"
+  },
+  {
+   "file": "bee-silhouette.png",
+   "name": "Bee Silhouette",
+   "source_url": "https://openclipart.org/detail/223498/bee-silhouette",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "jarda"
+  },
+  {
+   "file": "bee.png",
+   "name": "Bee",
+   "source_url": "https://game-icons.net/1x1/lorc/bee.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Lorc"
+  },
+  {
+   "file": "beetle-shell.png",
+   "name": "Beetle Shell",
+   "source_url": "https://game-icons.net/1x1/lorc/beetle-shell.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Lorc"
+  },
+  {
+   "file": "beetlesilhouette.png",
+   "name": "Beetlesilhouette",
+   "source_url": "https://openclipart.org/detail/287780/beetlesilhouette",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "Fergzter"
+  },
+  {
+   "file": "bug-phosphor.png",
+   "name": "Bug Phosphor",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/bug-fill.svg",
+   "license": "MIT (Phosphor Icons)",
+   "author": "Phosphor Icons contributors"
+  },
+  {
+   "file": "bug.png",
+   "name": "Bug",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/bug/",
+   "license": "Apache-2.0 (Material Design Icons)",
+   "author": "Pictogrammers"
+  },
+  {
+   "file": "butterfly-flower.png",
+   "name": "Butterfly Flower",
+   "source_url": "https://game-icons.net/1x1/delapouite/butterfly-flower.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Delapouite"
+  },
+  {
+   "file": "butterfly-mdi.png",
+   "name": "Butterfly Mdi",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/butterfly/",
+   "license": "Apache-2.0 (Material Design Icons)",
+   "author": "Pictogrammers"
+  },
+  {
+   "file": "butterfly-silhouette-8.png",
+   "name": "Butterfly Silhouette 8",
+   "source_url": "https://openclipart.org/detail/289091/butterfly-silhouette-8",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "GDJ"
+  },
+  {
+   "file": "butterfly-silhouette-line-art.png",
+   "name": "Butterfly Silhouette Line Art",
+   "source_url": "https://openclipart.org/detail/298536/butterfly-silhouette-line-art",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "GDJ"
+  },
+  {
+   "file": "caterpillar.png",
+   "name": "Caterpillar",
+   "source_url": "https://game-icons.net/1x1/delapouite/caterpillar.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Delapouite"
+  },
+  {
+   "file": "chameleon-glyph.png",
+   "name": "Chameleon Glyph",
+   "source_url": "https://game-icons.net/1x1/darkzaitzev/chameleon-glyph.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Darkzaitzev"
+  },
+  {
+   "file": "cobra-skoll.png",
+   "name": "Cobra Skoll",
+   "source_url": "https://game-icons.net/1x1/skoll/cobra.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Skoll"
+  },
+  {
+   "file": "cobra-snake-logo-silhouette.png",
+   "name": "Cobra Snake Logo Silhouette",
+   "source_url": "https://openclipart.org/detail/319300/cobra-snake-logo-silhouette",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "liftarn"
+  },
+  {
+   "file": "cobra-snake.png",
+   "name": "Cobra Snake",
+   "source_url": "https://openclipart.org/detail/319418/cobra-snake",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "liftarn"
+  },
+  {
+   "file": "cobra.png",
+   "name": "Cobra",
+   "source_url": "https://game-icons.net/1x1/delapouite/cobra.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Delapouite"
+  },
+  {
+   "file": "cockroach-silhouette.png",
+   "name": "Cockroach Silhouette",
+   "source_url": "https://openclipart.org/detail/322682/cockroach-silhouette",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "liftarn"
+  },
+  {
+   "file": "croc-jaws.png",
+   "name": "Croc Jaws",
+   "source_url": "https://game-icons.net/1x1/lorc/croc-jaws.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Lorc"
+  },
+  {
+   "file": "crocodile-vectorized.png",
+   "name": "Crocodile Vectorized",
+   "source_url": "https://openclipart.org/detail/282726/crocodile-vectorized",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "Firkin"
+  },
+  {
+   "file": "crocodile.png",
+   "name": "Crocodile",
+   "source_url": "https://openclipart.org/detail/354506/crocodile",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "qubodup"
+  },
+  {
+   "file": "cute-bee-silhouette.png",
+   "name": "Cute Bee Silhouette",
+   "source_url": "https://openclipart.org/detail/321815/cute-bee-silhouette",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "liftarn"
+  },
+  {
+   "file": "death-head-hawk.png",
+   "name": "Death Head Hawk",
+   "source_url": "https://openclipart.org/detail/285194/death-head-hawk",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "cactus_cowboy"
+  },
+  {
+   "file": "decorative-butterfly-silhouette.png",
+   "name": "Decorative Butterfly Silhouette",
+   "source_url": "https://openclipart.org/detail/301268/decorative-butterfly-silhouette",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "GDJ"
+  },
+  {
+   "file": "delicate-butterfly-silhouette.png",
+   "name": "Delicate Butterfly Silhouette",
+   "source_url": "https://openclipart.org/detail/317916/delicate-butterfly-silhouette",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "GDJ"
+  },
+  {
+   "file": "dinosaur-rex.png",
+   "name": "Dinosaur Rex",
+   "source_url": "https://game-icons.net/1x1/lorc/dinosaur-rex.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Lorc"
+  },
+  {
+   "file": "dragon-fly-5.png",
+   "name": "Dragon Fly 5",
+   "source_url": "https://openclipart.org/detail/266311/dragon-fly-5",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "Firkin"
+  },
+  {
+   "file": "dragonfly-perched-on-a-branch.png",
+   "name": "Dragonfly Perched On A Branch",
+   "source_url": "https://openclipart.org/detail/318396/dragonfly-perched-on-a-branch",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "GDJ"
+  },
+  {
+   "file": "dragonfly-silhouette.png",
+   "name": "Dragonfly Silhouette",
+   "source_url": "https://openclipart.org/detail/286046/dragonfly-silhouette",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "GDJ"
+  },
+  {
+   "file": "dragonfly-vectorized.png",
+   "name": "Dragonfly Vectorized",
+   "source_url": "https://openclipart.org/detail/282336/dragonfly-vectorized",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "Firkin"
+  },
+  {
+   "file": "dragonfly.png",
+   "name": "Dragonfly",
+   "source_url": "https://game-icons.net/1x1/lorc/dragonfly.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Lorc"
+  },
+  {
+   "file": "earth-worm.png",
+   "name": "Earth Worm",
+   "source_url": "https://game-icons.net/1x1/cathelineau/earth-worm.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Cathelineau"
+  },
+  {
+   "file": "flourish-butterfly-silhouette-by-inspirecreatecelebrate-minus-tail.png",
+   "name": "Flourish Butterfly Silhouette By Inspirecreatecelebrate Minus Tail",
+   "source_url": "https://openclipart.org/detail/318391/flourish-butterfly-silhouette-by-inspirecreatecelebrate-minus-tail",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "GDJ"
+  },
+  {
+   "file": "flourish-butterfly-silhouette-by-inspirecreatecelebrate.png",
+   "name": "Flourish Butterfly Silhouette By Inspirecreatecelebrate",
+   "source_url": "https://openclipart.org/detail/318390/flourish-butterfly-silhouette-by-inspirecreatecelebrate",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "GDJ"
+  },
+  {
+   "file": "flourish-butterfly-silhouette.png",
+   "name": "Flourish Butterfly Silhouette",
+   "source_url": "https://openclipart.org/detail/287958/flourish-butterfly-silhouette",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "GDJ"
+  },
+  {
+   "file": "fly.png",
+   "name": "Fly",
+   "source_url": "https://game-icons.net/1x1/delapouite/fly.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Delapouite"
+  },
+  {
+   "file": "flying-beetle.png",
+   "name": "Flying Beetle",
+   "source_url": "https://game-icons.net/1x1/delapouite/flying-beetle.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Delapouite"
+  },
+  {
+   "file": "flying-wasp-silhouette.png",
+   "name": "Flying Wasp Silhouette",
+   "source_url": "https://openclipart.org/detail/321150/flying-wasp-silhouette",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "liftarn"
+  },
+  {
+   "file": "frog-3.png",
+   "name": "Frog 3",
+   "source_url": "https://openclipart.org/detail/262099/frog-3",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "Firkin"
+  },
+  {
+   "file": "frog-322838.png",
+   "name": "Frog 322838",
+   "source_url": "https://openclipart.org/detail/322838/frog",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "NicholasJudy567"
+  },
+  {
+   "file": "frog-322839.png",
+   "name": "Frog 322839",
+   "source_url": "https://openclipart.org/detail/322839/frog",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "NicholasJudy567"
+  },
+  {
+   "file": "frog-354478.png",
+   "name": "Frog 354478",
+   "source_url": "https://openclipart.org/detail/354478/frog",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "qubodup"
+  },
+  {
+   "file": "frog-by-rones.png",
+   "name": "Frog By Rones",
+   "source_url": "https://openclipart.org/detail/173507/frog-by-rones",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "rones"
+  },
+  {
+   "file": "frog-foot.png",
+   "name": "Frog Foot",
+   "source_url": "https://game-icons.net/1x1/delapouite/frog-foot.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Delapouite"
+  },
+  {
+   "file": "frog-prince.png",
+   "name": "Frog Prince",
+   "source_url": "https://game-icons.net/1x1/delapouite/frog-prince.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Delapouite"
+  },
+  {
+   "file": "frog-silhouette.png",
+   "name": "Frog Silhouette",
+   "source_url": "https://openclipart.org/detail/297665/frog-silhouette",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "GDJ"
+  },
+  {
+   "file": "frog.png",
+   "name": "Frog",
+   "source_url": "https://game-icons.net/1x1/lorc/frog.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Lorc"
+  },
+  {
+   "file": "frogg-colorized-daily-sketch-33.png",
+   "name": "Frogg Colorized Daily Sketch 33",
+   "source_url": "https://openclipart.org/detail/221813/frogg-colorized-daily-sketch-33",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "keriann3"
+  },
+  {
+   "file": "galeote-lizard.png",
+   "name": "Galeote Lizard",
+   "source_url": "https://openclipart.org/detail/264005/galeote-lizard",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "Firkin"
+  },
+  {
+   "file": "gator.png",
+   "name": "Gator",
+   "source_url": "https://openclipart.org/detail/323305/gator",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "NicholasJudy567"
+  },
+  {
+   "file": "gecko.png",
+   "name": "Gecko",
+   "source_url": "https://game-icons.net/1x1/lorc/gecko.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Lorc"
+  },
+  {
+   "file": "gold-scarab.png",
+   "name": "Gold Scarab",
+   "source_url": "https://game-icons.net/1x1/lorc/gold-scarab.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Lorc"
+  },
+  {
+   "file": "grashopper-silhouette.png",
+   "name": "Grashopper Silhouette",
+   "source_url": "https://openclipart.org/detail/301787/grashopper-silhouette",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "CLau"
+  },
+  {
+   "file": "green-gecko-silhouette.png",
+   "name": "Green Gecko Silhouette",
+   "source_url": "https://openclipart.org/detail/281310/green-gecko-silhouette",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "annaleeblysse"
+  },
+  {
+   "file": "hanging-spider.png",
+   "name": "Hanging Spider",
+   "source_url": "https://game-icons.net/1x1/lorc/hanging-spider.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Lorc"
+  },
+  {
+   "file": "horned-reptile.png",
+   "name": "Horned Reptile",
+   "source_url": "https://game-icons.net/1x1/delapouite/horned-reptile.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Delapouite"
+  },
+  {
+   "file": "intricate-dragonfly-silhouette.png",
+   "name": "Intricate Dragonfly Silhouette",
+   "source_url": "https://openclipart.org/detail/307458/intricate-dragonfly-silhouette",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "GDJ"
+  },
+  {
+   "file": "ladybug-284241.png",
+   "name": "Ladybug 284241",
+   "source_url": "https://openclipart.org/detail/284241/ladybug",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "cactus_cowboy"
+  },
+  {
+   "file": "ladybug-mdi.png",
+   "name": "Ladybug Mdi",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/ladybug/",
+   "license": "Apache-2.0 (Material Design Icons)",
+   "author": "Pictogrammers"
+  },
+  {
+   "file": "ladybug.png",
+   "name": "Ladybug",
+   "source_url": "https://game-icons.net/1x1/delapouite/ladybug.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Delapouite"
+  },
+  {
+   "file": "lizard-327765.png",
+   "name": "Lizard 327765",
+   "source_url": "https://openclipart.org/detail/327765/lizard",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "NicholasJudy567"
+  },
+  {
+   "file": "lizard-330482.png",
+   "name": "Lizard 330482",
+   "source_url": "https://openclipart.org/detail/330482/lizard",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "NicholasJudy567"
+  },
+  {
+   "file": "lizard-silhouette.png",
+   "name": "Lizard Silhouette",
+   "source_url": "https://openclipart.org/detail/277644/lizard-silhouette",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "GDJ"
+  },
+  {
+   "file": "lizard-tongue.png",
+   "name": "Lizard Tongue",
+   "source_url": "https://game-icons.net/1x1/lorc/lizard-tongue.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Lorc"
+  },
+  {
+   "file": "lizard.png",
+   "name": "Lizard",
+   "source_url": "https://openclipart.org/detail/323325/lizard",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "NicholasJudy567"
+  },
+  {
+   "file": "lizardman.png",
+   "name": "Lizardman",
+   "source_url": "https://game-icons.net/1x1/lorc/lizardman.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Lorc"
+  },
+  {
+   "file": "long-antennae-bug.png",
+   "name": "Long Antennae Bug",
+   "source_url": "https://game-icons.net/1x1/lorc/long-antennae-bug.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Lorc"
+  },
+  {
+   "file": "long-legged-spider.png",
+   "name": "Long Legged Spider",
+   "source_url": "https://game-icons.net/1x1/skoll/long-legged-spider.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Skoll"
+  },
+  {
+   "file": "masked-spider.png",
+   "name": "Masked Spider",
+   "source_url": "https://game-icons.net/1x1/lorc/masked-spider.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Lorc"
+  },
+  {
+   "file": "mini-gecko-icon.png",
+   "name": "Mini Gecko Icon",
+   "source_url": "https://openclipart.org/detail/294432/mini-gecko-icon",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "The_Martin"
+  },
+  {
+   "file": "mosquito-scorpion.png",
+   "name": "Mosquito Scorpion",
+   "source_url": "https://openclipart.org/detail/273473/mosquito-scorpion",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "GDJ"
+  },
+  {
+   "file": "praying-mantis.png",
+   "name": "Praying Mantis",
+   "source_url": "https://game-icons.net/1x1/delapouite/praying-mantis.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Delapouite"
+  },
+  {
+   "file": "rattlesnake.png",
+   "name": "Rattlesnake",
+   "source_url": "https://game-icons.net/1x1/delapouite/rattlesnake.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Delapouite"
+  },
+  {
+   "file": "reptile-tail.png",
+   "name": "Reptile Tail",
+   "source_url": "https://game-icons.net/1x1/delapouite/reptile-tail.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Delapouite"
+  },
+  {
+   "file": "salamander-silhouette.png",
+   "name": "Salamander Silhouette",
+   "source_url": "https://openclipart.org/detail/236674/salamander-silhouette",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "GDJ"
+  },
+  {
+   "file": "salamander.png",
+   "name": "Salamander",
+   "source_url": "https://game-icons.net/1x1/lorc/salamander.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Lorc"
+  },
+  {
+   "file": "sand-snake.png",
+   "name": "Sand Snake",
+   "source_url": "https://game-icons.net/1x1/delapouite/sand-snake.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Delapouite"
+  },
+  {
+   "file": "scarab-beetle.png",
+   "name": "Scarab Beetle",
+   "source_url": "https://game-icons.net/1x1/lorc/scarab-beetle.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Lorc"
+  },
+  {
+   "file": "scorpion-139345.png",
+   "name": "Scorpion 139345",
+   "source_url": "https://openclipart.org/detail/139345/scorpion",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "woelper"
+  },
+  {
+   "file": "scorpion-295385.png",
+   "name": "Scorpion 295385",
+   "source_url": "https://openclipart.org/detail/295385/scorpion",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "mohamed1982eg"
+  },
+  {
+   "file": "scorpion-silhouette-2.png",
+   "name": "Scorpion Silhouette 2",
+   "source_url": "https://openclipart.org/detail/261737/scorpion-silhouette-2",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "GDJ"
+  },
+  {
+   "file": "scorpion-silhouette-319239.png",
+   "name": "Scorpion Silhouette 319239",
+   "source_url": "https://openclipart.org/detail/319239/scorpion-silhouette",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "liftarn"
+  },
+  {
+   "file": "scorpion-silhouette.png",
+   "name": "Scorpion Silhouette",
+   "source_url": "https://openclipart.org/detail/250849/scorpion-silhouette",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "GDJ"
+  },
+  {
+   "file": "scorpion.png",
+   "name": "Scorpion",
+   "source_url": "https://game-icons.net/1x1/lorc/scorpion.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Lorc"
+  },
+  {
+   "file": "sea-turtle.png",
+   "name": "Sea Turtle",
+   "source_url": "https://game-icons.net/1x1/delapouite/sea-turtle.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Delapouite"
+  },
+  {
+   "file": "sea-turttle-silhouette.png",
+   "name": "Sea Turttle Silhouette",
+   "source_url": "https://openclipart.org/detail/85027/sea-turttle-silhouette",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "dragonassbabe"
+  },
+  {
+   "file": "silhouette-of-a-spider.png",
+   "name": "Silhouette Of A Spider",
+   "source_url": "https://openclipart.org/detail/320794/silhouette-of-a-spider",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "liftarn"
+  },
+  {
+   "file": "silhouette-turtle.png",
+   "name": "Silhouette Turtle",
+   "source_url": "https://openclipart.org/detail/235021/silhouette-turtle",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "SeriousTux"
+  },
+  {
+   "file": "simple-butterfly-silhouette.png",
+   "name": "Simple Butterfly Silhouette",
+   "source_url": "https://openclipart.org/detail/298537/simple-butterfly-silhouette",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "GDJ"
+  },
+  {
+   "file": "sleek-tribal-scorpion.png",
+   "name": "Sleek Tribal Scorpion",
+   "source_url": "https://openclipart.org/detail/273472/sleek-tribal-scorpion",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "GDJ"
+  },
+  {
+   "file": "small-turtle-silhouette.png",
+   "name": "Small Turtle Silhouette",
+   "source_url": "https://openclipart.org/detail/320256/small-turtle-silhouette",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "liftarn"
+  },
+  {
+   "file": "snake-322646.png",
+   "name": "Snake 322646",
+   "source_url": "https://openclipart.org/detail/322646/snake",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "NicholasJudy567"
+  },
+  {
+   "file": "snake-323417.png",
+   "name": "Snake 323417",
+   "source_url": "https://openclipart.org/detail/323417/snake",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "NicholasJudy567"
+  },
+  {
+   "file": "snake-327782.png",
+   "name": "Snake 327782",
+   "source_url": "https://openclipart.org/detail/327782/snake",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "NicholasJudy567"
+  },
+  {
+   "file": "snake-354477.png",
+   "name": "Snake 354477",
+   "source_url": "https://openclipart.org/detail/354477/snake",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "qubodup"
+  },
+  {
+   "file": "snake-bite.png",
+   "name": "Snake Bite",
+   "source_url": "https://game-icons.net/1x1/lorc/snake-bite.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Lorc"
+  },
+  {
+   "file": "snake-mdi.png",
+   "name": "Snake Mdi",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/snake/",
+   "license": "Apache-2.0 (Material Design Icons)",
+   "author": "Pictogrammers"
+  },
+  {
+   "file": "snake-spiral.png",
+   "name": "Snake Spiral",
+   "source_url": "https://game-icons.net/1x1/delapouite/snake-spiral.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Delapouite"
+  },
+  {
+   "file": "snake-tongue.png",
+   "name": "Snake Tongue",
+   "source_url": "https://game-icons.net/1x1/delapouite/snake-tongue.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Delapouite"
+  },
+  {
+   "file": "snake-totem.png",
+   "name": "Snake Totem",
+   "source_url": "https://game-icons.net/1x1/lorc/snake-totem.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Lorc"
+  },
+  {
+   "file": "snake.png",
+   "name": "Snake",
+   "source_url": "https://game-icons.net/1x1/lorc/snake.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Lorc"
+  },
+  {
+   "file": "spider-323422.png",
+   "name": "Spider 323422",
+   "source_url": "https://openclipart.org/detail/323422/spider",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "NicholasJudy567"
+  },
+  {
+   "file": "spider-alt.png",
+   "name": "Spider Alt",
+   "source_url": "https://game-icons.net/1x1/carl-olsen/spider-alt.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Carl Olsen"
+  },
+  {
+   "file": "spider-eye.png",
+   "name": "Spider Eye",
+   "source_url": "https://game-icons.net/1x1/delapouite/spider-eye.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Delapouite"
+  },
+  {
+   "file": "spider-face.png",
+   "name": "Spider Face",
+   "source_url": "https://game-icons.net/1x1/carl-olsen/spider-face.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Carl Olsen"
+  },
+  {
+   "file": "spider-silhouette-3.png",
+   "name": "Spider Silhouette 3",
+   "source_url": "https://openclipart.org/detail/304069/spider-silhouette-3",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "Firkin"
+  },
+  {
+   "file": "spider-silhouette-304068.png",
+   "name": "Spider Silhouette 304068",
+   "source_url": "https://openclipart.org/detail/304068/spider-silhouette",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "Firkin"
+  },
+  {
+   "file": "spider-silhouette.png",
+   "name": "Spider Silhouette",
+   "source_url": "https://openclipart.org/detail/287904/spider-silhouette",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "GDJ"
+  },
+  {
+   "file": "spider.png",
+   "name": "Spider",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/spider/",
+   "license": "Apache-2.0 (Material Design Icons)",
+   "author": "Pictogrammers"
+  },
+  {
+   "file": "spotted-bug.png",
+   "name": "Spotted Bug",
+   "source_url": "https://game-icons.net/1x1/skoll/spotted-bug.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Skoll"
+  },
+  {
+   "file": "stink-bug.png",
+   "name": "Stink Bug",
+   "source_url": "https://openclipart.org/detail/258556/stink-bug",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "ziixon93"
+  },
+  {
+   "file": "stylized-chameleon-silhouette-by-naobim.png",
+   "name": "Stylized Chameleon Silhouette By Naobim",
+   "source_url": "https://openclipart.org/detail/278091/stylized-chameleon-silhouette-by-naobim",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "GDJ"
+  },
+  {
+   "file": "stylized-scorpion-silhouette.png",
+   "name": "Stylized Scorpion Silhouette",
+   "source_url": "https://openclipart.org/detail/230060/stylized-scorpion-silhouette",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "GDJ"
+  },
+  {
+   "file": "tadpole.png",
+   "name": "Tadpole",
+   "source_url": "https://game-icons.net/1x1/delapouite/tadpole.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Delapouite"
+  },
+  {
+   "file": "the-noble-lizard.png",
+   "name": "The Noble Lizard",
+   "source_url": "https://openclipart.org/detail/287993/the-noble-lizard",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "cactus_cowboy"
+  },
+  {
+   "file": "tick.png",
+   "name": "Tick",
+   "source_url": "https://game-icons.net/1x1/lorc/tick.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Lorc"
+  },
+  {
+   "file": "toad-by-rones.png",
+   "name": "Toad By Rones",
+   "source_url": "https://openclipart.org/detail/173516/toad-by-rones",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "rones"
+  },
+  {
+   "file": "toad-teeth.png",
+   "name": "Toad Teeth",
+   "source_url": "https://game-icons.net/1x1/lorc/toad-teeth.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Lorc"
+  },
+  {
+   "file": "tortoise-silhouette-306111.png",
+   "name": "Tortoise Silhouette 306111",
+   "source_url": "https://openclipart.org/detail/306111/tortoise-silhouette",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "GDJ"
+  },
+  {
+   "file": "tortoise-silhouette.png",
+   "name": "Tortoise Silhouette",
+   "source_url": "https://openclipart.org/detail/230432/tortoise-silhouette",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "snifty"
+  },
+  {
+   "file": "tortoise.png",
+   "name": "Tortoise",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/tortoise/",
+   "license": "Apache-2.0 (Material Design Icons)",
+   "author": "Pictogrammers"
+  },
+  {
+   "file": "tree-ant.png",
+   "name": "Tree Ant",
+   "source_url": "https://openclipart.org/detail/170430/tree-ant",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "jerome02"
+  },
+  {
+   "file": "tribal-butterfly-silhouette-by-karen-arnold.png",
+   "name": "Tribal Butterfly Silhouette By Karen Arnold",
+   "source_url": "https://openclipart.org/detail/308257/tribal-butterfly-silhouette-by-karen-arnold",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "GDJ"
+  },
+  {
+   "file": "turtle-330481.png",
+   "name": "Turtle 330481",
+   "source_url": "https://openclipart.org/detail/330481/turtle",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "NicholasJudy567"
+  },
+  {
+   "file": "turtle-354473.png",
+   "name": "Turtle 354473",
+   "source_url": "https://openclipart.org/detail/354473/turtle",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "qubodup"
+  },
+  {
+   "file": "turtle-mdi.png",
+   "name": "Turtle Mdi",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/turtle/",
+   "license": "Apache-2.0 (Material Design Icons)",
+   "author": "Pictogrammers"
+  },
+  {
+   "file": "turtle-shell.png",
+   "name": "Turtle Shell",
+   "source_url": "https://game-icons.net/1x1/lorc/turtle-shell.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Lorc"
+  },
+  {
+   "file": "turtle-tribal-silhouette.png",
+   "name": "Turtle Tribal Silhouette",
+   "source_url": "https://openclipart.org/detail/319308/turtle-tribal-silhouette",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "liftarn"
+  },
+  {
+   "file": "turtle.png",
+   "name": "Turtle",
+   "source_url": "https://game-icons.net/1x1/lorc/turtle.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Lorc"
+  },
+  {
+   "file": "upside-down-spider.png",
+   "name": "Upside Down Spider",
+   "source_url": "https://openclipart.org/detail/318321/upside-down-spider",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "GDJ"
+  },
+  {
+   "file": "venomous-snake-silhouette.png",
+   "name": "Venomous Snake Silhouette",
+   "source_url": "https://openclipart.org/detail/320042/venomous-snake-silhouette",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "liftarn"
+  },
+  {
+   "file": "vintage-scorpion-line-art.png",
+   "name": "Vintage Scorpion Line Art",
+   "source_url": "https://openclipart.org/detail/312996/vintage-scorpion-line-art",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "GDJ"
+  },
+  {
+   "file": "viper.png",
+   "name": "Viper",
+   "source_url": "https://openclipart.org/detail/330981/viper",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "GDJ"
+  },
+  {
+   "file": "wasp-bee.png",
+   "name": "Wasp Bee",
+   "source_url": "https://openclipart.org/detail/319621/wasp-bee",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "liftarn"
+  },
+  {
+   "file": "wasp-sting.png",
+   "name": "Wasp Sting",
+   "source_url": "https://game-icons.net/1x1/lorc/wasp-sting.html",
+   "license": "CC BY 3.0 (game-icons.net)",
+   "author": "Lorc"
+  },
+  {
+   "file": "weevil-silhouette.png",
+   "name": "Weevil Silhouette",
+   "source_url": "https://openclipart.org/detail/170812/weevil-silhouette",
+   "license": "CC0 1.0 (openclipart.org)",
+   "author": "dear_theophilus"
+  }
+ ]
+}

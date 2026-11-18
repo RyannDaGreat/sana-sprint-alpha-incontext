@@ -1,0 +1,949 @@
+{
+ "items": [
+  {
+   "file": "angel-wings.png",
+   "name": "Angel Wings",
+   "source_url": "https://game-icons.net/1x1/lorc/angel-wings.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "arboreal-cross-xciv.png",
+   "name": "Arboreal Cross (XCV)",
+   "source_url": "https://openclipart.org/detail/261692/arboreal-cross-xciv",
+   "license": "CC0",
+   "author": "AdamStanislav"
+  },
+  {
+   "file": "barbute.png",
+   "name": "Barbute",
+   "source_url": "https://game-icons.net/1x1/lorc/barbute.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "batwing-emblem.png",
+   "name": "Batwing Emblem",
+   "source_url": "https://game-icons.net/1x1/lorc/batwing-emblem.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "bird-scepter.png",
+   "name": "Bird Scepter",
+   "source_url": "https://game-icons.net/1x1/delapouite/bird-scepter.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "black-hand-shield.png",
+   "name": "Black Hand Shield",
+   "source_url": "https://game-icons.net/1x1/lorc/black-hand-shield.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "bordered-shield.png",
+   "name": "Bordered Shield",
+   "source_url": "https://game-icons.net/1x1/lorc/bordered-shield.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "brutal-helm.png",
+   "name": "Brutal Helm",
+   "source_url": "https://game-icons.net/1x1/carl-olsen/brutal-helm.html",
+   "license": "CC BY 3.0",
+   "author": "Carl Olsen"
+  },
+  {
+   "file": "caduceus.png",
+   "name": "Caduceus",
+   "source_url": "https://game-icons.net/1x1/delapouite/caduceus.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "camargue-cross.png",
+   "name": "Camargue Cross",
+   "source_url": "https://game-icons.net/1x1/delapouite/camargue-cross.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "castle.png",
+   "name": "Castle",
+   "source_url": "https://game-icons.net/1x1/delapouite/castle.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "celtic-knot-2.png",
+   "name": "Celtic knot",
+   "source_url": "https://openclipart.org/detail/173753/celtic-knot",
+   "license": "CC0",
+   "author": "snagator"
+  },
+  {
+   "file": "celtic-knot-cross-5.png",
+   "name": "Celtic Knot Cross 5",
+   "source_url": "https://openclipart.org/detail/259395/celtic-knot-cross-5",
+   "license": "CC0",
+   "author": "GDJ"
+  },
+  {
+   "file": "celtic-knot-cross-6.png",
+   "name": "Celtic Knot Cross 6",
+   "source_url": "https://openclipart.org/detail/259396/celtic-knot-cross-6",
+   "license": "CC0",
+   "author": "GDJ"
+  },
+  {
+   "file": "celtic-knot-cross.png",
+   "name": "Celtic Knot Cross",
+   "source_url": "https://openclipart.org/detail/235986/celtic-knot-cross",
+   "license": "CC0",
+   "author": "GDJ"
+  },
+  {
+   "file": "celtic-knot-mandala-19.png",
+   "name": "Celtic Knot Mandala 19",
+   "source_url": "https://openclipart.org/detail/259389/celtic-knot-mandala-19",
+   "license": "CC0",
+   "author": "GDJ"
+  },
+  {
+   "file": "celtic-knot-mandala-3.png",
+   "name": "Celtic Knot Mandala 3",
+   "source_url": "https://openclipart.org/detail/259372/celtic-knot-mandala-3",
+   "license": "CC0",
+   "author": "GDJ"
+  },
+  {
+   "file": "celtic-knot-mandala-6.png",
+   "name": "Celtic Knot Mandala 6",
+   "source_url": "https://openclipart.org/detail/259375/celtic-knot-mandala-6",
+   "license": "CC0",
+   "author": "GDJ"
+  },
+  {
+   "file": "celtic-knot-triangle-2.png",
+   "name": "Celtic Knot Triangle 2",
+   "source_url": "https://openclipart.org/detail/259391/celtic-knot-triangle-2",
+   "license": "CC0",
+   "author": "GDJ"
+  },
+  {
+   "file": "celtic-knot-tristar.png",
+   "name": "Celtic Knot Tristar",
+   "source_url": "https://openclipart.org/detail/259392/celtic-knot-tristar",
+   "license": "CC0",
+   "author": "GDJ"
+  },
+  {
+   "file": "centurion-helmet.png",
+   "name": "Centurion Helmet",
+   "source_url": "https://game-icons.net/1x1/delapouite/centurion-helmet.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "chalice-and-host.png",
+   "name": "Chalice and Host",
+   "source_url": "https://openclipart.org/detail/266533/chalice-and-host",
+   "license": "CC0",
+   "author": "PhilipBarrington"
+  },
+  {
+   "file": "checked-shield.png",
+   "name": "Checked Shield",
+   "source_url": "https://game-icons.net/1x1/lorc/checked-shield.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "coat-of-arms-gilman-1.png",
+   "name": "Coat of Arms - Gilman - 1",
+   "source_url": "https://openclipart.org/detail/17415/coat-of-arms-gilman-1",
+   "license": "CC0",
+   "author": "roystonlodge"
+  },
+  {
+   "file": "condor-emblem.png",
+   "name": "Condor Emblem",
+   "source_url": "https://game-icons.net/1x1/lorc/condor-emblem.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "cracked-helm.png",
+   "name": "Cracked Helm",
+   "source_url": "https://game-icons.net/1x1/lorc/cracked-helm.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "crenel-crown.png",
+   "name": "Crenel Crown",
+   "source_url": "https://game-icons.net/1x1/delapouite/crenel-crown.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "crenulated-shield.png",
+   "name": "Crenulated Shield",
+   "source_url": "https://game-icons.net/1x1/lorc/crenulated-shield.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "crested-helmet.png",
+   "name": "Crested Helmet",
+   "source_url": "https://game-icons.net/1x1/lorc/crested-helmet.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "cross-lxxxi.png",
+   "name": "Cross LXXXI",
+   "source_url": "https://openclipart.org/detail/261668/cross-lxxxi",
+   "license": "CC0",
+   "author": "AdamStanislav"
+  },
+  {
+   "file": "cross-lxxxix.png",
+   "name": "Cross LXXXIX",
+   "source_url": "https://openclipart.org/detail/261679/cross-lxxxix",
+   "license": "CC0",
+   "author": "AdamStanislav"
+  },
+  {
+   "file": "cross-pattee-variant.png",
+   "name": "Cross Patt\u00e9e Variant",
+   "source_url": "https://openclipart.org/detail/260452/cross-pattee-variant",
+   "license": "CC0",
+   "author": "AdamStanislav"
+  },
+  {
+   "file": "cross-pattee.png",
+   "name": "Cross Patt\u00e9e",
+   "source_url": "https://openclipart.org/detail/201557/cross-pattee",
+   "license": "CC0",
+   "author": "ictusgpr"
+  },
+  {
+   "file": "cross-potent.png",
+   "name": "cross potent",
+   "source_url": "https://openclipart.org/detail/63601/cross-potent",
+   "license": "CC0",
+   "author": "paxed"
+  },
+  {
+   "file": "cross-shield.png",
+   "name": "Cross Shield",
+   "source_url": "https://game-icons.net/1x1/delapouite/cross-shield.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "cross-xci.png",
+   "name": "Cross XCI",
+   "source_url": "https://openclipart.org/detail/261682/cross-xci",
+   "license": "CC0",
+   "author": "AdamStanislav"
+  },
+  {
+   "file": "crossed-axes.png",
+   "name": "Crossed Axes",
+   "source_url": "https://game-icons.net/1x1/lorc/crossed-axes.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "crossed-sabres.png",
+   "name": "Crossed Sabres",
+   "source_url": "https://game-icons.net/1x1/lorc/crossed-sabres.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "crown-3.png",
+   "name": "Crown",
+   "source_url": "https://openclipart.org/detail/138205/crown",
+   "license": "CC0",
+   "author": "jgm104"
+  },
+  {
+   "file": "crown-and-wings.png",
+   "name": "Crown and Wings",
+   "source_url": "https://openclipart.org/detail/196242/crown-and-wings",
+   "license": "CC0",
+   "author": "j4p4n"
+  },
+  {
+   "file": "crown-of-saint-edward.png",
+   "name": "Crown of Saint Edward",
+   "source_url": "https://openclipart.org/detail/3465/crown-of-saint-edward",
+   "license": "CC0",
+   "author": "liftarn"
+  },
+  {
+   "file": "crown-of-thorns.png",
+   "name": "Crown Of Thorns",
+   "source_url": "https://game-icons.net/1x1/lorc/crown-of-thorns.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "crown.png",
+   "name": "Crown",
+   "source_url": "https://game-icons.net/1x1/lorc/crown.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "crowned-heart.png",
+   "name": "Crowned Heart",
+   "source_url": "https://game-icons.net/1x1/lorc/crowned-heart.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "double-headed-eagle-silhouette.png",
+   "name": "Double Headed Eagle Silhouette",
+   "source_url": "https://openclipart.org/detail/243970/double-headed-eagle-silhouette",
+   "license": "CC0",
+   "author": "GDJ"
+  },
+  {
+   "file": "dragon-shield.png",
+   "name": "Dragon Shield",
+   "source_url": "https://game-icons.net/1x1/delapouite/dragon-shield.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "dwarf-helmet.png",
+   "name": "Dwarf Helmet",
+   "source_url": "https://game-icons.net/1x1/kier-heyl/dwarf-helmet.html",
+   "license": "CC BY 3.0",
+   "author": "Kier Heyl"
+  },
+  {
+   "file": "eagle-head.png",
+   "name": "Eagle Head",
+   "source_url": "https://game-icons.net/1x1/delapouite/eagle-head.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "edged-shield.png",
+   "name": "Edged Shield",
+   "source_url": "https://game-icons.net/1x1/lorc/edged-shield.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "elf-helmet.png",
+   "name": "Elf Helmet",
+   "source_url": "https://game-icons.net/1x1/kier-heyl/elf-helmet.html",
+   "license": "CC BY 3.0",
+   "author": "Kier Heyl"
+  },
+  {
+   "file": "eye-shield.png",
+   "name": "Eye Shield",
+   "source_url": "https://game-icons.net/1x1/lorc/eye-shield.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "feathered-wing.png",
+   "name": "Feathered Wing",
+   "source_url": "https://game-icons.net/1x1/lorc/feathered-wing.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "fire-shield.png",
+   "name": "Fire Shield",
+   "source_url": "https://game-icons.net/1x1/lorc/fire-shield.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "fleur-de-lis-2.png",
+   "name": "fleur de lis",
+   "source_url": "https://openclipart.org/detail/12763/fleur-de-lis",
+   "license": "CC0",
+   "author": "Anonymous"
+  },
+  {
+   "file": "fleur-de-lis.png",
+   "name": "Fleur de lis",
+   "source_url": "https://openclipart.org/detail/225053/fleur-de-lis",
+   "license": "CC0",
+   "author": "Clon"
+  },
+  {
+   "file": "fleur-de-lys-silhouette.png",
+   "name": "Fleur de Lys silhouette",
+   "source_url": "https://openclipart.org/detail/229394/fleur-de-lys-silhouette",
+   "license": "CC0",
+   "author": "Firkin"
+  },
+  {
+   "file": "fleur-de-lys.png",
+   "name": "Fleur De Lys",
+   "source_url": "https://game-icons.net/1x1/delapouite/fleur-de-lys.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "fluffy-trefoil.png",
+   "name": "Fluffy Trefoil",
+   "source_url": "https://game-icons.net/1x1/lorc/fluffy-trefoil.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "frog-mouth-helm.png",
+   "name": "Frog Mouth Helm",
+   "source_url": "https://game-icons.net/1x1/caro-asercion/frog-mouth-helm.html",
+   "license": "CC BY 3.0",
+   "author": "Caro Asercion"
+  },
+  {
+   "file": "galea.png",
+   "name": "Galea",
+   "source_url": "https://game-icons.net/1x1/delapouite/galea.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "gauls-helm.png",
+   "name": "Gauls Helm",
+   "source_url": "https://game-icons.net/1x1/delapouite/gauls-helm.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "gauntlet.png",
+   "name": "Gauntlet",
+   "source_url": "https://game-icons.net/1x1/delapouite/gauntlet.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "golden-laurel-wreath.png",
+   "name": "golden laurel wreath",
+   "source_url": "https://openclipart.org/detail/299120/golden-laurel-wreath",
+   "license": "CC0",
+   "author": "neorg"
+  },
+  {
+   "file": "griffin-shield.png",
+   "name": "Griffin Shield",
+   "source_url": "https://game-icons.net/1x1/delapouite/griffin-shield.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "griffin-symbol.png",
+   "name": "Griffin Symbol",
+   "source_url": "https://game-icons.net/1x1/delapouite/griffin-symbol.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "hapsburg-crest.png",
+   "name": "Hapsburg crest",
+   "source_url": "https://openclipart.org/detail/25035/hapsburg-crest",
+   "license": "CC0",
+   "author": "johnny_automatic"
+  },
+  {
+   "file": "hawk-emblem.png",
+   "name": "Hawk Emblem",
+   "source_url": "https://game-icons.net/1x1/lorc/hawk-emblem.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "heart-shield.png",
+   "name": "Heart Shield",
+   "source_url": "https://game-icons.net/1x1/delapouite/heart-shield.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "heart-wings.png",
+   "name": "Heart Wings",
+   "source_url": "https://game-icons.net/1x1/delapouite/heart-wings.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "heavy-helm.png",
+   "name": "Heavy Helm",
+   "source_url": "https://game-icons.net/1x1/lorc/heavy-helm.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "heavy-thorny-triskelion.png",
+   "name": "Heavy Thorny Triskelion",
+   "source_url": "https://game-icons.net/1x1/lorc/heavy-thorny-triskelion.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "helmet-of-a-knight.png",
+   "name": "Helmet of a Knight",
+   "source_url": "https://openclipart.org/detail/319941/helmet-of-a-knight",
+   "license": "CC0",
+   "author": "liftarn"
+  },
+  {
+   "file": "helmet.png",
+   "name": "Helmet",
+   "source_url": "https://nagoshiashumari.github.io/Rpg-Awesome/",
+   "license": "SIL OFL 1.1",
+   "author": "Daniela Howe, Ivan Montiel (RPG Awesome)"
+  },
+  {
+   "file": "heraldic-bird.png",
+   "name": "Heraldic Bird",
+   "source_url": "https://openclipart.org/detail/306125/heraldic-bird",
+   "license": "CC0",
+   "author": "GDJ"
+  },
+  {
+   "file": "heraldic-dragon-dove.png",
+   "name": "Heraldic Dragon Dove",
+   "source_url": "https://openclipart.org/detail/314882/heraldic-dragon-dove",
+   "license": "CC0",
+   "author": "GDJ"
+  },
+  {
+   "file": "heraldic-sun.png",
+   "name": "Heraldic Sun",
+   "source_url": "https://game-icons.net/1x1/caro-asercion/heraldic-sun.html",
+   "license": "CC BY 3.0",
+   "author": "Caro Asercion"
+  },
+  {
+   "file": "heraldic-winged-lion-silhouette.png",
+   "name": "Heraldic Winged Lion Silhouette",
+   "source_url": "https://openclipart.org/detail/313397/heraldic-winged-lion-silhouette",
+   "license": "CC0",
+   "author": "GDJ"
+  },
+  {
+   "file": "holy-grail.png",
+   "name": "Holy Grail",
+   "source_url": "https://game-icons.net/1x1/lorc/holy-grail.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "horned-helm.png",
+   "name": "Horned Helm",
+   "source_url": "https://game-icons.net/1x1/lorc/horned-helm.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "imperial-crown.png",
+   "name": "Imperial Crown",
+   "source_url": "https://game-icons.net/1x1/delapouite/imperial-crown.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "jerusalem-cross.png",
+   "name": "Jerusalem Cross",
+   "source_url": "https://game-icons.net/1x1/delapouite/jerusalem-cross.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "jeweled-chalice.png",
+   "name": "Jeweled Chalice",
+   "source_url": "https://game-icons.net/1x1/lorc/jeweled-chalice.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "jubilee-crown-red.png",
+   "name": "Jubilee crown red",
+   "source_url": "https://openclipart.org/detail/170035/jubilee-crown-red",
+   "license": "CC0",
+   "author": "mr_johnnyp"
+  },
+  {
+   "file": "knight-banner.png",
+   "name": "Knight Banner",
+   "source_url": "https://game-icons.net/1x1/delapouite/knight-banner.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "laurel-crown.png",
+   "name": "Laurel Crown",
+   "source_url": "https://game-icons.net/1x1/lorc/laurel-crown.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "laurel-wreath.png",
+   "name": "Laurel Wreath",
+   "source_url": "https://openclipart.org/detail/227361/laurel-wreath",
+   "license": "CC0",
+   "author": "GDJ"
+  },
+  {
+   "file": "laurels-trophy.png",
+   "name": "Laurels Trophy",
+   "source_url": "https://game-icons.net/1x1/delapouite/laurels-trophy.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "laurels.png",
+   "name": "Laurels",
+   "source_url": "https://game-icons.net/1x1/lorc/laurels.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "liberty-wing.png",
+   "name": "Liberty Wing",
+   "source_url": "https://game-icons.net/1x1/delapouite/liberty-wing.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "light-helm.png",
+   "name": "Light Helm",
+   "source_url": "https://game-icons.net/1x1/delapouite/light-helm.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "lightning-shield.png",
+   "name": "Lightning Shield",
+   "source_url": "https://game-icons.net/1x1/lorc/lightning-shield.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "lion-rampant.png",
+   "name": "lion rampant",
+   "source_url": "https://openclipart.org/detail/18016/lion-rampant",
+   "license": "CC0",
+   "author": "szquirrel"
+  },
+  {
+   "file": "medieval-heraldic-bird-silhouette.png",
+   "name": "Medieval Heraldic Bird Silhouette",
+   "source_url": "https://openclipart.org/detail/338101/medieval-heraldic-bird-silhouette",
+   "license": "CC0",
+   "author": "GDJ"
+  },
+  {
+   "file": "medieval-heraldic-dragon-silhouette.png",
+   "name": "Medieval Heraldic Dragon Silhouette",
+   "source_url": "https://openclipart.org/detail/338106/medieval-heraldic-dragon-silhouette",
+   "license": "CC0",
+   "author": "GDJ"
+  },
+  {
+   "file": "medieval-heraldic-griffin-silhouette.png",
+   "name": "Medieval Heraldic Griffin Silhouette",
+   "source_url": "https://openclipart.org/detail/338105/medieval-heraldic-griffin-silhouette",
+   "license": "CC0",
+   "author": "GDJ"
+  },
+  {
+   "file": "medieval-heraldic-mermaid-silhouette.png",
+   "name": "Medieval Heraldic Mermaid Silhouette",
+   "source_url": "https://openclipart.org/detail/338104/medieval-heraldic-mermaid-silhouette",
+   "license": "CC0",
+   "author": "GDJ"
+  },
+  {
+   "file": "medieval-heraldic-panther-silhouette.png",
+   "name": "Medieval Heraldic Panther Silhouette",
+   "source_url": "https://openclipart.org/detail/338100/medieval-heraldic-panther-silhouette",
+   "license": "CC0",
+   "author": "GDJ"
+  },
+  {
+   "file": "medieval-heraldic-unicorn-silhouette.png",
+   "name": "Medieval Heraldic Unicorn Silhouette",
+   "source_url": "https://openclipart.org/detail/338103/medieval-heraldic-unicorn-silhouette",
+   "license": "CC0",
+   "author": "GDJ"
+  },
+  {
+   "file": "medieval-heraldic-wyvern-silhouette.png",
+   "name": "Medieval Heraldic Wyvern Silhouette",
+   "source_url": "https://openclipart.org/detail/338102/medieval-heraldic-wyvern-silhouette",
+   "license": "CC0",
+   "author": "GDJ"
+  },
+  {
+   "file": "overlord-helm.png",
+   "name": "Overlord Helm",
+   "source_url": "https://game-icons.net/1x1/delapouite/overlord-helm.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "prince-crown-silhouette.png",
+   "name": "Prince crown silhouette",
+   "source_url": "https://openclipart.org/detail/319296/prince-crown-silhouette",
+   "license": "CC0",
+   "author": "liftarn"
+  },
+  {
+   "file": "queen-crown.png",
+   "name": "Queen Crown",
+   "source_url": "https://game-icons.net/1x1/lorc/queen-crown.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "ribbon-shield.png",
+   "name": "Ribbon Shield",
+   "source_url": "https://game-icons.net/1x1/delapouite/ribbon-shield.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "roman-shield.png",
+   "name": "Roman Shield",
+   "source_url": "https://game-icons.net/1x1/delapouite/roman-shield.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "rose.png",
+   "name": "Rose",
+   "source_url": "https://game-icons.net/1x1/lorc/rose.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "royal-crown-silhouette.png",
+   "name": "Royal crown silhouette",
+   "source_url": "https://openclipart.org/detail/320691/royal-crown-silhouette",
+   "license": "CC0",
+   "author": "liftarn"
+  },
+  {
+   "file": "royal-love.png",
+   "name": "Royal Love",
+   "source_url": "https://game-icons.net/1x1/lorc/royal-love.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "sharp-crown.png",
+   "name": "Sharp Crown",
+   "source_url": "https://game-icons.net/1x1/lorc/sharp-crown.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "spartan-helmet.png",
+   "name": "Spartan Helmet",
+   "source_url": "https://game-icons.net/1x1/delapouite/spartan-helmet.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "spiked-shield.png",
+   "name": "Spiked Shield",
+   "source_url": "https://game-icons.net/1x1/delapouite/spiked-shield.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "stag-head.png",
+   "name": "Stag Head",
+   "source_url": "https://game-icons.net/1x1/lorc/stag-head.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "steelwing-emblem.png",
+   "name": "Steelwing Emblem",
+   "source_url": "https://game-icons.net/1x1/lorc/steelwing-emblem.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "swords-and-shield.png",
+   "name": "swords and shield",
+   "source_url": "https://openclipart.org/detail/4258/swords-and-shield",
+   "license": "CC0",
+   "author": "ryanlerch"
+  },
+  {
+   "file": "swords-emblem.png",
+   "name": "Swords Emblem",
+   "source_url": "https://game-icons.net/1x1/lorc/swords-emblem.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "templar-shield.png",
+   "name": "Templar Shield",
+   "source_url": "https://game-icons.net/1x1/delapouite/templar-shield.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "throne-king.png",
+   "name": "Throne King",
+   "source_url": "https://game-icons.net/1x1/delapouite/throne-king.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "tiara.png",
+   "name": "Tiara",
+   "source_url": "https://game-icons.net/1x1/delapouite/tiara.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "trefoil-lily.png",
+   "name": "Trefoil Lily",
+   "source_url": "https://game-icons.net/1x1/lorc/trefoil-lily.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "tribal-shield.png",
+   "name": "Tribal Shield",
+   "source_url": "https://game-icons.net/1x1/delapouite/tribal-shield.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "trident-shield.png",
+   "name": "Trident Shield",
+   "source_url": "https://game-icons.net/1x1/delapouite/trident-shield.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "trident.png",
+   "name": "Trident",
+   "source_url": "https://game-icons.net/1x1/lorc/trident.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "trinacria.png",
+   "name": "Trinacria",
+   "source_url": "https://game-icons.net/1x1/delapouite/trinacria.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "trumpet-flag.png",
+   "name": "Trumpet Flag",
+   "source_url": "https://game-icons.net/1x1/delapouite/trumpet-flag.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "tudor-rose.png",
+   "name": "Tudor rose",
+   "source_url": "https://openclipart.org/detail/232473/tudor-rose",
+   "license": "CC0",
+   "author": "Firkin"
+  },
+  {
+   "file": "viking-helmet.png",
+   "name": "Viking Helmet",
+   "source_url": "https://game-icons.net/1x1/delapouite/viking-helmet.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "viking-shield.png",
+   "name": "Viking Shield",
+   "source_url": "https://game-icons.net/1x1/delapouite/viking-shield.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "viking-warrior-with-helmet-silhouette.png",
+   "name": "Viking warrior with helmet silhouette",
+   "source_url": "https://openclipart.org/detail/321419/viking-warrior-with-helmet-silhouette",
+   "license": "CC0",
+   "author": "liftarn"
+  },
+  {
+   "file": "visored-helm.png",
+   "name": "Visored Helm",
+   "source_url": "https://game-icons.net/1x1/lorc/visored-helm.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "warlord-helmet.png",
+   "name": "Warlord Helmet",
+   "source_url": "https://game-icons.net/1x1/caro-asercion/warlord-helmet.html",
+   "license": "CC BY 3.0",
+   "author": "Caro Asercion"
+  },
+  {
+   "file": "wax-seal.png",
+   "name": "Wax Seal",
+   "source_url": "https://game-icons.net/1x1/lorc/wax-seal.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "winged-emblem.png",
+   "name": "Winged Emblem",
+   "source_url": "https://game-icons.net/1x1/lorc/winged-emblem.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "winged-scepter.png",
+   "name": "Winged Scepter",
+   "source_url": "https://game-icons.net/1x1/delapouite/winged-scepter.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "winged-shield.png",
+   "name": "Winged Shield",
+   "source_url": "https://game-icons.net/1x1/lorc/winged-shield.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "winged-sword.png",
+   "name": "Winged Sword",
+   "source_url": "https://game-icons.net/1x1/lorc/winged-sword.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "wingfoot.png",
+   "name": "Wingfoot",
+   "source_url": "https://game-icons.net/1x1/lorc/wingfoot.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  }
+ ]
+}

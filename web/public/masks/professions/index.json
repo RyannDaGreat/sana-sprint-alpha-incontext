@@ -1,0 +1,2349 @@
+{
+ "items": [
+  {
+   "file": "accordion.png",
+   "name": "Accordion",
+   "source_url": "https://game-icons.net/1x1/caro-asercion/accordion.html",
+   "license": "CC BY 3.0",
+   "author": "Caro-asercion"
+  },
+  {
+   "file": "account-hard-hat.png",
+   "name": "Worker with hard hat",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/account-hard-hat/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "account-music.png",
+   "name": "Musician",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/account-music/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "agriculture-worker.png",
+   "name": "Agriculture Worker",
+   "source_url": "https://healthicons.org/?q=agriculture-worker",
+   "license": "CC0 1.0",
+   "author": "Health Icons (healthicons.org)"
+  },
+  {
+   "file": "anchor-ph.png",
+   "name": "Anchor (phosphor)",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/anchor-fill.svg",
+   "license": "MIT (Phosphor Icons)",
+   "author": "Phosphor Icons contributors"
+  },
+  {
+   "file": "anchor.png",
+   "name": "Anchor",
+   "source_url": "https://game-icons.net/1x1/lorc/anchor.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "anvil.png",
+   "name": "Anvil",
+   "source_url": "https://game-icons.net/1x1/lorc/anvil.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "apothecary.png",
+   "name": "Apothecary",
+   "source_url": "https://game-icons.net/1x1/darkzaitzev/apothecary.html",
+   "license": "CC BY 3.0",
+   "author": "Darkzaitzev"
+  },
+  {
+   "file": "artist-palette.png",
+   "name": "Artist Palette",
+   "source_url": "https://icon-sets.iconify.design/emojione-monotone/artist-palette/",
+   "license": "CC BY 4.0",
+   "author": "JoyPixels (EmojiOne)"
+  },
+  {
+   "file": "astronaut-figure.png",
+   "name": "Astronaut Figure",
+   "source_url": "https://fontawesome.com/icons/user-astronaut?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free icons)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "astronaut-helmet.png",
+   "name": "Astronaut Helmet",
+   "source_url": "https://game-icons.net/1x1/delapouite/astronaut-helmet.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "atom.png",
+   "name": "Atom",
+   "source_url": "https://phosphoricons.com/?q=atom",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "axe-in-log.png",
+   "name": "Axe in Log",
+   "source_url": "https://game-icons.net/1x1/delapouite/axe-in-log.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "axe.png",
+   "name": "Axe",
+   "source_url": "https://github.com/Templarian/MaterialDesign/blob/master/svg/axe.svg",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "bagpipes.png",
+   "name": "Bagpipes",
+   "source_url": "https://game-icons.net/1x1/delapouite/bagpipes.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "ballerina-shoes.png",
+   "name": "Ballerina Shoes",
+   "source_url": "https://game-icons.net/1x1/delapouite/ballerina-shoes.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "ballet-dancer.png",
+   "name": "Ballet Dancer",
+   "source_url": "https://icon-sets.iconify.design/twemoji/ballet-dancer/",
+   "license": "CC BY 4.0",
+   "author": "Twitter, Inc. and other contributors (Twemoji)"
+  },
+  {
+   "file": "bandaids.png",
+   "name": "Bandaids",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/bandaids-fill.svg",
+   "license": "MIT (Phosphor Icons)",
+   "author": "Phosphor Icons contributors"
+  },
+  {
+   "file": "banging-gavel.png",
+   "name": "Banging Gavel",
+   "source_url": "https://game-icons.net/1x1/delapouite/banging-gavel.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "baton.png",
+   "name": "Conductor baton",
+   "source_url": "https://game-icons.net/1x1/skoll/baton.html",
+   "license": "CC BY 3.0",
+   "author": "Skoll"
+  },
+  {
+   "file": "bellows.png",
+   "name": "Bellows",
+   "source_url": "https://game-icons.net/1x1/delapouite/bellows.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "black-knight-helm.png",
+   "name": "Knight helm",
+   "source_url": "https://game-icons.net/1x1/delapouite/black-knight-helm.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "blacksmith.png",
+   "name": "Blacksmith",
+   "source_url": "https://game-icons.net/1x1/delapouite/blacksmith.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "book-open-user.png",
+   "name": "Teacher with book",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/book-open-user-fill.svg",
+   "license": "MIT (Phosphor Icons)",
+   "author": "Phosphor Icons contributors"
+  },
+  {
+   "file": "book-pile.png",
+   "name": "Book Pile",
+   "source_url": "https://game-icons.net/1x1/delapouite/book-pile.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "bowman.png",
+   "name": "Bowman",
+   "source_url": "https://game-icons.net/1x1/lorc/bowman.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "bread.png",
+   "name": "Bread",
+   "source_url": "https://game-icons.net/1x1/delapouite/bread.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "brick-pile.png",
+   "name": "Brick Pile",
+   "source_url": "https://game-icons.net/1x1/delapouite/brick-pile.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "brick-wall.png",
+   "name": "Brick Wall",
+   "source_url": "https://game-icons.net/1x1/delapouite/brick-wall.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "brick.png",
+   "name": "Brick",
+   "source_url": "https://game-icons.net/1x1/delapouite/clay-brick.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "broom.png",
+   "name": "Broom",
+   "source_url": "https://game-icons.net/1x1/delapouite/broom.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "bugle.png",
+   "name": "Bugle",
+   "source_url": "https://game-icons.net/1x1/lorc/bugle-call.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "businesswoman.png",
+   "name": "Businesswoman",
+   "source_url": "https://github.com/Templarian/MaterialDesign/blob/master/svg/account-tie-woman.svg",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "calculator-ph.png",
+   "name": "Calculator (phosphor)",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/calculator-fill.svg",
+   "license": "MIT (Phosphor Icons)",
+   "author": "Phosphor Icons contributors"
+  },
+  {
+   "file": "calculator.png",
+   "name": "Calculator",
+   "source_url": "https://github.com/Templarian/MaterialDesign/blob/master/svg/calculator.svg",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "captain-hat.png",
+   "name": "Captain hat",
+   "source_url": "https://game-icons.net/1x1/delapouite/captain-hat-profile.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "cash-register.png",
+   "name": "Cash register",
+   "source_url": "https://github.com/Templarian/MaterialDesign/blob/master/svg/cash-register.svg",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "chainsaw.png",
+   "name": "Chainsaw",
+   "source_url": "https://game-icons.net/1x1/delapouite/chainsaw.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "chalkboard-teacher.png",
+   "name": "Teacher at chalkboard",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/chalkboard-teacher-fill.svg",
+   "license": "MIT (Phosphor Icons)",
+   "author": "Phosphor Icons contributors"
+  },
+  {
+   "file": "chef-hat.png",
+   "name": "Chef hat",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/chef-hat-fill.svg",
+   "license": "MIT (Phosphor Icons)",
+   "author": "Phosphor Icons contributors"
+  },
+  {
+   "file": "chef-toque.png",
+   "name": "Chef Toque",
+   "source_url": "https://game-icons.net/1x1/delapouite/chef-toque.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "chisel.png",
+   "name": "Chisel",
+   "source_url": "https://game-icons.net/1x1/delapouite/chisel.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "circular-saw.png",
+   "name": "Circular Saw",
+   "source_url": "https://game-icons.net/1x1/sbed/circular-saw.html",
+   "license": "CC BY 3.0",
+   "author": "Sbed"
+  },
+  {
+   "file": "clapperboard.png",
+   "name": "Clapperboard",
+   "source_url": "https://game-icons.net/1x1/delapouite/clapperboard.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "claw-hammer.png",
+   "name": "Claw Hammer",
+   "source_url": "https://game-icons.net/1x1/lorc/claw-hammer.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "cleaver.png",
+   "name": "Cleaver",
+   "source_url": "https://game-icons.net/1x1/delapouite/cleaver.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "clown.png",
+   "name": "Clown",
+   "source_url": "https://game-icons.net/1x1/delapouite/clown.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "coffee-cup.png",
+   "name": "Coffee Cup",
+   "source_url": "https://game-icons.net/1x1/delapouite/coffee-cup.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "community-health-worker.png",
+   "name": "Community Health Worker",
+   "source_url": "https://healthicons.org/?q=community-healthworker",
+   "license": "CC0 1.0",
+   "author": "Health Icons (healthicons.org)"
+  },
+  {
+   "file": "compass-tool.png",
+   "name": "Compass tool",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/compass-tool-fill.svg",
+   "license": "MIT (Phosphor Icons)",
+   "author": "Phosphor Icons contributors"
+  },
+  {
+   "file": "construction-worker-hi.png",
+   "name": "Construction Worker HI",
+   "source_url": "https://healthicons.org/?q=construction-worker",
+   "license": "CC0 1.0",
+   "author": "Health Icons (healthicons.org)"
+  },
+  {
+   "file": "cook.png",
+   "name": "Cook",
+   "source_url": "https://game-icons.net/1x1/delapouite/cook.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "cooking-glove.png",
+   "name": "Cooking Glove",
+   "source_url": "https://game-icons.net/1x1/delapouite/cooking-glove.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "cooking-pot.png",
+   "name": "Cooking Pot",
+   "source_url": "https://game-icons.net/1x1/delapouite/cooking-pot.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "cooking.png",
+   "name": "Cooking",
+   "source_url": "https://icon-sets.iconify.design/emojione-monotone/cooking/",
+   "license": "CC BY 4.0",
+   "author": "JoyPixels (EmojiOne)"
+  },
+  {
+   "file": "cowboy-boot.png",
+   "name": "Cowboy Boot",
+   "source_url": "https://game-icons.net/1x1/delapouite/cowboy-boot.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "cowboy-hat-ph.png",
+   "name": "Cowboy hat (phosphor)",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/cowboy-hat-fill.svg",
+   "license": "MIT (Phosphor Icons)",
+   "author": "Phosphor Icons contributors"
+  },
+  {
+   "file": "cowboy-hat-side.png",
+   "name": "Cowboy Hat Side",
+   "source_url": "https://fontawesome.com/icons/hat-cowboy-side?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free icons)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "crossbow.png",
+   "name": "Crossbow",
+   "source_url": "https://game-icons.net/1x1/carl-olsen/crossbow.html",
+   "license": "CC BY 3.0",
+   "author": "Carl-olsen"
+  },
+  {
+   "file": "crosscut-saw.png",
+   "name": "Crosscut Saw",
+   "source_url": "https://game-icons.net/1x1/delapouite/crosscut-saw.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "crossed-swords.png",
+   "name": "Crossed swords",
+   "source_url": "https://game-icons.net/1x1/lorc/crossed-swords.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "detective.png",
+   "name": "Detective",
+   "source_url": "https://icon-sets.iconify.design/emojione-monotone/detective/",
+   "license": "CC BY 4.0",
+   "author": "JoyPixels (EmojiOne)"
+  },
+  {
+   "file": "digging-worker.png",
+   "name": "Digging Worker",
+   "source_url": "https://fontawesome.com/icons/person-digging?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free icons)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "diving-helmet.png",
+   "name": "Diving Helmet",
+   "source_url": "https://game-icons.net/1x1/delapouite/diving-helmet.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "dna1.png",
+   "name": "DNA",
+   "source_url": "https://game-icons.net/1x1/lorc/dna1.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "doctor-female.png",
+   "name": "Doctor Female",
+   "source_url": "https://healthicons.org/?q=doctor-female",
+   "license": "CC0 1.0",
+   "author": "Health Icons (healthicons.org)"
+  },
+  {
+   "file": "doctor-figure.png",
+   "name": "Doctor Figure",
+   "source_url": "https://fontawesome.com/icons/user-doctor?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free icons)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "doctor-male.png",
+   "name": "Doctor Male",
+   "source_url": "https://healthicons.org/?q=doctor-male",
+   "license": "CC0 1.0",
+   "author": "Health Icons (healthicons.org)"
+  },
+  {
+   "file": "doctor.png",
+   "name": "Doctor",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/doctor/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "dolly-worker.png",
+   "name": "Dolly Worker",
+   "source_url": "https://icon-sets.iconify.design/mdi/human-dolly/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "drum-kit.png",
+   "name": "Drum Kit",
+   "source_url": "https://game-icons.net/1x1/caro-asercion/drum-kit.html",
+   "license": "CC BY 3.0",
+   "author": "Caro-asercion"
+  },
+  {
+   "file": "drum.png",
+   "name": "Drum",
+   "source_url": "https://game-icons.net/1x1/delapouite/drum.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "easel.png",
+   "name": "Easel",
+   "source_url": "https://game-icons.net/1x1/caro-asercion/easel.html",
+   "license": "CC BY 3.0",
+   "author": "Caro-asercion"
+  },
+  {
+   "file": "engineer-cog.png",
+   "name": "Engineer with cog",
+   "source_url": "https://github.com/Templarian/MaterialDesign/blob/master/svg/account-cog.svg",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "engineer-user-gear.png",
+   "name": "Engineer with gear",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/user-gear-fill.svg",
+   "license": "MIT (Phosphor Icons)",
+   "author": "Phosphor Icons contributors"
+  },
+  {
+   "file": "factory-worker.png",
+   "name": "Factory Worker",
+   "source_url": "https://healthicons.org/?q=factory-worker",
+   "license": "CC0 1.0",
+   "author": "Health Icons (healthicons.org)"
+  },
+  {
+   "file": "farm-tractor.png",
+   "name": "Tractor",
+   "source_url": "https://game-icons.net/1x1/delapouite/farm-tractor.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "farmer.png",
+   "name": "Farmer",
+   "source_url": "https://game-icons.net/1x1/delapouite/farmer.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "fire-axe.png",
+   "name": "Fire axe",
+   "source_url": "https://game-icons.net/1x1/lorc/fire-axe.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "fire-extinguisher-ph.png",
+   "name": "Fire extinguisher (phosphor)",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/fire-extinguisher-fill.svg",
+   "license": "MIT (Phosphor Icons)",
+   "author": "Phosphor Icons contributors"
+  },
+  {
+   "file": "fire-extinguisher.png",
+   "name": "Fire Extinguisher",
+   "source_url": "https://game-icons.net/1x1/delapouite/fire-extinguisher.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "fire-hydrant.png",
+   "name": "Fire hydrant",
+   "source_url": "https://github.com/Templarian/MaterialDesign/blob/master/svg/fire-hydrant.svg",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "fire-truck-ph.png",
+   "name": "Fire Truck PH",
+   "source_url": "https://icon-sets.iconify.design/ph/fire-truck-fill/",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "fire-truck.png",
+   "name": "Fire truck",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/fire-truck/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "first-aid-kit.png",
+   "name": "First aid kit",
+   "source_url": "https://phosphoricons.com/?q=first-aid-kit",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "fishing-hook.png",
+   "name": "Fishing Hook",
+   "source_url": "https://game-icons.net/1x1/lorc/fishing-hook.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "fishing-lure.png",
+   "name": "Fishing Lure",
+   "source_url": "https://game-icons.net/1x1/delapouite/fishing-lure.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "fishing-net.png",
+   "name": "Fishing Net",
+   "source_url": "https://game-icons.net/1x1/lorc/fishing-net.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "fishing-pole.png",
+   "name": "Fishing Pole",
+   "source_url": "https://game-icons.net/1x1/delapouite/fishing-pole.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "flask-ph.png",
+   "name": "Flask PH",
+   "source_url": "https://icon-sets.iconify.design/ph/flask-fill/",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "flask-vial.png",
+   "name": "Flask",
+   "source_url": "https://fontawesome.com/icons/flask-vial?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "flat-hammer.png",
+   "name": "Hammer",
+   "source_url": "https://game-icons.net/1x1/lorc/flat-hammer.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "flute.png",
+   "name": "Flute",
+   "source_url": "https://game-icons.net/1x1/delapouite/flute.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "fork-and-knife.png",
+   "name": "Fork and knife",
+   "source_url": "https://github.com/Templarian/MaterialDesign/blob/master/svg/silverware-fork-knife.svg",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "fork-knife.png",
+   "name": "Fork and knife (phosphor)",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/fork-knife-fill.svg",
+   "license": "MIT (Phosphor Icons)",
+   "author": "Phosphor Icons contributors"
+  },
+  {
+   "file": "forklift.png",
+   "name": "Forklift",
+   "source_url": "https://game-icons.net/1x1/delapouite/forklift.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "fountain-pen.png",
+   "name": "Fountain Pen",
+   "source_url": "https://game-icons.net/1x1/lorc/fountain-pen.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "french-horn.png",
+   "name": "French Horn",
+   "source_url": "https://game-icons.net/1x1/caro-asercion/french-horn.html",
+   "license": "CC BY 3.0",
+   "author": "Caro-asercion"
+  },
+  {
+   "file": "gavel.png",
+   "name": "Gavel",
+   "source_url": "https://game-icons.net/1x1/lorc/gavel.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "gears.png",
+   "name": "Gears",
+   "source_url": "https://game-icons.net/1x1/lorc/gears.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "graduate-cap.png",
+   "name": "Graduation Cap",
+   "source_url": "https://game-icons.net/1x1/delapouite/graduate-cap.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "graduate-figure.png",
+   "name": "Graduate Figure",
+   "source_url": "https://fontawesome.com/icons/user-graduate?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free icons)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "graduation-cap-ph.png",
+   "name": "Graduation cap (phosphor)",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/graduation-cap-fill.svg",
+   "license": "MIT (Phosphor Icons)",
+   "author": "Phosphor Icons contributors"
+  },
+  {
+   "file": "grand-piano.png",
+   "name": "Grand Piano",
+   "source_url": "https://game-icons.net/1x1/caro-asercion/grand-piano.html",
+   "license": "CC BY 3.0",
+   "author": "Caro-asercion"
+  },
+  {
+   "file": "grenade.png",
+   "name": "Grenade",
+   "source_url": "https://game-icons.net/1x1/lorc/grenade.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "guitar-electric.png",
+   "name": "Electric guitar",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/guitar-electric/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "guitar.png",
+   "name": "Guitar",
+   "source_url": "https://game-icons.net/1x1/lorc/guitar.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "halberd.png",
+   "name": "Halberd",
+   "source_url": "https://game-icons.net/1x1/delapouite/sharp-halberd.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "hammer-and-nails.png",
+   "name": "Hammer and nails",
+   "source_url": "https://game-icons.net/1x1/lorc/hammer-nails.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "hammer-and-screwdriver.png",
+   "name": "Hammer and screwdriver",
+   "source_url": "https://github.com/Templarian/MaterialDesign/blob/master/svg/hammer-screwdriver.svg",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "hammer-wrench.png",
+   "name": "Hammer and wrench",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/hammer-wrench/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "hand-saw.png",
+   "name": "Hand Saw",
+   "source_url": "https://game-icons.net/1x1/delapouite/hand-saw.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "handcuffs-mdi.png",
+   "name": "Handcuffs",
+   "source_url": "https://github.com/Templarian/MaterialDesign/blob/master/svg/handcuffs.svg",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "handcuffs.png",
+   "name": "Handcuffs",
+   "source_url": "https://game-icons.net/1x1/lorc/handcuffs.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "hanger.png",
+   "name": "Hanger",
+   "source_url": "https://github.com/Templarian/MaterialDesign/blob/master/svg/hanger.svg",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "hard-hat.png",
+   "name": "Hard hat",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/hard-hat-fill.svg",
+   "license": "MIT (Phosphor Icons)",
+   "author": "Phosphor Icons contributors"
+  },
+  {
+   "file": "harp.png",
+   "name": "Harp",
+   "source_url": "https://game-icons.net/1x1/delapouite/harp.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "hatchet.png",
+   "name": "Hatchet",
+   "source_url": "https://game-icons.net/1x1/delapouite/hatchet.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "hatchets.png",
+   "name": "Hatchets",
+   "source_url": "https://game-icons.net/1x1/lorc/hatchets.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "hunting-horn.png",
+   "name": "Hunting Horn",
+   "source_url": "https://game-icons.net/1x1/lorc/hunting-horn.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "juggler.png",
+   "name": "Juggler",
+   "source_url": "https://game-icons.net/1x1/lorc/juggler.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "kitchen-scale.png",
+   "name": "Kitchen Scale",
+   "source_url": "https://game-icons.net/1x1/delapouite/kitchen-scale.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "knight-shield.png",
+   "name": "Knight Shield",
+   "source_url": "https://icon-sets.iconify.design/mdi/shield-sword/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "lab-coat.png",
+   "name": "Lab Coat",
+   "source_url": "https://game-icons.net/1x1/delapouite/lab-coat.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "ladle.png",
+   "name": "Ladle",
+   "source_url": "https://game-icons.net/1x1/delapouite/ladle.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "lucky-fisherman.png",
+   "name": "Fisherman",
+   "source_url": "https://game-icons.net/1x1/delapouite/lucky-fisherman.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "magic-hat.png",
+   "name": "Magic Hat",
+   "source_url": "https://game-icons.net/1x1/delapouite/magic-hat.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "magic-wand.png",
+   "name": "Magic Wand",
+   "source_url": "https://fontawesome.com/icons/wand-magic-sparkles?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free icons)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "magician.png",
+   "name": "Magician",
+   "source_url": "https://game-icons.net/1x1/caro-asercion/tarot-01-the-magician.html",
+   "license": "CC BY 3.0",
+   "author": "Caro Asercion"
+  },
+  {
+   "file": "magick-trick.png",
+   "name": "Magician Trick",
+   "source_url": "https://game-icons.net/1x1/delapouite/magick-trick.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "mailbox.png",
+   "name": "Mailbox",
+   "source_url": "https://game-icons.net/1x1/delapouite/mailbox.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "man-cook.png",
+   "name": "Man Cook",
+   "source_url": "https://icon-sets.iconify.design/twemoji/man-cook/",
+   "license": "CC BY 4.0",
+   "author": "Twitter, Inc. and other contributors (Twemoji)"
+  },
+  {
+   "file": "man-detective.png",
+   "name": "Man Detective",
+   "source_url": "https://icon-sets.iconify.design/twemoji/man-detective/",
+   "license": "CC BY 4.0",
+   "author": "Twitter, Inc. and other contributors (Twemoji)"
+  },
+  {
+   "file": "man-farmer.png",
+   "name": "Man Farmer",
+   "source_url": "https://icon-sets.iconify.design/twemoji/man-farmer/",
+   "license": "CC BY 4.0",
+   "author": "Twitter, Inc. and other contributors (Twemoji)"
+  },
+  {
+   "file": "man-firefighter.png",
+   "name": "Man Firefighter",
+   "source_url": "https://icon-sets.iconify.design/twemoji/man-firefighter/",
+   "license": "CC BY 4.0",
+   "author": "Twitter, Inc. and other contributors (Twemoji)"
+  },
+  {
+   "file": "man-judge.png",
+   "name": "Man Judge",
+   "source_url": "https://icon-sets.iconify.design/twemoji/man-judge/",
+   "license": "CC BY 4.0",
+   "author": "Twitter, Inc. and other contributors (Twemoji)"
+  },
+  {
+   "file": "man-mage.png",
+   "name": "Man Mage",
+   "source_url": "https://icon-sets.iconify.design/twemoji/man-mage/",
+   "license": "CC BY 4.0",
+   "author": "Twitter, Inc. and other contributors (Twemoji)"
+  },
+  {
+   "file": "man-mechanic.png",
+   "name": "Man Mechanic",
+   "source_url": "https://icon-sets.iconify.design/twemoji/man-mechanic/",
+   "license": "CC BY 4.0",
+   "author": "Twitter, Inc. and other contributors (Twemoji)"
+  },
+  {
+   "file": "man-scientist.png",
+   "name": "Man Scientist",
+   "source_url": "https://icon-sets.iconify.design/twemoji/man-scientist/",
+   "license": "CC BY 4.0",
+   "author": "Twitter, Inc. and other contributors (Twemoji)"
+  },
+  {
+   "file": "man-singer.png",
+   "name": "Man Singer",
+   "source_url": "https://icon-sets.iconify.design/twemoji/man-singer/",
+   "license": "CC BY 4.0",
+   "author": "Twitter, Inc. and other contributors (Twemoji)"
+  },
+  {
+   "file": "man-student.png",
+   "name": "Man Student",
+   "source_url": "https://icon-sets.iconify.design/twemoji/man-student/",
+   "license": "CC BY 4.0",
+   "author": "Twitter, Inc. and other contributors (Twemoji)"
+  },
+  {
+   "file": "mdi-account-cowboy-hat.png",
+   "name": "Cowboy",
+   "source_url": "https://icon-sets.iconify.design/mdi/account-cowboy-hat/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-account-school.png",
+   "name": "Teacher",
+   "source_url": "https://icon-sets.iconify.design/mdi/account-school/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-account-tie.png",
+   "name": "Businessman",
+   "source_url": "https://icon-sets.iconify.design/mdi/account-tie/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-account-wrench.png",
+   "name": "Mechanic",
+   "source_url": "https://icon-sets.iconify.design/mdi/account-wrench/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-airplane.png",
+   "name": "Airplane",
+   "source_url": "https://icon-sets.iconify.design/mdi/airplane/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-anchor.png",
+   "name": "Anchor",
+   "source_url": "https://icon-sets.iconify.design/mdi/anchor/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-atom.png",
+   "name": "Atom",
+   "source_url": "https://icon-sets.iconify.design/mdi/atom/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-axe-battle.png",
+   "name": "Battle Axe",
+   "source_url": "https://icon-sets.iconify.design/mdi/axe-battle/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-bandage.png",
+   "name": "Bandage",
+   "source_url": "https://icon-sets.iconify.design/mdi/bandage/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-bank.png",
+   "name": "Bank",
+   "source_url": "https://icon-sets.iconify.design/mdi/bank/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-barn.png",
+   "name": "Barn",
+   "source_url": "https://icon-sets.iconify.design/mdi/barn/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-bee.png",
+   "name": "Bee",
+   "source_url": "https://icon-sets.iconify.design/mdi/bee/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-beekeeper.png",
+   "name": "Beekeeper",
+   "source_url": "https://icon-sets.iconify.design/mdi/beekeeper/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-beer.png",
+   "name": "Beer",
+   "source_url": "https://icon-sets.iconify.design/mdi/beer/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-book-open-variant.png",
+   "name": "Open Book",
+   "source_url": "https://icon-sets.iconify.design/mdi/book-open-variant/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-bottle-wine.png",
+   "name": "Wine Bottle",
+   "source_url": "https://icon-sets.iconify.design/mdi/bottle-wine/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-bowl-mix.png",
+   "name": "Mixing Bowl",
+   "source_url": "https://icon-sets.iconify.design/mdi/bowl-mix/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-briefcase.png",
+   "name": "Briefcase",
+   "source_url": "https://icon-sets.iconify.design/mdi/briefcase/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-broom.png",
+   "name": "Broom",
+   "source_url": "https://icon-sets.iconify.design/mdi/broom/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-brush.png",
+   "name": "Brush",
+   "source_url": "https://icon-sets.iconify.design/mdi/brush/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-camera.png",
+   "name": "Camera",
+   "source_url": "https://icon-sets.iconify.design/mdi/camera/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-chef-hat.png",
+   "name": "Chef Hat",
+   "source_url": "https://icon-sets.iconify.design/mdi/chef-hat/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-coffee.png",
+   "name": "Coffee",
+   "source_url": "https://icon-sets.iconify.design/mdi/coffee/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-content-cut.png",
+   "name": "Scissors",
+   "source_url": "https://icon-sets.iconify.design/mdi/content-cut/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-dna.png",
+   "name": "DNA",
+   "source_url": "https://icon-sets.iconify.design/mdi/dna/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-film.png",
+   "name": "Film",
+   "source_url": "https://icon-sets.iconify.design/mdi/film/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-fish.png",
+   "name": "Fish",
+   "source_url": "https://icon-sets.iconify.design/mdi/fish/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-flask.png",
+   "name": "Flask",
+   "source_url": "https://icon-sets.iconify.design/mdi/flask/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-format-paint.png",
+   "name": "Paint Roller",
+   "source_url": "https://icon-sets.iconify.design/mdi/format-paint/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-fountain-pen-tip.png",
+   "name": "Fountain Pen",
+   "source_url": "https://icon-sets.iconify.design/mdi/fountain-pen-tip/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-gavel.png",
+   "name": "Gavel",
+   "source_url": "https://icon-sets.iconify.design/mdi/gavel/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-glass-wine.png",
+   "name": "Glass of Wine",
+   "source_url": "https://icon-sets.iconify.design/mdi/glass-wine/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-guitar-acoustic.png",
+   "name": "Acoustic Guitar",
+   "source_url": "https://icon-sets.iconify.design/mdi/guitar-acoustic/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-hair-dryer.png",
+   "name": "Hair Dryer",
+   "source_url": "https://icon-sets.iconify.design/mdi/hair-dryer/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-hammer.png",
+   "name": "Hammer",
+   "source_url": "https://icon-sets.iconify.design/mdi/hammer/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-hard-hat.png",
+   "name": "Hard Hat",
+   "source_url": "https://icon-sets.iconify.design/mdi/hard-hat/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-hat-fedora.png",
+   "name": "Fedora",
+   "source_url": "https://icon-sets.iconify.design/mdi/hat-fedora/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-knife.png",
+   "name": "Knife",
+   "source_url": "https://icon-sets.iconify.design/mdi/knife/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-ladder.png",
+   "name": "Ladder",
+   "source_url": "https://icon-sets.iconify.design/mdi/ladder/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-magic-staff.png",
+   "name": "Magic Staff",
+   "source_url": "https://icon-sets.iconify.design/mdi/magic-staff/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-medical-bag.png",
+   "name": "Medical Bag",
+   "source_url": "https://icon-sets.iconify.design/mdi/medical-bag/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-microphone.png",
+   "name": "Microphone",
+   "source_url": "https://icon-sets.iconify.design/mdi/microphone/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-microscope.png",
+   "name": "Microscope",
+   "source_url": "https://icon-sets.iconify.design/mdi/microscope/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-mortar-pestle.png",
+   "name": "Mortar and Pestle",
+   "source_url": "https://icon-sets.iconify.design/mdi/mortar-pestle/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-needle.png",
+   "name": "Needle",
+   "source_url": "https://icon-sets.iconify.design/mdi/needle/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-palette.png",
+   "name": "Palette",
+   "source_url": "https://icon-sets.iconify.design/mdi/palette/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-pencil.png",
+   "name": "Pencil",
+   "source_url": "https://icon-sets.iconify.design/mdi/pencil/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-piano.png",
+   "name": "Piano",
+   "source_url": "https://icon-sets.iconify.design/mdi/piano/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-pickaxe.png",
+   "name": "Pickaxe",
+   "source_url": "https://icon-sets.iconify.design/mdi/pickaxe/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-pill.png",
+   "name": "Pill",
+   "source_url": "https://icon-sets.iconify.design/mdi/pill/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-police-badge.png",
+   "name": "Police Badge",
+   "source_url": "https://icon-sets.iconify.design/mdi/police-badge/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-postage-stamp.png",
+   "name": "Postage Stamp",
+   "source_url": "https://icon-sets.iconify.design/mdi/postage-stamp/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-pot-mix.png",
+   "name": "Mixing Pot",
+   "source_url": "https://icon-sets.iconify.design/mdi/pot-mix/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-pot-steam.png",
+   "name": "Pot",
+   "source_url": "https://icon-sets.iconify.design/mdi/pot-steam/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-rocket.png",
+   "name": "Rocket",
+   "source_url": "https://icon-sets.iconify.design/mdi/rocket/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-saw-blade.png",
+   "name": "Saw Blade",
+   "source_url": "https://icon-sets.iconify.design/mdi/saw-blade/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-saxophone.png",
+   "name": "Saxophone",
+   "source_url": "https://icon-sets.iconify.design/mdi/saxophone/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-scale-balance.png",
+   "name": "Scale of Justice",
+   "source_url": "https://icon-sets.iconify.design/mdi/scale-balance/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-shield-account.png",
+   "name": "Guard",
+   "source_url": "https://icon-sets.iconify.design/mdi/shield-account/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-shovel.png",
+   "name": "Shovel",
+   "source_url": "https://icon-sets.iconify.design/mdi/shovel/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-silo.png",
+   "name": "Silo",
+   "source_url": "https://icon-sets.iconify.design/mdi/silo/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-silverware-fork.png",
+   "name": "Fork",
+   "source_url": "https://icon-sets.iconify.design/mdi/silverware-fork/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-sprout.png",
+   "name": "Sprout",
+   "source_url": "https://icon-sets.iconify.design/mdi/sprout/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-stethoscope.png",
+   "name": "Stethoscope",
+   "source_url": "https://icon-sets.iconify.design/mdi/stethoscope/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-telescope.png",
+   "name": "Telescope",
+   "source_url": "https://icon-sets.iconify.design/mdi/telescope/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-test-tube.png",
+   "name": "Test Tube",
+   "source_url": "https://icon-sets.iconify.design/mdi/test-tube/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-tools.png",
+   "name": "Tools",
+   "source_url": "https://icon-sets.iconify.design/mdi/tools/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-tooth.png",
+   "name": "Tooth",
+   "source_url": "https://icon-sets.iconify.design/mdi/tooth/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-tractor.png",
+   "name": "Tractor",
+   "source_url": "https://icon-sets.iconify.design/mdi/tractor/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-trumpet.png",
+   "name": "Trumpet",
+   "source_url": "https://icon-sets.iconify.design/mdi/trumpet/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-vacuum.png",
+   "name": "Vacuum",
+   "source_url": "https://icon-sets.iconify.design/mdi/vacuum/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-violin.png",
+   "name": "Violin",
+   "source_url": "https://icon-sets.iconify.design/mdi/violin/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mdi-watering-can.png",
+   "name": "Watering Can",
+   "source_url": "https://icon-sets.iconify.design/mdi/watering-can/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "meat-cleaver.png",
+   "name": "Meat Cleaver",
+   "source_url": "https://game-icons.net/1x1/lorc/meat-cleaver.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "mechanic-garage.png",
+   "name": "Mechanic",
+   "source_url": "https://game-icons.net/1x1/delapouite/mechanic-garage.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "mechanical-arm.png",
+   "name": "Mechanical arm",
+   "source_url": "https://game-icons.net/1x1/lorc/mechanical-arm.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "medical-kit.png",
+   "name": "Medical Kit",
+   "source_url": "https://game-icons.net/1x1/sbed/medical-pack.html",
+   "license": "CC BY 3.0",
+   "author": "Sbed"
+  },
+  {
+   "file": "medicine-pills.png",
+   "name": "Medicine Pills",
+   "source_url": "https://game-icons.net/1x1/delapouite/medicine-pills.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "microphone.png",
+   "name": "Microphone",
+   "source_url": "https://game-icons.net/1x1/delapouite/microphone.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "microscope.png",
+   "name": "Microscope",
+   "source_url": "https://game-icons.net/1x1/lord-berandas/microscope.html",
+   "license": "CC BY 3.0",
+   "author": "Lord-berandas"
+  },
+  {
+   "file": "military-knife.png",
+   "name": "Military knife",
+   "source_url": "https://github.com/Templarian/MaterialDesign/blob/master/svg/knife-military.svg",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "military-worker.png",
+   "name": "Military Worker",
+   "source_url": "https://healthicons.org/?q=military-worker",
+   "license": "CC0 1.0",
+   "author": "Health Icons (healthicons.org)"
+  },
+  {
+   "file": "miner-worker.png",
+   "name": "Miner Worker",
+   "source_url": "https://healthicons.org/?q=miner-worker",
+   "license": "CC0 1.0",
+   "author": "Health Icons (healthicons.org)"
+  },
+  {
+   "file": "miner.png",
+   "name": "Miner",
+   "source_url": "https://game-icons.net/1x1/delapouite/miner.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "mining-helmet.png",
+   "name": "Mining Helmet",
+   "source_url": "https://game-icons.net/1x1/delapouite/mining-helmet.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "monk-face.png",
+   "name": "Monk",
+   "source_url": "https://game-icons.net/1x1/delapouite/monk-face.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "monkey-wrench.png",
+   "name": "Monkey Wrench",
+   "source_url": "https://game-icons.net/1x1/delapouite/monkey-wrench.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "mounted-knight.png",
+   "name": "Mounted Knight",
+   "source_url": "https://game-icons.net/1x1/skoll/mounted-knight.html",
+   "license": "CC BY 3.0",
+   "author": "Skoll"
+  },
+  {
+   "file": "newspaper-ph.png",
+   "name": "Newspaper (phosphor)",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/newspaper-fill.svg",
+   "license": "MIT (Phosphor Icons)",
+   "author": "Phosphor Icons contributors"
+  },
+  {
+   "file": "newspaper.png",
+   "name": "Newspaper",
+   "source_url": "https://github.com/Templarian/MaterialDesign/blob/master/svg/newspaper-variant.svg",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "ninja-mdi.png",
+   "name": "Ninja MDI",
+   "source_url": "https://icon-sets.iconify.design/mdi/ninja/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "nun-face.png",
+   "name": "Nun",
+   "source_url": "https://game-icons.net/1x1/cathelineau/nun-face.html",
+   "license": "CC BY 3.0",
+   "author": "Cathelineau"
+  },
+  {
+   "file": "nurse-female.png",
+   "name": "Nurse (female)",
+   "source_url": "https://game-icons.net/1x1/delapouite/nurse-female.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "nurse-figure-hi.png",
+   "name": "Nurse Figure HI",
+   "source_url": "https://healthicons.org/?q=nurse",
+   "license": "CC0 1.0",
+   "author": "Health Icons (healthicons.org)"
+  },
+  {
+   "file": "nurse-figure.png",
+   "name": "Nurse Figure",
+   "source_url": "https://fontawesome.com/icons/user-nurse?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free icons)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "nurse-male.png",
+   "name": "Nurse (male)",
+   "source_url": "https://game-icons.net/1x1/delapouite/nurse-male.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "oil-drum.png",
+   "name": "Oil Drum",
+   "source_url": "https://game-icons.net/1x1/skoll/oil-drum.html",
+   "license": "CC BY 3.0",
+   "author": "Skoll"
+  },
+  {
+   "file": "old-microphone.png",
+   "name": "Old Microphone",
+   "source_url": "https://game-icons.net/1x1/delapouite/old-microphone.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "open-book.png",
+   "name": "Open Book",
+   "source_url": "https://game-icons.net/1x1/lorc/open-book.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "paint-brush.png",
+   "name": "Paint Brush",
+   "source_url": "https://game-icons.net/1x1/delapouite/paint-brush.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "paint-bucket.png",
+   "name": "Paint Bucket",
+   "source_url": "https://game-icons.net/1x1/delapouite/paint-bucket.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "paint-roller-ph.png",
+   "name": "Paint roller (phosphor)",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/paint-roller-fill.svg",
+   "license": "MIT (Phosphor Icons)",
+   "author": "Phosphor Icons contributors"
+  },
+  {
+   "file": "paint-roller.png",
+   "name": "Paint Roller",
+   "source_url": "https://game-icons.net/1x1/delapouite/paint-roller.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "palette.png",
+   "name": "Palette",
+   "source_url": "https://game-icons.net/1x1/delapouite/palette.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "pan-flute.png",
+   "name": "Pan Flute",
+   "source_url": "https://game-icons.net/1x1/delapouite/pan-flute.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "pen-nib.png",
+   "name": "Pen nib",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/pen-nib-fill.svg",
+   "license": "MIT (Phosphor Icons)",
+   "author": "Phosphor Icons contributors"
+  },
+  {
+   "file": "pen.png",
+   "name": "Pen",
+   "source_url": "https://github.com/Templarian/MaterialDesign/blob/master/svg/pen.svg",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "pencil-and-ruler.png",
+   "name": "Pencil and ruler",
+   "source_url": "https://github.com/Templarian/MaterialDesign/blob/master/svg/pencil-ruler.svg",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "pencil-ruler.png",
+   "name": "Pencil and Ruler",
+   "source_url": "https://game-icons.net/1x1/delapouite/pencil-ruler.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "person-digging.png",
+   "name": "Construction worker",
+   "source_url": "https://fontawesome.com/icons/person-digging?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "person-military-pointing.png",
+   "name": "Officer pointing",
+   "source_url": "https://fontawesome.com/icons/person-military-pointing?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "person.png",
+   "name": "Person",
+   "source_url": "https://game-icons.net/1x1/delapouite/person.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "photo-camera.png",
+   "name": "Photo Camera",
+   "source_url": "https://game-icons.net/1x1/delapouite/photo-camera.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "pikeman.png",
+   "name": "Pikeman",
+   "source_url": "https://game-icons.net/1x1/delapouite/pikeman.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "pipe-organ.png",
+   "name": "Pipe organ",
+   "source_url": "https://game-icons.net/1x1/caro-asercion/pipe-organ.html",
+   "license": "CC BY 3.0",
+   "author": "Caro-asercion"
+  },
+  {
+   "file": "pipe-wrench.png",
+   "name": "Pipe wrench",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/pipe-wrench-fill.svg",
+   "license": "MIT (Phosphor Icons)",
+   "author": "Phosphor Icons contributors"
+  },
+  {
+   "file": "pirate-captain.png",
+   "name": "Pirate Captain",
+   "source_url": "https://game-icons.net/1x1/delapouite/pirate-captain.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "pirate-hat.png",
+   "name": "Pirate Hat",
+   "source_url": "https://game-icons.net/1x1/delapouite/pirate-hat.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "pirate-skull-hat.png",
+   "name": "Pirate",
+   "source_url": "https://github.com/Templarian/MaterialDesign/blob/master/svg/pirate.svg",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "pistol.png",
+   "name": "Pistol",
+   "source_url": "https://github.com/Templarian/MaterialDesign/blob/master/svg/pistol.svg",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "pitchfork.png",
+   "name": "Pitchfork",
+   "source_url": "https://game-icons.net/1x1/delapouite/pitchfork.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "plague-doctor-profile.png",
+   "name": "Plague Doctor",
+   "source_url": "https://game-icons.net/1x1/delapouite/plague-doctor-profile.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "plane-pilot.png",
+   "name": "Pilot",
+   "source_url": "https://game-icons.net/1x1/delapouite/plane-pilot.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "plow.png",
+   "name": "Plow",
+   "source_url": "https://game-icons.net/1x1/delapouite/plow.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "police-badge.png",
+   "name": "Police badge",
+   "source_url": "https://game-icons.net/1x1/andymeneely/police-badge.html",
+   "license": "CC BY 3.0",
+   "author": "Andymeneely"
+  },
+  {
+   "file": "police-officer-head.png",
+   "name": "Police Officer",
+   "source_url": "https://game-icons.net/1x1/delapouite/police-officer-head.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "quill.png",
+   "name": "Quill",
+   "source_url": "https://game-icons.net/1x1/lorc/quill.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "rake.png",
+   "name": "Rake",
+   "source_url": "https://game-icons.net/1x1/delapouite/rake.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "reaper-scythe.png",
+   "name": "Reaper Scythe",
+   "source_url": "https://game-icons.net/1x1/lorc/reaper-scythe.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "round-bottom-flask.png",
+   "name": "Round-Bottom Flask",
+   "source_url": "https://game-icons.net/1x1/lorc/round-bottom-flask.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "ruler-and-compass.png",
+   "name": "Ruler and compass",
+   "source_url": "https://github.com/Templarian/MaterialDesign/blob/master/svg/ruler-square-compass.svg",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "sailboat-ph.png",
+   "name": "Sailboat PH",
+   "source_url": "https://icon-sets.iconify.design/ph/sailboat-fill/",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "sailboat.png",
+   "name": "Sailboat",
+   "source_url": "https://game-icons.net/1x1/delapouite/sailboat.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "samurai-helmet.png",
+   "name": "Samurai",
+   "source_url": "https://game-icons.net/1x1/delapouite/samurai-helmet.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "saucepan.png",
+   "name": "Saucepan",
+   "source_url": "https://game-icons.net/1x1/caro-asercion/saucepan.html",
+   "license": "CC BY 3.0",
+   "author": "Caro-asercion"
+  },
+  {
+   "file": "saxophone.png",
+   "name": "Saxophone",
+   "source_url": "https://game-icons.net/1x1/delapouite/saxophone.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "scale-balanced.png",
+   "name": "Scales of justice",
+   "source_url": "https://fontawesome.com/icons/scale-balanced?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "scales.png",
+   "name": "Scales",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/scales-fill.svg",
+   "license": "MIT (Phosphor Icons)",
+   "author": "Phosphor Icons contributors"
+  },
+  {
+   "file": "scalpel.png",
+   "name": "Scalpel",
+   "source_url": "https://game-icons.net/1x1/lorc/scalpel.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "screwdriver-and-wrench.png",
+   "name": "Screwdriver and Wrench",
+   "source_url": "https://fontawesome.com/icons/screwdriver-wrench?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free icons)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "screwdriver.png",
+   "name": "Screwdriver",
+   "source_url": "https://game-icons.net/1x1/lorc/screwdriver.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "scroll-quill.png",
+   "name": "Scroll and Quill",
+   "source_url": "https://game-icons.net/1x1/delapouite/scroll-quill.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "scythe.png",
+   "name": "Scythe",
+   "source_url": "https://game-icons.net/1x1/lorc/scythe.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "security-worker.png",
+   "name": "Security Worker",
+   "source_url": "https://healthicons.org/?q=security-worker",
+   "license": "CC0 1.0",
+   "author": "Health Icons (healthicons.org)"
+  },
+  {
+   "file": "sewing-machine.png",
+   "name": "Sewing Machine",
+   "source_url": "https://game-icons.net/1x1/caro-asercion/sewing-machine.html",
+   "license": "CC BY 3.0",
+   "author": "Caro-asercion"
+  },
+  {
+   "file": "sewing-needle.png",
+   "name": "Sewing Needle",
+   "source_url": "https://game-icons.net/1x1/lorc/sewing-needle.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "shepherds-crook.png",
+   "name": "Shepherd's Crook",
+   "source_url": "https://game-icons.net/1x1/generalace135/shepherds-crook.html",
+   "license": "CC BY 3.0",
+   "author": "Generalace135"
+  },
+  {
+   "file": "ship-wheel.png",
+   "name": "Ship wheel",
+   "source_url": "https://game-icons.net/1x1/delapouite/ship-wheel.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "sickle.png",
+   "name": "Sickle",
+   "source_url": "https://game-icons.net/1x1/delapouite/sickle.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "siren.png",
+   "name": "Siren",
+   "source_url": "https://game-icons.net/1x1/skoll/siren.html",
+   "license": "CC BY 3.0",
+   "author": "Skoll"
+  },
+  {
+   "file": "soldier-with-rifle.png",
+   "name": "Soldier with Rifle",
+   "source_url": "https://fontawesome.com/icons/person-military-rifle?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free icons)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "spade.png",
+   "name": "Spade",
+   "source_url": "https://github.com/Templarian/MaterialDesign/blob/master/svg/spade.svg",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "spanner.png",
+   "name": "Spanner",
+   "source_url": "https://game-icons.net/1x1/lorc/spanner.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "spell-book.png",
+   "name": "Spell Book",
+   "source_url": "https://game-icons.net/1x1/delapouite/spell-book.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "spy-mdi.png",
+   "name": "Spy MDI",
+   "source_url": "https://icon-sets.iconify.design/mdi/incognito/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "spy.png",
+   "name": "Spy",
+   "source_url": "https://game-icons.net/1x1/delapouite/spy.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "spyglass.png",
+   "name": "Spyglass",
+   "source_url": "https://game-icons.net/1x1/lorc/spyglass.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "steel-pan.png",
+   "name": "Steel Pan",
+   "source_url": "https://fontawesome.com/icons/drum-steelpan?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free icons)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "stethoscope-ph.png",
+   "name": "Stethoscope (phosphor)",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/stethoscope-fill.svg",
+   "license": "MIT (Phosphor Icons)",
+   "author": "Phosphor Icons contributors"
+  },
+  {
+   "file": "stethoscope.png",
+   "name": "Stethoscope",
+   "source_url": "https://game-icons.net/1x1/delapouite/stethoscope.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "strongman.png",
+   "name": "Strongman",
+   "source_url": "https://game-icons.net/1x1/delapouite/strong-man.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "student.png",
+   "name": "Student",
+   "source_url": "https://icon-sets.iconify.design/ph/student-fill/",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "sun-priest.png",
+   "name": "Priest",
+   "source_url": "https://game-icons.net/1x1/delapouite/sun-priest.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "sword-cross.png",
+   "name": "Sword cross",
+   "source_url": "https://github.com/Templarian/MaterialDesign/blob/master/svg/sword-cross.svg",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "sword.png",
+   "name": "Sword",
+   "source_url": "https://github.com/Templarian/MaterialDesign/blob/master/svg/sword.svg",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "swordman.png",
+   "name": "Swordsman",
+   "source_url": "https://game-icons.net/1x1/cathelineau/swordman.html",
+   "license": "CC BY 3.0",
+   "author": "Cathelineau"
+  },
+  {
+   "file": "swordwoman.png",
+   "name": "Swordswoman",
+   "source_url": "https://game-icons.net/1x1/cathelineau/swordwoman.html",
+   "license": "CC BY 3.0",
+   "author": "Cathelineau"
+  },
+  {
+   "file": "syringe-ph.png",
+   "name": "Syringe (phosphor)",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/syringe-fill.svg",
+   "license": "MIT (Phosphor Icons)",
+   "author": "Phosphor Icons contributors"
+  },
+  {
+   "file": "syringe.png",
+   "name": "Syringe",
+   "source_url": "https://game-icons.net/1x1/lorc/syringe.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "teacher-at-board.png",
+   "name": "Teacher at board",
+   "source_url": "https://github.com/Templarian/MaterialDesign/blob/master/svg/human-male-board.svg",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "teacher.png",
+   "name": "Teacher",
+   "source_url": "https://game-icons.net/1x1/delapouite/teacher.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "test-tube-held.png",
+   "name": "Test tube (held)",
+   "source_url": "https://game-icons.net/1x1/caro-asercion/test-tube-held.html",
+   "license": "CC BY 3.0",
+   "author": "Caro-asercion"
+  },
+  {
+   "file": "test-tubes.png",
+   "name": "Test tubes",
+   "source_url": "https://game-icons.net/1x1/lorc/test-tubes.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "toolbox-fa.png",
+   "name": "Toolbox FA",
+   "source_url": "https://fontawesome.com/icons/toolbox?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free icons)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "tooth.png",
+   "name": "Tooth",
+   "source_url": "https://fontawesome.com/icons/tooth?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "tractor-fa.png",
+   "name": "Tractor FA",
+   "source_url": "https://fontawesome.com/icons/tractor?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free icons)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "tractor-ph.png",
+   "name": "Tractor (phosphor)",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/tractor-fill.svg",
+   "license": "MIT (Phosphor Icons)",
+   "author": "Phosphor Icons contributors"
+  },
+  {
+   "file": "trowel-and-bricks.png",
+   "name": "Trowel and Bricks",
+   "source_url": "https://fontawesome.com/icons/trowel-bricks?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free icons)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "trowel.png",
+   "name": "Trowel",
+   "source_url": "https://game-icons.net/1x1/delapouite/trowel.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "trumpet.png",
+   "name": "Trumpet",
+   "source_url": "https://game-icons.net/1x1/delapouite/trumpet.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "user-graduate.png",
+   "name": "Graduate",
+   "source_url": "https://fontawesome.com/icons/user-graduate?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "user-secret.png",
+   "name": "Detective",
+   "source_url": "https://fontawesome.com/icons/user-secret?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "video-camera-ph.png",
+   "name": "Video camera (phosphor)",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/video-camera-fill.svg",
+   "license": "MIT (Phosphor Icons)",
+   "author": "Phosphor Icons contributors"
+  },
+  {
+   "file": "video-camera.png",
+   "name": "Video Camera",
+   "source_url": "https://game-icons.net/1x1/delapouite/video-camera.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "violin.png",
+   "name": "Violin",
+   "source_url": "https://game-icons.net/1x1/zajkonur/violin.html",
+   "license": "CC BY 3.0",
+   "author": "Zajkonur"
+  },
+  {
+   "file": "western-hat.png",
+   "name": "Western Hat",
+   "source_url": "https://game-icons.net/1x1/delapouite/western-hat.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "wine-bottle.png",
+   "name": "Wine Bottle",
+   "source_url": "https://game-icons.net/1x1/delapouite/wine-bottle.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "wizard-face.png",
+   "name": "Wizard",
+   "source_url": "https://game-icons.net/1x1/delapouite/wizard-face.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "wizard-hat.png",
+   "name": "Wizard hat",
+   "source_url": "https://github.com/Templarian/MaterialDesign/blob/master/svg/wizard-hat.svg",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "wizard-staff.png",
+   "name": "Wizard Staff",
+   "source_url": "https://game-icons.net/1x1/lorc/wizard-staff.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "woman-artist.png",
+   "name": "Woman Artist",
+   "source_url": "https://icon-sets.iconify.design/twemoji/woman-artist/",
+   "license": "CC BY 4.0",
+   "author": "Twitter, Inc. and other contributors (Twemoji)"
+  },
+  {
+   "file": "wood-axe.png",
+   "name": "Wood Axe",
+   "source_url": "https://game-icons.net/1x1/lorc/wood-axe.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "wrench.png",
+   "name": "Wrench",
+   "source_url": "https://game-icons.net/1x1/sbed/wrench.html",
+   "license": "CC BY 3.0",
+   "author": "Sbed"
+  },
+  {
+   "file": "writer.png",
+   "name": "Writer",
+   "source_url": "https://fontawesome.com/icons/user-pen?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free icons)",
+   "author": "Fonticons, Inc."
+  }
+ ]
+}
