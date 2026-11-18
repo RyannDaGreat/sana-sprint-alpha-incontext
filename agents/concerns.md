@@ -318,3 +318,12 @@
 - Pure DataFusion repro, old hash-join query, 5 concurrent x 10 rounds: greedy pool 0.29-0.36 s, no hang; fair pool hung all 5 runs in round 1. So the pool alone decides the hang.
 - Sparrow (Puppeteer), 5 sequential opens each, all done, 1 query in flight at a time: claims_graph 0.66, 0.80, 1.31, 1.23, 1.29 s; multires_progress 0.73, 0.17, 0.16, 0.16, 0.17 s. No py-spy needed (no hang).
 - The save keeps the GROUP BY form (same counts, no cost). The pool fix is still local in data/Aviary until the user reviews and pushes it.
+
+## 2026-11-18 ~5 AM ET — Trimask editor GUI + agentic user study (m00684)
+- Built ops / tools / designs A–D; study: pilot r1 (9), main r2 (A, B, C × 4), confirm r3 (D × 4), Haiku `claude -p --bare` per folder. Results in `web/TRIMASK_GUI.md`; D is default.
+- Lesson (harness): `--bare` needs `--settings` with `apiKeyHelper`, else "Not logged in". File writes need an `Edit(./notes.md)` rule, not only `Write(...)` (r1 participants could not write notes; read their final message instead). Weak models quit on the first denied compound command (`cd … &&`, `cat`): tell them "only ./ui, one command per call, read files with Read".
+- Lesson (harness): `ui.js` left stale `data-uid` tags, so `set 0` inside the gallery dialog hit the Brush button; fixed after r3 (clear tags before re-tagging). A control click scrolls the page, so canvas clicks must scroll the matte back into view first.
+- Lesson (app): choosing a paint value recolored the just-drawn (selected) polygon, turning the whole house gray; now only the Move tool recolors. The `dblclick` event did not always arrive, so a polygon stayed open; now a quick second click at the same spot finishes a path.
+- Lesson: `pkill -f PATTERN` from a shell whose own command line contains PATTERN kills that shell (exit 144); use `tools/kill_browsers.sh`.
+- dilate() is O(r·W·H): 1024², r = 20 ≈ 0.3 s, r = 150 ≈ 2.3 s in node; sliders therefore re-run filters on release (`change`), not on every `input`.
+- Existing `test_masks.js`: "move undo restores pixels" now fails because the taller tools panel scrolls the matte out of the 1500 px viewport before its drag (test-harness geometry, move/undo checked by hand via ui.js); two Google-font checks failed on this network.
