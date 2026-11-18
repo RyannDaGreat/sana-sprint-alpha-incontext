@@ -50,6 +50,7 @@ DIGEST_CHARS = 16  # 64 bits of SHA-256: no collisions at this scale
 SHARD_CHARS = 2  # first hex chars as a folder, so no folder holds thousands of files
 PAGES_LIMIT_BYTES = 900e6  # GitHub Pages allows 1 GB per site; keep headroom
 PUSH_BATCH_BYTES = 800e6  # GitHub rejects pushes over 2 GB; commit and push assets in batches of this size
+SUBDIRS = ("compare", "lib")  # journal/ folders of text files (HTML, JS, CSS, JSON), copied with their image paths rewritten (manifest §15)
 EVAL_FULL_DIR = "assets/eval/full/"
 EVAL_JS_REFERENCE = "${EVAL_FULL_DIR}${dir}/${id}.png"  # the one dynamic image path, in eval_grid.js
 FOOTER = ('<footer style="margin:3em 0 1em;font-size:0.85em;opacity:0.7">Published images are full-resolution WebP q95, '
@@ -217,6 +218,11 @@ def build_site(urls, build_web=False):
             (SITE / source.name).write_text(rewrite_eval_grid_js(rewrite_asset_refs(text, urls), urls))
         elif text is not None:
             (SITE / source.name).write_text(rewrite_asset_refs(text, urls))
+    for source in (p for d in SUBDIRS for p in (JOURNAL / d).rglob("*") if p.is_file()):  # the compare reports
+        destination = SITE / source.relative_to(JOURNAL)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        text = rewrite_asset_refs(source.read_text(), urls)
+        destination.write_text(add_footer(text) if source.suffix == ".html" else text)
     shutil.copytree(JOURNAL / "webgpu", SITE / "webgpu")
     (SITE / "models/web").mkdir(parents=True)
     (SITE / "models/web/index.json").write_text(json.dumps(MODELS_PLACEHOLDER, indent=1))
