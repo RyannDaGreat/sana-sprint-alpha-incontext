@@ -11,6 +11,7 @@ import hashlib
 import json
 from pathlib import Path
 
+import cv2
 import fire
 import numpy as np
 from PIL import Image
@@ -20,6 +21,7 @@ from sana_alpha.eval_set import page_residue
 from sana_alpha.trimask import RGB_METHODS, coverage, generate, to_uint8
 
 WORKERS = 8  # Threads per run: OpenCV and PNG coding release the GIL. run_proc_trimask.fish starts several runs per method
+cv2.setNumThreads(1)  # Many runs x WORKERS already fill the CPUs: OpenCV's own pool (one thread per core) made the load ~800
 
 
 def in_subset(page_id, method, subset_digits):

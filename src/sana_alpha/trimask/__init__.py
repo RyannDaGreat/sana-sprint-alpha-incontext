@@ -30,7 +30,8 @@ import numpy as np
 METHODS = ("morph_band", "noisy_band", "blur_quantize", "scribbles", "bbox_unknown",
            "convex_hull", "grid_coarsen", "polygon_simplify", "unknown_patches", "fuzzy_ramp",
            "combo_union", "combo_chain", "skeleton_strokes", "partial_view",  # m00648
-           "bilateral_blur", "random_stack")  # m00649
+           "bilateral_blur", "random_stack",  # m00649
+           "perlin_warp", "op_chain", "glass_ripple")  # m00651
 RGB_METHODS = ("bilateral_blur",)  # Their make_trimask also takes rgb: (H, W, 3) float32 in [0, 1], the image on gray
 
 
