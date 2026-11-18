@@ -139,6 +139,10 @@ tables
 			 latent_<x>_<S>: (32, S/32, S/32) bfloat16, key "latent", unscaled, of the image area-downsampled to S x S
 			latent_rgb_768, latent_rgb_512, latent_rgb_256, latent_alpha_768, latent_alpha_512, latent_alpha_256 blob
 
+			 Written by encode_fibo2 (manifest §14): long-lived per-GPU workers (data/processors/encode_fibo2.py, started by run_encode_fibo2.fish)
+			 fibo2_<x>_<S>: (32, S/8, S/8) bfloat16, key "latent", the raw FLUX.2 VAE mode (not BatchNorm-normalized). gray = rgb_on_gray, colorbg = on bg_color
+			fibo2_gray_1024, fibo2_gray_768, fibo2_gray_512, fibo2_gray_256, fibo2_colorbg_1024, fibo2_colorbg_768, fibo2_colorbg_512, fibo2_colorbg_256 blob
+
 	eval_models
 		 One row per model to evaluate. To evaluate a new checkpoint, add a row here: run_proc_eval.fish initializes first
 		primary_key model_tag
@@ -552,6 +556,9 @@ tables
 			 Written by encode_multires: long-lived per-GPU workers (data/processors/encode_multires.py, started by run_proc_trimask.fish), committed with Bluejay's commit, not Bluejay runs
 			 768, 512 and 256 for every row (encode_multires.LOWRES_DIGITS, m00677)
 			latent_trimask_1024, latent_trimask_768, latent_trimask_512, latent_trimask_256 blob
+
+			 Written by encode_fibo2 (manifest §14): (32, S/8, S/8) bfloat16, key "latent", the raw FLUX.2 VAE mode of the trimask copied to 3 channels
+			fibo2_trimask_1024, fibo2_trimask_768, fibo2_trimask_512, fibo2_trimask_256 blob
 
 
 processors
