@@ -175,7 +175,8 @@ def build_trimask(source="resources/showcase", out="resources/showcase_trimask",
     """
     Command. Writes one eval set per trimask method: OUT/<method>/mattes/<page_id>.png = the 8-bit trimask (0.5 = 128)
     of SOURCE's matte, made by trimask.generate (seeded by page_id, method, variant, so it is fixed). Everything else
-    (originals/ = SOURCE's mattes, references/, prompts, noise) is a relative symlink into SOURCE.
+    (originals/ = SOURCE's mattes, references/, prompts, noise) is a relative symlink into SOURCE. Raises unless every
+    stored trimask passes trimask.check_consistent (m00647: no incorrect trimasks).
 
     Args:
         source (str): eval set folder relative to the repo root (resources/showcase)
@@ -195,8 +196,9 @@ def build_trimask(source="resources/showcase", out="resources/showcase_trimask",
                 (folder / link).symlink_to(os.path.relpath(source / target, folder))  # relative: the dump stays portable
         for item in items:
             alpha = np.asarray(Image.open(source / "mattes" / f"{item['page_id']}.png"), np.float32) / 255
-            mask, _ = trimask.generate(alpha, item["page_id"], method, variant)
-            Image.fromarray(trimask.to_uint8(mask), "L").save(folder / "mattes" / f"{item['page_id']}.png")
+            stored = trimask.to_uint8(trimask.generate(alpha, item["page_id"], method, variant)[0])
+            trimask.check_consistent(alpha, stored.astype(np.float32) / 255)  # m00647: the stored PNG, as load_eval_set reads it
+            Image.fromarray(stored, "L").save(folder / "mattes" / f"{item['page_id']}.png")
         print(f"wrote {folder}: {len(items)} trimasks")
 
 
