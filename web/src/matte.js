@@ -11,6 +11,8 @@ const MIN_OBJECT = 8;     // smallest shape side, in matte pixels
 const HISTORY_LIMIT = 40; // undo steps kept; each step with a raster change holds one 4 MB snapshot
 const CLOSE_DIST = 24;    // a polygon click this close to its first vertex closes it, in matte pixels
 const SAME_POINT = 3;     // consecutive path points closer than this are one point (double-click sends two)
+const DOUBLE_CLICK_MS = 500; // a second press this soon at the same spot finishes a path (the dblclick event is not always sent)
+const DOUBLE_CLICK_DIST = 8;
 const VERTEX = 12;        // vertex marker side while drawing a path
 const DASH = [12, 8];     // selection outline dash pattern
 const PATH_TOOLS = new Set(['polygon', 'line']);
@@ -165,6 +167,7 @@ export class MatteEditor {
     this.drag = null;
     this.cursor = null;
     this.path = null;           // polygon / line vertices being placed, or null
+    this.lastDown = -Infinity;  // time of the last path click, for double-click detection
     this.selection = null;      // {mask: Float32Array (H, W) in [0, 1], pts} limiting filters, or null = whole matte
     this.preview = null;        // {canvas, flat}: threshold preview (replaces the raster) or filter preview (flat: replaces everything)
     this.rasterRev = 0;         // bumped on every raster edit, so snapshots share unchanged rasters
@@ -461,8 +464,10 @@ export class MatteEditor {
     }
     if (this.tool === 'lasso') { this.drag = { kind: 'lasso', pts: [p] }; return; }
     if (PATH_TOOLS.has(this.tool)) {
-      const first = this.path?.[0];
-      if (this.tool === 'polygon' && this.path?.length >= 3 && Math.hypot(p.x - first.x, p.y - first.y) < CLOSE_DIST) this.finishPath();
+      const first = this.path?.[0], last = this.path?.at(-1);
+      const double = last && e.timeStamp - this.lastDown < DOUBLE_CLICK_MS && Math.hypot(p.x - last.x, p.y - last.y) < DOUBLE_CLICK_DIST;
+      this.lastDown = e.timeStamp;
+      if (double || (this.tool === 'polygon' && this.path?.length >= 3 && Math.hypot(p.x - first.x, p.y - first.y) < CLOSE_DIST)) this.finishPath();
       else { this.path = [...(this.path ?? []), p]; this.selected = null; this.drawOverlay(); }
       return;
     }
