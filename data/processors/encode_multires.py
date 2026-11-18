@@ -8,8 +8,8 @@ Writes, each {"latent": (32, S/32, S/32) bfloat16 (LC, LH, LW)} unscaled, like e
 before diffusion training):
     magick_samples         latent_rgb_{768,512,256}, latent_alpha_{768,512,256}   (latent_*_1024 come from encode_latents)
     trimask_augmentations  latent_trimask_{1024,768,512,256}
-latent_trimask_{768,512,256} only for LOWRES_DIGITS of the rows (first hex digit of sha256(page_id || method || variant)):
-5 of 16, ~31%, balanced over the methods (coordinator, 1:15 AM: GPU time). Jobs in order: magick rows (the training targets
+latent_trimask_{768,512,256} for the LOWRES_DIGITS rows (first hex digit of sha256(page_id || method || variant)): now all;
+first 5 of 16 (~31%) for GPU time, then all (m00677). Jobs in order: magick rows (the training targets
 of every low-resolution step), latent_trimask_1024 of every trimask row (waits for augmentation until STOP_WHEN exists), then
 the low-resolution trimask latents. Rows are split among workers by the 2nd hex digit of sha256(key text); a job's row is done
 when its done column is set (committed with the others).
@@ -37,7 +37,7 @@ CHUNK = 256  # Rows per encode and commit
 QUERY_CHUNKS = 4  # Chunks per query: the next chunk is decoded while the GPU encodes this one
 IO_WORKERS = 6  # Threads per worker that read, decode and downsample PNGs: 16 workers x 6 fill the 96 CPUs
 IDLE_SECONDS = 30  # Wait between queries while augmentation still adds trimask rows
-LOWRES_DIGITS = "01234"  # Trimask rows that also get 768/512/256 latents: 5 of 16 first hex digits
+LOWRES_DIGITS = "0123456789abcdef"  # Trimask rows that also get 768/512/256 latents: all (m00677; was 5 of 16 at first, for GPU time)
 cv2.setNumThreads(1)  # The IO threads already run in parallel
 
 
