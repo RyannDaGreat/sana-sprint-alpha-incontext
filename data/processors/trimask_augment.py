@@ -1,0 +1,79 @@
+"""
+Makes trimask_augmentations rows: the ten trimask_<method> processors all run this file, each with its own method tag.
+
+Not a PEP 723 script: it runs in the repo's own uv project, so it uses src/sana_alpha/trimask (manifest §13), like generate_eval.
+Each Sample folder has input.json {page_id, split} and alpha.png. It writes children/<variant>/fields.json and
+children/<variant>/trimask.png, one trimask_augmentations row per variant. A showcase image (page_residue 1) gets no row.
+"""
+
+import hashlib
+import json
+from pathlib import Path
+
+import fire
+import numpy as np
+from PIL import Image
+
+from _batch import process_samples
+from sana_alpha.eval_set import page_residue
+from sana_alpha.trimask import coverage, generate, to_uint8
+
+WORKERS = 8  # Threads per run: OpenCV and PNG coding release the GIL. run_proc_trimask.fish starts several runs per method
+SHOWCASE_RESIDUES = (0, 1)  # page_residue 0 is eval, 1 is the showcase's training images (resources/showcase): never augment them
+
+
+def in_subset(page_id, method, subset_digits):
+    """
+    Pure function. The rule of each trimask_<method> query: the first hex digit of sha256(page_id + method) is in subset_digits.
+
+    Args:
+        page_id (str): magick_samples.page_id
+        method (str): A trimask method tag
+        subset_digits (str): Hex digits, e.g. "012": 3 of 16, about 26k of the 141k images per method
+
+    Returns:
+        bool
+
+    Examples:
+        >>> in_subset("O7qN711ot9", "morph_band", "012"), in_subset("HWtdTKVLOk", "morph_band", "012")
+        (True, False)
+    """
+    return hashlib.sha256((page_id + method).encode()).hexdigest()[0] in subset_digits
+
+
+def process_sample(sample, method, variants, subset_digits):
+    """Command. Writes the trimask_augmentations rows of one Sample folder (see the module docstring). Raises if the query broke the subset rule."""
+    job = json.loads((sample / "input.json").read_text())
+    if not in_subset(job["page_id"], method, subset_digits):
+        raise ValueError(f"{job['page_id']} is not in the {method} subset {subset_digits!r}: the query and in_subset disagree")
+    children = sample / "children"
+    children.mkdir()
+    if page_residue(job["page_id"]) in SHOWCASE_RESIDUES:
+        return
+    alpha = np.asarray(Image.open(sample / "alpha.png").convert("L"), np.float32) / 255
+    for variant in range(variants):
+        trimask, params = generate(alpha, job["page_id"], method, variant)
+        stored = to_uint8(trimask)
+        fractions = {f"{name}_fraction": value for name, value in coverage(stored).items()}
+        child = children / str(variant)
+        child.mkdir()
+        Image.fromarray(stored).save(child / "trimask.png")
+        fields = {**job, "method": method, "variant": variant, "params": json.dumps(params), **fractions}
+        (child / "fields.json").write_text(json.dumps(fields))
+
+
+def main(batch, method, variants, subset_digits):
+    """
+    Command. Makes the trimasks of every Sample of batch with one method.
+
+    Args:
+        batch (str): The $BATCH folder
+        method (str): A tag of sana_alpha.trimask.METHODS
+        variants (int): Trimasks per image, $TRIMASK_VARIANTS
+        subset_digits (str | int): $TRIMASK_SUBSET, e.g. "012". Fire gives "123" as the int 123; str() restores it
+    """
+    process_samples(batch, lambda sample: process_sample(sample, method, int(variants), str(subset_digits)), WORKERS)
+
+
+if __name__ == "__main__":
+    fire.Fire(main)

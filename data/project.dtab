@@ -4,6 +4,8 @@ environ
 	SPLIT_BATCH_SIZE 64	     Images per run of split_alpha. CPU only: it reads 1 PNG and writes 2
 	ENCODE_BATCH_SIZE 128	 Images per run of encode_latents (about 40 s on one A100). run_proc_curate.fish starts two loops per GPU
 	COLORBG_BATCH_SIZE 512	 Images per run of encode_colorbg. Big: a run costs ~40 s besides the encoding. run_proc_colorbg.fish starts 1 loop per GPU
+	TRIMASK_BATCH_SIZE 512	        Images per run of each trimask_<method>. CPU only: it reads 1 PNG and writes 1 per variant. run_proc_trimask.fish starts 4 loops per method
+	TRIMASK_ENCODE_BATCH_SIZE 256	 Trimasks per run of encode_trimask. run_proc_trimask.fish starts two loops per GPU
 
 	 Data
 	MAGICK_REPO OneOverZero/MAGICK	 Hugging Face dataset: 140,955 RGBA PNGs, 1024 x 1024, straight alpha, 191 GB
@@ -17,6 +19,10 @@ environ
 	 Eval (plan_eval, generate_eval)
 	EVAL_SET resources/eval	 Eval images, captions and fixed noise, relative to the repo root. src/sana_alpha/eval_set.py makes it. Default of eval_models.eval_set
 	EVAL_BATCH_SIZE 16	      eval_generations rows per run of generate_eval. A run costs ~12 s besides the GPU: 8 rows took 15 s
+
+	 Trimask augmentations (trimask_<method>, manifest §13)
+	TRIMASK_SUBSET 012	 A method uses a train image when the first hex digit of sha256(page_id + method) is one of these: about 26k images
+	TRIMASK_VARIANTS 1	 Trimasks per image and method
 
 	 Database
 	DATABASE_PORT 23947	 Far from the ports of the Bluejay demos on the laptop (19471, 19683, 19783)
@@ -1819,6 +1825,21 @@ tables
 			image blob
 			seconds, exterior_gray_error, border_gray_error, border_std, iou, foreground_fraction float64
 
+	trimask_augmentations
+		 One row per trimask: the condition of the trimask model (manifest §13). Ten methods, about 26k train images each
+		primary_key page_id,method,variant
+		columns
+			page_id, method string
+			variant int64
+
+			 Written by the ten trimask_<method> processors
+			split, params string
+			trimask blob
+			white_fraction, gray_fraction, black_fraction float64
+
+			 Written by encode_trimask
+			latent_trimask_1024 blob
+
 
 processors
 
@@ -1977,6 +1998,321 @@ processors
 					border_std @	                 float  Standard deviation in the 64 px edge band. 0: flat            0.10
 					iou @	                         float  IoU of the pixels far from 0.5 gray with the matte            0.39
 					foreground_fraction @	         float  Fraction of the pixels far from 0.5 gray                      0.92
+
+	trimask_morph_band	 Makes the trimasks of method morph_band (src/sana_alpha/trimask/morph_band.py) for its train images
+		query sql
+			SELECT page_id, alpha, split FROM magick_samples                                                   -- MAGICK images
+			WHERE   trimask_morph_band_claim IS NULL                                                           -- not yet claimed,
+			    AND alpha                    IS NOT NULL                                                       -- that split_alpha did,
+			    AND split                    = 'train'                                                         -- not eval,
+			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'morph_band')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
+			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                        -- one batch at a time, in random order
+		claim	trimask_morph_band_claim magick_samples
+		command bash
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src uv run --project .. python processors/trimask_augment.py "$BATCH" morph_band $TRIMASK_VARIANTS $TRIMASK_SUBSET
+		materialize	               TYPE  DESCRIPTION                            EXAMPLE
+			alpha.png alpha	        blob  The matte                              120 KB .png
+			input.json	           TYPE  DESCRIPTION                            EXAMPLE
+				page_id @	 [Key]  str   MAGICK image ID: it seeds the trimask  "Hcx82jcUpM"
+				split @	           ~str   Always train                           "train"
+		commit
+			trimask_augmentations
+				children/	                       TYPE   DESCRIPTION                                                                       EXAMPLE
+					trimask trimask.png	            blob   The trimask: 1024 x 1024 grayscale, 8 bit. 255 object, 0 background, 128 unknown  20 KB .png
+					fields.json	         SUBFIELD  TYPE   DESCRIPTION                                                                       EXAMPLE
+						page_id @	         [Key]  str    The image                                                                         "Hcx82jcUpM"
+						method @	         [Key]  str    The method tag                                                                    "morph_band"
+						variant @	         [Key]  int    0 to TRIMASK_VARIANTS - 1: it seeds the trimask too                               0
+						split @	                   ~str    Always train                                                                      "train"
+						params @	                str    JSON of the hyperparameters used                                                  "{...}"
+						white_fraction @	        float  Fraction of pixels 255: surely object                                             0.25
+						gray_fraction @	            float  Fraction of pixels not 0 or 255: unknown                                          0.10
+						black_fraction @	        float  Fraction of pixels 0: surely background                                           0.65
+
+	trimask_noisy_band	 Makes the trimasks of method noisy_band (src/sana_alpha/trimask/noisy_band.py) for its train images
+		query sql
+			SELECT page_id, alpha, split FROM magick_samples                                                   -- MAGICK images
+			WHERE   trimask_noisy_band_claim IS NULL                                                           -- not yet claimed,
+			    AND alpha                    IS NOT NULL                                                       -- that split_alpha did,
+			    AND split                    = 'train'                                                         -- not eval,
+			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'noisy_band')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
+			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                        -- one batch at a time, in random order
+		claim	trimask_noisy_band_claim magick_samples
+		command bash
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src uv run --project .. python processors/trimask_augment.py "$BATCH" noisy_band $TRIMASK_VARIANTS $TRIMASK_SUBSET
+		materialize	               TYPE  DESCRIPTION                            EXAMPLE
+			alpha.png alpha	        blob  The matte                              120 KB .png
+			input.json	           TYPE  DESCRIPTION                            EXAMPLE
+				page_id @	 [Key]  str   MAGICK image ID: it seeds the trimask  "Hcx82jcUpM"
+				split @	           ~str   Always train                           "train"
+		commit
+			trimask_augmentations
+				children/	                       TYPE   DESCRIPTION                                                                       EXAMPLE
+					trimask trimask.png	            blob   The trimask: 1024 x 1024 grayscale, 8 bit. 255 object, 0 background, 128 unknown  20 KB .png
+					fields.json	         SUBFIELD  TYPE   DESCRIPTION                                                                       EXAMPLE
+						page_id @	         [Key]  str    The image                                                                         "Hcx82jcUpM"
+						method @	         [Key]  str    The method tag                                                                    "noisy_band"
+						variant @	         [Key]  int    0 to TRIMASK_VARIANTS - 1: it seeds the trimask too                               0
+						split @	                   ~str    Always train                                                                      "train"
+						params @	                str    JSON of the hyperparameters used                                                  "{...}"
+						white_fraction @	        float  Fraction of pixels 255: surely object                                             0.25
+						gray_fraction @	            float  Fraction of pixels not 0 or 255: unknown                                          0.10
+						black_fraction @	        float  Fraction of pixels 0: surely background                                           0.65
+
+	trimask_blur_quantize	 Makes the trimasks of method blur_quantize (src/sana_alpha/trimask/blur_quantize.py) for its train images
+		query sql
+			SELECT page_id, alpha, split FROM magick_samples                                                      -- MAGICK images
+			WHERE   trimask_blur_quantize_claim IS NULL                                                           -- not yet claimed,
+			    AND alpha                       IS NOT NULL                                                       -- that split_alpha did,
+			    AND split                       = 'train'                                                         -- not eval,
+			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'blur_quantize')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
+			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                           -- one batch at a time, in random order
+		claim	trimask_blur_quantize_claim magick_samples
+		command bash
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src uv run --project .. python processors/trimask_augment.py "$BATCH" blur_quantize $TRIMASK_VARIANTS $TRIMASK_SUBSET
+		materialize	               TYPE  DESCRIPTION                            EXAMPLE
+			alpha.png alpha	        blob  The matte                              120 KB .png
+			input.json	           TYPE  DESCRIPTION                            EXAMPLE
+				page_id @	 [Key]  str   MAGICK image ID: it seeds the trimask  "Hcx82jcUpM"
+				split @	           ~str   Always train                           "train"
+		commit
+			trimask_augmentations
+				children/	                       TYPE   DESCRIPTION                                                                       EXAMPLE
+					trimask trimask.png	            blob   The trimask: 1024 x 1024 grayscale, 8 bit. 255 object, 0 background, 128 unknown  20 KB .png
+					fields.json	         SUBFIELD  TYPE   DESCRIPTION                                                                       EXAMPLE
+						page_id @	         [Key]  str    The image                                                                         "Hcx82jcUpM"
+						method @	         [Key]  str    The method tag                                                                    "blur_quantize"
+						variant @	         [Key]  int    0 to TRIMASK_VARIANTS - 1: it seeds the trimask too                               0
+						split @	                   ~str    Always train                                                                      "train"
+						params @	                str    JSON of the hyperparameters used                                                  "{...}"
+						white_fraction @	        float  Fraction of pixels 255: surely object                                             0.25
+						gray_fraction @	            float  Fraction of pixels not 0 or 255: unknown                                          0.10
+						black_fraction @	        float  Fraction of pixels 0: surely background                                           0.65
+
+	trimask_scribbles	 Makes the trimasks of method scribbles (src/sana_alpha/trimask/scribbles.py) for its train images
+		query sql
+			SELECT page_id, alpha, split FROM magick_samples                                                  -- MAGICK images
+			WHERE   trimask_scribbles_claim IS NULL                                                           -- not yet claimed,
+			    AND alpha                   IS NOT NULL                                                       -- that split_alpha did,
+			    AND split                   = 'train'                                                         -- not eval,
+			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'scribbles')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
+			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                       -- one batch at a time, in random order
+		claim	trimask_scribbles_claim magick_samples
+		command bash
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src uv run --project .. python processors/trimask_augment.py "$BATCH" scribbles $TRIMASK_VARIANTS $TRIMASK_SUBSET
+		materialize	               TYPE  DESCRIPTION                            EXAMPLE
+			alpha.png alpha	        blob  The matte                              120 KB .png
+			input.json	           TYPE  DESCRIPTION                            EXAMPLE
+				page_id @	 [Key]  str   MAGICK image ID: it seeds the trimask  "Hcx82jcUpM"
+				split @	           ~str   Always train                           "train"
+		commit
+			trimask_augmentations
+				children/	                       TYPE   DESCRIPTION                                                                       EXAMPLE
+					trimask trimask.png	            blob   The trimask: 1024 x 1024 grayscale, 8 bit. 255 object, 0 background, 128 unknown  20 KB .png
+					fields.json	         SUBFIELD  TYPE   DESCRIPTION                                                                       EXAMPLE
+						page_id @	         [Key]  str    The image                                                                         "Hcx82jcUpM"
+						method @	         [Key]  str    The method tag                                                                    "scribbles"
+						variant @	         [Key]  int    0 to TRIMASK_VARIANTS - 1: it seeds the trimask too                               0
+						split @	                   ~str    Always train                                                                      "train"
+						params @	                str    JSON of the hyperparameters used                                                  "{...}"
+						white_fraction @	        float  Fraction of pixels 255: surely object                                             0.25
+						gray_fraction @	            float  Fraction of pixels not 0 or 255: unknown                                          0.10
+						black_fraction @	        float  Fraction of pixels 0: surely background                                           0.65
+
+	trimask_bbox_unknown	 Makes the trimasks of method bbox_unknown (src/sana_alpha/trimask/bbox_unknown.py) for its train images
+		query sql
+			SELECT page_id, alpha, split FROM magick_samples                                                     -- MAGICK images
+			WHERE   trimask_bbox_unknown_claim IS NULL                                                           -- not yet claimed,
+			    AND alpha                      IS NOT NULL                                                       -- that split_alpha did,
+			    AND split                      = 'train'                                                         -- not eval,
+			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'bbox_unknown')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
+			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                          -- one batch at a time, in random order
+		claim	trimask_bbox_unknown_claim magick_samples
+		command bash
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src uv run --project .. python processors/trimask_augment.py "$BATCH" bbox_unknown $TRIMASK_VARIANTS $TRIMASK_SUBSET
+		materialize	               TYPE  DESCRIPTION                            EXAMPLE
+			alpha.png alpha	        blob  The matte                              120 KB .png
+			input.json	           TYPE  DESCRIPTION                            EXAMPLE
+				page_id @	 [Key]  str   MAGICK image ID: it seeds the trimask  "Hcx82jcUpM"
+				split @	           ~str   Always train                           "train"
+		commit
+			trimask_augmentations
+				children/	                       TYPE   DESCRIPTION                                                                       EXAMPLE
+					trimask trimask.png	            blob   The trimask: 1024 x 1024 grayscale, 8 bit. 255 object, 0 background, 128 unknown  20 KB .png
+					fields.json	         SUBFIELD  TYPE   DESCRIPTION                                                                       EXAMPLE
+						page_id @	         [Key]  str    The image                                                                         "Hcx82jcUpM"
+						method @	         [Key]  str    The method tag                                                                    "bbox_unknown"
+						variant @	         [Key]  int    0 to TRIMASK_VARIANTS - 1: it seeds the trimask too                               0
+						split @	                   ~str    Always train                                                                      "train"
+						params @	                str    JSON of the hyperparameters used                                                  "{...}"
+						white_fraction @	        float  Fraction of pixels 255: surely object                                             0.25
+						gray_fraction @	            float  Fraction of pixels not 0 or 255: unknown                                          0.10
+						black_fraction @	        float  Fraction of pixels 0: surely background                                           0.65
+
+	trimask_convex_hull	 Makes the trimasks of method convex_hull (src/sana_alpha/trimask/convex_hull.py) for its train images
+		query sql
+			SELECT page_id, alpha, split FROM magick_samples                                                    -- MAGICK images
+			WHERE   trimask_convex_hull_claim IS NULL                                                           -- not yet claimed,
+			    AND alpha                     IS NOT NULL                                                       -- that split_alpha did,
+			    AND split                     = 'train'                                                         -- not eval,
+			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'convex_hull')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
+			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                         -- one batch at a time, in random order
+		claim	trimask_convex_hull_claim magick_samples
+		command bash
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src uv run --project .. python processors/trimask_augment.py "$BATCH" convex_hull $TRIMASK_VARIANTS $TRIMASK_SUBSET
+		materialize	               TYPE  DESCRIPTION                            EXAMPLE
+			alpha.png alpha	        blob  The matte                              120 KB .png
+			input.json	           TYPE  DESCRIPTION                            EXAMPLE
+				page_id @	 [Key]  str   MAGICK image ID: it seeds the trimask  "Hcx82jcUpM"
+				split @	           ~str   Always train                           "train"
+		commit
+			trimask_augmentations
+				children/	                       TYPE   DESCRIPTION                                                                       EXAMPLE
+					trimask trimask.png	            blob   The trimask: 1024 x 1024 grayscale, 8 bit. 255 object, 0 background, 128 unknown  20 KB .png
+					fields.json	         SUBFIELD  TYPE   DESCRIPTION                                                                       EXAMPLE
+						page_id @	         [Key]  str    The image                                                                         "Hcx82jcUpM"
+						method @	         [Key]  str    The method tag                                                                    "convex_hull"
+						variant @	         [Key]  int    0 to TRIMASK_VARIANTS - 1: it seeds the trimask too                               0
+						split @	                   ~str    Always train                                                                      "train"
+						params @	                str    JSON of the hyperparameters used                                                  "{...}"
+						white_fraction @	        float  Fraction of pixels 255: surely object                                             0.25
+						gray_fraction @	            float  Fraction of pixels not 0 or 255: unknown                                          0.10
+						black_fraction @	        float  Fraction of pixels 0: surely background                                           0.65
+
+	trimask_grid_coarsen	 Makes the trimasks of method grid_coarsen (src/sana_alpha/trimask/grid_coarsen.py) for its train images
+		query sql
+			SELECT page_id, alpha, split FROM magick_samples                                                     -- MAGICK images
+			WHERE   trimask_grid_coarsen_claim IS NULL                                                           -- not yet claimed,
+			    AND alpha                      IS NOT NULL                                                       -- that split_alpha did,
+			    AND split                      = 'train'                                                         -- not eval,
+			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'grid_coarsen')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
+			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                          -- one batch at a time, in random order
+		claim	trimask_grid_coarsen_claim magick_samples
+		command bash
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src uv run --project .. python processors/trimask_augment.py "$BATCH" grid_coarsen $TRIMASK_VARIANTS $TRIMASK_SUBSET
+		materialize	               TYPE  DESCRIPTION                            EXAMPLE
+			alpha.png alpha	        blob  The matte                              120 KB .png
+			input.json	           TYPE  DESCRIPTION                            EXAMPLE
+				page_id @	 [Key]  str   MAGICK image ID: it seeds the trimask  "Hcx82jcUpM"
+				split @	           ~str   Always train                           "train"
+		commit
+			trimask_augmentations
+				children/	                       TYPE   DESCRIPTION                                                                       EXAMPLE
+					trimask trimask.png	            blob   The trimask: 1024 x 1024 grayscale, 8 bit. 255 object, 0 background, 128 unknown  20 KB .png
+					fields.json	         SUBFIELD  TYPE   DESCRIPTION                                                                       EXAMPLE
+						page_id @	         [Key]  str    The image                                                                         "Hcx82jcUpM"
+						method @	         [Key]  str    The method tag                                                                    "grid_coarsen"
+						variant @	         [Key]  int    0 to TRIMASK_VARIANTS - 1: it seeds the trimask too                               0
+						split @	                   ~str    Always train                                                                      "train"
+						params @	                str    JSON of the hyperparameters used                                                  "{...}"
+						white_fraction @	        float  Fraction of pixels 255: surely object                                             0.25
+						gray_fraction @	            float  Fraction of pixels not 0 or 255: unknown                                          0.10
+						black_fraction @	        float  Fraction of pixels 0: surely background                                           0.65
+
+	trimask_polygon_simplify	 Makes the trimasks of method polygon_simplify (src/sana_alpha/trimask/polygon_simplify.py) for its train images
+		query sql
+			SELECT page_id, alpha, split FROM magick_samples                                                         -- MAGICK images
+			WHERE   trimask_polygon_simplify_claim IS NULL                                                           -- not yet claimed,
+			    AND alpha                          IS NOT NULL                                                       -- that split_alpha did,
+			    AND split                          = 'train'                                                         -- not eval,
+			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'polygon_simplify')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
+			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                              -- one batch at a time, in random order
+		claim	trimask_polygon_simplify_claim magick_samples
+		command bash
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src uv run --project .. python processors/trimask_augment.py "$BATCH" polygon_simplify $TRIMASK_VARIANTS $TRIMASK_SUBSET
+		materialize	               TYPE  DESCRIPTION                            EXAMPLE
+			alpha.png alpha	        blob  The matte                              120 KB .png
+			input.json	           TYPE  DESCRIPTION                            EXAMPLE
+				page_id @	 [Key]  str   MAGICK image ID: it seeds the trimask  "Hcx82jcUpM"
+				split @	           ~str   Always train                           "train"
+		commit
+			trimask_augmentations
+				children/	                       TYPE   DESCRIPTION                                                                       EXAMPLE
+					trimask trimask.png	            blob   The trimask: 1024 x 1024 grayscale, 8 bit. 255 object, 0 background, 128 unknown  20 KB .png
+					fields.json	         SUBFIELD  TYPE   DESCRIPTION                                                                       EXAMPLE
+						page_id @	         [Key]  str    The image                                                                         "Hcx82jcUpM"
+						method @	         [Key]  str    The method tag                                                                    "polygon_simplify"
+						variant @	         [Key]  int    0 to TRIMASK_VARIANTS - 1: it seeds the trimask too                               0
+						split @	                   ~str    Always train                                                                      "train"
+						params @	                str    JSON of the hyperparameters used                                                  "{...}"
+						white_fraction @	        float  Fraction of pixels 255: surely object                                             0.25
+						gray_fraction @	            float  Fraction of pixels not 0 or 255: unknown                                          0.10
+						black_fraction @	        float  Fraction of pixels 0: surely background                                           0.65
+
+	trimask_unknown_patches	 Makes the trimasks of method unknown_patches (src/sana_alpha/trimask/unknown_patches.py) for its train images
+		query sql
+			SELECT page_id, alpha, split FROM magick_samples                                                        -- MAGICK images
+			WHERE   trimask_unknown_patches_claim IS NULL                                                           -- not yet claimed,
+			    AND alpha                         IS NOT NULL                                                       -- that split_alpha did,
+			    AND split                         = 'train'                                                         -- not eval,
+			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'unknown_patches')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
+			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                             -- one batch at a time, in random order
+		claim	trimask_unknown_patches_claim magick_samples
+		command bash
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src uv run --project .. python processors/trimask_augment.py "$BATCH" unknown_patches $TRIMASK_VARIANTS $TRIMASK_SUBSET
+		materialize	               TYPE  DESCRIPTION                            EXAMPLE
+			alpha.png alpha	        blob  The matte                              120 KB .png
+			input.json	           TYPE  DESCRIPTION                            EXAMPLE
+				page_id @	 [Key]  str   MAGICK image ID: it seeds the trimask  "Hcx82jcUpM"
+				split @	           ~str   Always train                           "train"
+		commit
+			trimask_augmentations
+				children/	                       TYPE   DESCRIPTION                                                                       EXAMPLE
+					trimask trimask.png	            blob   The trimask: 1024 x 1024 grayscale, 8 bit. 255 object, 0 background, 128 unknown  20 KB .png
+					fields.json	         SUBFIELD  TYPE   DESCRIPTION                                                                       EXAMPLE
+						page_id @	         [Key]  str    The image                                                                         "Hcx82jcUpM"
+						method @	         [Key]  str    The method tag                                                                    "unknown_patches"
+						variant @	         [Key]  int    0 to TRIMASK_VARIANTS - 1: it seeds the trimask too                               0
+						split @	                   ~str    Always train                                                                      "train"
+						params @	                str    JSON of the hyperparameters used                                                  "{...}"
+						white_fraction @	        float  Fraction of pixels 255: surely object                                             0.25
+						gray_fraction @	            float  Fraction of pixels not 0 or 255: unknown                                          0.10
+						black_fraction @	        float  Fraction of pixels 0: surely background                                           0.65
+
+	trimask_fuzzy_ramp	 Makes the trimasks of method fuzzy_ramp (src/sana_alpha/trimask/fuzzy_ramp.py) for its train images
+		query sql
+			SELECT page_id, alpha, split FROM magick_samples                                                   -- MAGICK images
+			WHERE   trimask_fuzzy_ramp_claim IS NULL                                                           -- not yet claimed,
+			    AND alpha                    IS NOT NULL                                                       -- that split_alpha did,
+			    AND split                    = 'train'                                                         -- not eval,
+			    AND contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'fuzzy_ramp')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET),
+			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                        -- one batch at a time, in random order
+		claim	trimask_fuzzy_ramp_claim magick_samples
+		command bash
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src uv run --project .. python processors/trimask_augment.py "$BATCH" fuzzy_ramp $TRIMASK_VARIANTS $TRIMASK_SUBSET
+		materialize	               TYPE  DESCRIPTION                            EXAMPLE
+			alpha.png alpha	        blob  The matte                              120 KB .png
+			input.json	           TYPE  DESCRIPTION                            EXAMPLE
+				page_id @	 [Key]  str   MAGICK image ID: it seeds the trimask  "Hcx82jcUpM"
+				split @	           ~str   Always train                           "train"
+		commit
+			trimask_augmentations
+				children/	                       TYPE   DESCRIPTION                                                                       EXAMPLE
+					trimask trimask.png	            blob   The trimask: 1024 x 1024 grayscale, 8 bit. 255 object, 0 background, 128 unknown  20 KB .png
+					fields.json	         SUBFIELD  TYPE   DESCRIPTION                                                                       EXAMPLE
+						page_id @	         [Key]  str    The image                                                                         "Hcx82jcUpM"
+						method @	         [Key]  str    The method tag                                                                    "fuzzy_ramp"
+						variant @	         [Key]  int    0 to TRIMASK_VARIANTS - 1: it seeds the trimask too                               0
+						split @	                   ~str    Always train                                                                      "train"
+						params @	                str    JSON of the hyperparameters used                                                  "{...}"
+						white_fraction @	        float  Fraction of pixels 255: surely object                                             0.25
+						gray_fraction @	            float  Fraction of pixels not 0 or 255: unknown                                          0.10
+						black_fraction @	        float  Fraction of pixels 0: surely background                                           0.65
+
+	encode_trimask	 Encodes each trimask with the teacher's DC-AE, copied to 3 channels like the matte
+		query sql
+			SELECT page_id, method, variant, trimask FROM trimask_augmentations -- trimasks
+			WHERE   encode_trimask_claim IS NULL                                -- not yet claimed,
+			    AND trimask              IS NOT NULL                            -- that a trimask_<method> made,
+			ORDER BY random() LIMIT $TRIMASK_ENCODE_BATCH_SIZE                  -- one batch at a time, in random order
+		claim	encode_trimask_claim trimask_augmentations
+		command bash
+			uv run --script processors/encode_trimask.py "$BATCH" $TEACHER_DIR
+		materialize	              TYPE  DESCRIPTION                                        EXAMPLE
+			trimask.png trimask	   blob  The trimask, copied to 3 channels before encoding  20 KB .png
+		commit
+			trimask_augmentations	                              TYPE  DESCRIPTION                                                                                         EXAMPLE
+				latent_trimask_1024 latent_trimask.safetensors	   blob  DC-AE latent of the trimask: (32, 32, 32) bfloat16, key "latent", unscaled, like latent_alpha_1024  64 KB .safetensors
 
 
 functions
