@@ -287,3 +287,9 @@ Can you copy over the claims graph Sparrow save from MulticamDailies into here, 
 
 ## m00661 — 2026-11-18 2:15 AM
 Also, can you launch a compaction job? It's kind of getting ridiculous. How many shards do we have now?
+
+## m00662 — 2026-11-18 2:16 AM
+Like, why don't we compact all the tables?
+
+## m00663 — 2026-11-18 2:16 AM
+BlueJay has a compaction API. Why don't you go use that?
