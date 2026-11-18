@@ -284,3 +284,6 @@ Like, without sacrificing readability, you can make it a lot smaller.
 
 ## m00660 — 2026-11-18 1:58 AM
 Can you copy over the claims graph Sparrow save from MulticamDailies into here, and make it actually correct?
+
+## m00661 — 2026-11-18 2:15 AM
+Also, can you launch a compaction job? It's kind of getting ridiculous. How many shards do we have now?
