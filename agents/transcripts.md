@@ -296,3 +296,6 @@ BlueJay has a compaction API. Why don't you go use that?
 
 ## m00664 — 2026-11-18 2:22 AM
 Ohhh, it's not using fastlance!! That's why Sparrow is so slow?
+
+## m00665 — 2026-11-18 2:23 AM
+Look at MulticamDailies.
