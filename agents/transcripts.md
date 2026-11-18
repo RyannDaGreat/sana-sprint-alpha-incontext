@@ -281,3 +281,6 @@ Also, by the way, I [should] point out the DTAB is, like, absolutely fucking hid
 
 ## m00659 — 2026-11-18 1:36 AM
 Like, without sacrificing readability, you can make it a lot smaller.
+
+## m00660 — 2026-11-18 1:58 AM
+Can you copy over the claims graph Sparrow save from MulticamDailies into here, and make it actually correct?
