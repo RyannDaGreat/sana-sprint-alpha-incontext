@@ -65,8 +65,6 @@
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-/* A trimask model predicts no alpha, so it has no RGBA output */
-body[data-cond="trimask"] :is(.tab[data-view="rgba"], #dl-rgba) { display: none; }
 html { background: var(--bg); color: var(--fg); }
 body {
   margin: 0 auto; max-width: var(--page-max); padding: var(--page-pad);

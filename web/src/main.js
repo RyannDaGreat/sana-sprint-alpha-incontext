@@ -264,8 +264,12 @@ function syncSamplerUi() {
   $('guidance-v').textContent = $('guidance').value;
   $('lambda-v').textContent = $('lambda').value;
   $('lambda').disabled = !state.pipeline?.hasLambda;
-  const dynamic = state.pipeline?.version.manifest.dynamic_size ?? true;
-  for (const o of $('size').options) o.disabled = !dynamic && o.value !== '1024x1024';
+  const manifest = (state.pipeline?.version ?? state.selected)?.manifest, dynamic = manifest?.dynamic_size ?? true;
+  for (const o of $('size').options) {
+    const [w, h] = o.value.split('x').map(Number);
+    o.disabled = !dynamic && o.value !== '1024x1024';
+    o.textContent = `${w} × ${h}${w === h && manifest?.trained_sizes.includes(w) ? ' (trained)' : ''}`;
+  }
   if ($('size').selectedOptions[0].disabled) $('size').value = '1024x1024';
   const [w, h] = $('size').value.split('x').map(Number), r = cropRect(w, h), pct = (v) => `${(100 * v) / SIZE}%`;
   Object.assign($('crop-frame').style, { left: pct(r.x), top: pct(r.y), width: pct(r.w), height: pct(r.h) });
@@ -341,13 +345,15 @@ const COND_TEXT = {
  */
 const condOf = (v) => v.manifest.cond ?? 'matte';
 
-/** Command. Shows the editor as version v's class: the heading, and for a trimask only RGB on gray (it predicts no alpha). */
+/**
+ * Command. Shows the editor as version v's class (the heading) and marks its trained sizes. Both classes keep the RGBA
+ * cutout: its alpha is the editor image (for a trimask, gray = 0.5 alpha; m00687: wanted even if imperfect).
+ */
 function applyCond(v) {
   const cond = condOf(v);
   if (!COND_TEXT[cond]) throw new Error(`${v.id}: unknown manifest cond "${cond}"`);
-  document.body.dataset.cond = cond;
   [$('cond-name').textContent, $('cond-text').textContent] = COND_TEXT[cond];
-  if (cond === 'trimask') document.querySelector('.tab[data-view="gray"]').click();
+  syncSamplerUi();
 }
 
 // ---------- models ----------

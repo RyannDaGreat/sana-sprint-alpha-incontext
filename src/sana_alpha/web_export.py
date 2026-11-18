@@ -511,6 +511,30 @@ def control_cond(source):
         return f.metadata().get("cond", "matte")
 
 
+def trained_sizes(source):
+    """
+    Query. The square image sides (px) a merge folder's control trained at, largest first, from its gates.safetensors
+    metadata: every train_control.RESOLUTION_PROBS side for a --multires run, else 1024 only (runs from before
+    --multires stored no "multires" and trained at 1024).
+
+    Args:
+        source (str): merge_final folder
+
+    Returns:
+        list[int]
+
+    Examples:
+        >>> trained_sizes("models/control/control_tri_scratch/sprint_step_012000")
+        [1024, 768, 512, 256]
+        >>> trained_sizes("models/control/control_v2/sprint_step_008000")
+        [1024]
+    """
+    from safetensors import safe_open
+    from sana_alpha.train_control import RESOLUTION_PROBS
+    with safe_open(Path(source) / "gates.safetensors", "pt") as f:
+        return sorted(RESOLUTION_PROBS, reverse=True) if f.metadata().get("multires") == "True" else [1024]
+
+
 def write_manifest(folder, version, source, quantization, adapter=None):
     """
     Command. Writes folder/manifest.json: files, I/O specs, quantization, and the Sprint math (web-model-contract).
@@ -528,7 +552,7 @@ def write_manifest(folder, version, source, quantization, adapter=None):
         weights = weights.replace("W_sprint", f"W_sprint + λ·SVD{adapter['rank']}(W_adapter − W_teacher)", 1)
     manifest = dict(
         version=version, source=source, weights=weights, adapter=adapter,
-        cond=control_cond(source),
+        cond=control_cond(source), trained_sizes=trained_sizes(source),
         files={f: (folder / f).stat().st_size for f in files},
         graphs=graph_specs(adapter is not None), quantization=quantization,
         text_encoder=dict(

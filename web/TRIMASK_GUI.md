@@ -59,5 +59,5 @@ Known harness flaw (fixed after r3, same for every design): `ui.js` left stale c
 
 Each model version's `manifest.json` has `cond` = `"matte"` or `"trimask"` (absent in older exports = matte; `web_export.control_cond`). The editor is the same for both, and both feed `vae_encoder` the same gray image (8-bit value / 127.5 − 1, copied to 3 channels; gray = 128, as in training's `encode_multires.model_input`). Loading a version switches the class (`applyCond` in `main.js`):
 - **Matte**: heading "Matte · gray = partly transparent"; outputs RGB on gray and the RGBA cutout (the matte is the alpha).
-- **Trimask**: heading "Trimask · gray = unknown"; only RGB on gray, because a trimask model predicts no alpha (the RGBA tab and download are hidden).
+- **Trimask**: heading "Trimask · gray = unknown"; outputs RGB on gray and the RGBA cutout, whose alpha is the trimask itself (gray = 0.5; m00687: wanted even if imperfect, often the trimask is all white).
 Version cards say "Matte model" or "Trimask model". Test: `agents/.scratchpad/web/test_cond.js` (fakes a trimask manifest, or checks a real version id).
