@@ -257,3 +257,6 @@ When all data is ready, have all GPUs do VAE processing. Cancel [the] old traini
 
 ## m00651 — 2026-11-18 12:05 AM
 By the way, [what if] combining them meant literally applying their transforms one after the other? By the way, [we] didn't have a distorted-glass-by-Perlin-noise kind of thing [transcribed as "monochromatic didn't have a distorted glass by perlin noise"]. Chains of operations, randomly shuffled and chosen. Then we may need maybe two or three more columns.
+
+## m00652 — 2026-11-18 12:28 AM
+Right now, even though the trimasks are technically correct, now you're introducing a lot of data into them because of the correctness. That's wrong. The way you should have done it is probably just fix the processors. Like, my god, I see pixel-level detail inside the trimasks. That's, like, not reasonable, because of your correction.
