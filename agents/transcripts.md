@@ -254,3 +254,6 @@ What about bilateral blurs? Overlaying others? Applying others in random orders?
 
 ## m00650 — 2026-11-17 11:56 PM
 When all data is ready, have all GPUs do VAE processing. Cancel [the] old training run and make this new one. BTW, we only need lambda checkpoints from now on.
+
+## m00651 — 2026-11-18 12:05 AM
+By the way, [what if] combining them meant literally applying their transforms one after the other? By the way, [we] didn't have a distorted-glass-by-Perlin-noise kind of thing [transcribed as "monochromatic didn't have a distorted glass by perlin noise"]. Chains of operations, randomly shuffled and chosen. Then we may need maybe two or three more columns.
