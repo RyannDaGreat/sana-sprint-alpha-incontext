@@ -305,3 +305,6 @@ Do it. Just make Sparrow launch a 2nd server, maybe, if that would cause havoc f
 
 ## m00667 — 2026-11-18 2:35 AM
 Do you have any explanation as to why the claims timelines one takes so fucking long to query? It didn't do that even on MulticamDailies, which was far heavier.
+
+## m00668 — 2026-11-18 3:13 AM
+How about we just do it from scratch? Only.
