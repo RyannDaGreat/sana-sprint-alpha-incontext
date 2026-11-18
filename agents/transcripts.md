@@ -242,3 +242,6 @@ Make sure to update the manifest with all my requests and stuff.
 
 ## m00646 — 2026-11-17 10:24 PM
 We use ALL 10 during training.
+
+## m00647 — 2026-11-17 11:21 PM
+Just to be clear, the trimasks — they're all correct, right? No incorrect trimasks, please.
