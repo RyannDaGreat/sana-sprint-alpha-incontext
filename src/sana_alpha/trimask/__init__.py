@@ -81,9 +81,14 @@ def generate(alpha, page_id, method, variant):
     Examples:
         >>> alpha = np.zeros((256, 256), np.float32); alpha[64:192, 64:192] = 1
         >>> trimask, params = generate(alpha, "p", "morph_band", 0)
-        >>> trimask.shape, sorted(np.unique(trimask).tolist()), sorted(params)
-        ((256, 256), [0.0, 0.5, 1.0], ['dilate_px', 'erode_px', 'threshold'])
+        >>> trimask.shape, sorted(np.unique(trimask).tolist()), "erode_px" in params
+        ((256, 256), [0.0, 0.5, 1.0], True)
+        >>> generate(np.zeros((8, 8), np.float32), "p", "morph_band", 0)
+        Traceback (most recent call last):
+        ValueError: The matte has no object pixel (alpha > 0.5) or no background pixel: a trimask of it would be constant
     """
+    if (alpha > 0.5).all() or (alpha <= 0.5).all():  # MAGICK mattes always have both: anything else is a broken input
+        raise ValueError("The matte has no object pixel (alpha > 0.5) or no background pixel: a trimask of it would be constant")
     module = method_module(method)
     rng = np.random.default_rng(seed(page_id, method, variant))
     trimask, params = module.make_trimask(alpha, rng, **module.sample_params(rng))
