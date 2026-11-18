@@ -310,3 +310,4 @@
 - checkpoint_timelines.dtab (untracked) was an older copy of claims_graph (07:31; 7 days in place of 2; claim points downsampled in buckets; no multires_progress). Nothing in it was newer, so it is deleted.
 - Lesson: before blaming a setting, toggle it off and check; here every toggle hung, which pointed away from fastlance's leaves. A pure-library repro (in-memory tables) separated our code from the library in 10 minutes.
 - Lesson: zsh does not split `$args`; a loop of argument strings ran the defaults each time. Use bash, or read lines into an array.
+- 4:14 AM (m00677): latent_trimask_768/512/256 now on all 337,934 rows too (16 workers, ~92 rows/s at all three sizes, GPUs 99-100%).
