@@ -1,179 +1,2391 @@
 {
-  "items": [
-    {
-      "file": "side-car-silhouette.png",
-      "name": "Car (side silhouette)",
-      "source_url": "https://openclipart.org/detail/190006",
-      "license": "CC0",
-      "author": "Z"
-    },
-    {
-      "file": "small-car-silhouette.png",
-      "name": "Car (SUV, front three-quarter)",
-      "source_url": "https://openclipart.org/detail/232990",
-      "license": "CC0",
-      "author": "wellvieira"
-    },
-    {
-      "file": "old-car-silhouette.png",
-      "name": "Old car",
-      "source_url": "https://openclipart.org/detail/63409",
-      "license": "CC0",
-      "author": "mystica"
-    },
-    {
-      "file": "porsche-silhouette.png",
-      "name": "Porsche",
-      "source_url": "https://openclipart.org/detail/242137",
-      "license": "CC0",
-      "author": "GDJ"
-    },
-    {
-      "file": "jeep-silhouette.png",
-      "name": "Jeep",
-      "source_url": "https://openclipart.org/detail/245106",
-      "license": "CC0",
-      "author": "GDJ"
-    },
-    {
-      "file": "sedan-car.png",
-      "name": "Sedan",
-      "source_url": "https://openclipart.org/detail/13824",
-      "license": "CC0",
-      "author": "unknown (see source page)"
-    },
-    {
-      "file": "sports-car-icon.png",
-      "name": "Sports car icon",
-      "source_url": "https://openclipart.org/detail/267551",
-      "license": "CC0",
-      "author": "unknown (see source page)"
-    },
-    {
-      "file": "sailing-boat.png",
-      "name": "Sailing boat",
-      "source_url": "https://openclipart.org/detail/320793",
-      "license": "CC0",
-      "author": "liftarn"
-    },
-    {
-      "file": "old-time-sailing-ship.png",
-      "name": "Old-time sailing ship",
-      "source_url": "https://openclipart.org/detail/318360",
-      "license": "CC0",
-      "author": "GDJ"
-    },
-    {
-      "file": "cruise-ship.png",
-      "name": "Cruise ship",
-      "source_url": "https://openclipart.org/detail/308734",
-      "license": "CC0",
-      "author": "GDJ"
-    },
-    {
-      "file": "hms-severn.png",
-      "name": "HMS Severn (warship)",
-      "source_url": "https://openclipart.org/detail/330900",
-      "license": "CC0",
-      "author": "GDJ"
-    },
-    {
-      "file": "sailboat.png",
-      "name": "Sailboat",
-      "source_url": "https://openclipart.org/detail/224815",
-      "license": "CC0",
-      "author": "GDJ"
-    },
-    {
-      "file": "medieval-ship.png",
-      "name": "Medieval ship",
-      "source_url": "https://openclipart.org/detail/250492",
-      "license": "CC0",
-      "author": "GDJ"
-    },
-    {
-      "file": "tall-ship.png",
-      "name": "Tall ship",
-      "source_url": "https://openclipart.org/detail/104821",
-      "license": "CC0",
-      "author": "unknown (see source page)"
-    },
-    {
-      "file": "warship.png",
-      "name": "Warship",
-      "source_url": "https://openclipart.org/detail/234111",
-      "license": "CC0",
-      "author": "rones"
-    },
-    {
-      "file": "tower-bridge-london.png",
-      "name": "Tower Bridge, London",
-      "source_url": "https://openclipart.org/detail/315116",
-      "license": "CC0",
-      "author": "GDJ"
-    },
-    {
-      "file": "stylized-bridge.png",
-      "name": "Stylized bridge",
-      "source_url": "https://openclipart.org/detail/262131",
-      "license": "CC0",
-      "author": "GDJ"
-    },
-    {
-      "file": "brooklyn-bridge.png",
-      "name": "Brooklyn Bridge",
-      "source_url": "https://openclipart.org/detail/315155",
-      "license": "CC0",
-      "author": "GDJ"
-    },
-    {
-      "file": "leaning-tower-pisa.png",
-      "name": "Leaning Tower of Pisa",
-      "source_url": "https://openclipart.org/detail/317629",
-      "license": "CC0",
-      "author": "GDJ"
-    },
-    {
-      "file": "alcatraz-watchtower.png",
-      "name": "Alcatraz watchtower",
-      "source_url": "https://openclipart.org/detail/318006",
-      "license": "CC0",
-      "author": "GDJ"
-    },
-    {
-      "file": "detailed-eiffel-tower.png",
-      "name": "Eiffel Tower (detailed)",
-      "source_url": "https://openclipart.org/detail/328267",
-      "license": "CC0",
-      "author": "GDJ"
-    },
-    {
-      "file": "eiffel-tower.png",
-      "name": "Eiffel Tower",
-      "source_url": "https://openclipart.org/detail/23247",
-      "license": "CC0",
-      "author": "shokunin"
-    },
-    {
-      "file": "big-ben-parliament.png",
-      "name": "Big Ben and Houses of Parliament",
-      "source_url": "https://openclipart.org/detail/21829",
-      "license": "CC0",
-      "author": "unknown (see source page)"
-    },
-    {
-      "file": "tokyo-skytree.png",
-      "name": "Tokyo Skytree",
-      "source_url": "https://openclipart.org/detail/313553",
-      "license": "CC0",
-      "author": "j4p4n (design by Tokyoship)"
-    },
-    {
-      "file": "toronto-skyline.png",
-      "name": "Toronto skyline",
-      "source_url": "https://openclipart.org/detail/307354",
-      "license": "CC0",
-      "author": "GDJ"
-    }
-  ]
+ "items": [
+  {
+   "file": "air-balloon.png",
+   "name": "Air Balloon",
+   "source_url": "https://game-icons.net/1x1/delapouite/air-balloon.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "airplane-arrival.png",
+   "name": "Airplane Arrival",
+   "source_url": "https://game-icons.net/1x1/delapouite/airplane-arrival.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "airplane-phos.png",
+   "name": "Airplane Phos",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/airplane-fill.svg",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "airplane.png",
+   "name": "Airplane",
+   "source_url": "https://game-icons.net/1x1/skoll/airplane.html",
+   "license": "CC BY 3.0",
+   "author": "Skoll"
+  },
+  {
+   "file": "alcatraz-watchtower.png",
+   "name": "Alcatraz watchtower",
+   "source_url": "https://openclipart.org/detail/318006",
+   "license": "CC0",
+   "author": "GDJ"
+  },
+  {
+   "file": "ambulance-mdi.png",
+   "name": "Ambulance Mdi",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/ambulance/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "ambulance.png",
+   "name": "Ambulance",
+   "source_url": "https://game-icons.net/1x1/delapouite/ambulance.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "ancient-columns.png",
+   "name": "Ancient Columns",
+   "source_url": "https://game-icons.net/1x1/delapouite/ancient-columns.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "ancient-ruins.png",
+   "name": "Ancient Ruins",
+   "source_url": "https://game-icons.net/1x1/delapouite/ancient-ruins.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "arch-bridge.png",
+   "name": "Arch Bridge",
+   "source_url": "https://game-icons.net/1x1/delapouite/arch-bridge.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "arch.png",
+   "name": "Arch",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/arch/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "archway.png",
+   "name": "Archway",
+   "source_url": "https://fontawesome.com/icons/archway?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "bank-phos.png",
+   "name": "Bank Phos",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/bank-fill.svg",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "barn-phos.png",
+   "name": "Barn Phos",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/barn-fill.svg",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "barn.png",
+   "name": "Barn",
+   "source_url": "https://game-icons.net/1x1/delapouite/barn.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "barracks-tent.png",
+   "name": "Barracks Tent",
+   "source_url": "https://game-icons.net/1x1/delapouite/barracks-tent.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "base-dome.png",
+   "name": "Base Dome",
+   "source_url": "https://game-icons.net/1x1/delapouite/base-dome.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "battle-tank.png",
+   "name": "Battle Tank",
+   "source_url": "https://game-icons.net/1x1/lorc/battle-tank.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "battleship.png",
+   "name": "Battleship",
+   "source_url": "https://game-icons.net/1x1/cathelineau/battleship.html",
+   "license": "CC BY 3.0",
+   "author": "Cathelineau"
+  },
+  {
+   "file": "bicycle-mdi.png",
+   "name": "Bicycle Mdi",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/bicycle/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "bicycle.png",
+   "name": "Bicycle",
+   "source_url": "https://fontawesome.com/icons/bicycle?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "big-ben-parliament.png",
+   "name": "Big Ben and Houses of Parliament",
+   "source_url": "https://openclipart.org/detail/21829",
+   "license": "CC0",
+   "author": "unknown (see source page)"
+  },
+  {
+   "file": "bike.png",
+   "name": "Bike",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/bike/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "biplane.png",
+   "name": "Biplane",
+   "source_url": "https://game-icons.net/1x1/quoting/biplane.html",
+   "license": "CC BY 3.0",
+   "author": "Quoting"
+  },
+  {
+   "file": "block-house.png",
+   "name": "Block House",
+   "source_url": "https://game-icons.net/1x1/delapouite/block-house.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "boat-fishing.png",
+   "name": "Boat Fishing",
+   "source_url": "https://game-icons.net/1x1/delapouite/boat-fishing.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "boat.png",
+   "name": "Boat",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/boat-fill.svg",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "bridge-fa.png",
+   "name": "Bridge Fa",
+   "source_url": "https://fontawesome.com/icons/bridge?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "bridge-phos.png",
+   "name": "Bridge Phos",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/bridge-fill.svg",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "bridge-water.png",
+   "name": "Bridge Water",
+   "source_url": "https://fontawesome.com/icons/bridge-water?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "bridge.png",
+   "name": "Bridge",
+   "source_url": "https://game-icons.net/1x1/lorc/bridge.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "brooklyn-bridge.png",
+   "name": "Brooklyn Bridge",
+   "source_url": "https://openclipart.org/detail/315155",
+   "license": "CC0",
+   "author": "GDJ"
+  },
+  {
+   "file": "bucket-wheel-excavator.png",
+   "name": "Bucket Wheel Excavator",
+   "source_url": "https://game-icons.net/1x1/caro-asercion/bucket-wheel-excavator.html",
+   "license": "CC BY 3.0",
+   "author": "Caro-Asercion"
+  },
+  {
+   "file": "building-apartment.png",
+   "name": "Building Apartment",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/building-apartment-fill.svg",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "building-columns.png",
+   "name": "Building Columns",
+   "source_url": "https://fontawesome.com/icons/building-columns?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "building-flag.png",
+   "name": "Building Flag",
+   "source_url": "https://fontawesome.com/icons/building-flag?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "building-office.png",
+   "name": "Building Office",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/building-office-fill.svg",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "building-phos.png",
+   "name": "Building Phos",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/building-fill.svg",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "building.png",
+   "name": "Building",
+   "source_url": "https://fontawesome.com/icons/building?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "buildings.png",
+   "name": "Buildings",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/buildings-fill.svg",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "bulldozer-mdi.png",
+   "name": "Bulldozer Mdi",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/bulldozer/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "bulldozer.png",
+   "name": "Bulldozer",
+   "source_url": "https://game-icons.net/1x1/delapouite/bulldozer.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "bunker.png",
+   "name": "Bunker",
+   "source_url": "https://game-icons.net/1x1/quoting/bunker.html",
+   "license": "CC BY 3.0",
+   "author": "Quoting"
+  },
+  {
+   "file": "bus-articulated-front.png",
+   "name": "Bus Articulated Front",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/bus-articulated-front/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "bus-double-decker.png",
+   "name": "Bus Double Decker",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/bus-double-decker/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "bus-fa.png",
+   "name": "Bus Fa",
+   "source_url": "https://fontawesome.com/icons/bus?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "bus-mdi.png",
+   "name": "Bus Mdi",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/bus/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "bus-phos.png",
+   "name": "Bus Phos",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/bus-fill.svg",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "bus-school.png",
+   "name": "Bus School",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/bus-school/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "bus.png",
+   "name": "Bus",
+   "source_url": "https://game-icons.net/1x1/delapouite/bus.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "byzantin-temple.png",
+   "name": "Byzantin Temple",
+   "source_url": "https://game-icons.net/1x1/delapouite/byzantin-temple.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "cabin-a-frame.png",
+   "name": "Cabin A Frame",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/cabin-a-frame/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "cable-car.png",
+   "name": "Cable Car",
+   "source_url": "https://fontawesome.com/icons/cable-car?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "cable-stayed-bridge.png",
+   "name": "Cable Stayed Bridge",
+   "source_url": "https://game-icons.net/1x1/delapouite/cable-stayed-bridge.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "camping-tent.png",
+   "name": "Camping Tent",
+   "source_url": "https://game-icons.net/1x1/delapouite/camping-tent.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "canoe.png",
+   "name": "Canoe",
+   "source_url": "https://game-icons.net/1x1/delapouite/canoe.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "car-convertible.png",
+   "name": "Car Convertible",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/car-convertible/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "car-electric.png",
+   "name": "Car Electric",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/car-electric/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "car-estate.png",
+   "name": "Car Estate",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/car-estate/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "car-limousine.png",
+   "name": "Car Limousine",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/car-limousine/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "car-mdi.png",
+   "name": "Car Mdi",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/car/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "car-on.png",
+   "name": "Car On",
+   "source_url": "https://fontawesome.com/icons/car-on?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "car-phos.png",
+   "name": "Car Phos",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/car-fill.svg",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "car-profile.png",
+   "name": "Car Profile",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/car-profile-fill.svg",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "car-rear.png",
+   "name": "Car Rear",
+   "source_url": "https://fontawesome.com/icons/car-rear?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "car-side.png",
+   "name": "Car Side",
+   "source_url": "https://fontawesome.com/icons/car-side?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "car-sports.png",
+   "name": "Car Sports",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/car-sports/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "car.png",
+   "name": "Car",
+   "source_url": "https://fontawesome.com/icons/car?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "caravan-mdi.png",
+   "name": "Caravan Mdi",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/caravan/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "caravan.png",
+   "name": "Caravan",
+   "source_url": "https://game-icons.net/1x1/delapouite/caravan.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "caravel.png",
+   "name": "Caravel",
+   "source_url": "https://game-icons.net/1x1/delapouite/caravel.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "cargo-ship.png",
+   "name": "Cargo Ship",
+   "source_url": "https://game-icons.net/1x1/delapouite/cargo-ship.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "carrier.png",
+   "name": "Carrier",
+   "source_url": "https://game-icons.net/1x1/cathelineau/carrier.html",
+   "license": "CC BY 3.0",
+   "author": "Cathelineau"
+  },
+  {
+   "file": "castle-mdi.png",
+   "name": "Castle Mdi",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/castle/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "castle-ruins.png",
+   "name": "Castle Ruins",
+   "source_url": "https://game-icons.net/1x1/delapouite/castle-ruins.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "castle-turret.png",
+   "name": "Castle Turret",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/castle-turret-fill.svg",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "church-fa.png",
+   "name": "Church Fa",
+   "source_url": "https://fontawesome.com/icons/church?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "church-mdi.png",
+   "name": "Church Mdi",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/church/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "church-phos.png",
+   "name": "Church Phos",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/church-fill.svg",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "church.png",
+   "name": "Church",
+   "source_url": "https://game-icons.net/1x1/delapouite/church.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "city-mdi.png",
+   "name": "City Mdi",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/city/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "city-phos.png",
+   "name": "City Phos",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/city-fill.svg",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "city-variant.png",
+   "name": "City Variant",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/city-variant/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "city.png",
+   "name": "City",
+   "source_url": "https://fontawesome.com/icons/city?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "clock-tower.png",
+   "name": "Clock Tower",
+   "source_url": "https://game-icons.net/1x1/caro-asercion/clock-tower.html",
+   "license": "CC BY 3.0",
+   "author": "Caro-Asercion"
+  },
+  {
+   "file": "coal-wagon.png",
+   "name": "Coal Wagon",
+   "source_url": "https://game-icons.net/1x1/delapouite/coal-wagon.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "commercial-airplane.png",
+   "name": "Commercial Airplane",
+   "source_url": "https://game-icons.net/1x1/delapouite/commercial-airplane.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "control-tower.png",
+   "name": "Control Tower",
+   "source_url": "https://game-icons.net/1x1/delapouite/control-tower.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "cruise-ship.png",
+   "name": "Cruise ship",
+   "source_url": "https://openclipart.org/detail/308734",
+   "license": "CC0",
+   "author": "GDJ"
+  },
+  {
+   "file": "cruiser.png",
+   "name": "Cruiser",
+   "source_url": "https://game-icons.net/1x1/cathelineau/cruiser.html",
+   "license": "CC BY 3.0",
+   "author": "Cathelineau"
+  },
+  {
+   "file": "damaged-house.png",
+   "name": "Damaged House",
+   "source_url": "https://game-icons.net/1x1/quoting/damaged-house.html",
+   "license": "CC BY 3.0",
+   "author": "Quoting"
+  },
+  {
+   "file": "defense-satellite.png",
+   "name": "Defense Satellite",
+   "source_url": "https://game-icons.net/1x1/delapouite/defense-satellite.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "defensive-wall.png",
+   "name": "Defensive Wall",
+   "source_url": "https://game-icons.net/1x1/heavenly-dog/defensive-wall.html",
+   "license": "CC BY 3.0",
+   "author": "Heavenly-Dog"
+  },
+  {
+   "file": "detailed-eiffel-tower.png",
+   "name": "Eiffel Tower (detailed)",
+   "source_url": "https://openclipart.org/detail/328267",
+   "license": "CC0",
+   "author": "GDJ"
+  },
+  {
+   "file": "domain.png",
+   "name": "Domain",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/domain/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "drawbridge.png",
+   "name": "Drawbridge",
+   "source_url": "https://game-icons.net/1x1/delapouite/drawbridge.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "dungeon-gate.png",
+   "name": "Dungeon Gate",
+   "source_url": "https://game-icons.net/1x1/delapouite/dungeon-gate.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "egyptian-temple.png",
+   "name": "Egyptian Temple",
+   "source_url": "https://game-icons.net/1x1/delapouite/egyptian-temple.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "eiffel-tower.png",
+   "name": "Eiffel Tower",
+   "source_url": "https://openclipart.org/detail/23247",
+   "license": "CC0",
+   "author": "shokunin"
+  },
+  {
+   "file": "excavator.png",
+   "name": "Excavator",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/excavator/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "f1-car.png",
+   "name": "F1 Car",
+   "source_url": "https://game-icons.net/1x1/skoll/f1-car.html",
+   "license": "CC BY 3.0",
+   "author": "Skoll"
+  },
+  {
+   "file": "factory-mdi.png",
+   "name": "Factory Mdi",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/factory/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "factory-phos.png",
+   "name": "Factory Phos",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/factory-fill.svg",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "factory.png",
+   "name": "Factory",
+   "source_url": "https://game-icons.net/1x1/delapouite/factory.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "family-house.png",
+   "name": "Family House",
+   "source_url": "https://game-icons.net/1x1/delapouite/family-house.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "ferry.png",
+   "name": "Ferry",
+   "source_url": "https://fontawesome.com/icons/ferry?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "fighter-jet.png",
+   "name": "Fighter Jet",
+   "source_url": "https://fontawesome.com/icons/fighter-jet?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "firework-rocket.png",
+   "name": "Firework Rocket",
+   "source_url": "https://game-icons.net/1x1/lorc/firework-rocket.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "fishing-boat.png",
+   "name": "Fishing Boat",
+   "source_url": "https://game-icons.net/1x1/delapouite/fishing-boat.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "flying-saucer.png",
+   "name": "Flying Saucer",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/flying-saucer-fill.svg",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "food-truck.png",
+   "name": "Food Truck",
+   "source_url": "https://game-icons.net/1x1/delapouite/food-truck.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "forklift-mdi.png",
+   "name": "Forklift Mdi",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/forklift/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "galleon.png",
+   "name": "Galleon",
+   "source_url": "https://game-icons.net/1x1/lorc/galleon.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "garage.png",
+   "name": "Garage",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/garage-fill.svg",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "gate-mdi.png",
+   "name": "Gate Mdi",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/gate/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "gate.png",
+   "name": "Gate",
+   "source_url": "https://game-icons.net/1x1/delapouite/gate.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "great-war-tank.png",
+   "name": "Great War Tank",
+   "source_url": "https://game-icons.net/1x1/cathelineau/great-war-tank.html",
+   "license": "CC BY 3.0",
+   "author": "Cathelineau"
+  },
+  {
+   "file": "greek-temple.png",
+   "name": "Greek Temple",
+   "source_url": "https://game-icons.net/1x1/delapouite/greek-temple.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "greenhouse-mdi.png",
+   "name": "Greenhouse Mdi",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/greenhouse/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "greenhouse.png",
+   "name": "Greenhouse",
+   "source_url": "https://game-icons.net/1x1/delapouite/greenhouse.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "guarded-tower.png",
+   "name": "Guarded Tower",
+   "source_url": "https://game-icons.net/1x1/lorc/guarded-tower.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "habitat-dome.png",
+   "name": "Habitat Dome",
+   "source_url": "https://game-icons.net/1x1/delapouite/habitat-dome.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "hand-truck.png",
+   "name": "Hand Truck",
+   "source_url": "https://game-icons.net/1x1/delapouite/hand-truck.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "harbor-dock.png",
+   "name": "Harbor Dock",
+   "source_url": "https://game-icons.net/1x1/delapouite/harbor-dock.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "helicopter-fa.png",
+   "name": "Helicopter Fa",
+   "source_url": "https://fontawesome.com/icons/helicopter?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "helicopter-mdi.png",
+   "name": "Helicopter Mdi",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/helicopter/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "helicopter.png",
+   "name": "Helicopter",
+   "source_url": "https://game-icons.net/1x1/delapouite/helicopter.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "hill-fort.png",
+   "name": "Hill Fort",
+   "source_url": "https://game-icons.net/1x1/delapouite/hill-fort.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "hms-severn.png",
+   "name": "HMS Severn (warship)",
+   "source_url": "https://openclipart.org/detail/330900",
+   "license": "CC0",
+   "author": "GDJ"
+  },
+  {
+   "file": "home-city.png",
+   "name": "Home City",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/home-city/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "home-modern.png",
+   "name": "Home Modern",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/home-modern/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "home-silo.png",
+   "name": "Home Silo",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/home-silo/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "home.png",
+   "name": "Home",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/home/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "hospital-building.png",
+   "name": "Hospital Building",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/hospital-building/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "hospital-fa.png",
+   "name": "Hospital Fa",
+   "source_url": "https://fontawesome.com/icons/hospital?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "hospital-phos.png",
+   "name": "Hospital Phos",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/hospital-fill.svg",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "hospital.png",
+   "name": "Hospital",
+   "source_url": "https://game-icons.net/1x1/delapouite/hospital.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "hotel.png",
+   "name": "Hotel",
+   "source_url": "https://fontawesome.com/icons/hotel?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "house-chimney-window.png",
+   "name": "House Chimney Window",
+   "source_url": "https://fontawesome.com/icons/house-chimney-window?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "house-fa.png",
+   "name": "House Fa",
+   "source_url": "https://fontawesome.com/icons/house?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "house-flag.png",
+   "name": "House Flag",
+   "source_url": "https://fontawesome.com/icons/house-flag?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "house-line.png",
+   "name": "House Line",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/house-line-fill.svg",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "house-phos.png",
+   "name": "House Phos",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/house-fill.svg",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "house.png",
+   "name": "House",
+   "source_url": "https://game-icons.net/1x1/delapouite/house.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "hut.png",
+   "name": "Hut",
+   "source_url": "https://game-icons.net/1x1/delapouite/hut.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "igloo-fa.png",
+   "name": "Igloo Fa",
+   "source_url": "https://fontawesome.com/icons/igloo?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "igloo.png",
+   "name": "Igloo",
+   "source_url": "https://game-icons.net/1x1/delapouite/igloo.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "indian-palace.png",
+   "name": "Indian Palace",
+   "source_url": "https://game-icons.net/1x1/delapouite/indian-palace.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "industry.png",
+   "name": "Industry",
+   "source_url": "https://fontawesome.com/icons/industry?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "interceptor-ship.png",
+   "name": "Interceptor Ship",
+   "source_url": "https://game-icons.net/1x1/delapouite/interceptor-ship.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "ionic-column.png",
+   "name": "Ionic Column",
+   "source_url": "https://game-icons.net/1x1/delapouite/ionic-column.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "iron-hulled-warship.png",
+   "name": "Iron Hulled Warship",
+   "source_url": "https://game-icons.net/1x1/cathelineau/iron-hulled-warship.html",
+   "license": "CC BY 3.0",
+   "author": "Cathelineau"
+  },
+  {
+   "file": "japanese-bridge.png",
+   "name": "Japanese Bridge",
+   "source_url": "https://game-icons.net/1x1/delapouite/japanese-bridge.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "jeep-gi.png",
+   "name": "Jeep Gi",
+   "source_url": "https://game-icons.net/1x1/skoll/jeep.html",
+   "license": "CC BY 3.0",
+   "author": "Skoll"
+  },
+  {
+   "file": "jeep-phos.png",
+   "name": "Jeep Phos",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/jeep-fill.svg",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "jeep-silhouette.png",
+   "name": "Jeep",
+   "source_url": "https://openclipart.org/detail/245106",
+   "license": "CC0",
+   "author": "GDJ"
+  },
+  {
+   "file": "jeep.png",
+   "name": "Jeep",
+   "source_url": "https://game-icons.net/1x1/delapouite/jeep.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "jeepney.png",
+   "name": "Jeepney",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/jeepney/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "jet-fighter-up.png",
+   "name": "Jet Fighter Up",
+   "source_url": "https://fontawesome.com/icons/jet-fighter-up?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "jet-fighter.png",
+   "name": "Jet Fighter",
+   "source_url": "https://game-icons.net/1x1/delapouite/jet-fighter.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "jetpack.png",
+   "name": "Jetpack",
+   "source_url": "https://game-icons.net/1x1/lorc/jetpack.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "landmark-dome.png",
+   "name": "Landmark Dome",
+   "source_url": "https://fontawesome.com/icons/landmark-dome?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "landmark.png",
+   "name": "Landmark",
+   "source_url": "https://fontawesome.com/icons/landmark?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "leaning-tower-pisa.png",
+   "name": "Leaning Tower of Pisa",
+   "source_url": "https://openclipart.org/detail/317629",
+   "license": "CC0",
+   "author": "GDJ"
+  },
+  {
+   "file": "lighthouse-mdi.png",
+   "name": "Lighthouse Mdi",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/lighthouse/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "lighthouse-phos.png",
+   "name": "Lighthouse Phos",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/lighthouse-fill.svg",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "lighthouse.png",
+   "name": "Lighthouse",
+   "source_url": "https://game-icons.net/1x1/delapouite/lighthouse.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "locked-fortress.png",
+   "name": "Locked Fortress",
+   "source_url": "https://game-icons.net/1x1/lorc/locked-fortress.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "mayan-pyramid.png",
+   "name": "Mayan Pyramid",
+   "source_url": "https://game-icons.net/1x1/delapouite/mayan-pyramid.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "medieval-gate.png",
+   "name": "Medieval Gate",
+   "source_url": "https://game-icons.net/1x1/delapouite/medieval-gate.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "medieval-ship.png",
+   "name": "Medieval ship",
+   "source_url": "https://openclipart.org/detail/250492",
+   "license": "CC0",
+   "author": "GDJ"
+  },
+  {
+   "file": "medieval-village-01.png",
+   "name": "Medieval Village 01",
+   "source_url": "https://game-icons.net/1x1/caro-asercion/medieval-village-01.html",
+   "license": "CC BY 3.0",
+   "author": "Caro-Asercion"
+  },
+  {
+   "file": "military-ambulance.png",
+   "name": "Military Ambulance",
+   "source_url": "https://game-icons.net/1x1/quoting/military-ambulance.html",
+   "license": "CC BY 3.0",
+   "author": "Quoting"
+  },
+  {
+   "file": "military-fort.png",
+   "name": "Military Fort",
+   "source_url": "https://game-icons.net/1x1/delapouite/military-fort.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "mine-truck.png",
+   "name": "Mine Truck",
+   "source_url": "https://game-icons.net/1x1/delapouite/mine-truck.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "mine-wagon.png",
+   "name": "Mine Wagon",
+   "source_url": "https://game-icons.net/1x1/delapouite/mine-wagon.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "mini-submarine.png",
+   "name": "Mini Submarine",
+   "source_url": "https://game-icons.net/1x1/delapouite/mini-submarine.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "modern-city.png",
+   "name": "Modern City",
+   "source_url": "https://game-icons.net/1x1/delapouite/modern-city.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "monument.png",
+   "name": "Monument",
+   "source_url": "https://fontawesome.com/icons/monument?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "moped.png",
+   "name": "Moped",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/moped-fill.svg",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "mosque-mdi.png",
+   "name": "Mosque Mdi",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/mosque/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "mosque-phos.png",
+   "name": "Mosque Phos",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/mosque-fill.svg",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "mosque.png",
+   "name": "Mosque",
+   "source_url": "https://fontawesome.com/icons/mosque?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "motorbike-electric.png",
+   "name": "Motorbike Electric",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/motorbike-electric/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "motorbike.png",
+   "name": "Motorbike",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/motorbike/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "motorcycle.png",
+   "name": "Motorcycle",
+   "source_url": "https://fontawesome.com/icons/motorcycle?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "mountain-city.png",
+   "name": "Mountain City",
+   "source_url": "https://fontawesome.com/icons/mountain-city?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "mushroom-house.png",
+   "name": "Mushroom House",
+   "source_url": "https://game-icons.net/1x1/delapouite/mushroom-house.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "observatory.png",
+   "name": "Observatory",
+   "source_url": "https://game-icons.net/1x1/delapouite/observatory.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "office-building.png",
+   "name": "Office Building",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/office-building/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "old-car-silhouette.png",
+   "name": "Old car",
+   "source_url": "https://openclipart.org/detail/63409",
+   "license": "CC0",
+   "author": "mystica"
+  },
+  {
+   "file": "old-time-sailing-ship.png",
+   "name": "Old-time sailing ship",
+   "source_url": "https://openclipart.org/detail/318360",
+   "license": "CC0",
+   "author": "GDJ"
+  },
+  {
+   "file": "old-wagon.png",
+   "name": "Old Wagon",
+   "source_url": "https://game-icons.net/1x1/delapouite/old-wagon.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "open-gate.png",
+   "name": "Open Gate",
+   "source_url": "https://game-icons.net/1x1/delapouite/open-gate.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "paddle-steamer.png",
+   "name": "Paddle Steamer",
+   "source_url": "https://game-icons.net/1x1/delapouite/paddle-steamer.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "pagoda.png",
+   "name": "Pagoda",
+   "source_url": "https://game-icons.net/1x1/delapouite/pagoda.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "pier.png",
+   "name": "Pier",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/pier/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "plane-arrival.png",
+   "name": "Plane Arrival",
+   "source_url": "https://fontawesome.com/icons/plane-arrival?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "plane-car.png",
+   "name": "Plane Car",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/plane-car/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "plane-departure.png",
+   "name": "Plane Departure",
+   "source_url": "https://fontawesome.com/icons/plane-departure?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "plane-train.png",
+   "name": "Plane Train",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/plane-train/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "plane.png",
+   "name": "Plane",
+   "source_url": "https://fontawesome.com/icons/plane?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "police-car.png",
+   "name": "Police Car",
+   "source_url": "https://game-icons.net/1x1/delapouite/police-car.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "police-station.png",
+   "name": "Police Station",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/police-station/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "porsche-silhouette.png",
+   "name": "Porsche",
+   "source_url": "https://openclipart.org/detail/242137",
+   "license": "CC0",
+   "author": "GDJ"
+  },
+  {
+   "file": "race-car.png",
+   "name": "Race Car",
+   "source_url": "https://game-icons.net/1x1/skoll/race-car.html",
+   "license": "CC BY 3.0",
+   "author": "Skoll"
+  },
+  {
+   "file": "radio-tower.png",
+   "name": "Radio Tower",
+   "source_url": "https://game-icons.net/1x1/delapouite/radio-tower.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "raft.png",
+   "name": "Raft",
+   "source_url": "https://game-icons.net/1x1/delapouite/raft.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "ranch-gate.png",
+   "name": "Ranch Gate",
+   "source_url": "https://game-icons.net/1x1/delapouite/ranch-gate.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "rocket-fa.png",
+   "name": "Rocket Fa",
+   "source_url": "https://fontawesome.com/icons/rocket?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "rocket-launch.png",
+   "name": "Rocket Launch",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/rocket-launch/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "rocket-phos.png",
+   "name": "Rocket Phos",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/rocket-fill.svg",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "rocket.png",
+   "name": "Rocket",
+   "source_url": "https://game-icons.net/1x1/lorc/rocket.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "rope-bridge.png",
+   "name": "Rope Bridge",
+   "source_url": "https://game-icons.net/1x1/delapouite/rope-bridge.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "round-silo.png",
+   "name": "Round Silo",
+   "source_url": "https://game-icons.net/1x1/delapouite/round-silo.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "rv-truck.png",
+   "name": "Rv Truck",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/rv-truck/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "sail-boat-sink.png",
+   "name": "Sail Boat Sink",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/sail-boat-sink/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "sailboat-fa.png",
+   "name": "Sailboat Fa",
+   "source_url": "https://fontawesome.com/icons/sailboat?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "sailboat.png",
+   "name": "Sailboat",
+   "source_url": "https://openclipart.org/detail/224815",
+   "license": "CC0",
+   "author": "GDJ"
+  },
+  {
+   "file": "sailing-boat.png",
+   "name": "Sailing boat",
+   "source_url": "https://openclipart.org/detail/320793",
+   "license": "CC0",
+   "author": "liftarn"
+  },
+  {
+   "file": "sand-castle.png",
+   "name": "Sand Castle",
+   "source_url": "https://game-icons.net/1x1/delapouite/sand-castle.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "satellite-communication.png",
+   "name": "Satellite Communication",
+   "source_url": "https://game-icons.net/1x1/delapouite/satellite-communication.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "satellite-fa.png",
+   "name": "Satellite Fa",
+   "source_url": "https://fontawesome.com/icons/satellite?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "satellite-mdi.png",
+   "name": "Satellite Mdi",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/satellite/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "satellite-variant.png",
+   "name": "Satellite Variant",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/satellite-variant/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "satellite.png",
+   "name": "Satellite",
+   "source_url": "https://game-icons.net/1x1/lorc/satellite.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "school.png",
+   "name": "School",
+   "source_url": "https://fontawesome.com/icons/school?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "scooter-electric.png",
+   "name": "Scooter Electric",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/scooter-electric/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "scooter-mdi.png",
+   "name": "Scooter Mdi",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/scooter/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "scooter-phos.png",
+   "name": "Scooter Phos",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/scooter-fill.svg",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "scooter.png",
+   "name": "Scooter",
+   "source_url": "https://game-icons.net/1x1/delapouite/scooter.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "scout-ship.png",
+   "name": "Scout Ship",
+   "source_url": "https://game-icons.net/1x1/delapouite/scout-ship.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "security-gate.png",
+   "name": "Security Gate",
+   "source_url": "https://game-icons.net/1x1/delapouite/security-gate.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "sedan-car.png",
+   "name": "Sedan",
+   "source_url": "https://openclipart.org/detail/13824",
+   "license": "CC0",
+   "author": "unknown (see source page)"
+  },
+  {
+   "file": "shinto-shrine.png",
+   "name": "Shinto Shrine",
+   "source_url": "https://game-icons.net/1x1/delapouite/shinto-shrine.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "ship.png",
+   "name": "Ship",
+   "source_url": "https://fontawesome.com/icons/ship?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "shooner-sailboat.png",
+   "name": "Shooner Sailboat",
+   "source_url": "https://game-icons.net/1x1/pierre-leducq/shooner-sailboat.html",
+   "license": "CC BY 3.0",
+   "author": "Pierre-Leducq"
+  },
+  {
+   "file": "side-car-silhouette.png",
+   "name": "Car (side silhouette)",
+   "source_url": "https://openclipart.org/detail/190006",
+   "license": "CC0",
+   "author": "Z"
+  },
+  {
+   "file": "siege-tower.png",
+   "name": "Siege Tower",
+   "source_url": "https://game-icons.net/1x1/delapouite/siege-tower.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "sinking-ship.png",
+   "name": "Sinking Ship",
+   "source_url": "https://game-icons.net/1x1/delapouite/sinking-ship.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "small-car-silhouette.png",
+   "name": "Car (SUV, front three-quarter)",
+   "source_url": "https://openclipart.org/detail/232990",
+   "license": "CC0",
+   "author": "wellvieira"
+  },
+  {
+   "file": "small-fishing-sailboat.png",
+   "name": "Small Fishing Sailboat",
+   "source_url": "https://game-icons.net/1x1/pierre-leducq/small-fishing-sailboat.html",
+   "license": "CC BY 3.0",
+   "author": "Pierre-Leducq"
+  },
+  {
+   "file": "space-shuttle-fa.png",
+   "name": "Space Shuttle Fa",
+   "source_url": "https://fontawesome.com/icons/space-shuttle?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "space-shuttle.png",
+   "name": "Space Shuttle",
+   "source_url": "https://game-icons.net/1x1/delapouite/space-shuttle.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "spaceship.png",
+   "name": "Spaceship",
+   "source_url": "https://game-icons.net/1x1/delapouite/spaceship.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "speed-boat.png",
+   "name": "Speed Boat",
+   "source_url": "https://game-icons.net/1x1/delapouite/speed-boat.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "spiked-wall.png",
+   "name": "Spiked Wall",
+   "source_url": "https://game-icons.net/1x1/delapouite/spiked-wall.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "spooky-house.png",
+   "name": "Spooky House",
+   "source_url": "https://game-icons.net/1x1/delapouite/spooky-house.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "sports-car-icon.png",
+   "name": "Sports car icon",
+   "source_url": "https://openclipart.org/detail/267551",
+   "license": "CC0",
+   "author": "unknown (see source page)"
+  },
+  {
+   "file": "stadium.png",
+   "name": "Stadium",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/stadium/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "steam-locomotive.png",
+   "name": "Steam Locomotive",
+   "source_url": "https://game-icons.net/1x1/delapouite/steam-locomotive.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "steamroller.png",
+   "name": "Steamroller",
+   "source_url": "https://game-icons.net/1x1/caro-asercion/steamroller.html",
+   "license": "CC BY 3.0",
+   "author": "Caro-Asercion"
+  },
+  {
+   "file": "stone-bridge.png",
+   "name": "Stone Bridge",
+   "source_url": "https://game-icons.net/1x1/delapouite/stone-bridge.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "stone-tower.png",
+   "name": "Stone Tower",
+   "source_url": "https://game-icons.net/1x1/lorc/stone-tower.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "stone-wall.png",
+   "name": "Stone Wall",
+   "source_url": "https://game-icons.net/1x1/delapouite/stone-wall.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "store.png",
+   "name": "Store",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/store/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "storefront.png",
+   "name": "Storefront",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/storefront/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "stylized-bridge.png",
+   "name": "Stylized bridge",
+   "source_url": "https://openclipart.org/detail/262131",
+   "license": "CC0",
+   "author": "GDJ"
+  },
+  {
+   "file": "submarine-mdi.png",
+   "name": "Submarine Mdi",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/submarine/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "submarine.png",
+   "name": "Submarine",
+   "source_url": "https://game-icons.net/1x1/delapouite/submarine.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "subway-fa.png",
+   "name": "Subway Fa",
+   "source_url": "https://fontawesome.com/icons/subway?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "subway-train.png",
+   "name": "Subway Train",
+   "source_url": "https://game-icons.net/1x1/caro-asercion/subway-train.html",
+   "license": "CC BY 3.0",
+   "author": "Caro-Asercion"
+  },
+  {
+   "file": "subway.png",
+   "name": "Subway",
+   "source_url": "https://game-icons.net/1x1/delapouite/subway.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "surfer-van.png",
+   "name": "Surfer Van",
+   "source_url": "https://game-icons.net/1x1/delapouite/surfer-van.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "suspension-bridge.png",
+   "name": "Suspension Bridge",
+   "source_url": "https://game-icons.net/1x1/delapouite/suspension-bridge.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "synagogue-phos.png",
+   "name": "Synagogue Phos",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/synagogue-fill.svg",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "synagogue.png",
+   "name": "Synagogue",
+   "source_url": "https://fontawesome.com/icons/synagogue?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "tall-bridge.png",
+   "name": "Tall Bridge",
+   "source_url": "https://game-icons.net/1x1/delapouite/tall-bridge.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "tall-ship.png",
+   "name": "Tall ship",
+   "source_url": "https://openclipart.org/detail/104821",
+   "license": "CC0",
+   "author": "unknown (see source page)"
+  },
+  {
+   "file": "tank-mdi.png",
+   "name": "Tank Mdi",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/tank/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "tank-tread.png",
+   "name": "Tank Tread",
+   "source_url": "https://game-icons.net/1x1/skoll/tank-tread.html",
+   "license": "CC BY 3.0",
+   "author": "Skoll"
+  },
+  {
+   "file": "tank.png",
+   "name": "Tank",
+   "source_url": "https://game-icons.net/1x1/lorc/tank.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "tanker-truck.png",
+   "name": "Tanker Truck",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/tanker-truck/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "taxi-mdi.png",
+   "name": "Taxi Mdi",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/taxi/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "taxi.png",
+   "name": "Taxi",
+   "source_url": "https://fontawesome.com/icons/taxi?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "temple-buddhist.png",
+   "name": "Temple Buddhist",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/temple-buddhist/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "temple-door.png",
+   "name": "Temple Door",
+   "source_url": "https://game-icons.net/1x1/delapouite/temple-door.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "temple-gate.png",
+   "name": "Temple Gate",
+   "source_url": "https://game-icons.net/1x1/delapouite/temple-gate.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "temple-hindu.png",
+   "name": "Temple Hindu",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/temple-hindu/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "tent-phos.png",
+   "name": "Tent Phos",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/tent-fill.svg",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "tent.png",
+   "name": "Tent",
+   "source_url": "https://fontawesome.com/icons/tent?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "tents.png",
+   "name": "Tents",
+   "source_url": "https://fontawesome.com/icons/tents?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "tokyo-skytree.png",
+   "name": "Tokyo Skytree",
+   "source_url": "https://openclipart.org/detail/313553",
+   "license": "CC0",
+   "author": "j4p4n (design by Tokyoship)"
+  },
+  {
+   "file": "torii-gate.png",
+   "name": "Torii Gate",
+   "source_url": "https://fontawesome.com/icons/torii-gate?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "toronto-skyline.png",
+   "name": "Toronto skyline",
+   "source_url": "https://openclipart.org/detail/307354",
+   "license": "CC0",
+   "author": "GDJ"
+  },
+  {
+   "file": "tow-truck.png",
+   "name": "Tow Truck",
+   "source_url": "https://game-icons.net/1x1/delapouite/tow-truck.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "tower-bridge-london.png",
+   "name": "Tower Bridge, London",
+   "source_url": "https://openclipart.org/detail/315116",
+   "license": "CC0",
+   "author": "GDJ"
+  },
+  {
+   "file": "tower-broadcast.png",
+   "name": "Tower Broadcast",
+   "source_url": "https://fontawesome.com/icons/tower-broadcast?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "tower-fall.png",
+   "name": "Tower Fall",
+   "source_url": "https://game-icons.net/1x1/lorc/tower-fall.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "tower-fire.png",
+   "name": "Tower Fire",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/tower-fire/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "tower-flag.png",
+   "name": "Tower Flag",
+   "source_url": "https://game-icons.net/1x1/delapouite/tower-flag.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "tower-observation.png",
+   "name": "Tower Observation",
+   "source_url": "https://fontawesome.com/icons/tower-observation?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "town-hall.png",
+   "name": "Town Hall",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/town-hall/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "train-mdi.png",
+   "name": "Train Mdi",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/train/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "train-phos.png",
+   "name": "Train Phos",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/train-fill.svg",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "train-regional.png",
+   "name": "Train Regional",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/train-regional-fill.svg",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "train-tram.png",
+   "name": "Train Tram",
+   "source_url": "https://fontawesome.com/icons/train-tram?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "train-variant.png",
+   "name": "Train Variant",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/train-variant/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "train.png",
+   "name": "Train",
+   "source_url": "https://fontawesome.com/icons/train?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "tram-phos.png",
+   "name": "Tram Phos",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/tram-fill.svg",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "tram-side.png",
+   "name": "Tram Side",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/tram-side/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "tram.png",
+   "name": "Tram",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/tram/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "tree-city.png",
+   "name": "Tree City",
+   "source_url": "https://fontawesome.com/icons/tree-city?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "treehouse.png",
+   "name": "Treehouse",
+   "source_url": "https://game-icons.net/1x1/caro-asercion/treehouse.html",
+   "license": "CC BY 3.0",
+   "author": "Caro-Asercion"
+  },
+  {
+   "file": "triple-gate.png",
+   "name": "Triple Gate",
+   "source_url": "https://game-icons.net/1x1/delapouite/triple-gate.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "truck-cargo-container.png",
+   "name": "Truck Cargo Container",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/truck-cargo-container/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "truck-delivery.png",
+   "name": "Truck Delivery",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/truck-delivery/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "truck-fa.png",
+   "name": "Truck Fa",
+   "source_url": "https://fontawesome.com/icons/truck?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "truck-fast.png",
+   "name": "Truck Fast",
+   "source_url": "https://fontawesome.com/icons/truck-fast?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "truck-field.png",
+   "name": "Truck Field",
+   "source_url": "https://fontawesome.com/icons/truck-field?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "truck-flatbed.png",
+   "name": "Truck Flatbed",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/truck-flatbed/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "truck-front.png",
+   "name": "Truck Front",
+   "source_url": "https://fontawesome.com/icons/truck-front?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "truck-mdi.png",
+   "name": "Truck Mdi",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/truck/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "truck-monster.png",
+   "name": "Truck Monster",
+   "source_url": "https://fontawesome.com/icons/truck-monster?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "truck-moving.png",
+   "name": "Truck Moving",
+   "source_url": "https://fontawesome.com/icons/truck-moving?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "truck-phos.png",
+   "name": "Truck Phos",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/truck-fill.svg",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "truck-pickup.png",
+   "name": "Truck Pickup",
+   "source_url": "https://fontawesome.com/icons/truck-pickup?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "truck-trailer.png",
+   "name": "Truck Trailer",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/truck-trailer/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "truck.png",
+   "name": "Truck",
+   "source_url": "https://game-icons.net/1x1/delapouite/truck.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "tv-tower.png",
+   "name": "Tv Tower",
+   "source_url": "https://game-icons.net/1x1/delapouite/tv-tower.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "van-passenger.png",
+   "name": "Van Passenger",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/van-passenger/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "van-shuttle.png",
+   "name": "Van Shuttle",
+   "source_url": "https://fontawesome.com/icons/van-shuttle?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "van.png",
+   "name": "Van",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/van-fill.svg",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "viking-church.png",
+   "name": "Viking Church",
+   "source_url": "https://game-icons.net/1x1/delapouite/viking-church.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "viking-longhouse.png",
+   "name": "Viking Longhouse",
+   "source_url": "https://game-icons.net/1x1/delapouite/viking-longhouse.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "village.png",
+   "name": "Village",
+   "source_url": "https://game-icons.net/1x1/delapouite/village.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "wall.png",
+   "name": "Wall",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/wall/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "warehouse-fa.png",
+   "name": "Warehouse Fa",
+   "source_url": "https://fontawesome.com/icons/warehouse?s=solid",
+   "license": "CC BY 4.0 (Font Awesome Free)",
+   "author": "Fonticons, Inc."
+  },
+  {
+   "file": "warehouse-mdi.png",
+   "name": "Warehouse Mdi",
+   "source_url": "https://pictogrammers.com/library/mdi/icon/warehouse/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "warehouse-phos.png",
+   "name": "Warehouse Phos",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/warehouse-fill.svg",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "warehouse.png",
+   "name": "Warehouse",
+   "source_url": "https://game-icons.net/1x1/delapouite/warehouse.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "warship.png",
+   "name": "Warship",
+   "source_url": "https://openclipart.org/detail/234111",
+   "license": "CC0",
+   "author": "rones"
+  },
+  {
+   "file": "watchtower.png",
+   "name": "Watchtower",
+   "source_url": "https://game-icons.net/1x1/delapouite/watchtower.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "water-mill.png",
+   "name": "Water Mill",
+   "source_url": "https://game-icons.net/1x1/caro-asercion/water-mill.html",
+   "license": "CC BY 3.0",
+   "author": "Caro-Asercion"
+  },
+  {
+   "file": "water-tower.png",
+   "name": "Water Tower",
+   "source_url": "https://game-icons.net/1x1/delapouite/water-tower.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "white-tower.png",
+   "name": "White Tower",
+   "source_url": "https://game-icons.net/1x1/lorc/white-tower.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "windmill-phos.png",
+   "name": "Windmill Phos",
+   "source_url": "https://github.com/phosphor-icons/core/blob/main/assets/fill/windmill-fill.svg",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "windmill.png",
+   "name": "Windmill",
+   "source_url": "https://game-icons.net/1x1/delapouite/windmill.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "wood-cabin.png",
+   "name": "Wood Cabin",
+   "source_url": "https://game-icons.net/1x1/delapouite/wood-cabin.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "wooden-pier.png",
+   "name": "Wooden Pier",
+   "source_url": "https://game-icons.net/1x1/delapouite/wooden-pier.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "zeppelin.png",
+   "name": "Zeppelin",
+   "source_url": "https://game-icons.net/1x1/skoll/zeppelin.html",
+   "license": "CC BY 3.0",
+   "author": "Skoll"
+  }
+ ]
 }

@@ -1,872 +1,872 @@
 {
-  "items": [
-    {
-      "file": "3d-glasses.png",
-      "name": "3d Glasses",
-      "source_url": "https://game-icons.net/1x1/delapouite/3d-glasses.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "ample-dress.png",
-      "name": "Ample Dress",
-      "source_url": "https://game-icons.net/1x1/delapouite/ample-dress.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "backpack.png",
-      "name": "Backpack",
-      "source_url": "https://game-icons.net/1x1/delapouite/backpack.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "big-diamond-ring.png",
-      "name": "Big Diamond Ring",
-      "source_url": "https://game-icons.net/1x1/skoll/big-diamond-ring.html",
-      "license": "CC BY 3.0",
-      "author": "Skoll"
-    },
-    {
-      "file": "billed-cap.png",
-      "name": "Billed Cap",
-      "source_url": "https://game-icons.net/1x1/delapouite/billed-cap.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "bow-tie.png",
-      "name": "Bow Tie",
-      "source_url": "https://game-icons.net/1x1/delapouite/bow-tie.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "bow-tie-ribbon.png",
-      "name": "Bow Tie Ribbon",
-      "source_url": "https://game-icons.net/1x1/delapouite/bow-tie-ribbon.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "boots.png",
-      "name": "Boots",
-      "source_url": "https://game-icons.net/1x1/lorc/boots.html",
-      "license": "CC BY 3.0",
-      "author": "Lorc"
-    },
-    {
-      "file": "chelsea-boot.png",
-      "name": "Chelsea Boot",
-      "source_url": "https://game-icons.net/1x1/delapouite/chelsea-boot.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "converse-shoe.png",
-      "name": "Converse Shoe",
-      "source_url": "https://game-icons.net/1x1/delapouite/converse-shoe.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "corset.png",
-      "name": "Corset",
-      "source_url": "https://game-icons.net/1x1/delapouite/corset.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "crystal-earrings.png",
-      "name": "Crystal Earrings",
-      "source_url": "https://game-icons.net/1x1/delapouite/crystal-earrings.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "dress.png",
-      "name": "Dress",
-      "source_url": "https://game-icons.net/1x1/skoll/dress.html",
-      "license": "CC BY 3.0",
-      "author": "Skoll"
-    },
-    {
-      "file": "drop-earrings.png",
-      "name": "Drop Earrings",
-      "source_url": "https://game-icons.net/1x1/delapouite/drop-earrings.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "emerald-necklace.png",
-      "name": "Emerald Necklace",
-      "source_url": "https://game-icons.net/1x1/delapouite/emerald-necklace.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "fedora.png",
-      "name": "Fedora",
-      "source_url": "https://game-icons.net/1x1/lorc/fedora.html",
-      "license": "CC BY 3.0",
-      "author": "Lorc"
-    },
-    {
-      "file": "flower-hat.png",
-      "name": "Flower Hat",
-      "source_url": "https://game-icons.net/1x1/delapouite/flower-hat.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "fur-boot.png",
-      "name": "Fur Boot",
-      "source_url": "https://game-icons.net/1x1/delapouite/fur-boot.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "fur-shirt.png",
-      "name": "Fur Shirt",
-      "source_url": "https://game-icons.net/1x1/delapouite/fur-shirt.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "gem-necklace.png",
-      "name": "Gem Necklace",
-      "source_url": "https://game-icons.net/1x1/lorc/gem-necklace.html",
-      "license": "CC BY 3.0",
-      "author": "Lorc"
-    },
-    {
-      "file": "gem-pendant.png",
-      "name": "Gem Pendant",
-      "source_url": "https://game-icons.net/1x1/lorc/gem-pendant.html",
-      "license": "CC BY 3.0",
-      "author": "Lorc"
-    },
-    {
-      "file": "heart-earrings.png",
-      "name": "Heart Earrings",
-      "source_url": "https://game-icons.net/1x1/delapouite/heart-earrings.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "heart-necklace.png",
-      "name": "Heart Necklace",
-      "source_url": "https://game-icons.net/1x1/delapouite/heart-necklace.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "hood.png",
-      "name": "Hood",
-      "source_url": "https://game-icons.net/1x1/lorc/hood.html",
-      "license": "CC BY 3.0",
-      "author": "Lorc"
-    },
-    {
-      "file": "hoodie.png",
-      "name": "Hoodie",
-      "source_url": "https://game-icons.net/1x1/delapouite/hoodie.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "intricate-necklace.png",
-      "name": "Intricate Necklace",
-      "source_url": "https://game-icons.net/1x1/delapouite/intricate-necklace.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "kimono.png",
-      "name": "Kimono",
-      "source_url": "https://game-icons.net/1x1/delapouite/kimono.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "leather-boot.png",
-      "name": "Leather Boot",
-      "source_url": "https://game-icons.net/1x1/lorc/leather-boot.html",
-      "license": "CC BY 3.0",
-      "author": "Lorc"
-    },
-    {
-      "file": "lipstick.png",
-      "name": "Lipstick",
-      "source_url": "https://game-icons.net/1x1/delapouite/lipstick.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "metal-boot.png",
-      "name": "Metal Boot",
-      "source_url": "https://game-icons.net/1x1/delapouite/metal-boot.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "moncler-jacket.png",
-      "name": "Moncler Jacket",
-      "source_url": "https://game-icons.net/1x1/delapouite/moncler-jacket.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "necklace.png",
-      "name": "Necklace",
-      "source_url": "https://game-icons.net/1x1/lucasms/necklace.html",
-      "license": "CC BY 3.0",
-      "author": "Lucas"
-    },
-    {
-      "file": "outback-hat.png",
-      "name": "Outback Hat",
-      "source_url": "https://game-icons.net/1x1/delapouite/outback-hat.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "pearl-earring.png",
-      "name": "Pearl Earring",
-      "source_url": "https://game-icons.net/1x1/delapouite/pearl-earring.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "pearl-necklace.png",
-      "name": "Pearl Necklace",
-      "source_url": "https://game-icons.net/1x1/delapouite/pearl-necklace.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "phrygian-cap.png",
-      "name": "Phrygian Cap",
-      "source_url": "https://game-icons.net/1x1/delapouite/phrygian-cap.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "pilgrim-hat.png",
-      "name": "Pilgrim Hat",
-      "source_url": "https://game-icons.net/1x1/delapouite/pilgrim-hat.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "pirate-coat.png",
-      "name": "Pirate Coat",
-      "source_url": "https://game-icons.net/1x1/delapouite/pirate-coat.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "poncho.png",
-      "name": "Poncho",
-      "source_url": "https://game-icons.net/1x1/delapouite/poncho.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "pope-crown.png",
-      "name": "Pope Crown",
-      "source_url": "https://game-icons.net/1x1/delapouite/pope-crown.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "polo-shirt.png",
-      "name": "Polo Shirt",
-      "source_url": "https://game-icons.net/1x1/delapouite/polo-shirt.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "primitive-necklace.png",
-      "name": "Primitive Necklace",
-      "source_url": "https://game-icons.net/1x1/delapouite/primitive-necklace.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "robin-hood-hat.png",
-      "name": "Robin Hood Hat",
-      "source_url": "https://game-icons.net/1x1/delapouite/robin-hood-hat.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "rubber-boot.png",
-      "name": "Rubber Boot",
-      "source_url": "https://game-icons.net/1x1/delapouite/rubber-boot.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "sandal.png",
-      "name": "Sandal",
-      "source_url": "https://game-icons.net/1x1/delapouite/sandal.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "santa-hat.png",
-      "name": "Santa Hat",
-      "source_url": "https://game-icons.net/1x1/delapouite/santa-hat.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "shirt.png",
-      "name": "Shirt",
-      "source_url": "https://game-icons.net/1x1/lucasms/shirt.html",
-      "license": "CC BY 3.0",
-      "author": "Lucas"
-    },
-    {
-      "file": "skimmer-hat.png",
-      "name": "Skimmer Hat",
-      "source_url": "https://game-icons.net/1x1/delapouite/skimmer-hat.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "sleeveless-jacket.png",
-      "name": "Sleeveless Jacket",
-      "source_url": "https://game-icons.net/1x1/delapouite/sleeveless-jacket.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "socks.png",
-      "name": "Socks",
-      "source_url": "https://game-icons.net/1x1/delapouite/socks.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "sunglasses.png",
-      "name": "Sunglasses",
-      "source_url": "https://game-icons.net/1x1/delapouite/sunglasses.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "tabi-boot.png",
-      "name": "Tabi Boot",
-      "source_url": "https://game-icons.net/1x1/darkzaitzev/tabi-boot.html",
-      "license": "CC BY 3.0",
-      "author": "DarkZaitzev"
-    },
-    {
-      "file": "travel-dress.png",
-      "name": "Travel Dress",
-      "source_url": "https://game-icons.net/1x1/delapouite/travel-dress.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "turban.png",
-      "name": "Turban",
-      "source_url": "https://game-icons.net/1x1/delapouite/turban.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "vampire-cape.png",
-      "name": "Vampire Cape",
-      "source_url": "https://game-icons.net/1x1/delapouite/vampire-cape.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "walking-boot.png",
-      "name": "Walking Boot",
-      "source_url": "https://game-icons.net/1x1/lorc/walking-boot.html",
-      "license": "CC BY 3.0",
-      "author": "Lorc"
-    },
-    {
-      "file": "winter-gloves.png",
-      "name": "Winter Gloves",
-      "source_url": "https://game-icons.net/1x1/delapouite/winter-gloves.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "winter-hat.png",
-      "name": "Winter Hat",
-      "source_url": "https://game-icons.net/1x1/delapouite/winter-hat.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "spiked-collar.png",
-      "name": "Spiked Collar",
-      "source_url": "https://game-icons.net/1x1/lorc/spiked-collar.html",
-      "license": "CC BY 3.0",
-      "author": "Lorc"
-    },
-    {
-      "file": "tribal-pendant.png",
-      "name": "Tribal Pendant",
-      "source_url": "https://game-icons.net/1x1/delapouite/tribal-pendant.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "feather-necklace.png",
-      "name": "Feather Necklace",
-      "source_url": "https://game-icons.net/1x1/delapouite/feather-necklace.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "double-necklace.png",
-      "name": "Double Necklace",
-      "source_url": "https://game-icons.net/1x1/delapouite/double-necklace.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "skull-ring.png",
-      "name": "Skull Ring",
-      "source_url": "https://game-icons.net/1x1/lorc/skull-ring.html",
-      "license": "CC BY 3.0",
-      "author": "Lorc"
-    },
-    {
-      "file": "mail-shirt.png",
-      "name": "Mail Shirt",
-      "source_url": "https://game-icons.net/1x1/lorc/mail-shirt.html",
-      "license": "CC BY 3.0",
-      "author": "Lorc"
-    },
-    {
-      "file": "steampunk-goggles.png",
-      "name": "Steampunk Goggles",
-      "source_url": "https://game-icons.net/1x1/delapouite/steampunk-goggles.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "protection-glasses.png",
-      "name": "Protection Glasses",
-      "source_url": "https://game-icons.net/1x1/delapouite/protection-glasses.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "prank-glasses.png",
-      "name": "Prank Glasses",
-      "source_url": "https://game-icons.net/1x1/caro-asercion/prank-glasses.html",
-      "license": "CC BY 3.0",
-      "author": "Caro Asercion"
-    },
-    {
-      "file": "spectacle-lenses.png",
-      "name": "Spectacle Lenses",
-      "source_url": "https://game-icons.net/1x1/lorc/spectacle-lenses.html",
-      "license": "CC BY 3.0",
-      "author": "Lorc"
-    },
-    {
-      "file": "carnival-mask.png",
-      "name": "Carnival Mask",
-      "source_url": "https://game-icons.net/1x1/delapouite/carnival-mask.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "domino-mask.png",
-      "name": "Domino Mask",
-      "source_url": "https://game-icons.net/1x1/lorc/domino-mask.html",
-      "license": "CC BY 3.0",
-      "author": "Lorc"
-    },
-    {
-      "file": "shoulder-bag.png",
-      "name": "Shoulder Bag",
-      "source_url": "https://game-icons.net/1x1/delapouite/shoulder-bag.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "party-hat.png",
-      "name": "Party Hat",
-      "source_url": "https://game-icons.net/1x1/delapouite/party-hat.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "tie.png",
-      "name": "Tie",
-      "source_url": "https://game-icons.net/1x1/delapouite/tie.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "skirt.png",
-      "name": "Skirt",
-      "source_url": "https://game-icons.net/1x1/delapouite/skirt.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "dunce-cap.png",
-      "name": "Dunce Cap",
-      "source_url": "https://game-icons.net/1x1/delapouite/dunce-cap.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "cork-hat.png",
-      "name": "Cork Hat",
-      "source_url": "https://game-icons.net/1x1/delapouite/cork-hat.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "sleeveless-top.png",
-      "name": "Sleeveless Top",
-      "source_url": "https://game-icons.net/1x1/delapouite/sleeveless-top.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "war-bonnet.png",
-      "name": "War Bonnet",
-      "source_url": "https://game-icons.net/1x1/delapouite/war-bonnet.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "jewel-crown.png",
-      "name": "Jewel Crown",
-      "source_url": "https://game-icons.net/1x1/delapouite/jewel-crown.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "ring-box.png",
-      "name": "Ring Box",
-      "source_url": "https://game-icons.net/1x1/delapouite/ring-box.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "gem-chain.png",
-      "name": "Gem Chain",
-      "source_url": "https://game-icons.net/1x1/lorc/gem-chain.html",
-      "license": "CC BY 3.0",
-      "author": "Lorc"
-    },
-    {
-      "file": "cut-diamond.png",
-      "name": "Cut Diamond",
-      "source_url": "https://game-icons.net/1x1/lorc/cut-diamond.html",
-      "license": "CC BY 3.0",
-      "author": "Lorc"
-    },
-    {
-      "file": "clothes.png",
-      "name": "Clothes",
-      "source_url": "https://game-icons.net/1x1/delapouite/clothes.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "medal.png",
-      "name": "Medal",
-      "source_url": "https://game-icons.net/1x1/lorc/medal.html",
-      "license": "CC BY 3.0",
-      "author": "Lorc"
-    },
-    {
-      "file": "ribbon-medal.png",
-      "name": "Ribbon Medal",
-      "source_url": "https://game-icons.net/1x1/delapouite/ribbon-medal.html",
-      "license": "CC BY 3.0",
-      "author": "Delapouite"
-    },
-    {
-      "file": "pickelhaube.png",
-      "name": "Pickelhaube",
-      "source_url": "https://game-icons.net/1x1/skoll/pickelhaube.html",
-      "license": "CC BY 3.0",
-      "author": "Skoll"
-    },
-    {
-      "file": "emoji-dress.png",
-      "name": "Dress (Noto Emoji)",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f457.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "emoji-clutch-bag.png",
-      "name": "Clutch Bag (Noto Emoji)",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f45b.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "emoji-handbag.png",
-      "name": "Handbag (Noto Emoji)",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f45c.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "emoji-mans-shoe.png",
-      "name": "Man's Shoe (Noto Emoji)",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f45e.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "emoji-running-shoe.png",
-      "name": "Running Shoe (Noto Emoji)",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f45f.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "emoji-hiking-boot.png",
-      "name": "Hiking Boot (Noto Emoji)",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f97e.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "emoji-flat-shoe.png",
-      "name": "Flat Shoe (Noto Emoji)",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f97f.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "emoji-high-heeled-shoe.png",
-      "name": "High-Heeled Shoe (Noto Emoji)",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f460.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "emoji-womans-boot.png",
-      "name": "Woman's Boot (Noto Emoji)",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f462.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "emoji-crown.png",
-      "name": "Crown (Noto Emoji)",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f451.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "emoji-womans-hat.png",
-      "name": "Woman's Hat (Noto Emoji)",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f452.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "emoji-top-hat.png",
-      "name": "Top Hat (Noto Emoji)",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f3a9.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "emoji-graduation-cap.png",
-      "name": "Graduation Cap (Noto Emoji)",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f393.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "emoji-closed-umbrella.png",
-      "name": "Closed Umbrella (Noto Emoji)",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f302.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "emoji-umbrella.png",
-      "name": "Umbrella (Noto Emoji)",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u2602.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "emoji-scarf.png",
-      "name": "Scarf (Noto Emoji)",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f9e3.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "emoji-gloves.png",
-      "name": "Gloves (Noto Emoji)",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f9e4.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "emoji-coat.png",
-      "name": "Coat (Noto Emoji)",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f9e5.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "emoji-t-shirt.png",
-      "name": "T-Shirt (Noto Emoji)",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f455.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "emoji-jeans.png",
-      "name": "Jeans (Noto Emoji)",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f456.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "emoji-one-piece-swimsuit.png",
-      "name": "One-Piece Swimsuit (Noto Emoji)",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1fa71.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "emoji-shorts.png",
-      "name": "Shorts (Noto Emoji)",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1fa73.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "emoji-bikini.png",
-      "name": "Bikini (Noto Emoji)",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f459.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "emoji-lipstick.png",
-      "name": "Lipstick (Noto Emoji)",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f484.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "emoji-thong-sandal.png",
-      "name": "Thong Sandal (Noto Emoji)",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1fa74.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "emoji-sari.png",
-      "name": "Sari (Noto Emoji)",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f97b.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "emoji-fan2.png",
-      "name": "Fan2 (Noto Emoji)",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1faad.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "emoji-luggage.png",
-      "name": "Luggage (Noto Emoji)",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f9f3.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "emoji-shopping-bags.png",
-      "name": "Shopping Bags (Noto Emoji)",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f6cd.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "emoji-briefcase.png",
-      "name": "Briefcase (Noto Emoji)",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f4bc.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "emoji-hair-pick.png",
-      "name": "Hair Pick (Noto Emoji)",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1faae.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "emoji-prayer-beads.png",
-      "name": "Prayer Beads (Noto Emoji)",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f4ff.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "emoji-watch.png",
-      "name": "Watch (Noto Emoji)",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u231a.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "emoji-sewing-needle.png",
-      "name": "Sewing Needle (Noto Emoji)",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1faa1.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "emoji-ballet-shoes.png",
-      "name": "Ballet Shoes (Noto Emoji)",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1fa70.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "emoji-lab-coat.png",
-      "name": "Lab Coat (Noto Emoji)",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f97c.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "emoji-martial-arts-uniform.png",
-      "name": "Martial Arts Uniform (Noto Emoji)",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f94b.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    },
-    {
-      "file": "emoji-safety-pin.png",
-      "name": "Safety Pin (Noto Emoji)",
-      "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f9f7.svg",
-      "license": "Apache-2.0",
-      "author": "Google (Noto Emoji)"
-    }
-  ]
+ "items": [
+  {
+   "file": "3d-glasses.png",
+   "name": "3d Glasses",
+   "source_url": "https://game-icons.net/1x1/delapouite/3d-glasses.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "ample-dress.png",
+   "name": "Ample Dress",
+   "source_url": "https://game-icons.net/1x1/delapouite/ample-dress.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "backpack.png",
+   "name": "Backpack",
+   "source_url": "https://game-icons.net/1x1/delapouite/backpack.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "big-diamond-ring.png",
+   "name": "Big Diamond Ring",
+   "source_url": "https://game-icons.net/1x1/skoll/big-diamond-ring.html",
+   "license": "CC BY 3.0",
+   "author": "Skoll"
+  },
+  {
+   "file": "billed-cap.png",
+   "name": "Billed Cap",
+   "source_url": "https://game-icons.net/1x1/delapouite/billed-cap.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "boots.png",
+   "name": "Boots",
+   "source_url": "https://game-icons.net/1x1/lorc/boots.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "bow-tie-ribbon.png",
+   "name": "Bow Tie Ribbon",
+   "source_url": "https://game-icons.net/1x1/delapouite/bow-tie-ribbon.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "bow-tie.png",
+   "name": "Bow Tie",
+   "source_url": "https://game-icons.net/1x1/delapouite/bow-tie.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "carnival-mask.png",
+   "name": "Carnival Mask",
+   "source_url": "https://game-icons.net/1x1/delapouite/carnival-mask.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "chelsea-boot.png",
+   "name": "Chelsea Boot",
+   "source_url": "https://game-icons.net/1x1/delapouite/chelsea-boot.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "clothes.png",
+   "name": "Clothes",
+   "source_url": "https://game-icons.net/1x1/delapouite/clothes.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "converse-shoe.png",
+   "name": "Converse Shoe",
+   "source_url": "https://game-icons.net/1x1/delapouite/converse-shoe.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "cork-hat.png",
+   "name": "Cork Hat",
+   "source_url": "https://game-icons.net/1x1/delapouite/cork-hat.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "corset.png",
+   "name": "Corset",
+   "source_url": "https://game-icons.net/1x1/delapouite/corset.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "crystal-earrings.png",
+   "name": "Crystal Earrings",
+   "source_url": "https://game-icons.net/1x1/delapouite/crystal-earrings.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "cut-diamond.png",
+   "name": "Cut Diamond",
+   "source_url": "https://game-icons.net/1x1/lorc/cut-diamond.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "domino-mask.png",
+   "name": "Domino Mask",
+   "source_url": "https://game-icons.net/1x1/lorc/domino-mask.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "double-necklace.png",
+   "name": "Double Necklace",
+   "source_url": "https://game-icons.net/1x1/delapouite/double-necklace.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "dress.png",
+   "name": "Dress",
+   "source_url": "https://game-icons.net/1x1/skoll/dress.html",
+   "license": "CC BY 3.0",
+   "author": "Skoll"
+  },
+  {
+   "file": "drop-earrings.png",
+   "name": "Drop Earrings",
+   "source_url": "https://game-icons.net/1x1/delapouite/drop-earrings.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "dunce-cap.png",
+   "name": "Dunce Cap",
+   "source_url": "https://game-icons.net/1x1/delapouite/dunce-cap.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "emerald-necklace.png",
+   "name": "Emerald Necklace",
+   "source_url": "https://game-icons.net/1x1/delapouite/emerald-necklace.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "emoji-ballet-shoes.png",
+   "name": "Ballet Shoes (Noto Emoji)",
+   "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1fa70.svg",
+   "license": "Apache-2.0",
+   "author": "Google (Noto Emoji)"
+  },
+  {
+   "file": "emoji-bikini.png",
+   "name": "Bikini (Noto Emoji)",
+   "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f459.svg",
+   "license": "Apache-2.0",
+   "author": "Google (Noto Emoji)"
+  },
+  {
+   "file": "emoji-briefcase.png",
+   "name": "Briefcase (Noto Emoji)",
+   "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f4bc.svg",
+   "license": "Apache-2.0",
+   "author": "Google (Noto Emoji)"
+  },
+  {
+   "file": "emoji-closed-umbrella.png",
+   "name": "Closed Umbrella (Noto Emoji)",
+   "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f302.svg",
+   "license": "Apache-2.0",
+   "author": "Google (Noto Emoji)"
+  },
+  {
+   "file": "emoji-clutch-bag.png",
+   "name": "Clutch Bag (Noto Emoji)",
+   "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f45b.svg",
+   "license": "Apache-2.0",
+   "author": "Google (Noto Emoji)"
+  },
+  {
+   "file": "emoji-coat.png",
+   "name": "Coat (Noto Emoji)",
+   "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f9e5.svg",
+   "license": "Apache-2.0",
+   "author": "Google (Noto Emoji)"
+  },
+  {
+   "file": "emoji-crown.png",
+   "name": "Crown (Noto Emoji)",
+   "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f451.svg",
+   "license": "Apache-2.0",
+   "author": "Google (Noto Emoji)"
+  },
+  {
+   "file": "emoji-dress.png",
+   "name": "Dress (Noto Emoji)",
+   "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f457.svg",
+   "license": "Apache-2.0",
+   "author": "Google (Noto Emoji)"
+  },
+  {
+   "file": "emoji-fan2.png",
+   "name": "Fan2 (Noto Emoji)",
+   "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1faad.svg",
+   "license": "Apache-2.0",
+   "author": "Google (Noto Emoji)"
+  },
+  {
+   "file": "emoji-flat-shoe.png",
+   "name": "Flat Shoe (Noto Emoji)",
+   "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f97f.svg",
+   "license": "Apache-2.0",
+   "author": "Google (Noto Emoji)"
+  },
+  {
+   "file": "emoji-gloves.png",
+   "name": "Gloves (Noto Emoji)",
+   "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f9e4.svg",
+   "license": "Apache-2.0",
+   "author": "Google (Noto Emoji)"
+  },
+  {
+   "file": "emoji-graduation-cap.png",
+   "name": "Graduation Cap (Noto Emoji)",
+   "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f393.svg",
+   "license": "Apache-2.0",
+   "author": "Google (Noto Emoji)"
+  },
+  {
+   "file": "emoji-hair-pick.png",
+   "name": "Hair Pick (Noto Emoji)",
+   "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1faae.svg",
+   "license": "Apache-2.0",
+   "author": "Google (Noto Emoji)"
+  },
+  {
+   "file": "emoji-handbag.png",
+   "name": "Handbag (Noto Emoji)",
+   "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f45c.svg",
+   "license": "Apache-2.0",
+   "author": "Google (Noto Emoji)"
+  },
+  {
+   "file": "emoji-high-heeled-shoe.png",
+   "name": "High-Heeled Shoe (Noto Emoji)",
+   "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f460.svg",
+   "license": "Apache-2.0",
+   "author": "Google (Noto Emoji)"
+  },
+  {
+   "file": "emoji-hiking-boot.png",
+   "name": "Hiking Boot (Noto Emoji)",
+   "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f97e.svg",
+   "license": "Apache-2.0",
+   "author": "Google (Noto Emoji)"
+  },
+  {
+   "file": "emoji-jeans.png",
+   "name": "Jeans (Noto Emoji)",
+   "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f456.svg",
+   "license": "Apache-2.0",
+   "author": "Google (Noto Emoji)"
+  },
+  {
+   "file": "emoji-lab-coat.png",
+   "name": "Lab Coat (Noto Emoji)",
+   "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f97c.svg",
+   "license": "Apache-2.0",
+   "author": "Google (Noto Emoji)"
+  },
+  {
+   "file": "emoji-lipstick.png",
+   "name": "Lipstick (Noto Emoji)",
+   "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f484.svg",
+   "license": "Apache-2.0",
+   "author": "Google (Noto Emoji)"
+  },
+  {
+   "file": "emoji-luggage.png",
+   "name": "Luggage (Noto Emoji)",
+   "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f9f3.svg",
+   "license": "Apache-2.0",
+   "author": "Google (Noto Emoji)"
+  },
+  {
+   "file": "emoji-mans-shoe.png",
+   "name": "Man's Shoe (Noto Emoji)",
+   "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f45e.svg",
+   "license": "Apache-2.0",
+   "author": "Google (Noto Emoji)"
+  },
+  {
+   "file": "emoji-martial-arts-uniform.png",
+   "name": "Martial Arts Uniform (Noto Emoji)",
+   "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f94b.svg",
+   "license": "Apache-2.0",
+   "author": "Google (Noto Emoji)"
+  },
+  {
+   "file": "emoji-one-piece-swimsuit.png",
+   "name": "One-Piece Swimsuit (Noto Emoji)",
+   "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1fa71.svg",
+   "license": "Apache-2.0",
+   "author": "Google (Noto Emoji)"
+  },
+  {
+   "file": "emoji-prayer-beads.png",
+   "name": "Prayer Beads (Noto Emoji)",
+   "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f4ff.svg",
+   "license": "Apache-2.0",
+   "author": "Google (Noto Emoji)"
+  },
+  {
+   "file": "emoji-running-shoe.png",
+   "name": "Running Shoe (Noto Emoji)",
+   "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f45f.svg",
+   "license": "Apache-2.0",
+   "author": "Google (Noto Emoji)"
+  },
+  {
+   "file": "emoji-safety-pin.png",
+   "name": "Safety Pin (Noto Emoji)",
+   "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f9f7.svg",
+   "license": "Apache-2.0",
+   "author": "Google (Noto Emoji)"
+  },
+  {
+   "file": "emoji-sari.png",
+   "name": "Sari (Noto Emoji)",
+   "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f97b.svg",
+   "license": "Apache-2.0",
+   "author": "Google (Noto Emoji)"
+  },
+  {
+   "file": "emoji-scarf.png",
+   "name": "Scarf (Noto Emoji)",
+   "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f9e3.svg",
+   "license": "Apache-2.0",
+   "author": "Google (Noto Emoji)"
+  },
+  {
+   "file": "emoji-sewing-needle.png",
+   "name": "Sewing Needle (Noto Emoji)",
+   "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1faa1.svg",
+   "license": "Apache-2.0",
+   "author": "Google (Noto Emoji)"
+  },
+  {
+   "file": "emoji-shopping-bags.png",
+   "name": "Shopping Bags (Noto Emoji)",
+   "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f6cd.svg",
+   "license": "Apache-2.0",
+   "author": "Google (Noto Emoji)"
+  },
+  {
+   "file": "emoji-shorts.png",
+   "name": "Shorts (Noto Emoji)",
+   "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1fa73.svg",
+   "license": "Apache-2.0",
+   "author": "Google (Noto Emoji)"
+  },
+  {
+   "file": "emoji-t-shirt.png",
+   "name": "T-Shirt (Noto Emoji)",
+   "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f455.svg",
+   "license": "Apache-2.0",
+   "author": "Google (Noto Emoji)"
+  },
+  {
+   "file": "emoji-thong-sandal.png",
+   "name": "Thong Sandal (Noto Emoji)",
+   "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1fa74.svg",
+   "license": "Apache-2.0",
+   "author": "Google (Noto Emoji)"
+  },
+  {
+   "file": "emoji-top-hat.png",
+   "name": "Top Hat (Noto Emoji)",
+   "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f3a9.svg",
+   "license": "Apache-2.0",
+   "author": "Google (Noto Emoji)"
+  },
+  {
+   "file": "emoji-umbrella.png",
+   "name": "Umbrella (Noto Emoji)",
+   "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u2602.svg",
+   "license": "Apache-2.0",
+   "author": "Google (Noto Emoji)"
+  },
+  {
+   "file": "emoji-watch.png",
+   "name": "Watch (Noto Emoji)",
+   "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u231a.svg",
+   "license": "Apache-2.0",
+   "author": "Google (Noto Emoji)"
+  },
+  {
+   "file": "emoji-womans-boot.png",
+   "name": "Woman's Boot (Noto Emoji)",
+   "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f462.svg",
+   "license": "Apache-2.0",
+   "author": "Google (Noto Emoji)"
+  },
+  {
+   "file": "emoji-womans-hat.png",
+   "name": "Woman's Hat (Noto Emoji)",
+   "source_url": "https://github.com/googlefonts/noto-emoji/blob/main/2D/svg/emoji_u1f452.svg",
+   "license": "Apache-2.0",
+   "author": "Google (Noto Emoji)"
+  },
+  {
+   "file": "feather-necklace.png",
+   "name": "Feather Necklace",
+   "source_url": "https://game-icons.net/1x1/delapouite/feather-necklace.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "fedora.png",
+   "name": "Fedora",
+   "source_url": "https://game-icons.net/1x1/lorc/fedora.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "flower-hat.png",
+   "name": "Flower Hat",
+   "source_url": "https://game-icons.net/1x1/delapouite/flower-hat.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "fur-boot.png",
+   "name": "Fur Boot",
+   "source_url": "https://game-icons.net/1x1/delapouite/fur-boot.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "fur-shirt.png",
+   "name": "Fur Shirt",
+   "source_url": "https://game-icons.net/1x1/delapouite/fur-shirt.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "gem-chain.png",
+   "name": "Gem Chain",
+   "source_url": "https://game-icons.net/1x1/lorc/gem-chain.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "gem-necklace.png",
+   "name": "Gem Necklace",
+   "source_url": "https://game-icons.net/1x1/lorc/gem-necklace.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "gem-pendant.png",
+   "name": "Gem Pendant",
+   "source_url": "https://game-icons.net/1x1/lorc/gem-pendant.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "heart-earrings.png",
+   "name": "Heart Earrings",
+   "source_url": "https://game-icons.net/1x1/delapouite/heart-earrings.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "heart-necklace.png",
+   "name": "Heart Necklace",
+   "source_url": "https://game-icons.net/1x1/delapouite/heart-necklace.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "hood.png",
+   "name": "Hood",
+   "source_url": "https://game-icons.net/1x1/lorc/hood.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "hoodie.png",
+   "name": "Hoodie",
+   "source_url": "https://game-icons.net/1x1/delapouite/hoodie.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "intricate-necklace.png",
+   "name": "Intricate Necklace",
+   "source_url": "https://game-icons.net/1x1/delapouite/intricate-necklace.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "jewel-crown.png",
+   "name": "Jewel Crown",
+   "source_url": "https://game-icons.net/1x1/delapouite/jewel-crown.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "kimono.png",
+   "name": "Kimono",
+   "source_url": "https://game-icons.net/1x1/delapouite/kimono.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "leather-boot.png",
+   "name": "Leather Boot",
+   "source_url": "https://game-icons.net/1x1/lorc/leather-boot.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "lipstick.png",
+   "name": "Lipstick",
+   "source_url": "https://game-icons.net/1x1/delapouite/lipstick.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "mail-shirt.png",
+   "name": "Mail Shirt",
+   "source_url": "https://game-icons.net/1x1/lorc/mail-shirt.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "medal.png",
+   "name": "Medal",
+   "source_url": "https://game-icons.net/1x1/lorc/medal.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "metal-boot.png",
+   "name": "Metal Boot",
+   "source_url": "https://game-icons.net/1x1/delapouite/metal-boot.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "moncler-jacket.png",
+   "name": "Moncler Jacket",
+   "source_url": "https://game-icons.net/1x1/delapouite/moncler-jacket.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "necklace.png",
+   "name": "Necklace",
+   "source_url": "https://game-icons.net/1x1/lucasms/necklace.html",
+   "license": "CC BY 3.0",
+   "author": "Lucas"
+  },
+  {
+   "file": "outback-hat.png",
+   "name": "Outback Hat",
+   "source_url": "https://game-icons.net/1x1/delapouite/outback-hat.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "party-hat.png",
+   "name": "Party Hat",
+   "source_url": "https://game-icons.net/1x1/delapouite/party-hat.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "pearl-earring.png",
+   "name": "Pearl Earring",
+   "source_url": "https://game-icons.net/1x1/delapouite/pearl-earring.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "pearl-necklace.png",
+   "name": "Pearl Necklace",
+   "source_url": "https://game-icons.net/1x1/delapouite/pearl-necklace.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "phrygian-cap.png",
+   "name": "Phrygian Cap",
+   "source_url": "https://game-icons.net/1x1/delapouite/phrygian-cap.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "pickelhaube.png",
+   "name": "Pickelhaube",
+   "source_url": "https://game-icons.net/1x1/skoll/pickelhaube.html",
+   "license": "CC BY 3.0",
+   "author": "Skoll"
+  },
+  {
+   "file": "pilgrim-hat.png",
+   "name": "Pilgrim Hat",
+   "source_url": "https://game-icons.net/1x1/delapouite/pilgrim-hat.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "pirate-coat.png",
+   "name": "Pirate Coat",
+   "source_url": "https://game-icons.net/1x1/delapouite/pirate-coat.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "polo-shirt.png",
+   "name": "Polo Shirt",
+   "source_url": "https://game-icons.net/1x1/delapouite/polo-shirt.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "poncho.png",
+   "name": "Poncho",
+   "source_url": "https://game-icons.net/1x1/delapouite/poncho.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "pope-crown.png",
+   "name": "Pope Crown",
+   "source_url": "https://game-icons.net/1x1/delapouite/pope-crown.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "prank-glasses.png",
+   "name": "Prank Glasses",
+   "source_url": "https://game-icons.net/1x1/caro-asercion/prank-glasses.html",
+   "license": "CC BY 3.0",
+   "author": "Caro Asercion"
+  },
+  {
+   "file": "primitive-necklace.png",
+   "name": "Primitive Necklace",
+   "source_url": "https://game-icons.net/1x1/delapouite/primitive-necklace.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "protection-glasses.png",
+   "name": "Protection Glasses",
+   "source_url": "https://game-icons.net/1x1/delapouite/protection-glasses.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "ribbon-medal.png",
+   "name": "Ribbon Medal",
+   "source_url": "https://game-icons.net/1x1/delapouite/ribbon-medal.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "ring-box.png",
+   "name": "Ring Box",
+   "source_url": "https://game-icons.net/1x1/delapouite/ring-box.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "robin-hood-hat.png",
+   "name": "Robin Hood Hat",
+   "source_url": "https://game-icons.net/1x1/delapouite/robin-hood-hat.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "rubber-boot.png",
+   "name": "Rubber Boot",
+   "source_url": "https://game-icons.net/1x1/delapouite/rubber-boot.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "sandal.png",
+   "name": "Sandal",
+   "source_url": "https://game-icons.net/1x1/delapouite/sandal.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "santa-hat.png",
+   "name": "Santa Hat",
+   "source_url": "https://game-icons.net/1x1/delapouite/santa-hat.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "shirt.png",
+   "name": "Shirt",
+   "source_url": "https://game-icons.net/1x1/lucasms/shirt.html",
+   "license": "CC BY 3.0",
+   "author": "Lucas"
+  },
+  {
+   "file": "shoulder-bag.png",
+   "name": "Shoulder Bag",
+   "source_url": "https://game-icons.net/1x1/delapouite/shoulder-bag.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "skimmer-hat.png",
+   "name": "Skimmer Hat",
+   "source_url": "https://game-icons.net/1x1/delapouite/skimmer-hat.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "skirt.png",
+   "name": "Skirt",
+   "source_url": "https://game-icons.net/1x1/delapouite/skirt.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "skull-ring.png",
+   "name": "Skull Ring",
+   "source_url": "https://game-icons.net/1x1/lorc/skull-ring.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "sleeveless-jacket.png",
+   "name": "Sleeveless Jacket",
+   "source_url": "https://game-icons.net/1x1/delapouite/sleeveless-jacket.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "sleeveless-top.png",
+   "name": "Sleeveless Top",
+   "source_url": "https://game-icons.net/1x1/delapouite/sleeveless-top.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "socks.png",
+   "name": "Socks",
+   "source_url": "https://game-icons.net/1x1/delapouite/socks.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "spectacle-lenses.png",
+   "name": "Spectacle Lenses",
+   "source_url": "https://game-icons.net/1x1/lorc/spectacle-lenses.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "spiked-collar.png",
+   "name": "Spiked Collar",
+   "source_url": "https://game-icons.net/1x1/lorc/spiked-collar.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "steampunk-goggles.png",
+   "name": "Steampunk Goggles",
+   "source_url": "https://game-icons.net/1x1/delapouite/steampunk-goggles.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "sunglasses.png",
+   "name": "Sunglasses",
+   "source_url": "https://game-icons.net/1x1/delapouite/sunglasses.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "tabi-boot.png",
+   "name": "Tabi Boot",
+   "source_url": "https://game-icons.net/1x1/darkzaitzev/tabi-boot.html",
+   "license": "CC BY 3.0",
+   "author": "DarkZaitzev"
+  },
+  {
+   "file": "tie.png",
+   "name": "Tie",
+   "source_url": "https://game-icons.net/1x1/delapouite/tie.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "travel-dress.png",
+   "name": "Travel Dress",
+   "source_url": "https://game-icons.net/1x1/delapouite/travel-dress.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "tribal-pendant.png",
+   "name": "Tribal Pendant",
+   "source_url": "https://game-icons.net/1x1/delapouite/tribal-pendant.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "turban.png",
+   "name": "Turban",
+   "source_url": "https://game-icons.net/1x1/delapouite/turban.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "vampire-cape.png",
+   "name": "Vampire Cape",
+   "source_url": "https://game-icons.net/1x1/delapouite/vampire-cape.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "walking-boot.png",
+   "name": "Walking Boot",
+   "source_url": "https://game-icons.net/1x1/lorc/walking-boot.html",
+   "license": "CC BY 3.0",
+   "author": "Lorc"
+  },
+  {
+   "file": "war-bonnet.png",
+   "name": "War Bonnet",
+   "source_url": "https://game-icons.net/1x1/delapouite/war-bonnet.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "winter-gloves.png",
+   "name": "Winter Gloves",
+   "source_url": "https://game-icons.net/1x1/delapouite/winter-gloves.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  },
+  {
+   "file": "winter-hat.png",
+   "name": "Winter Hat",
+   "source_url": "https://game-icons.net/1x1/delapouite/winter-hat.html",
+   "license": "CC BY 3.0",
+   "author": "Delapouite"
+  }
+ ]
 }

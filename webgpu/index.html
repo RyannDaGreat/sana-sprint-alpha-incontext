@@ -9,9 +9,9 @@
     const stored = localStorage.getItem('theme');
     if (stored) document.documentElement.dataset.theme = stored;
   </script>
-  <script type="module" crossorigin src="./assets/index-yH6plipP.js"></script>
-  <link rel="modulepreload" crossorigin href="./assets/embcache-CBOB819d.js">
-  <link rel="stylesheet" crossorigin href="./assets/index-DVynQRU1.css">
+  <script type="module" crossorigin src="./assets/index-BG39zZP_.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/embcache-B7gdUOOd.js">
+  <link rel="stylesheet" crossorigin href="./assets/index-CfbF1k9q.css">
 </head>
 <body>
   <header class="top">
@@ -127,11 +127,12 @@
         </label>
         <label class="field">Guidance (embedded) <input id="guidance" type="range" min="0" max="10" step="0.1" value="4.5"><span id="guidance-v" class="meta">4.5</span></label>
         <label class="field" id="lambda-field" title="λ = fraction of the adapter delta (W_adapter − W_teacher) kept, applied at run time as a low-rank (SVD) branch. 0 = full subtraction (the final model), 1 = the control model as trained. Only versions ending in -lambda have it.">λ (adapter) <input id="lambda" type="range" min="0" max="1" step="0.05" value="0"><span id="lambda-v" class="meta">0</span></label>
-        <label class="field" title="The model was trained only at 1024 × 1024. Other sizes work (SANA has no positional embedding) but are extrapolation: 768² looks close, 512² is oversaturated with texture artifacts. Non-square sizes use the centered crop of the matte shown by the frame.">Size
+        <label class="field" title="&quot;trained&quot; marks the sizes the loaded model was trained at (matte models: 1024 only; trimask models: 1024, 768, 512, 256). Other sizes work (SANA has no positional embedding) but are extrapolation: for a 1024-only model 768² looks close, 512² is oversaturated with texture artifacts. Non-square sizes use the centered crop of the matte shown by the frame.">Size
           <select id="size">
-            <option value="1024x1024" selected>1024 × 1024 (trained)</option>
+            <option value="1024x1024" selected>1024 × 1024</option>
             <option value="768x768">768 × 768</option>
-            <option value="512x512">512 × 512 (4× fewer tokens)</option>
+            <option value="512x512">512 × 512</option>
+            <option value="256x256">256 × 256</option>
             <option value="1024x768">1024 × 768</option>
             <option value="768x1024">768 × 1024</option>
           </select>

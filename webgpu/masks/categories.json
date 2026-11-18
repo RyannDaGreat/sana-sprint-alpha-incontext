@@ -2,7 +2,7 @@
  "categories": [
   {
    "id": "magick",
-   "name": "MAGICK",
+   "name": "Magick",
    "count": 29
   },
   {
@@ -13,7 +13,7 @@
   {
    "id": "animals",
    "name": "Animals",
-   "count": 39
+   "count": 220
   },
   {
    "id": "birds",
@@ -21,29 +21,14 @@
    "count": 176
   },
   {
-   "id": "buildings",
-   "name": "Buildings",
-   "count": 160
-  },
-  {
-   "id": "fantasy",
-   "name": "Fantasy",
-   "count": 234
-  },
-  {
    "id": "fantasy_creatures",
    "name": "Fantasy creatures",
-   "count": 25
+   "count": 259
   },
   {
    "id": "fashion",
    "name": "Fashion",
    "count": 124
-  },
-  {
-   "id": "food",
-   "name": "Food",
-   "count": 150
   },
   {
    "id": "heraldry",
@@ -53,7 +38,7 @@
   {
    "id": "household",
    "name": "Household",
-   "count": 322
+   "count": 320
   },
   {
    "id": "icons_symbols",
@@ -66,9 +51,9 @@
    "count": 153
   },
   {
-   "id": "mammals",
-   "name": "Mammals",
-   "count": 181
+   "id": "instruments",
+   "name": "Instruments",
+   "count": 36
   },
   {
    "id": "nature",
@@ -78,32 +63,27 @@
   {
    "id": "objects_tools",
    "name": "Objects tools",
-   "count": 42
+   "count": 262
   },
   {
    "id": "ornaments",
    "name": "Ornaments",
-   "count": 180
+   "count": 175
   },
   {
    "id": "people_poses",
    "name": "People poses",
-   "count": 40
+   "count": 332
   },
   {
    "id": "plants_food",
    "name": "Plants food",
-   "count": 38
-  },
-  {
-   "id": "poses",
-   "name": "Poses",
-   "count": 292
+   "count": 188
   },
   {
    "id": "professions",
    "name": "Professions",
-   "count": 348
+   "count": 335
   },
   {
    "id": "sea_life",
@@ -111,14 +91,9 @@
    "count": 116
   },
   {
-   "id": "sports",
-   "name": "Sports",
-   "count": 292
-  },
-  {
    "id": "sports_action",
    "name": "Sports action",
-   "count": 35
+   "count": 323
   },
   {
    "id": "typography_ornaments",
@@ -126,14 +101,9 @@
    "count": 25
   },
   {
-   "id": "vehicles",
-   "name": "Vehicles",
-   "count": 156
-  },
-  {
    "id": "vehicles_architecture",
    "name": "Vehicles architecture",
-   "count": 25
+   "count": 341
   }
  ]
 }
