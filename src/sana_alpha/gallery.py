@@ -155,12 +155,14 @@ def trimask_set(resolution=1024):
     return TRIMASK_SET + (f"_{resolution}" if resolution != 1024 else "")
 
 
-def trimask_rows(*run_steps, resolution=1024):
-    """Command. Prints the eval_models rows (MAGICK captions) of RUN:STEP... on every trimask eval set of one resolution, to paste into the dtab."""
+def trimask_rows(*run_steps, resolution=1024, methods=None):
+    """Command. Prints the eval_models rows (MAGICK captions) of RUN:STEP... on the trimask eval sets of one resolution (every method, or the comma-separated `methods`), to paste into the dtab."""
     from sana_alpha.trimask import METHODS
 
+    methods = methods.split(",") if isinstance(methods, str) else methods or METHODS
+    assert set(methods) <= set(METHODS), f"unknown methods: {set(methods) - set(METHODS)}"
     print("".join(dtab_rows([(trimask_tag(m[0], method, resolution), *m[1:]) for r in run_steps for m in trimask_models(r)],
-                            "plain", f"{trimask_set(resolution)}/{method}") for method in METHODS), end="")
+                            "plain", f"{trimask_set(resolution)}/{method}") for method in methods), end="")
 
 
 def build_trimask(*run_steps, notes="", name=None, resolution=1024):
