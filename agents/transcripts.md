@@ -311,3 +311,9 @@ How about we just do it from scratch? Only.
 
 ## m00669 — 2026-11-18 3:21 AM
 Okay, good, looks like the VAE thing is done. Can we finally restart the Sparrows over properly? It seems totally busted. Give me the URL for it.
+
+## m00670 — 2026-11-18 3:24 AM
+Also, I don't see why we should stop at 6000 steps. Why don't we go to, like, 20,000? But, like, every — we'll say every 2500 steps — I'd like to — no, actually every 3000 steps I'd like to push to GitHub the models. Actually, no, three thousand, five thousand — actually, no, yeah, every 3000 steps, yeah.
+
+## m00671 — 2026-11-18 3:26 AM
+Oh, and before we do anything else, why don't you go ahead and compact all the tables. By the way, I'm curious: how are you keeping track of the dataset? Did you, like, export it to a parquet or something? Or are you using BlueJay natively? Like, what are you doing?

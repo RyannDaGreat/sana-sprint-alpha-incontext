@@ -262,7 +262,7 @@ Exact form (written by `src/sana_alpha/web_export.py`; all graph I/O float32 exc
 
 **Database servers (m00664–m00666).** project.dtab now has MulticamDailies' fastlance block. Until the trimask encode finishes, the old main server (port 23947, no fastlance settings) keeps serving the encode workers, Sparrow runs on a second server with the new settings (`DATABASE_PORT=23961 fish run_sparrow.fish`, Sparrow still on port 26400), and the hourly compaction loop is paused (a new client with the fastlance block is refused by the old server). After the encode: restart the main server, then restart the compaction loop.
 
-**From scratch only (m00668).** The fine-tune run is dropped: one run, `control_tri_scratch`, on all 8 GPUs.
+**From scratch only (m00668).** The fine-tune run is dropped: one run, `control_tri_scratch`, on all 8 GPUs, for 20,000 steps (m00670). Every 3,000 steps the checkpoint is exported (λ web version only, m00650) and pushed to the GitHub models branch (m00670).
 
 **Training.** Two runs to compare (m00644: "fine-tune your current checkpoints, or maybe it's better just to do it from scratch"): `control_tri_ft` = init from control_v2 step 6000; `control_tri_scratch` = fresh LoRA + gates; both on adapter_v2 step 1000, 4 GPUs each, condition = trimask latent; ALL ten methods are used in training (m00646), sampled uniformly over methods, with per-method counts logged.
 
