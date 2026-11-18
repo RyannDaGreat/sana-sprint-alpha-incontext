@@ -227,3 +227,6 @@
 ## 2026-11-17 ~6:00 PM — control_v2 step 4000 is the live default (subagent 16)
 - Exported `models/control/control_v2/sprint_step_004000` as int4 (dynamic sizes) and int4-lambda (D from the step 4000 merge pair, rank 128), with the same script as step 3000 (`agents/.scratchpad/agent16_step4000.sh`). Added 1.21 GB (int4 transformer) + 0.32 GB (λ delta); the models branch is now 8.90 GB. Index order: step 4000 int4, step 4000 int4-lambda, step 3000 ×2, step 1500 ×2, v1. Pages was republished with --build_web. Live Puppeteer: step 4000 is listed first and Load streams at ~54 MB/s.
 - Not pushed: the v1 dynamic re-export. Its int4 weights did not come out byte-identical (+1.22 GB, over the 500 MB rule), so live v1 stays at 1024² only.
+
+## 2026-11-17 8:30 PM — control_v2 step 6000 (continued from step 4000 with init_from)
+- Full subtraction, showcase, MAGICK captions: teacher IoU 0.969 / gray 0.009 (step 4000: 0.942 / 0.012); Sprint 1 step 0.954 / 0.018 (0.941 / 0.021); 2 steps 0.970 / 0.014 (0.969 / 0.014). The continued run (fresh Prodigy state, re-warmed for ~500 steps) still improves. Web export waits for step 8000 so the models branch grows once.
