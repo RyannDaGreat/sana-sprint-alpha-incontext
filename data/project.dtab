@@ -139,1678 +139,224 @@ tables
 			steps int64
 			guidance float64
 		initial_rows
-			,
-				model_tag sprint_plain
-				pipeline sprint
-				checkpoint stock
-				prompt_variant plain
-				steps 2
-				guidance 4.5
-			,
-				model_tag sprint_gray
-				pipeline sprint
-				checkpoint stock
-				prompt_variant gray
-				steps 2
-				guidance 4.5
-			,
-				model_tag teacher_plain
-				pipeline teacher
-				checkpoint stock
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-			,
-				model_tag teacher_gray
-				pipeline teacher
-				checkpoint stock
-				prompt_variant gray
-				steps 20
-				guidance 4.5
-			,
-				model_tag adapter_toy_ddp2_step000400
-				pipeline teacher
-				checkpoint models/adapter/toy_ddp2/step_000400
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-			,
-				model_tag control_overfit_test_step000400
-				pipeline teacher
-				checkpoint models/control/overfit_test/step_000400
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-			,
-				model_tag final_overfit_test_step000400
-				pipeline teacher
-				checkpoint models/control/overfit_test/final_step_000400
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-			,
-				 Step 5 transfer: a control step on the sprint pipeline = stock student + merged control LoRA + gates
-				model_tag transfer_overfit_test_step000400_1step
-				pipeline sprint
-				checkpoint models/control/overfit_test/step_000400
-				prompt_variant plain
-				steps 1
-				guidance 4.5
-			,
-				model_tag transfer_overfit_test_step000400_2step
-				pipeline sprint
-				checkpoint models/control/overfit_test/step_000400
-				prompt_variant plain
-				steps 2
-				guidance 4.5
-			,
-				model_tag transfer_overfit_test_step000400_4step
-				pipeline sprint
-				checkpoint models/control/overfit_test/step_000400
-				prompt_variant plain
-				steps 4
-				guidance 4.5
-			,
-				 Step 2: the real adapter run
-				model_tag adapter_v1_step001000
-				pipeline teacher
-				checkpoint models/adapter/adapter_v1/step_001000
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-			,
-				 The adapter that control_v1 is trained on
-				model_tag adapter_v1_step002000
-				pipeline teacher
-				checkpoint models/adapter/adapter_v1/step_002000
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-			,
-				 Step 3, 4 and 5 of control_v1 step 500: control on the adapter, final (no adapter), and transfer onto Sprint
-				model_tag control_v1_step000500
-				pipeline teacher
-				checkpoint models/control/control_v1/step_000500
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-			,
-				model_tag final_v1_step000500
-				pipeline teacher
-				checkpoint models/control/control_v1/final_step_000500
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-			,
-				model_tag transfer_v1_step000500_2step
-				pipeline sprint
-				checkpoint models/control/control_v1/step_000500
-				prompt_variant plain
-				steps 2
-				guidance 4.5
-			,
-				 The final model lost the gray background. Fixes tried: the gray prompt, and keeping part of the adapter (λ)
-				model_tag final_v1_step000500_gray
-				pipeline teacher
-				checkpoint models/control/control_v1/final_step_000500
-				prompt_variant gray
-				steps 20
-				guidance 4.5
-			,
-				model_tag final_v1_step000500_adapter0.5
-				pipeline teacher
-				checkpoint models/control/control_v1/final_step_000500_adapter0.5
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-			,
-				model_tag final_v1_step000500_adapter0.75
-				pipeline teacher
-				checkpoint models/control/control_v1/final_step_000500_adapter0.75
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-			,
-				model_tag transfer_v1_step000500_2step_gray
-				pipeline sprint
-				checkpoint models/control/control_v1/step_000500
-				prompt_variant gray
-				steps 2
-				guidance 4.5
-			,
-				 control_v1 step 1500, its last checkpoint
-				model_tag control_v1_step001500
-				pipeline teacher
-				checkpoint models/control/control_v1/step_001500
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-			,
-				model_tag final_v1_step001500
-				pipeline teacher
-				checkpoint models/control/control_v1/final_step_001500
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-			,
-				model_tag final_v1_step001500_adapter0.75
-				pipeline teacher
-				checkpoint models/control/control_v1/final_step_001500_adapter0.75
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-			,
-				model_tag transfer_v1_step001500_2step
-				pipeline sprint
-				checkpoint models/control/control_v1/step_001500
-				prompt_variant plain
-				steps 2
-				guidance 4.5
-			,
-				 Showcase (gallery_v1.html, src/sana_alpha/gallery.py): stock models, then control_v1 step 1500 keeping λ of the adapter
-				model_tag show_stock_sprint1
-				pipeline sprint
-				checkpoint stock
-				prompt_variant plain
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_stock_sprint2
-				pipeline sprint
-				checkpoint stock
-				prompt_variant plain
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_stock_teacher20
-				pipeline teacher
-				checkpoint stock
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v1_step001500_lam1
-				pipeline teacher
-				checkpoint models/control/control_v1/step_001500
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v1_step001500_lam0.75
-				pipeline teacher
-				checkpoint models/control/control_v1/final_step_001500_adapter0.75
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v1_step001500_lam0.5
-				pipeline teacher
-				checkpoint models/control/control_v1/final_step_001500_adapter0.5
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v1_step001500_lam0.25
-				pipeline teacher
-				checkpoint models/control/control_v1/final_step_001500_adapter0.25
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v1_step001500_lam0
-				pipeline teacher
-				checkpoint models/control/control_v1/final_step_001500
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v1_step001500_sprint_lam1_2step
-				pipeline sprint
-				checkpoint models/control/control_v1/sprint_step_001500_adapter1
-				prompt_variant plain
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v1_step001500_sprint_lam0.75_2step
-				pipeline sprint
-				checkpoint models/control/control_v1/sprint_step_001500_adapter0.75
-				prompt_variant plain
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v1_step001500_sprint_lam0.5_2step
-				pipeline sprint
-				checkpoint models/control/control_v1/sprint_step_001500_adapter0.5
-				prompt_variant plain
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v1_step001500_sprint_lam0_2step
-				pipeline sprint
-				checkpoint models/control/control_v1/sprint_step_001500
-				prompt_variant plain
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v1_step001500_sprint_lam1_1step
-				pipeline sprint
-				checkpoint models/control/control_v1/sprint_step_001500_adapter1
-				prompt_variant plain
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v1_step001500_sprint_lam0.75_1step
-				pipeline sprint
-				checkpoint models/control/control_v1/sprint_step_001500_adapter0.75
-				prompt_variant plain
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v1_step001500_sprint_lam0.5_1step
-				pipeline sprint
-				checkpoint models/control/control_v1/sprint_step_001500_adapter0.5
-				prompt_variant plain
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v1_step001500_sprint_lam0_1step
-				pipeline sprint
-				checkpoint models/control/control_v1/sprint_step_001500
-				prompt_variant plain
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_stock_sprint1_detailed
-				pipeline sprint
-				checkpoint stock
-				prompt_variant detailed
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_stock_sprint2_detailed
-				pipeline sprint
-				checkpoint stock
-				prompt_variant detailed
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_stock_teacher20_detailed
-				pipeline teacher
-				checkpoint stock
-				prompt_variant detailed
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v1_step001500_lam1_detailed
-				pipeline teacher
-				checkpoint models/control/control_v1/step_001500
-				prompt_variant detailed
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v1_step001500_lam0.75_detailed
-				pipeline teacher
-				checkpoint models/control/control_v1/final_step_001500_adapter0.75
-				prompt_variant detailed
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v1_step001500_lam0.5_detailed
-				pipeline teacher
-				checkpoint models/control/control_v1/final_step_001500_adapter0.5
-				prompt_variant detailed
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v1_step001500_lam0.25_detailed
-				pipeline teacher
-				checkpoint models/control/control_v1/final_step_001500_adapter0.25
-				prompt_variant detailed
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v1_step001500_lam0_detailed
-				pipeline teacher
-				checkpoint models/control/control_v1/final_step_001500
-				prompt_variant detailed
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v1_step001500_sprint_lam1_2step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v1/sprint_step_001500_adapter1
-				prompt_variant detailed
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v1_step001500_sprint_lam0.75_2step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v1/sprint_step_001500_adapter0.75
-				prompt_variant detailed
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v1_step001500_sprint_lam0.5_2step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v1/sprint_step_001500_adapter0.5
-				prompt_variant detailed
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v1_step001500_sprint_lam0_2step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v1/sprint_step_001500
-				prompt_variant detailed
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v1_step001500_sprint_lam1_1step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v1/sprint_step_001500_adapter1
-				prompt_variant detailed
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v1_step001500_sprint_lam0.75_1step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v1/sprint_step_001500_adapter0.75
-				prompt_variant detailed
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v1_step001500_sprint_lam0.5_1step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v1/sprint_step_001500_adapter0.5
-				prompt_variant detailed
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v1_step001500_sprint_lam0_1step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v1/sprint_step_001500
-				prompt_variant detailed
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step000500_lam1
-				pipeline teacher
-				checkpoint models/control/control_v2/step_000500
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step000500_lam0.75
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_000500_adapter0.75
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step000500_lam0.5
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_000500_adapter0.5
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step000500_lam0.25
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_000500_adapter0.25
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step000500_lam0
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_000500
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step000500_sprint_lam1_2step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_000500_adapter1
-				prompt_variant plain
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step000500_sprint_lam0.75_2step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_000500_adapter0.75
-				prompt_variant plain
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step000500_sprint_lam0.5_2step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_000500_adapter0.5
-				prompt_variant plain
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step000500_sprint_lam0_2step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_000500
-				prompt_variant plain
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step000500_sprint_lam1_1step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_000500_adapter1
-				prompt_variant plain
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step000500_sprint_lam0.75_1step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_000500_adapter0.75
-				prompt_variant plain
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step000500_sprint_lam0.5_1step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_000500_adapter0.5
-				prompt_variant plain
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step000500_sprint_lam0_1step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_000500
-				prompt_variant plain
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step000500_lam1_detailed
-				pipeline teacher
-				checkpoint models/control/control_v2/step_000500
-				prompt_variant detailed
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step000500_lam0.75_detailed
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_000500_adapter0.75
-				prompt_variant detailed
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step000500_lam0.5_detailed
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_000500_adapter0.5
-				prompt_variant detailed
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step000500_lam0.25_detailed
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_000500_adapter0.25
-				prompt_variant detailed
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step000500_lam0_detailed
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_000500
-				prompt_variant detailed
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step000500_sprint_lam1_2step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_000500_adapter1
-				prompt_variant detailed
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step000500_sprint_lam0.75_2step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_000500_adapter0.75
-				prompt_variant detailed
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step000500_sprint_lam0.5_2step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_000500_adapter0.5
-				prompt_variant detailed
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step000500_sprint_lam0_2step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_000500
-				prompt_variant detailed
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step000500_sprint_lam1_1step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_000500_adapter1
-				prompt_variant detailed
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step000500_sprint_lam0.75_1step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_000500_adapter0.75
-				prompt_variant detailed
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step000500_sprint_lam0.5_1step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_000500_adapter0.5
-				prompt_variant detailed
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step000500_sprint_lam0_1step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_000500
-				prompt_variant detailed
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step001500_lam1
-				pipeline teacher
-				checkpoint models/control/control_v2/step_001500
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step001500_lam0.75
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_001500_adapter0.75
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step001500_lam0.5
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_001500_adapter0.5
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step001500_lam0.25
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_001500_adapter0.25
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step001500_lam0
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_001500
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step001500_sprint_lam1_2step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_001500_adapter1
-				prompt_variant plain
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step001500_sprint_lam0.75_2step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_001500_adapter0.75
-				prompt_variant plain
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step001500_sprint_lam0.5_2step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_001500_adapter0.5
-				prompt_variant plain
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step001500_sprint_lam0_2step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_001500
-				prompt_variant plain
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step001500_sprint_lam1_1step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_001500_adapter1
-				prompt_variant plain
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step001500_sprint_lam0.75_1step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_001500_adapter0.75
-				prompt_variant plain
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step001500_sprint_lam0.5_1step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_001500_adapter0.5
-				prompt_variant plain
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step001500_sprint_lam0_1step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_001500
-				prompt_variant plain
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step001500_lam1_detailed
-				pipeline teacher
-				checkpoint models/control/control_v2/step_001500
-				prompt_variant detailed
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step001500_lam0.75_detailed
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_001500_adapter0.75
-				prompt_variant detailed
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step001500_lam0.5_detailed
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_001500_adapter0.5
-				prompt_variant detailed
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step001500_lam0.25_detailed
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_001500_adapter0.25
-				prompt_variant detailed
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step001500_lam0_detailed
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_001500
-				prompt_variant detailed
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step001500_sprint_lam1_2step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_001500_adapter1
-				prompt_variant detailed
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step001500_sprint_lam0.75_2step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_001500_adapter0.75
-				prompt_variant detailed
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step001500_sprint_lam0.5_2step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_001500_adapter0.5
-				prompt_variant detailed
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step001500_sprint_lam0_2step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_001500
-				prompt_variant detailed
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step001500_sprint_lam1_1step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_001500_adapter1
-				prompt_variant detailed
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step001500_sprint_lam0.75_1step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_001500_adapter0.75
-				prompt_variant detailed
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step001500_sprint_lam0.5_1step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_001500_adapter0.5
-				prompt_variant detailed
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step001500_sprint_lam0_1step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_001500
-				prompt_variant detailed
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step003000_lam1
-				pipeline teacher
-				checkpoint models/control/control_v2/step_003000
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step003000_lam0.75
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_003000_adapter0.75
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step003000_lam0.5
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_003000_adapter0.5
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step003000_lam0.25
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_003000_adapter0.25
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step003000_lam0
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_003000
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step003000_sprint_lam1_2step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_003000_adapter1
-				prompt_variant plain
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step003000_sprint_lam0.75_2step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_003000_adapter0.75
-				prompt_variant plain
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step003000_sprint_lam0.5_2step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_003000_adapter0.5
-				prompt_variant plain
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step003000_sprint_lam0_2step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_003000
-				prompt_variant plain
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step003000_sprint_lam1_1step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_003000_adapter1
-				prompt_variant plain
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step003000_sprint_lam0.75_1step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_003000_adapter0.75
-				prompt_variant plain
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step003000_sprint_lam0.5_1step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_003000_adapter0.5
-				prompt_variant plain
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step003000_sprint_lam0_1step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_003000
-				prompt_variant plain
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step003000_lam1_detailed
-				pipeline teacher
-				checkpoint models/control/control_v2/step_003000
-				prompt_variant detailed
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step003000_lam0.75_detailed
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_003000_adapter0.75
-				prompt_variant detailed
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step003000_lam0.5_detailed
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_003000_adapter0.5
-				prompt_variant detailed
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step003000_lam0.25_detailed
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_003000_adapter0.25
-				prompt_variant detailed
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step003000_lam0_detailed
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_003000
-				prompt_variant detailed
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step003000_sprint_lam1_2step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_003000_adapter1
-				prompt_variant detailed
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step003000_sprint_lam0.75_2step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_003000_adapter0.75
-				prompt_variant detailed
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step003000_sprint_lam0.5_2step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_003000_adapter0.5
-				prompt_variant detailed
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step003000_sprint_lam0_2step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_003000
-				prompt_variant detailed
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step003000_sprint_lam1_1step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_003000_adapter1
-				prompt_variant detailed
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step003000_sprint_lam0.75_1step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_003000_adapter0.75
-				prompt_variant detailed
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step003000_sprint_lam0.5_1step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_003000_adapter0.5
-				prompt_variant detailed
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step003000_sprint_lam0_1step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_003000
-				prompt_variant detailed
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step004000_lam1
-				pipeline teacher
-				checkpoint models/control/control_v2/step_004000
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step004000_lam0.75
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_004000_adapter0.75
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step004000_lam0.5
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_004000_adapter0.5
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step004000_lam0.25
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_004000_adapter0.25
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step004000_lam0
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_004000
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step004000_sprint_lam1_2step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_004000_adapter1
-				prompt_variant plain
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step004000_sprint_lam0.75_2step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_004000_adapter0.75
-				prompt_variant plain
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step004000_sprint_lam0.5_2step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_004000_adapter0.5
-				prompt_variant plain
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step004000_sprint_lam0_2step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_004000
-				prompt_variant plain
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step004000_sprint_lam1_1step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_004000_adapter1
-				prompt_variant plain
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step004000_sprint_lam0.75_1step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_004000_adapter0.75
-				prompt_variant plain
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step004000_sprint_lam0.5_1step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_004000_adapter0.5
-				prompt_variant plain
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step004000_sprint_lam0_1step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_004000
-				prompt_variant plain
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step004000_lam1_detailed
-				pipeline teacher
-				checkpoint models/control/control_v2/step_004000
-				prompt_variant detailed
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step004000_lam0.75_detailed
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_004000_adapter0.75
-				prompt_variant detailed
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step004000_lam0.5_detailed
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_004000_adapter0.5
-				prompt_variant detailed
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step004000_lam0.25_detailed
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_004000_adapter0.25
-				prompt_variant detailed
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step004000_lam0_detailed
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_004000
-				prompt_variant detailed
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step004000_sprint_lam1_2step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_004000_adapter1
-				prompt_variant detailed
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step004000_sprint_lam0.75_2step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_004000_adapter0.75
-				prompt_variant detailed
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step004000_sprint_lam0.5_2step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_004000_adapter0.5
-				prompt_variant detailed
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step004000_sprint_lam0_2step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_004000
-				prompt_variant detailed
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step004000_sprint_lam1_1step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_004000_adapter1
-				prompt_variant detailed
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step004000_sprint_lam0.75_1step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_004000_adapter0.75
-				prompt_variant detailed
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step004000_sprint_lam0.5_1step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_004000_adapter0.5
-				prompt_variant detailed
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step004000_sprint_lam0_1step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_004000
-				prompt_variant detailed
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step006000_lam1
-				pipeline teacher
-				checkpoint models/control/control_v2/step_006000
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step006000_lam0.75
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_006000_adapter0.75
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step006000_lam0.5
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_006000_adapter0.5
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step006000_lam0.25
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_006000_adapter0.25
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step006000_lam0
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_006000
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step006000_sprint_lam1_2step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_006000_adapter1
-				prompt_variant plain
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step006000_sprint_lam0.75_2step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_006000_adapter0.75
-				prompt_variant plain
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step006000_sprint_lam0.5_2step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_006000_adapter0.5
-				prompt_variant plain
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step006000_sprint_lam0_2step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_006000
-				prompt_variant plain
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step006000_sprint_lam1_1step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_006000_adapter1
-				prompt_variant plain
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step006000_sprint_lam0.75_1step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_006000_adapter0.75
-				prompt_variant plain
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step006000_sprint_lam0.5_1step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_006000_adapter0.5
-				prompt_variant plain
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step006000_sprint_lam0_1step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_006000
-				prompt_variant plain
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step006000_lam1_detailed
-				pipeline teacher
-				checkpoint models/control/control_v2/step_006000
-				prompt_variant detailed
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step006000_lam0.75_detailed
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_006000_adapter0.75
-				prompt_variant detailed
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step006000_lam0.5_detailed
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_006000_adapter0.5
-				prompt_variant detailed
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step006000_lam0.25_detailed
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_006000_adapter0.25
-				prompt_variant detailed
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step006000_lam0_detailed
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_006000
-				prompt_variant detailed
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step006000_sprint_lam1_2step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_006000_adapter1
-				prompt_variant detailed
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step006000_sprint_lam0.75_2step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_006000_adapter0.75
-				prompt_variant detailed
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step006000_sprint_lam0.5_2step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_006000_adapter0.5
-				prompt_variant detailed
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step006000_sprint_lam0_2step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_006000
-				prompt_variant detailed
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step006000_sprint_lam1_1step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_006000_adapter1
-				prompt_variant detailed
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step006000_sprint_lam0.75_1step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_006000_adapter0.75
-				prompt_variant detailed
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step006000_sprint_lam0.5_1step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_006000_adapter0.5
-				prompt_variant detailed
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step006000_sprint_lam0_1step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_006000
-				prompt_variant detailed
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step008000_lam1
-				pipeline teacher
-				checkpoint models/control/control_v2/step_008000
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step008000_lam0.75
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_008000_adapter0.75
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step008000_lam0.5
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_008000_adapter0.5
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step008000_lam0.25
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_008000_adapter0.25
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step008000_lam0
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_008000
-				prompt_variant plain
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step008000_sprint_lam1_2step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_008000_adapter1
-				prompt_variant plain
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step008000_sprint_lam0.75_2step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_008000_adapter0.75
-				prompt_variant plain
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step008000_sprint_lam0.5_2step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_008000_adapter0.5
-				prompt_variant plain
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step008000_sprint_lam0_2step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_008000
-				prompt_variant plain
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step008000_sprint_lam1_1step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_008000_adapter1
-				prompt_variant plain
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step008000_sprint_lam0.75_1step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_008000_adapter0.75
-				prompt_variant plain
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step008000_sprint_lam0.5_1step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_008000_adapter0.5
-				prompt_variant plain
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step008000_sprint_lam0_1step
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_008000
-				prompt_variant plain
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step008000_lam1_detailed
-				pipeline teacher
-				checkpoint models/control/control_v2/step_008000
-				prompt_variant detailed
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step008000_lam0.75_detailed
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_008000_adapter0.75
-				prompt_variant detailed
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step008000_lam0.5_detailed
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_008000_adapter0.5
-				prompt_variant detailed
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step008000_lam0.25_detailed
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_008000_adapter0.25
-				prompt_variant detailed
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step008000_lam0_detailed
-				pipeline teacher
-				checkpoint models/control/control_v2/final_step_008000
-				prompt_variant detailed
-				steps 20
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step008000_sprint_lam1_2step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_008000_adapter1
-				prompt_variant detailed
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step008000_sprint_lam0.75_2step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_008000_adapter0.75
-				prompt_variant detailed
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step008000_sprint_lam0.5_2step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_008000_adapter0.5
-				prompt_variant detailed
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step008000_sprint_lam0_2step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_008000
-				prompt_variant detailed
-				steps 2
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step008000_sprint_lam1_1step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_008000_adapter1
-				prompt_variant detailed
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step008000_sprint_lam0.75_1step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_008000_adapter0.75
-				prompt_variant detailed
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step008000_sprint_lam0.5_1step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_008000_adapter0.5
-				prompt_variant detailed
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
-			,
-				model_tag show_v2_step008000_sprint_lam0_1step_detailed
-				pipeline sprint
-				checkpoint models/control/control_v2/sprint_step_008000
-				prompt_variant detailed
-				steps 1
-				guidance 4.5
-				eval_set resources/showcase
+			,	model_tag sprint_plain										pipeline sprint		checkpoint stock														prompt_variant plain		steps 2		guidance 4.5
+			,	model_tag sprint_gray										pipeline sprint		checkpoint stock														prompt_variant gray			steps 2		guidance 4.5
+			,	model_tag teacher_plain										pipeline teacher	checkpoint stock														prompt_variant plain		steps 20	guidance 4.5
+			,	model_tag teacher_gray										pipeline teacher	checkpoint stock														prompt_variant gray			steps 20	guidance 4.5
+			,	model_tag adapter_toy_ddp2_step000400						pipeline teacher	checkpoint models/adapter/toy_ddp2/step_000400							prompt_variant plain		steps 20	guidance 4.5
+			,	model_tag control_overfit_test_step000400					pipeline teacher	checkpoint models/control/overfit_test/step_000400						prompt_variant plain		steps 20	guidance 4.5
+			,	model_tag final_overfit_test_step000400						pipeline teacher	checkpoint models/control/overfit_test/final_step_000400				prompt_variant plain		steps 20	guidance 4.5
+			 Step 5 transfer: a control step on the sprint pipeline = stock student + merged control LoRA + gates
+			,	model_tag transfer_overfit_test_step000400_1step			pipeline sprint		checkpoint models/control/overfit_test/step_000400						prompt_variant plain		steps 1		guidance 4.5
+			,	model_tag transfer_overfit_test_step000400_2step			pipeline sprint		checkpoint models/control/overfit_test/step_000400						prompt_variant plain		steps 2		guidance 4.5
+			,	model_tag transfer_overfit_test_step000400_4step			pipeline sprint		checkpoint models/control/overfit_test/step_000400						prompt_variant plain		steps 4		guidance 4.5
+			 Step 2: the real adapter run
+			,	model_tag adapter_v1_step001000								pipeline teacher	checkpoint models/adapter/adapter_v1/step_001000						prompt_variant plain		steps 20	guidance 4.5
+			 The adapter that control_v1 is trained on
+			,	model_tag adapter_v1_step002000								pipeline teacher	checkpoint models/adapter/adapter_v1/step_002000						prompt_variant plain		steps 20	guidance 4.5
+			 Step 3, 4 and 5 of control_v1 step 500: control on the adapter, final (no adapter), and transfer onto Sprint
+			,	model_tag control_v1_step000500								pipeline teacher	checkpoint models/control/control_v1/step_000500						prompt_variant plain		steps 20	guidance 4.5
+			,	model_tag final_v1_step000500								pipeline teacher	checkpoint models/control/control_v1/final_step_000500					prompt_variant plain		steps 20	guidance 4.5
+			,	model_tag transfer_v1_step000500_2step						pipeline sprint		checkpoint models/control/control_v1/step_000500						prompt_variant plain		steps 2		guidance 4.5
+			 The final model lost the gray background. Fixes tried: the gray prompt, and keeping part of the adapter (λ)
+			,	model_tag final_v1_step000500_gray							pipeline teacher	checkpoint models/control/control_v1/final_step_000500					prompt_variant gray			steps 20	guidance 4.5
+			,	model_tag final_v1_step000500_adapter0.5					pipeline teacher	checkpoint models/control/control_v1/final_step_000500_adapter0.5		prompt_variant plain		steps 20	guidance 4.5
+			,	model_tag final_v1_step000500_adapter0.75					pipeline teacher	checkpoint models/control/control_v1/final_step_000500_adapter0.75		prompt_variant plain		steps 20	guidance 4.5
+			,	model_tag transfer_v1_step000500_2step_gray					pipeline sprint		checkpoint models/control/control_v1/step_000500						prompt_variant gray			steps 2		guidance 4.5
+			 control_v1 step 1500, its last checkpoint
+			,	model_tag control_v1_step001500								pipeline teacher	checkpoint models/control/control_v1/step_001500						prompt_variant plain		steps 20	guidance 4.5
+			,	model_tag final_v1_step001500								pipeline teacher	checkpoint models/control/control_v1/final_step_001500					prompt_variant plain		steps 20	guidance 4.5
+			,	model_tag final_v1_step001500_adapter0.75					pipeline teacher	checkpoint models/control/control_v1/final_step_001500_adapter0.75		prompt_variant plain		steps 20	guidance 4.5
+			,	model_tag transfer_v1_step001500_2step						pipeline sprint		checkpoint models/control/control_v1/step_001500						prompt_variant plain		steps 2		guidance 4.5
+			 Showcase (gallery_v1.html, src/sana_alpha/gallery.py): stock models, then control_v1 step 1500 keeping λ of the adapter
+			,	model_tag show_stock_sprint1								pipeline sprint		checkpoint stock														prompt_variant plain		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_stock_sprint2								pipeline sprint		checkpoint stock														prompt_variant plain		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_stock_teacher20								pipeline teacher	checkpoint stock														prompt_variant plain		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v1_step001500_lam1							pipeline teacher	checkpoint models/control/control_v1/step_001500						prompt_variant plain		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v1_step001500_lam0.75						pipeline teacher	checkpoint models/control/control_v1/final_step_001500_adapter0.75		prompt_variant plain		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v1_step001500_lam0.5							pipeline teacher	checkpoint models/control/control_v1/final_step_001500_adapter0.5		prompt_variant plain		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v1_step001500_lam0.25						pipeline teacher	checkpoint models/control/control_v1/final_step_001500_adapter0.25		prompt_variant plain		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v1_step001500_lam0							pipeline teacher	checkpoint models/control/control_v1/final_step_001500					prompt_variant plain		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v1_step001500_sprint_lam1_2step				pipeline sprint		checkpoint models/control/control_v1/sprint_step_001500_adapter1		prompt_variant plain		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v1_step001500_sprint_lam0.75_2step			pipeline sprint		checkpoint models/control/control_v1/sprint_step_001500_adapter0.75		prompt_variant plain		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v1_step001500_sprint_lam0.5_2step			pipeline sprint		checkpoint models/control/control_v1/sprint_step_001500_adapter0.5		prompt_variant plain		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v1_step001500_sprint_lam0_2step				pipeline sprint		checkpoint models/control/control_v1/sprint_step_001500					prompt_variant plain		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v1_step001500_sprint_lam1_1step				pipeline sprint		checkpoint models/control/control_v1/sprint_step_001500_adapter1		prompt_variant plain		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v1_step001500_sprint_lam0.75_1step			pipeline sprint		checkpoint models/control/control_v1/sprint_step_001500_adapter0.75		prompt_variant plain		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v1_step001500_sprint_lam0.5_1step			pipeline sprint		checkpoint models/control/control_v1/sprint_step_001500_adapter0.5		prompt_variant plain		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v1_step001500_sprint_lam0_1step				pipeline sprint		checkpoint models/control/control_v1/sprint_step_001500					prompt_variant plain		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_stock_sprint1_detailed						pipeline sprint		checkpoint stock														prompt_variant detailed		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_stock_sprint2_detailed						pipeline sprint		checkpoint stock														prompt_variant detailed		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_stock_teacher20_detailed						pipeline teacher	checkpoint stock														prompt_variant detailed		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v1_step001500_lam1_detailed					pipeline teacher	checkpoint models/control/control_v1/step_001500						prompt_variant detailed		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v1_step001500_lam0.75_detailed				pipeline teacher	checkpoint models/control/control_v1/final_step_001500_adapter0.75		prompt_variant detailed		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v1_step001500_lam0.5_detailed				pipeline teacher	checkpoint models/control/control_v1/final_step_001500_adapter0.5		prompt_variant detailed		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v1_step001500_lam0.25_detailed				pipeline teacher	checkpoint models/control/control_v1/final_step_001500_adapter0.25		prompt_variant detailed		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v1_step001500_lam0_detailed					pipeline teacher	checkpoint models/control/control_v1/final_step_001500					prompt_variant detailed		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v1_step001500_sprint_lam1_2step_detailed		pipeline sprint		checkpoint models/control/control_v1/sprint_step_001500_adapter1		prompt_variant detailed		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v1_step001500_sprint_lam0.75_2step_detailed	pipeline sprint		checkpoint models/control/control_v1/sprint_step_001500_adapter0.75		prompt_variant detailed		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v1_step001500_sprint_lam0.5_2step_detailed	pipeline sprint		checkpoint models/control/control_v1/sprint_step_001500_adapter0.5		prompt_variant detailed		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v1_step001500_sprint_lam0_2step_detailed		pipeline sprint		checkpoint models/control/control_v1/sprint_step_001500					prompt_variant detailed		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v1_step001500_sprint_lam1_1step_detailed		pipeline sprint		checkpoint models/control/control_v1/sprint_step_001500_adapter1		prompt_variant detailed		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v1_step001500_sprint_lam0.75_1step_detailed	pipeline sprint		checkpoint models/control/control_v1/sprint_step_001500_adapter0.75		prompt_variant detailed		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v1_step001500_sprint_lam0.5_1step_detailed	pipeline sprint		checkpoint models/control/control_v1/sprint_step_001500_adapter0.5		prompt_variant detailed		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v1_step001500_sprint_lam0_1step_detailed		pipeline sprint		checkpoint models/control/control_v1/sprint_step_001500					prompt_variant detailed		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step000500_lam1							pipeline teacher	checkpoint models/control/control_v2/step_000500						prompt_variant plain		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step000500_lam0.75						pipeline teacher	checkpoint models/control/control_v2/final_step_000500_adapter0.75		prompt_variant plain		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step000500_lam0.5							pipeline teacher	checkpoint models/control/control_v2/final_step_000500_adapter0.5		prompt_variant plain		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step000500_lam0.25						pipeline teacher	checkpoint models/control/control_v2/final_step_000500_adapter0.25		prompt_variant plain		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step000500_lam0							pipeline teacher	checkpoint models/control/control_v2/final_step_000500					prompt_variant plain		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step000500_sprint_lam1_2step				pipeline sprint		checkpoint models/control/control_v2/sprint_step_000500_adapter1		prompt_variant plain		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step000500_sprint_lam0.75_2step			pipeline sprint		checkpoint models/control/control_v2/sprint_step_000500_adapter0.75		prompt_variant plain		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step000500_sprint_lam0.5_2step			pipeline sprint		checkpoint models/control/control_v2/sprint_step_000500_adapter0.5		prompt_variant plain		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step000500_sprint_lam0_2step				pipeline sprint		checkpoint models/control/control_v2/sprint_step_000500					prompt_variant plain		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step000500_sprint_lam1_1step				pipeline sprint		checkpoint models/control/control_v2/sprint_step_000500_adapter1		prompt_variant plain		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step000500_sprint_lam0.75_1step			pipeline sprint		checkpoint models/control/control_v2/sprint_step_000500_adapter0.75		prompt_variant plain		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step000500_sprint_lam0.5_1step			pipeline sprint		checkpoint models/control/control_v2/sprint_step_000500_adapter0.5		prompt_variant plain		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step000500_sprint_lam0_1step				pipeline sprint		checkpoint models/control/control_v2/sprint_step_000500					prompt_variant plain		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step000500_lam1_detailed					pipeline teacher	checkpoint models/control/control_v2/step_000500						prompt_variant detailed		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step000500_lam0.75_detailed				pipeline teacher	checkpoint models/control/control_v2/final_step_000500_adapter0.75		prompt_variant detailed		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step000500_lam0.5_detailed				pipeline teacher	checkpoint models/control/control_v2/final_step_000500_adapter0.5		prompt_variant detailed		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step000500_lam0.25_detailed				pipeline teacher	checkpoint models/control/control_v2/final_step_000500_adapter0.25		prompt_variant detailed		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step000500_lam0_detailed					pipeline teacher	checkpoint models/control/control_v2/final_step_000500					prompt_variant detailed		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step000500_sprint_lam1_2step_detailed		pipeline sprint		checkpoint models/control/control_v2/sprint_step_000500_adapter1		prompt_variant detailed		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step000500_sprint_lam0.75_2step_detailed	pipeline sprint		checkpoint models/control/control_v2/sprint_step_000500_adapter0.75		prompt_variant detailed		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step000500_sprint_lam0.5_2step_detailed	pipeline sprint		checkpoint models/control/control_v2/sprint_step_000500_adapter0.5		prompt_variant detailed		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step000500_sprint_lam0_2step_detailed		pipeline sprint		checkpoint models/control/control_v2/sprint_step_000500					prompt_variant detailed		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step000500_sprint_lam1_1step_detailed		pipeline sprint		checkpoint models/control/control_v2/sprint_step_000500_adapter1		prompt_variant detailed		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step000500_sprint_lam0.75_1step_detailed	pipeline sprint		checkpoint models/control/control_v2/sprint_step_000500_adapter0.75		prompt_variant detailed		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step000500_sprint_lam0.5_1step_detailed	pipeline sprint		checkpoint models/control/control_v2/sprint_step_000500_adapter0.5		prompt_variant detailed		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step000500_sprint_lam0_1step_detailed		pipeline sprint		checkpoint models/control/control_v2/sprint_step_000500					prompt_variant detailed		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step001500_lam1							pipeline teacher	checkpoint models/control/control_v2/step_001500						prompt_variant plain		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step001500_lam0.75						pipeline teacher	checkpoint models/control/control_v2/final_step_001500_adapter0.75		prompt_variant plain		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step001500_lam0.5							pipeline teacher	checkpoint models/control/control_v2/final_step_001500_adapter0.5		prompt_variant plain		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step001500_lam0.25						pipeline teacher	checkpoint models/control/control_v2/final_step_001500_adapter0.25		prompt_variant plain		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step001500_lam0							pipeline teacher	checkpoint models/control/control_v2/final_step_001500					prompt_variant plain		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step001500_sprint_lam1_2step				pipeline sprint		checkpoint models/control/control_v2/sprint_step_001500_adapter1		prompt_variant plain		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step001500_sprint_lam0.75_2step			pipeline sprint		checkpoint models/control/control_v2/sprint_step_001500_adapter0.75		prompt_variant plain		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step001500_sprint_lam0.5_2step			pipeline sprint		checkpoint models/control/control_v2/sprint_step_001500_adapter0.5		prompt_variant plain		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step001500_sprint_lam0_2step				pipeline sprint		checkpoint models/control/control_v2/sprint_step_001500					prompt_variant plain		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step001500_sprint_lam1_1step				pipeline sprint		checkpoint models/control/control_v2/sprint_step_001500_adapter1		prompt_variant plain		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step001500_sprint_lam0.75_1step			pipeline sprint		checkpoint models/control/control_v2/sprint_step_001500_adapter0.75		prompt_variant plain		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step001500_sprint_lam0.5_1step			pipeline sprint		checkpoint models/control/control_v2/sprint_step_001500_adapter0.5		prompt_variant plain		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step001500_sprint_lam0_1step				pipeline sprint		checkpoint models/control/control_v2/sprint_step_001500					prompt_variant plain		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step001500_lam1_detailed					pipeline teacher	checkpoint models/control/control_v2/step_001500						prompt_variant detailed		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step001500_lam0.75_detailed				pipeline teacher	checkpoint models/control/control_v2/final_step_001500_adapter0.75		prompt_variant detailed		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step001500_lam0.5_detailed				pipeline teacher	checkpoint models/control/control_v2/final_step_001500_adapter0.5		prompt_variant detailed		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step001500_lam0.25_detailed				pipeline teacher	checkpoint models/control/control_v2/final_step_001500_adapter0.25		prompt_variant detailed		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step001500_lam0_detailed					pipeline teacher	checkpoint models/control/control_v2/final_step_001500					prompt_variant detailed		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step001500_sprint_lam1_2step_detailed		pipeline sprint		checkpoint models/control/control_v2/sprint_step_001500_adapter1		prompt_variant detailed		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step001500_sprint_lam0.75_2step_detailed	pipeline sprint		checkpoint models/control/control_v2/sprint_step_001500_adapter0.75		prompt_variant detailed		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step001500_sprint_lam0.5_2step_detailed	pipeline sprint		checkpoint models/control/control_v2/sprint_step_001500_adapter0.5		prompt_variant detailed		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step001500_sprint_lam0_2step_detailed		pipeline sprint		checkpoint models/control/control_v2/sprint_step_001500					prompt_variant detailed		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step001500_sprint_lam1_1step_detailed		pipeline sprint		checkpoint models/control/control_v2/sprint_step_001500_adapter1		prompt_variant detailed		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step001500_sprint_lam0.75_1step_detailed	pipeline sprint		checkpoint models/control/control_v2/sprint_step_001500_adapter0.75		prompt_variant detailed		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step001500_sprint_lam0.5_1step_detailed	pipeline sprint		checkpoint models/control/control_v2/sprint_step_001500_adapter0.5		prompt_variant detailed		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step001500_sprint_lam0_1step_detailed		pipeline sprint		checkpoint models/control/control_v2/sprint_step_001500					prompt_variant detailed		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step003000_lam1							pipeline teacher	checkpoint models/control/control_v2/step_003000						prompt_variant plain		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step003000_lam0.75						pipeline teacher	checkpoint models/control/control_v2/final_step_003000_adapter0.75		prompt_variant plain		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step003000_lam0.5							pipeline teacher	checkpoint models/control/control_v2/final_step_003000_adapter0.5		prompt_variant plain		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step003000_lam0.25						pipeline teacher	checkpoint models/control/control_v2/final_step_003000_adapter0.25		prompt_variant plain		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step003000_lam0							pipeline teacher	checkpoint models/control/control_v2/final_step_003000					prompt_variant plain		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step003000_sprint_lam1_2step				pipeline sprint		checkpoint models/control/control_v2/sprint_step_003000_adapter1		prompt_variant plain		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step003000_sprint_lam0.75_2step			pipeline sprint		checkpoint models/control/control_v2/sprint_step_003000_adapter0.75		prompt_variant plain		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step003000_sprint_lam0.5_2step			pipeline sprint		checkpoint models/control/control_v2/sprint_step_003000_adapter0.5		prompt_variant plain		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step003000_sprint_lam0_2step				pipeline sprint		checkpoint models/control/control_v2/sprint_step_003000					prompt_variant plain		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step003000_sprint_lam1_1step				pipeline sprint		checkpoint models/control/control_v2/sprint_step_003000_adapter1		prompt_variant plain		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step003000_sprint_lam0.75_1step			pipeline sprint		checkpoint models/control/control_v2/sprint_step_003000_adapter0.75		prompt_variant plain		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step003000_sprint_lam0.5_1step			pipeline sprint		checkpoint models/control/control_v2/sprint_step_003000_adapter0.5		prompt_variant plain		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step003000_sprint_lam0_1step				pipeline sprint		checkpoint models/control/control_v2/sprint_step_003000					prompt_variant plain		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step003000_lam1_detailed					pipeline teacher	checkpoint models/control/control_v2/step_003000						prompt_variant detailed		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step003000_lam0.75_detailed				pipeline teacher	checkpoint models/control/control_v2/final_step_003000_adapter0.75		prompt_variant detailed		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step003000_lam0.5_detailed				pipeline teacher	checkpoint models/control/control_v2/final_step_003000_adapter0.5		prompt_variant detailed		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step003000_lam0.25_detailed				pipeline teacher	checkpoint models/control/control_v2/final_step_003000_adapter0.25		prompt_variant detailed		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step003000_lam0_detailed					pipeline teacher	checkpoint models/control/control_v2/final_step_003000					prompt_variant detailed		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step003000_sprint_lam1_2step_detailed		pipeline sprint		checkpoint models/control/control_v2/sprint_step_003000_adapter1		prompt_variant detailed		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step003000_sprint_lam0.75_2step_detailed	pipeline sprint		checkpoint models/control/control_v2/sprint_step_003000_adapter0.75		prompt_variant detailed		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step003000_sprint_lam0.5_2step_detailed	pipeline sprint		checkpoint models/control/control_v2/sprint_step_003000_adapter0.5		prompt_variant detailed		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step003000_sprint_lam0_2step_detailed		pipeline sprint		checkpoint models/control/control_v2/sprint_step_003000					prompt_variant detailed		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step003000_sprint_lam1_1step_detailed		pipeline sprint		checkpoint models/control/control_v2/sprint_step_003000_adapter1		prompt_variant detailed		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step003000_sprint_lam0.75_1step_detailed	pipeline sprint		checkpoint models/control/control_v2/sprint_step_003000_adapter0.75		prompt_variant detailed		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step003000_sprint_lam0.5_1step_detailed	pipeline sprint		checkpoint models/control/control_v2/sprint_step_003000_adapter0.5		prompt_variant detailed		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step003000_sprint_lam0_1step_detailed		pipeline sprint		checkpoint models/control/control_v2/sprint_step_003000					prompt_variant detailed		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step004000_lam1							pipeline teacher	checkpoint models/control/control_v2/step_004000						prompt_variant plain		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step004000_lam0.75						pipeline teacher	checkpoint models/control/control_v2/final_step_004000_adapter0.75		prompt_variant plain		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step004000_lam0.5							pipeline teacher	checkpoint models/control/control_v2/final_step_004000_adapter0.5		prompt_variant plain		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step004000_lam0.25						pipeline teacher	checkpoint models/control/control_v2/final_step_004000_adapter0.25		prompt_variant plain		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step004000_lam0							pipeline teacher	checkpoint models/control/control_v2/final_step_004000					prompt_variant plain		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step004000_sprint_lam1_2step				pipeline sprint		checkpoint models/control/control_v2/sprint_step_004000_adapter1		prompt_variant plain		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step004000_sprint_lam0.75_2step			pipeline sprint		checkpoint models/control/control_v2/sprint_step_004000_adapter0.75		prompt_variant plain		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step004000_sprint_lam0.5_2step			pipeline sprint		checkpoint models/control/control_v2/sprint_step_004000_adapter0.5		prompt_variant plain		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step004000_sprint_lam0_2step				pipeline sprint		checkpoint models/control/control_v2/sprint_step_004000					prompt_variant plain		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step004000_sprint_lam1_1step				pipeline sprint		checkpoint models/control/control_v2/sprint_step_004000_adapter1		prompt_variant plain		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step004000_sprint_lam0.75_1step			pipeline sprint		checkpoint models/control/control_v2/sprint_step_004000_adapter0.75		prompt_variant plain		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step004000_sprint_lam0.5_1step			pipeline sprint		checkpoint models/control/control_v2/sprint_step_004000_adapter0.5		prompt_variant plain		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step004000_sprint_lam0_1step				pipeline sprint		checkpoint models/control/control_v2/sprint_step_004000					prompt_variant plain		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step004000_lam1_detailed					pipeline teacher	checkpoint models/control/control_v2/step_004000						prompt_variant detailed		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step004000_lam0.75_detailed				pipeline teacher	checkpoint models/control/control_v2/final_step_004000_adapter0.75		prompt_variant detailed		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step004000_lam0.5_detailed				pipeline teacher	checkpoint models/control/control_v2/final_step_004000_adapter0.5		prompt_variant detailed		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step004000_lam0.25_detailed				pipeline teacher	checkpoint models/control/control_v2/final_step_004000_adapter0.25		prompt_variant detailed		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step004000_lam0_detailed					pipeline teacher	checkpoint models/control/control_v2/final_step_004000					prompt_variant detailed		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step004000_sprint_lam1_2step_detailed		pipeline sprint		checkpoint models/control/control_v2/sprint_step_004000_adapter1		prompt_variant detailed		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step004000_sprint_lam0.75_2step_detailed	pipeline sprint		checkpoint models/control/control_v2/sprint_step_004000_adapter0.75		prompt_variant detailed		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step004000_sprint_lam0.5_2step_detailed	pipeline sprint		checkpoint models/control/control_v2/sprint_step_004000_adapter0.5		prompt_variant detailed		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step004000_sprint_lam0_2step_detailed		pipeline sprint		checkpoint models/control/control_v2/sprint_step_004000					prompt_variant detailed		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step004000_sprint_lam1_1step_detailed		pipeline sprint		checkpoint models/control/control_v2/sprint_step_004000_adapter1		prompt_variant detailed		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step004000_sprint_lam0.75_1step_detailed	pipeline sprint		checkpoint models/control/control_v2/sprint_step_004000_adapter0.75		prompt_variant detailed		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step004000_sprint_lam0.5_1step_detailed	pipeline sprint		checkpoint models/control/control_v2/sprint_step_004000_adapter0.5		prompt_variant detailed		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step004000_sprint_lam0_1step_detailed		pipeline sprint		checkpoint models/control/control_v2/sprint_step_004000					prompt_variant detailed		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step006000_lam1							pipeline teacher	checkpoint models/control/control_v2/step_006000						prompt_variant plain		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step006000_lam0.75						pipeline teacher	checkpoint models/control/control_v2/final_step_006000_adapter0.75		prompt_variant plain		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step006000_lam0.5							pipeline teacher	checkpoint models/control/control_v2/final_step_006000_adapter0.5		prompt_variant plain		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step006000_lam0.25						pipeline teacher	checkpoint models/control/control_v2/final_step_006000_adapter0.25		prompt_variant plain		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step006000_lam0							pipeline teacher	checkpoint models/control/control_v2/final_step_006000					prompt_variant plain		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step006000_sprint_lam1_2step				pipeline sprint		checkpoint models/control/control_v2/sprint_step_006000_adapter1		prompt_variant plain		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step006000_sprint_lam0.75_2step			pipeline sprint		checkpoint models/control/control_v2/sprint_step_006000_adapter0.75		prompt_variant plain		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step006000_sprint_lam0.5_2step			pipeline sprint		checkpoint models/control/control_v2/sprint_step_006000_adapter0.5		prompt_variant plain		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step006000_sprint_lam0_2step				pipeline sprint		checkpoint models/control/control_v2/sprint_step_006000					prompt_variant plain		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step006000_sprint_lam1_1step				pipeline sprint		checkpoint models/control/control_v2/sprint_step_006000_adapter1		prompt_variant plain		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step006000_sprint_lam0.75_1step			pipeline sprint		checkpoint models/control/control_v2/sprint_step_006000_adapter0.75		prompt_variant plain		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step006000_sprint_lam0.5_1step			pipeline sprint		checkpoint models/control/control_v2/sprint_step_006000_adapter0.5		prompt_variant plain		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step006000_sprint_lam0_1step				pipeline sprint		checkpoint models/control/control_v2/sprint_step_006000					prompt_variant plain		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step006000_lam1_detailed					pipeline teacher	checkpoint models/control/control_v2/step_006000						prompt_variant detailed		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step006000_lam0.75_detailed				pipeline teacher	checkpoint models/control/control_v2/final_step_006000_adapter0.75		prompt_variant detailed		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step006000_lam0.5_detailed				pipeline teacher	checkpoint models/control/control_v2/final_step_006000_adapter0.5		prompt_variant detailed		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step006000_lam0.25_detailed				pipeline teacher	checkpoint models/control/control_v2/final_step_006000_adapter0.25		prompt_variant detailed		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step006000_lam0_detailed					pipeline teacher	checkpoint models/control/control_v2/final_step_006000					prompt_variant detailed		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step006000_sprint_lam1_2step_detailed		pipeline sprint		checkpoint models/control/control_v2/sprint_step_006000_adapter1		prompt_variant detailed		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step006000_sprint_lam0.75_2step_detailed	pipeline sprint		checkpoint models/control/control_v2/sprint_step_006000_adapter0.75		prompt_variant detailed		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step006000_sprint_lam0.5_2step_detailed	pipeline sprint		checkpoint models/control/control_v2/sprint_step_006000_adapter0.5		prompt_variant detailed		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step006000_sprint_lam0_2step_detailed		pipeline sprint		checkpoint models/control/control_v2/sprint_step_006000					prompt_variant detailed		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step006000_sprint_lam1_1step_detailed		pipeline sprint		checkpoint models/control/control_v2/sprint_step_006000_adapter1		prompt_variant detailed		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step006000_sprint_lam0.75_1step_detailed	pipeline sprint		checkpoint models/control/control_v2/sprint_step_006000_adapter0.75		prompt_variant detailed		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step006000_sprint_lam0.5_1step_detailed	pipeline sprint		checkpoint models/control/control_v2/sprint_step_006000_adapter0.5		prompt_variant detailed		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step006000_sprint_lam0_1step_detailed		pipeline sprint		checkpoint models/control/control_v2/sprint_step_006000					prompt_variant detailed		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step008000_lam1							pipeline teacher	checkpoint models/control/control_v2/step_008000						prompt_variant plain		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step008000_lam0.75						pipeline teacher	checkpoint models/control/control_v2/final_step_008000_adapter0.75		prompt_variant plain		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step008000_lam0.5							pipeline teacher	checkpoint models/control/control_v2/final_step_008000_adapter0.5		prompt_variant plain		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step008000_lam0.25						pipeline teacher	checkpoint models/control/control_v2/final_step_008000_adapter0.25		prompt_variant plain		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step008000_lam0							pipeline teacher	checkpoint models/control/control_v2/final_step_008000					prompt_variant plain		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step008000_sprint_lam1_2step				pipeline sprint		checkpoint models/control/control_v2/sprint_step_008000_adapter1		prompt_variant plain		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step008000_sprint_lam0.75_2step			pipeline sprint		checkpoint models/control/control_v2/sprint_step_008000_adapter0.75		prompt_variant plain		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step008000_sprint_lam0.5_2step			pipeline sprint		checkpoint models/control/control_v2/sprint_step_008000_adapter0.5		prompt_variant plain		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step008000_sprint_lam0_2step				pipeline sprint		checkpoint models/control/control_v2/sprint_step_008000					prompt_variant plain		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step008000_sprint_lam1_1step				pipeline sprint		checkpoint models/control/control_v2/sprint_step_008000_adapter1		prompt_variant plain		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step008000_sprint_lam0.75_1step			pipeline sprint		checkpoint models/control/control_v2/sprint_step_008000_adapter0.75		prompt_variant plain		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step008000_sprint_lam0.5_1step			pipeline sprint		checkpoint models/control/control_v2/sprint_step_008000_adapter0.5		prompt_variant plain		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step008000_sprint_lam0_1step				pipeline sprint		checkpoint models/control/control_v2/sprint_step_008000					prompt_variant plain		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step008000_lam1_detailed					pipeline teacher	checkpoint models/control/control_v2/step_008000						prompt_variant detailed		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step008000_lam0.75_detailed				pipeline teacher	checkpoint models/control/control_v2/final_step_008000_adapter0.75		prompt_variant detailed		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step008000_lam0.5_detailed				pipeline teacher	checkpoint models/control/control_v2/final_step_008000_adapter0.5		prompt_variant detailed		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step008000_lam0.25_detailed				pipeline teacher	checkpoint models/control/control_v2/final_step_008000_adapter0.25		prompt_variant detailed		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step008000_lam0_detailed					pipeline teacher	checkpoint models/control/control_v2/final_step_008000					prompt_variant detailed		steps 20	guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step008000_sprint_lam1_2step_detailed		pipeline sprint		checkpoint models/control/control_v2/sprint_step_008000_adapter1		prompt_variant detailed		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step008000_sprint_lam0.75_2step_detailed	pipeline sprint		checkpoint models/control/control_v2/sprint_step_008000_adapter0.75		prompt_variant detailed		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step008000_sprint_lam0.5_2step_detailed	pipeline sprint		checkpoint models/control/control_v2/sprint_step_008000_adapter0.5		prompt_variant detailed		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step008000_sprint_lam0_2step_detailed		pipeline sprint		checkpoint models/control/control_v2/sprint_step_008000					prompt_variant detailed		steps 2		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step008000_sprint_lam1_1step_detailed		pipeline sprint		checkpoint models/control/control_v2/sprint_step_008000_adapter1		prompt_variant detailed		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step008000_sprint_lam0.75_1step_detailed	pipeline sprint		checkpoint models/control/control_v2/sprint_step_008000_adapter0.75		prompt_variant detailed		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step008000_sprint_lam0.5_1step_detailed	pipeline sprint		checkpoint models/control/control_v2/sprint_step_008000_adapter0.5		prompt_variant detailed		steps 1		guidance 4.5	eval_set resources/showcase
+			,	model_tag show_v2_step008000_sprint_lam0_1step_detailed		pipeline sprint		checkpoint models/control/control_v2/sprint_step_008000					prompt_variant detailed		steps 1		guidance 4.5	eval_set resources/showcase
 
 	eval_generations
 		 One row per model and eval image: the image that the model makes from the caption and the fixed noise
@@ -2004,19 +550,12 @@ processors
 					iou @	                         float  IoU of the pixels far from 0.5 gray with the matte            0.39
 					foreground_fraction @	         float  Fraction of the pixels far from 0.5 gray                      0.92
 
-	trimask_morph_band	 Makes the trimasks of method morph_band (src/sana_alpha/trimask/morph_band.py) for its train images
-		query sql
-			SELECT page_id, alpha, split FROM magick_samples                                                    -- MAGICK images
-			WHERE   trimask_morph_band_claim IS NULL                                                            -- not yet claimed,
-			    AND alpha                    IS NOT NULL                                                        -- that split_alpha did,
-			    AND split                    = 'train'                                                          -- not eval,
-			    AND page_id NOT IN (SELECT page_id FROM _no_trimask_items)                                      -- not a showcase image or an empty matte,
-			    AND (contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'morph_band')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET)
-			         OR left(encode(sha256(page_id), 'hex'), 3) <= '$TRIMASK_COMPARE_MAX')                      -- or in the comparison set,
-			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                         -- one batch at a time, in random order
-		claim	trimask_morph_band_claim magick_samples
-		command bash
-			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" morph_band $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
+	trimask_morph_band, trimask_noisy_band, trimask_blur_quantize, trimask_scribbles, trimask_bbox_unknown, trimask_convex_hull,
+	trimask_grid_coarsen, trimask_polygon_simplify, trimask_unknown_patches, trimask_fuzzy_ramp, trimask_combo_union, trimask_combo_chain,
+	trimask_skeleton_strokes, trimask_partial_view, trimask_bilateral_blur, trimask_random_stack, trimask_perlin_warp, trimask_op_chain,
+	trimask_glass_ripple
+		 Each makes the trimasks of its method (src/sana_alpha/trimask/<method>.py) for its train images. This block holds what the nineteen share:
+		 the matte in, one trimask_augmentations row per variant out. Each one's own query, Claim pointer and command follow it
 		materialize	               TYPE  DESCRIPTION                            EXAMPLE
 			alpha.png alpha	        blob  The matte                              120 KB .png
 			input.json	           TYPE  DESCRIPTION                            EXAMPLE
@@ -2036,7 +575,21 @@ processors
 						gray_fraction @	            float  Fraction of pixels not 0 or 255: unknown                                          0.10
 						black_fraction @	        float  Fraction of pixels 0: surely background                                           0.65
 
-	trimask_noisy_band	 Makes the trimasks of method noisy_band (src/sana_alpha/trimask/noisy_band.py) for its train images
+	trimask_morph_band
+		query sql
+			SELECT page_id, alpha, split FROM magick_samples                                                    -- MAGICK images
+			WHERE   trimask_morph_band_claim IS NULL                                                            -- not yet claimed,
+			    AND alpha                    IS NOT NULL                                                        -- that split_alpha did,
+			    AND split                    = 'train'                                                          -- not eval,
+			    AND page_id NOT IN (SELECT page_id FROM _no_trimask_items)                                      -- not a showcase image or an empty matte,
+			    AND (contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'morph_band')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET)
+			         OR left(encode(sha256(page_id), 'hex'), 3) <= '$TRIMASK_COMPARE_MAX')                      -- or in the comparison set,
+			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                         -- one batch at a time, in random order
+		claim	trimask_morph_band_claim magick_samples
+		command bash
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" morph_band $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
+
+	trimask_noisy_band
 		query sql
 			SELECT page_id, alpha, split FROM magick_samples                                                    -- MAGICK images
 			WHERE   trimask_noisy_band_claim IS NULL                                                            -- not yet claimed,
@@ -2049,26 +602,8 @@ processors
 		claim	trimask_noisy_band_claim magick_samples
 		command bash
 			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" noisy_band $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
-		materialize	               TYPE  DESCRIPTION                            EXAMPLE
-			alpha.png alpha	        blob  The matte                              120 KB .png
-			input.json	           TYPE  DESCRIPTION                            EXAMPLE
-				page_id @	 [Key]  str   MAGICK image ID: it seeds the trimask  "Hcx82jcUpM"
-				split @	           ~str   Always train                           "train"
-		commit
-			trimask_augmentations
-				children/	                       TYPE   DESCRIPTION                                                                       EXAMPLE
-					trimask trimask.png	            blob   The trimask: 1024 x 1024 grayscale, 8 bit. 255 object, 0 background, 128 unknown  20 KB .png
-					fields.json	         SUBFIELD  TYPE   DESCRIPTION                                                                       EXAMPLE
-						page_id @	         [Key]  str    The image                                                                         "Hcx82jcUpM"
-						method @	         [Key]  str    The method tag                                                                    "noisy_band"
-						variant @	         [Key]  int    0 to TRIMASK_VARIANTS - 1: it seeds the trimask too                               0
-						split @	                   ~str    Always train                                                                      "train"
-						params @	                str    JSON of the hyperparameters used                                                  "{...}"
-						white_fraction @	        float  Fraction of pixels 255: surely object                                             0.25
-						gray_fraction @	            float  Fraction of pixels not 0 or 255: unknown                                          0.10
-						black_fraction @	        float  Fraction of pixels 0: surely background                                           0.65
 
-	trimask_blur_quantize	 Makes the trimasks of method blur_quantize (src/sana_alpha/trimask/blur_quantize.py) for its train images
+	trimask_blur_quantize
 		query sql
 			SELECT page_id, alpha, split FROM magick_samples                                                       -- MAGICK images
 			WHERE   trimask_blur_quantize_claim IS NULL                                                            -- not yet claimed,
@@ -2081,26 +616,8 @@ processors
 		claim	trimask_blur_quantize_claim magick_samples
 		command bash
 			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" blur_quantize $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
-		materialize	               TYPE  DESCRIPTION                            EXAMPLE
-			alpha.png alpha	        blob  The matte                              120 KB .png
-			input.json	           TYPE  DESCRIPTION                            EXAMPLE
-				page_id @	 [Key]  str   MAGICK image ID: it seeds the trimask  "Hcx82jcUpM"
-				split @	           ~str   Always train                           "train"
-		commit
-			trimask_augmentations
-				children/	                       TYPE   DESCRIPTION                                                                       EXAMPLE
-					trimask trimask.png	            blob   The trimask: 1024 x 1024 grayscale, 8 bit. 255 object, 0 background, 128 unknown  20 KB .png
-					fields.json	         SUBFIELD  TYPE   DESCRIPTION                                                                       EXAMPLE
-						page_id @	         [Key]  str    The image                                                                         "Hcx82jcUpM"
-						method @	         [Key]  str    The method tag                                                                    "blur_quantize"
-						variant @	         [Key]  int    0 to TRIMASK_VARIANTS - 1: it seeds the trimask too                               0
-						split @	                   ~str    Always train                                                                      "train"
-						params @	                str    JSON of the hyperparameters used                                                  "{...}"
-						white_fraction @	        float  Fraction of pixels 255: surely object                                             0.25
-						gray_fraction @	            float  Fraction of pixels not 0 or 255: unknown                                          0.10
-						black_fraction @	        float  Fraction of pixels 0: surely background                                           0.65
 
-	trimask_scribbles	 Makes the trimasks of method scribbles (src/sana_alpha/trimask/scribbles.py) for its train images
+	trimask_scribbles
 		query sql
 			SELECT page_id, alpha, split FROM magick_samples                                                   -- MAGICK images
 			WHERE   trimask_scribbles_claim IS NULL                                                            -- not yet claimed,
@@ -2113,26 +630,8 @@ processors
 		claim	trimask_scribbles_claim magick_samples
 		command bash
 			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" scribbles $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
-		materialize	               TYPE  DESCRIPTION                            EXAMPLE
-			alpha.png alpha	        blob  The matte                              120 KB .png
-			input.json	           TYPE  DESCRIPTION                            EXAMPLE
-				page_id @	 [Key]  str   MAGICK image ID: it seeds the trimask  "Hcx82jcUpM"
-				split @	           ~str   Always train                           "train"
-		commit
-			trimask_augmentations
-				children/	                       TYPE   DESCRIPTION                                                                       EXAMPLE
-					trimask trimask.png	            blob   The trimask: 1024 x 1024 grayscale, 8 bit. 255 object, 0 background, 128 unknown  20 KB .png
-					fields.json	         SUBFIELD  TYPE   DESCRIPTION                                                                       EXAMPLE
-						page_id @	         [Key]  str    The image                                                                         "Hcx82jcUpM"
-						method @	         [Key]  str    The method tag                                                                    "scribbles"
-						variant @	         [Key]  int    0 to TRIMASK_VARIANTS - 1: it seeds the trimask too                               0
-						split @	                   ~str    Always train                                                                      "train"
-						params @	                str    JSON of the hyperparameters used                                                  "{...}"
-						white_fraction @	        float  Fraction of pixels 255: surely object                                             0.25
-						gray_fraction @	            float  Fraction of pixels not 0 or 255: unknown                                          0.10
-						black_fraction @	        float  Fraction of pixels 0: surely background                                           0.65
 
-	trimask_bbox_unknown	 Makes the trimasks of method bbox_unknown (src/sana_alpha/trimask/bbox_unknown.py) for its train images
+	trimask_bbox_unknown
 		query sql
 			SELECT page_id, alpha, split FROM magick_samples                                                      -- MAGICK images
 			WHERE   trimask_bbox_unknown_claim IS NULL                                                            -- not yet claimed,
@@ -2145,26 +644,8 @@ processors
 		claim	trimask_bbox_unknown_claim magick_samples
 		command bash
 			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" bbox_unknown $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
-		materialize	               TYPE  DESCRIPTION                            EXAMPLE
-			alpha.png alpha	        blob  The matte                              120 KB .png
-			input.json	           TYPE  DESCRIPTION                            EXAMPLE
-				page_id @	 [Key]  str   MAGICK image ID: it seeds the trimask  "Hcx82jcUpM"
-				split @	           ~str   Always train                           "train"
-		commit
-			trimask_augmentations
-				children/	                       TYPE   DESCRIPTION                                                                       EXAMPLE
-					trimask trimask.png	            blob   The trimask: 1024 x 1024 grayscale, 8 bit. 255 object, 0 background, 128 unknown  20 KB .png
-					fields.json	         SUBFIELD  TYPE   DESCRIPTION                                                                       EXAMPLE
-						page_id @	         [Key]  str    The image                                                                         "Hcx82jcUpM"
-						method @	         [Key]  str    The method tag                                                                    "bbox_unknown"
-						variant @	         [Key]  int    0 to TRIMASK_VARIANTS - 1: it seeds the trimask too                               0
-						split @	                   ~str    Always train                                                                      "train"
-						params @	                str    JSON of the hyperparameters used                                                  "{...}"
-						white_fraction @	        float  Fraction of pixels 255: surely object                                             0.25
-						gray_fraction @	            float  Fraction of pixels not 0 or 255: unknown                                          0.10
-						black_fraction @	        float  Fraction of pixels 0: surely background                                           0.65
 
-	trimask_convex_hull	 Makes the trimasks of method convex_hull (src/sana_alpha/trimask/convex_hull.py) for its train images
+	trimask_convex_hull
 		query sql
 			SELECT page_id, alpha, split FROM magick_samples                                                     -- MAGICK images
 			WHERE   trimask_convex_hull_claim IS NULL                                                            -- not yet claimed,
@@ -2177,26 +658,8 @@ processors
 		claim	trimask_convex_hull_claim magick_samples
 		command bash
 			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" convex_hull $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
-		materialize	               TYPE  DESCRIPTION                            EXAMPLE
-			alpha.png alpha	        blob  The matte                              120 KB .png
-			input.json	           TYPE  DESCRIPTION                            EXAMPLE
-				page_id @	 [Key]  str   MAGICK image ID: it seeds the trimask  "Hcx82jcUpM"
-				split @	           ~str   Always train                           "train"
-		commit
-			trimask_augmentations
-				children/	                       TYPE   DESCRIPTION                                                                       EXAMPLE
-					trimask trimask.png	            blob   The trimask: 1024 x 1024 grayscale, 8 bit. 255 object, 0 background, 128 unknown  20 KB .png
-					fields.json	         SUBFIELD  TYPE   DESCRIPTION                                                                       EXAMPLE
-						page_id @	         [Key]  str    The image                                                                         "Hcx82jcUpM"
-						method @	         [Key]  str    The method tag                                                                    "convex_hull"
-						variant @	         [Key]  int    0 to TRIMASK_VARIANTS - 1: it seeds the trimask too                               0
-						split @	                   ~str    Always train                                                                      "train"
-						params @	                str    JSON of the hyperparameters used                                                  "{...}"
-						white_fraction @	        float  Fraction of pixels 255: surely object                                             0.25
-						gray_fraction @	            float  Fraction of pixels not 0 or 255: unknown                                          0.10
-						black_fraction @	        float  Fraction of pixels 0: surely background                                           0.65
 
-	trimask_grid_coarsen	 Makes the trimasks of method grid_coarsen (src/sana_alpha/trimask/grid_coarsen.py) for its train images
+	trimask_grid_coarsen
 		query sql
 			SELECT page_id, alpha, split FROM magick_samples                                                      -- MAGICK images
 			WHERE   trimask_grid_coarsen_claim IS NULL                                                            -- not yet claimed,
@@ -2209,26 +672,8 @@ processors
 		claim	trimask_grid_coarsen_claim magick_samples
 		command bash
 			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" grid_coarsen $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
-		materialize	               TYPE  DESCRIPTION                            EXAMPLE
-			alpha.png alpha	        blob  The matte                              120 KB .png
-			input.json	           TYPE  DESCRIPTION                            EXAMPLE
-				page_id @	 [Key]  str   MAGICK image ID: it seeds the trimask  "Hcx82jcUpM"
-				split @	           ~str   Always train                           "train"
-		commit
-			trimask_augmentations
-				children/	                       TYPE   DESCRIPTION                                                                       EXAMPLE
-					trimask trimask.png	            blob   The trimask: 1024 x 1024 grayscale, 8 bit. 255 object, 0 background, 128 unknown  20 KB .png
-					fields.json	         SUBFIELD  TYPE   DESCRIPTION                                                                       EXAMPLE
-						page_id @	         [Key]  str    The image                                                                         "Hcx82jcUpM"
-						method @	         [Key]  str    The method tag                                                                    "grid_coarsen"
-						variant @	         [Key]  int    0 to TRIMASK_VARIANTS - 1: it seeds the trimask too                               0
-						split @	                   ~str    Always train                                                                      "train"
-						params @	                str    JSON of the hyperparameters used                                                  "{...}"
-						white_fraction @	        float  Fraction of pixels 255: surely object                                             0.25
-						gray_fraction @	            float  Fraction of pixels not 0 or 255: unknown                                          0.10
-						black_fraction @	        float  Fraction of pixels 0: surely background                                           0.65
 
-	trimask_polygon_simplify	 Makes the trimasks of method polygon_simplify (src/sana_alpha/trimask/polygon_simplify.py) for its train images
+	trimask_polygon_simplify
 		query sql
 			SELECT page_id, alpha, split FROM magick_samples                                                          -- MAGICK images
 			WHERE   trimask_polygon_simplify_claim IS NULL                                                            -- not yet claimed,
@@ -2241,26 +686,8 @@ processors
 		claim	trimask_polygon_simplify_claim magick_samples
 		command bash
 			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" polygon_simplify $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
-		materialize	               TYPE  DESCRIPTION                            EXAMPLE
-			alpha.png alpha	        blob  The matte                              120 KB .png
-			input.json	           TYPE  DESCRIPTION                            EXAMPLE
-				page_id @	 [Key]  str   MAGICK image ID: it seeds the trimask  "Hcx82jcUpM"
-				split @	           ~str   Always train                           "train"
-		commit
-			trimask_augmentations
-				children/	                       TYPE   DESCRIPTION                                                                       EXAMPLE
-					trimask trimask.png	            blob   The trimask: 1024 x 1024 grayscale, 8 bit. 255 object, 0 background, 128 unknown  20 KB .png
-					fields.json	         SUBFIELD  TYPE   DESCRIPTION                                                                       EXAMPLE
-						page_id @	         [Key]  str    The image                                                                         "Hcx82jcUpM"
-						method @	         [Key]  str    The method tag                                                                    "polygon_simplify"
-						variant @	         [Key]  int    0 to TRIMASK_VARIANTS - 1: it seeds the trimask too                               0
-						split @	                   ~str    Always train                                                                      "train"
-						params @	                str    JSON of the hyperparameters used                                                  "{...}"
-						white_fraction @	        float  Fraction of pixels 255: surely object                                             0.25
-						gray_fraction @	            float  Fraction of pixels not 0 or 255: unknown                                          0.10
-						black_fraction @	        float  Fraction of pixels 0: surely background                                           0.65
 
-	trimask_unknown_patches	 Makes the trimasks of method unknown_patches (src/sana_alpha/trimask/unknown_patches.py) for its train images
+	trimask_unknown_patches
 		query sql
 			SELECT page_id, alpha, split FROM magick_samples                                                         -- MAGICK images
 			WHERE   trimask_unknown_patches_claim IS NULL                                                            -- not yet claimed,
@@ -2273,26 +700,8 @@ processors
 		claim	trimask_unknown_patches_claim magick_samples
 		command bash
 			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" unknown_patches $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
-		materialize	               TYPE  DESCRIPTION                            EXAMPLE
-			alpha.png alpha	        blob  The matte                              120 KB .png
-			input.json	           TYPE  DESCRIPTION                            EXAMPLE
-				page_id @	 [Key]  str   MAGICK image ID: it seeds the trimask  "Hcx82jcUpM"
-				split @	           ~str   Always train                           "train"
-		commit
-			trimask_augmentations
-				children/	                       TYPE   DESCRIPTION                                                                       EXAMPLE
-					trimask trimask.png	            blob   The trimask: 1024 x 1024 grayscale, 8 bit. 255 object, 0 background, 128 unknown  20 KB .png
-					fields.json	         SUBFIELD  TYPE   DESCRIPTION                                                                       EXAMPLE
-						page_id @	         [Key]  str    The image                                                                         "Hcx82jcUpM"
-						method @	         [Key]  str    The method tag                                                                    "unknown_patches"
-						variant @	         [Key]  int    0 to TRIMASK_VARIANTS - 1: it seeds the trimask too                               0
-						split @	                   ~str    Always train                                                                      "train"
-						params @	                str    JSON of the hyperparameters used                                                  "{...}"
-						white_fraction @	        float  Fraction of pixels 255: surely object                                             0.25
-						gray_fraction @	            float  Fraction of pixels not 0 or 255: unknown                                          0.10
-						black_fraction @	        float  Fraction of pixels 0: surely background                                           0.65
 
-	trimask_fuzzy_ramp	 Makes the trimasks of method fuzzy_ramp (src/sana_alpha/trimask/fuzzy_ramp.py) for its train images
+	trimask_fuzzy_ramp
 		query sql
 			SELECT page_id, alpha, split FROM magick_samples                                                    -- MAGICK images
 			WHERE   trimask_fuzzy_ramp_claim IS NULL                                                            -- not yet claimed,
@@ -2305,26 +714,8 @@ processors
 		claim	trimask_fuzzy_ramp_claim magick_samples
 		command bash
 			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" fuzzy_ramp $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
-		materialize	               TYPE  DESCRIPTION                            EXAMPLE
-			alpha.png alpha	        blob  The matte                              120 KB .png
-			input.json	           TYPE  DESCRIPTION                            EXAMPLE
-				page_id @	 [Key]  str   MAGICK image ID: it seeds the trimask  "Hcx82jcUpM"
-				split @	           ~str   Always train                           "train"
-		commit
-			trimask_augmentations
-				children/	                       TYPE   DESCRIPTION                                                                       EXAMPLE
-					trimask trimask.png	            blob   The trimask: 1024 x 1024 grayscale, 8 bit. 255 object, 0 background, 128 unknown  20 KB .png
-					fields.json	         SUBFIELD  TYPE   DESCRIPTION                                                                       EXAMPLE
-						page_id @	         [Key]  str    The image                                                                         "Hcx82jcUpM"
-						method @	         [Key]  str    The method tag                                                                    "fuzzy_ramp"
-						variant @	         [Key]  int    0 to TRIMASK_VARIANTS - 1: it seeds the trimask too                               0
-						split @	                   ~str    Always train                                                                      "train"
-						params @	                str    JSON of the hyperparameters used                                                  "{...}"
-						white_fraction @	        float  Fraction of pixels 255: surely object                                             0.25
-						gray_fraction @	            float  Fraction of pixels not 0 or 255: unknown                                          0.10
-						black_fraction @	        float  Fraction of pixels 0: surely background                                           0.65
 
-	trimask_combo_union	 Makes the trimasks of method combo_union (src/sana_alpha/trimask/combo_union.py) for its train images
+	trimask_combo_union
 		query sql
 			SELECT page_id, alpha, split FROM magick_samples                                                     -- MAGICK images
 			WHERE   trimask_combo_union_claim IS NULL                                                            -- not yet claimed,
@@ -2337,26 +728,8 @@ processors
 		claim	trimask_combo_union_claim magick_samples
 		command bash
 			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" combo_union $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
-		materialize	               TYPE  DESCRIPTION                            EXAMPLE
-			alpha.png alpha	        blob  The matte                              120 KB .png
-			input.json	           TYPE  DESCRIPTION                            EXAMPLE
-				page_id @	 [Key]  str   MAGICK image ID: it seeds the trimask  "Hcx82jcUpM"
-				split @	           ~str   Always train                           "train"
-		commit
-			trimask_augmentations
-				children/	                       TYPE   DESCRIPTION                                                                       EXAMPLE
-					trimask trimask.png	            blob   The trimask: 1024 x 1024 grayscale, 8 bit. 255 object, 0 background, 128 unknown  20 KB .png
-					fields.json	         SUBFIELD  TYPE   DESCRIPTION                                                                       EXAMPLE
-						page_id @	         [Key]  str    The image                                                                         "Hcx82jcUpM"
-						method @	         [Key]  str    The method tag                                                                    "combo_union"
-						variant @	         [Key]  int    0 to TRIMASK_VARIANTS - 1: it seeds the trimask too                               0
-						split @	                   ~str    Always train                                                                      "train"
-						params @	                str    JSON of the hyperparameters used                                                  "{...}"
-						white_fraction @	        float  Fraction of pixels 255: surely object                                             0.25
-						gray_fraction @	            float  Fraction of pixels not 0 or 255: unknown                                          0.10
-						black_fraction @	        float  Fraction of pixels 0: surely background                                           0.65
 
-	trimask_combo_chain	 Makes the trimasks of method combo_chain (src/sana_alpha/trimask/combo_chain.py) for its train images
+	trimask_combo_chain
 		query sql
 			SELECT page_id, alpha, split FROM magick_samples                                                     -- MAGICK images
 			WHERE   trimask_combo_chain_claim IS NULL                                                            -- not yet claimed,
@@ -2369,26 +742,8 @@ processors
 		claim	trimask_combo_chain_claim magick_samples
 		command bash
 			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" combo_chain $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
-		materialize	               TYPE  DESCRIPTION                            EXAMPLE
-			alpha.png alpha	        blob  The matte                              120 KB .png
-			input.json	           TYPE  DESCRIPTION                            EXAMPLE
-				page_id @	 [Key]  str   MAGICK image ID: it seeds the trimask  "Hcx82jcUpM"
-				split @	           ~str   Always train                           "train"
-		commit
-			trimask_augmentations
-				children/	                       TYPE   DESCRIPTION                                                                       EXAMPLE
-					trimask trimask.png	            blob   The trimask: 1024 x 1024 grayscale, 8 bit. 255 object, 0 background, 128 unknown  20 KB .png
-					fields.json	         SUBFIELD  TYPE   DESCRIPTION                                                                       EXAMPLE
-						page_id @	         [Key]  str    The image                                                                         "Hcx82jcUpM"
-						method @	         [Key]  str    The method tag                                                                    "combo_chain"
-						variant @	         [Key]  int    0 to TRIMASK_VARIANTS - 1: it seeds the trimask too                               0
-						split @	                   ~str    Always train                                                                      "train"
-						params @	                str    JSON of the hyperparameters used                                                  "{...}"
-						white_fraction @	        float  Fraction of pixels 255: surely object                                             0.25
-						gray_fraction @	            float  Fraction of pixels not 0 or 255: unknown                                          0.10
-						black_fraction @	        float  Fraction of pixels 0: surely background                                           0.65
 
-	trimask_skeleton_strokes	 Makes the trimasks of method skeleton_strokes (src/sana_alpha/trimask/skeleton_strokes.py) for its train images
+	trimask_skeleton_strokes
 		query sql
 			SELECT page_id, alpha, split FROM magick_samples                                                          -- MAGICK images
 			WHERE   trimask_skeleton_strokes_claim IS NULL                                                            -- not yet claimed,
@@ -2401,26 +756,8 @@ processors
 		claim	trimask_skeleton_strokes_claim magick_samples
 		command bash
 			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" skeleton_strokes $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
-		materialize	               TYPE  DESCRIPTION                            EXAMPLE
-			alpha.png alpha	        blob  The matte                              120 KB .png
-			input.json	           TYPE  DESCRIPTION                            EXAMPLE
-				page_id @	 [Key]  str   MAGICK image ID: it seeds the trimask  "Hcx82jcUpM"
-				split @	           ~str   Always train                           "train"
-		commit
-			trimask_augmentations
-				children/	                       TYPE   DESCRIPTION                                                                       EXAMPLE
-					trimask trimask.png	            blob   The trimask: 1024 x 1024 grayscale, 8 bit. 255 object, 0 background, 128 unknown  20 KB .png
-					fields.json	         SUBFIELD  TYPE   DESCRIPTION                                                                       EXAMPLE
-						page_id @	         [Key]  str    The image                                                                         "Hcx82jcUpM"
-						method @	         [Key]  str    The method tag                                                                    "skeleton_strokes"
-						variant @	         [Key]  int    0 to TRIMASK_VARIANTS - 1: it seeds the trimask too                               0
-						split @	                   ~str    Always train                                                                      "train"
-						params @	                str    JSON of the hyperparameters used                                                  "{...}"
-						white_fraction @	        float  Fraction of pixels 255: surely object                                             0.25
-						gray_fraction @	            float  Fraction of pixels not 0 or 255: unknown                                          0.10
-						black_fraction @	        float  Fraction of pixels 0: surely background                                           0.65
 
-	trimask_partial_view	 Makes the trimasks of method partial_view (src/sana_alpha/trimask/partial_view.py) for its train images
+	trimask_partial_view
 		query sql
 			SELECT page_id, alpha, split FROM magick_samples                                                      -- MAGICK images
 			WHERE   trimask_partial_view_claim IS NULL                                                            -- not yet claimed,
@@ -2433,26 +770,10 @@ processors
 		claim	trimask_partial_view_claim magick_samples
 		command bash
 			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" partial_view $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
-		materialize	               TYPE  DESCRIPTION                            EXAMPLE
-			alpha.png alpha	        blob  The matte                              120 KB .png
-			input.json	           TYPE  DESCRIPTION                            EXAMPLE
-				page_id @	 [Key]  str   MAGICK image ID: it seeds the trimask  "Hcx82jcUpM"
-				split @	           ~str   Always train                           "train"
-		commit
-			trimask_augmentations
-				children/	                       TYPE   DESCRIPTION                                                                       EXAMPLE
-					trimask trimask.png	            blob   The trimask: 1024 x 1024 grayscale, 8 bit. 255 object, 0 background, 128 unknown  20 KB .png
-					fields.json	         SUBFIELD  TYPE   DESCRIPTION                                                                       EXAMPLE
-						page_id @	         [Key]  str    The image                                                                         "Hcx82jcUpM"
-						method @	         [Key]  str    The method tag                                                                    "partial_view"
-						variant @	         [Key]  int    0 to TRIMASK_VARIANTS - 1: it seeds the trimask too                               0
-						split @	                   ~str    Always train                                                                      "train"
-						params @	                str    JSON of the hyperparameters used                                                  "{...}"
-						white_fraction @	        float  Fraction of pixels 255: surely object                                             0.25
-						gray_fraction @	            float  Fraction of pixels not 0 or 255: unknown                                          0.10
-						black_fraction @	        float  Fraction of pixels 0: surely background                                           0.65
 
-	trimask_bilateral_blur	 Makes the trimasks of method bilateral_blur (src/sana_alpha/trimask/bilateral_blur.py) for its train images
+	trimask_bilateral_blur
+		materialize	                           TYPE  DESCRIPTION                                     EXAMPLE
+			rgb_on_gray.png rgb_on_gray	        blob  The RGB on gray: this method follows its edges  1.4 MB .png
 		query sql
 			SELECT page_id, alpha, rgb_on_gray, split FROM magick_samples                                           -- MAGICK images
 			WHERE   trimask_bilateral_blur_claim IS NULL                                                            -- not yet claimed,
@@ -2465,27 +786,8 @@ processors
 		claim	trimask_bilateral_blur_claim magick_samples
 		command bash
 			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" bilateral_blur $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
-		materialize	                           TYPE  DESCRIPTION                                     EXAMPLE
-			alpha.png alpha	                    blob  The matte                                       120 KB .png
-			rgb_on_gray.png rgb_on_gray	        blob  The RGB on gray: this method follows its edges  1.4 MB .png
-			input.json	                       TYPE  DESCRIPTION                                     EXAMPLE
-				page_id @	             [Key]  str   MAGICK image ID: it seeds the trimask           "Hcx82jcUpM"
-				split @	                       ~str   Always train                                    "train"
-		commit
-			trimask_augmentations
-				children/	                       TYPE   DESCRIPTION                                                                       EXAMPLE
-					trimask trimask.png	            blob   The trimask: 1024 x 1024 grayscale, 8 bit. 255 object, 0 background, 128 unknown  20 KB .png
-					fields.json	         SUBFIELD  TYPE   DESCRIPTION                                                                       EXAMPLE
-						page_id @	         [Key]  str    The image                                                                         "Hcx82jcUpM"
-						method @	         [Key]  str    The method tag                                                                    "bilateral_blur"
-						variant @	         [Key]  int    0 to TRIMASK_VARIANTS - 1: it seeds the trimask too                               0
-						split @	                   ~str    Always train                                                                      "train"
-						params @	                str    JSON of the hyperparameters used                                                  "{...}"
-						white_fraction @	        float  Fraction of pixels 255: surely object                                             0.25
-						gray_fraction @	            float  Fraction of pixels not 0 or 255: unknown                                          0.10
-						black_fraction @	        float  Fraction of pixels 0: surely background                                           0.65
 
-	trimask_random_stack	 Makes the trimasks of method random_stack (src/sana_alpha/trimask/random_stack.py) for its train images
+	trimask_random_stack
 		query sql
 			SELECT page_id, alpha, split FROM magick_samples                                                      -- MAGICK images
 			WHERE   trimask_random_stack_claim IS NULL                                                            -- not yet claimed,
@@ -2498,26 +800,8 @@ processors
 		claim	trimask_random_stack_claim magick_samples
 		command bash
 			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" random_stack $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
-		materialize	               TYPE  DESCRIPTION                            EXAMPLE
-			alpha.png alpha	        blob  The matte                              120 KB .png
-			input.json	           TYPE  DESCRIPTION                            EXAMPLE
-				page_id @	 [Key]  str   MAGICK image ID: it seeds the trimask  "Hcx82jcUpM"
-				split @	           ~str   Always train                           "train"
-		commit
-			trimask_augmentations
-				children/	                       TYPE   DESCRIPTION                                                                       EXAMPLE
-					trimask trimask.png	            blob   The trimask: 1024 x 1024 grayscale, 8 bit. 255 object, 0 background, 128 unknown  20 KB .png
-					fields.json	         SUBFIELD  TYPE   DESCRIPTION                                                                       EXAMPLE
-						page_id @	         [Key]  str    The image                                                                         "Hcx82jcUpM"
-						method @	         [Key]  str    The method tag                                                                    "random_stack"
-						variant @	         [Key]  int    0 to TRIMASK_VARIANTS - 1: it seeds the trimask too                               0
-						split @	                   ~str    Always train                                                                      "train"
-						params @	                str    JSON of the hyperparameters used                                                  "{...}"
-						white_fraction @	        float  Fraction of pixels 255: surely object                                             0.25
-						gray_fraction @	            float  Fraction of pixels not 0 or 255: unknown                                          0.10
-						black_fraction @	        float  Fraction of pixels 0: surely background                                           0.65
 
-	trimask_perlin_warp	 Makes the trimasks of method perlin_warp (src/sana_alpha/trimask/perlin_warp.py) for its train images
+	trimask_perlin_warp
 		query sql
 			SELECT page_id, alpha, split FROM magick_samples                                                     -- MAGICK images
 			WHERE   trimask_perlin_warp_claim IS NULL                                                            -- not yet claimed,
@@ -2530,26 +814,8 @@ processors
 		claim	trimask_perlin_warp_claim magick_samples
 		command bash
 			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" perlin_warp $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
-		materialize	               TYPE  DESCRIPTION                            EXAMPLE
-			alpha.png alpha	        blob  The matte                              120 KB .png
-			input.json	           TYPE  DESCRIPTION                            EXAMPLE
-				page_id @	 [Key]  str   MAGICK image ID: it seeds the trimask  "Hcx82jcUpM"
-				split @	           ~str   Always train                           "train"
-		commit
-			trimask_augmentations
-				children/	                       TYPE   DESCRIPTION                                                                       EXAMPLE
-					trimask trimask.png	            blob   The trimask: 1024 x 1024 grayscale, 8 bit. 255 object, 0 background, 128 unknown  20 KB .png
-					fields.json	         SUBFIELD  TYPE   DESCRIPTION                                                                       EXAMPLE
-						page_id @	         [Key]  str    The image                                                                         "Hcx82jcUpM"
-						method @	         [Key]  str    The method tag                                                                    "perlin_warp"
-						variant @	         [Key]  int    0 to TRIMASK_VARIANTS - 1: it seeds the trimask too                               0
-						split @	                   ~str    Always train                                                                      "train"
-						params @	                str    JSON of the hyperparameters used                                                  "{...}"
-						white_fraction @	        float  Fraction of pixels 255: surely object                                             0.25
-						gray_fraction @	            float  Fraction of pixels not 0 or 255: unknown                                          0.10
-						black_fraction @	        float  Fraction of pixels 0: surely background                                           0.65
 
-	trimask_op_chain	 Makes the trimasks of method op_chain (src/sana_alpha/trimask/op_chain.py) for its train images
+	trimask_op_chain
 		query sql
 			SELECT page_id, alpha, split FROM magick_samples                                                  -- MAGICK images
 			WHERE   trimask_op_chain_claim IS NULL                                                            -- not yet claimed,
@@ -2562,26 +828,8 @@ processors
 		claim	trimask_op_chain_claim magick_samples
 		command bash
 			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" op_chain $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
-		materialize	               TYPE  DESCRIPTION                            EXAMPLE
-			alpha.png alpha	        blob  The matte                              120 KB .png
-			input.json	           TYPE  DESCRIPTION                            EXAMPLE
-				page_id @	 [Key]  str   MAGICK image ID: it seeds the trimask  "Hcx82jcUpM"
-				split @	           ~str   Always train                           "train"
-		commit
-			trimask_augmentations
-				children/	                       TYPE   DESCRIPTION                                                                       EXAMPLE
-					trimask trimask.png	            blob   The trimask: 1024 x 1024 grayscale, 8 bit. 255 object, 0 background, 128 unknown  20 KB .png
-					fields.json	         SUBFIELD  TYPE   DESCRIPTION                                                                       EXAMPLE
-						page_id @	         [Key]  str    The image                                                                         "Hcx82jcUpM"
-						method @	         [Key]  str    The method tag                                                                    "op_chain"
-						variant @	         [Key]  int    0 to TRIMASK_VARIANTS - 1: it seeds the trimask too                               0
-						split @	                   ~str    Always train                                                                      "train"
-						params @	                str    JSON of the hyperparameters used                                                  "{...}"
-						white_fraction @	        float  Fraction of pixels 255: surely object                                             0.25
-						gray_fraction @	            float  Fraction of pixels not 0 or 255: unknown                                          0.10
-						black_fraction @	        float  Fraction of pixels 0: surely background                                           0.65
 
-	trimask_glass_ripple	 Makes the trimasks of method glass_ripple (src/sana_alpha/trimask/glass_ripple.py) for its train images
+	trimask_glass_ripple
 		query sql
 			SELECT page_id, alpha, split FROM magick_samples                                                      -- MAGICK images
 			WHERE   trimask_glass_ripple_claim IS NULL                                                            -- not yet claimed,
@@ -2594,24 +842,6 @@ processors
 		claim	trimask_glass_ripple_claim magick_samples
 		command bash
 			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" glass_ripple $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
-		materialize	               TYPE  DESCRIPTION                            EXAMPLE
-			alpha.png alpha	        blob  The matte                              120 KB .png
-			input.json	           TYPE  DESCRIPTION                            EXAMPLE
-				page_id @	 [Key]  str   MAGICK image ID: it seeds the trimask  "Hcx82jcUpM"
-				split @	           ~str   Always train                           "train"
-		commit
-			trimask_augmentations
-				children/	                       TYPE   DESCRIPTION                                                                       EXAMPLE
-					trimask trimask.png	            blob   The trimask: 1024 x 1024 grayscale, 8 bit. 255 object, 0 background, 128 unknown  20 KB .png
-					fields.json	         SUBFIELD  TYPE   DESCRIPTION                                                                       EXAMPLE
-						page_id @	         [Key]  str    The image                                                                         "Hcx82jcUpM"
-						method @	         [Key]  str    The method tag                                                                    "glass_ripple"
-						variant @	         [Key]  int    0 to TRIMASK_VARIANTS - 1: it seeds the trimask too                               0
-						split @	                   ~str    Always train                                                                      "train"
-						params @	                str    JSON of the hyperparameters used                                                  "{...}"
-						white_fraction @	        float  Fraction of pixels 255: surely object                                             0.25
-						gray_fraction @	            float  Fraction of pixels not 0 or 255: unknown                                          0.10
-						black_fraction @	        float  Fraction of pixels 0: surely background                                           0.65
 
 
 functions
