@@ -1,0 +1,761 @@
+queries
+	claims_graph sql
+		-- One tile and one chart per processor with finished claims in the window. Times are US Eastern; a claim is timed at the finished_at of its run.
+		-- Rows done: completed claims that the claim pointer of a row still holds. Completed claims also count work that was released and redone (the trimask subsets).
+		-- Errored claims count each failed try; failed rows are the errored claims that no retry replaced.
+		-- Running runs come from finished runs only: Bluejay writes a run row when the run ends, so a run in flight shows only as its unfinished (started) claims.
+		-- encode_multires commits without claims or runs, so it is not here: see the query multires_progress.
+		WITH settings AS (
+		    SELECT 2  AS days -- Eastern calendar days, including today.
+		),
+		clock AS (
+		    SELECT
+		        settings.days,
+		        current_timestamp AS utc_now,
+		        (current_timestamp AT TIME ZONE 'UTC') AT TIME ZONE 'America/New_York' AS  eastern_now
+		    FROM settings
+		),
+		date_window AS (
+		    SELECT
+		        days,
+		        utc_now,
+		        eastern_now,
+		        to_date(to_char(eastern_now, '%Y-%m-%d')) AS today,
+		        to_date(to_char(eastern_now, '%Y-%m-%d')) - (days - 1) AS first_day
+		    FROM clock
+		),
+		run_types AS (
+		    SELECT processor, processor AS label FROM bluejay_runs GROUP BY processor
+		),
+		pointers AS ( -- The claim pointer of a row holds the claim that made the row, or that holds it now. A row released and redone has its old claims in no pointer
+		    SELECT                                                                                       -- One scan of each table: a UNION of 23 scans of magick_samples made the server hang
+		        p.processor,
+		        CASE p.processor
+		            WHEN 'download_image'           THEN m.download_claim
+		            WHEN 'split_alpha'              THEN m.split_alpha_claim
+		            WHEN 'encode_latents'           THEN m.encode_latents_claim
+		            WHEN 'encode_colorbg'           THEN m.encode_colorbg_claim
+		            WHEN 'trimask_morph_band'       THEN m.trimask_morph_band_claim
+		            WHEN 'trimask_noisy_band'       THEN m.trimask_noisy_band_claim
+		            WHEN 'trimask_blur_quantize'    THEN m.trimask_blur_quantize_claim
+		            WHEN 'trimask_scribbles'        THEN m.trimask_scribbles_claim
+		            WHEN 'trimask_bbox_unknown'     THEN m.trimask_bbox_unknown_claim
+		            WHEN 'trimask_convex_hull'      THEN m.trimask_convex_hull_claim
+		            WHEN 'trimask_grid_coarsen'     THEN m.trimask_grid_coarsen_claim
+		            WHEN 'trimask_polygon_simplify' THEN m.trimask_polygon_simplify_claim
+		            WHEN 'trimask_unknown_patches'  THEN m.trimask_unknown_patches_claim
+		            WHEN 'trimask_fuzzy_ramp'       THEN m.trimask_fuzzy_ramp_claim
+		            WHEN 'trimask_combo_union'      THEN m.trimask_combo_union_claim
+		            WHEN 'trimask_combo_chain'      THEN m.trimask_combo_chain_claim
+		            WHEN 'trimask_skeleton_strokes' THEN m.trimask_skeleton_strokes_claim
+		            WHEN 'trimask_partial_view'     THEN m.trimask_partial_view_claim
+		            WHEN 'trimask_bilateral_blur'   THEN m.trimask_bilateral_blur_claim
+		            WHEN 'trimask_random_stack'     THEN m.trimask_random_stack_claim
+		            WHEN 'trimask_perlin_warp'      THEN m.trimask_perlin_warp_claim
+		            WHEN 'trimask_op_chain'         THEN m.trimask_op_chain_claim
+		            WHEN 'trimask_glass_ripple'     THEN m.trimask_glass_ripple_claim
+		        END AS claim_id
+		    FROM magick_samples AS m
+		    CROSS JOIN (VALUES
+		        ('download_image'),
+		        ('split_alpha'),
+		        ('encode_latents'),
+		        ('encode_colorbg'),
+		        ('trimask_morph_band'),
+		        ('trimask_noisy_band'),
+		        ('trimask_blur_quantize'),
+		        ('trimask_scribbles'),
+		        ('trimask_bbox_unknown'),
+		        ('trimask_convex_hull'),
+		        ('trimask_grid_coarsen'),
+		        ('trimask_polygon_simplify'),
+		        ('trimask_unknown_patches'),
+		        ('trimask_fuzzy_ramp'),
+		        ('trimask_combo_union'),
+		        ('trimask_combo_chain'),
+		        ('trimask_skeleton_strokes'),
+		        ('trimask_partial_view'),
+		        ('trimask_bilateral_blur'),
+		        ('trimask_random_stack'),
+		        ('trimask_perlin_warp'),
+		        ('trimask_op_chain'),
+		        ('trimask_glass_ripple')
+		    ) AS p (processor)                                                                   UNION ALL
+		    SELECT 'import_index'  AS processor, import_claim        AS claim_id FROM import_jobs      UNION ALL
+		    SELECT 'plan_eval'     AS processor, plan_eval_claim     AS claim_id FROM eval_models      UNION ALL
+		    SELECT 'generate_eval' AS processor, generate_eval_claim AS claim_id FROM eval_generations
+		),
+		claim_counts AS ( -- The one pass over the claims
+		    SELECT
+		        COALESCE(r.processor, p.processor)                                   AS processor,
+		        c.claim_status                                                       AS status,
+		        p.claim_id IS NOT NULL                                               AS current,
+		        CAST(FLOOR(date_part('epoch', to_timestamp(r.finished_at)) / 60) AS BIGINT) AS minute,
+		        count(*)                                                             AS claims
+		    FROM bluejay_claims    AS c                                       -- Every claim,
+		    LEFT JOIN bluejay_runs AS r ON r.run_id   = c.run_id   -- with its run if the run ended (Bluejay writes the run row at the end; minute is NULL before),
+		    LEFT JOIN pointers     AS p ON p.claim_id = c.claim_id -- and the row that still points to it, if any
+		    GROUP BY 1, 2, 3, 4
+		),
+		facts AS ( -- has_pointer: the processor has a claim pointer in the DTAB. Others (encode_trimask, now removed) count each completed claim as a row
+		    SELECT
+		        f.*,
+		        bool_or(f.current) OVER (PARTITION BY f.processor) AS has_pointer,
+		        f.minute IS NOT NULL
+		            AND to_date(to_char((to_timestamp(f.minute * 60) AT TIME ZONE 'UTC') AT TIME ZONE 'America/New_York', '%Y-%m-%d'))
+		                BETWEEN w.first_day AND w.today
+		            AND f.minute * 60 <= date_part('epoch', w.utc_now)        AS in_window
+		    FROM claim_counts AS f
+		    CROSS JOIN date_window AS w
+		),
+		minute_counts AS (
+		    SELECT
+		        processor,
+		        minute,
+		        SUM(CASE WHEN in_window AND status = 'completed' AND (current OR NOT has_pointer) THEN claims ELSE 0 END) AS done,
+		        SUM(CASE WHEN in_window AND status = 'completed'                                  THEN claims ELSE 0 END) AS completed,
+		        SUM(CASE WHEN in_window AND status = 'errored'                                    THEN claims ELSE 0 END) AS errored,
+		        SUM(CASE WHEN     current AND status = 'errored'                                  THEN claims ELSE 0 END) AS failed_rows, -- All time, not the window
+		        SUM(CASE WHEN     current AND status = 'started'                                  THEN claims ELSE 0 END) AS unfinished,
+		        SUM(CASE WHEN NOT current AND status = 'completed' AND has_pointer                THEN claims ELSE 0 END) AS redone,
+		        SUM(CASE WHEN NOT current AND status = 'errored'   AND has_pointer                THEN claims ELSE 0 END) AS retried
+		    FROM facts
+		    GROUP BY processor, minute
+		),
+		running AS (
+		    SELECT
+		        processor,
+		        minute,
+		        done + completed + errored > 0                                AS has_point,
+		        SUM(done)        OVER (PARTITION BY processor ORDER BY minute) AS done,
+		        SUM(completed)   OVER (PARTITION BY processor ORDER BY minute) AS completed,
+		        SUM(errored)     OVER (PARTITION BY processor ORDER BY minute) AS errored,
+		        SUM(failed_rows) OVER (PARTITION BY processor)                 AS failed_rows,
+		        SUM(unfinished)  OVER (PARTITION BY processor)                 AS unfinished,
+		        SUM(redone)      OVER (PARTITION BY processor)                 AS redone,
+		        SUM(retried)     OVER (PARTITION BY processor)                 AS retried
+		    FROM minute_counts
+		),
+		run_intervals AS (
+		    SELECT
+		        r.processor,
+		        GREATEST(
+		            date_part('epoch', to_timestamp(r.started_at)) / 60.0,
+		            date_part('epoch', CAST(w.first_day AS TIMESTAMP) AT TIME ZONE 'America/New_York') / 60.0
+		        ) AS begin_minute,
+		        LEAST(
+		            date_part('epoch', to_timestamp(r.finished_at)) / 60.0,
+		            date_part('epoch', w.utc_now) / 60.0
+		        ) AS end_minute
+		    FROM bluejay_runs AS r
+		    CROSS JOIN date_window AS w
+		    WHERE r.started_at IS NOT NULL
+		        AND r.finished_at IS NOT NULL
+		        AND date_part('epoch', to_timestamp(r.started_at)) < date_part('epoch', w.utc_now)
+		        AND date_part('epoch', to_timestamp(r.finished_at)) >
+		            date_part('epoch', CAST(w.first_day AS TIMESTAMP) AT TIME ZONE 'America/New_York')
+		),
+		activity_events AS (
+		    SELECT processor, begin_minute AS minute, 1 AS change FROM run_intervals
+		    UNION ALL
+		    SELECT processor, end_minute AS minute, -1 AS change FROM run_intervals
+		),
+		activity_steps AS (
+		    SELECT
+		        processor,
+		        minute,
+		        SUM(change) OVER (PARTITION BY processor ORDER BY minute) AS running_instances
+		    FROM (
+		        SELECT processor, minute, SUM(change) AS change
+		        FROM activity_events
+		        GROUP BY processor, minute
+		    ) AS events
+		),
+		activity_buckets AS (
+		    SELECT
+		        a.*,
+		        CAST(FLOOR(159.0 * (a.minute - limits.begin_minute)
+		            / GREATEST(limits.end_minute - limits.begin_minute, 1.0)) AS INT) AS bucket
+		    FROM activity_steps AS a
+		    CROSS JOIN (
+		        SELECT
+		            date_part('epoch', CAST(first_day AS TIMESTAMP) AT TIME ZONE 'America/New_York') / 60.0 AS begin_minute,
+		            date_part('epoch', utc_now) / 60.0 AS end_minute
+		        FROM date_window
+		    ) AS limits
+		),
+		activity_ranked AS (
+		    SELECT
+		        *,
+		        ROW_NUMBER() OVER (PARTITION BY processor, bucket ORDER BY minute) AS first_rank,
+		        ROW_NUMBER() OVER (PARTITION BY processor, bucket ORDER BY minute DESC) AS last_rank,
+		        ROW_NUMBER() OVER (PARTITION BY processor, bucket ORDER BY running_instances, minute) AS low_rank,
+		        ROW_NUMBER() OVER (PARTITION BY processor, bucket ORDER BY running_instances DESC, minute) AS high_rank
+		    FROM activity_buckets
+		),
+		per_processor AS ( -- One GROUP BY over the union of the minute rows, the running-run rows and the runs, so no join follows array_agg. Joins after it (as MulticamDailies did) made the server hang with the pointer scans
+		    SELECT
+		        processor,
+		        MAX(done)        AS done,
+		        MAX(completed)   AS completed,
+		        MAX(errored)     AS errored,
+		        MAX(failed_rows) AS failed_rows,
+		        MAX(unfinished)  AS unfinished,
+		        MAX(redone)      AS redone,
+		        MAX(retried)     AS retried,
+		        array_agg(struct(minute AS minute, done AS total, completed AS completed, errored AS errored) ORDER BY minute)
+		            FILTER (WHERE kind = 'claims' AND has_point)                                AS points,
+		        array_agg(struct(active_minute AS minute, running AS running) ORDER BY active_minute)
+		            FILTER (WHERE kind = 'running')                                             AS active_points,
+		        COALESCE(MAX(running), 0)                                                       AS peak_running,
+		        MAX(last_finish_epoch)                                                          AS last_finish_epoch
+		    FROM (
+		        SELECT 'claims' AS kind, processor, minute, has_point, done, completed, errored, failed_rows, unfinished, redone, retried,
+		               CAST(NULL AS DOUBLE) AS active_minute, CAST(NULL AS BIGINT) AS running, CAST(NULL AS DOUBLE) AS last_finish_epoch
+		        FROM running
+		        UNION ALL
+		        SELECT 'running' AS kind, processor, CAST(NULL AS BIGINT) AS minute, false AS has_point, NULL AS done, NULL AS completed, NULL AS errored,
+		               NULL AS failed_rows, NULL AS unfinished, NULL AS redone, NULL AS retried,
+		               activity_ranked.minute AS active_minute, running_instances AS running, NULL AS last_finish_epoch
+		        FROM activity_ranked
+		        WHERE first_rank = 1 OR last_rank = 1 OR low_rank = 1 OR high_rank = 1
+		        UNION ALL
+		        SELECT 'runs' AS kind, processor, CAST(NULL AS BIGINT) AS minute, false AS has_point, NULL AS done, NULL AS completed, NULL AS errored,
+		               NULL AS failed_rows, NULL AS unfinished, NULL AS redone, NULL AS retried,
+		               NULL AS active_minute, NULL AS running, date_part('epoch', to_timestamp(finished_at)) AS last_finish_epoch
+		        FROM bluejay_runs
+		    ) AS parts
+		    WHERE processor IS NOT NULL
+		    GROUP BY processor
+		),
+		summary AS (
+		    SELECT
+		        p.processor AS label,
+		        to_char(w.first_day, '%b %-d, %Y') || ' – '
+		            || to_char(w.eastern_now, '%b %-d, %Y') AS day,
+		        w.days,
+		        CAST(FLOOR(date_part('epoch',
+		            CAST(w.first_day AS TIMESTAMP) AT TIME ZONE 'America/New_York'
+		        ) / 60) AS BIGINT) AS start_minute,
+		        CAST(FLOOR(date_part('epoch', w.utc_now) / 60) AS BIGINT) AS now_minute,
+		        COALESCE(p.done, 0) AS done,
+		        COALESCE(p.completed, 0) AS completed,
+		        COALESCE(p.errored, 0) AS errored,
+		        COALESCE(p.failed_rows, 0) AS failed_rows,
+		        COALESCE(p.unfinished, 0) AS unfinished,
+		        COALESCE(p.redone, 0) AS redone,
+		        COALESCE(p.retried, 0) AS retried,
+		        p.points,
+		        p.active_points,
+		        p.peak_running,
+		        p.last_finish_epoch
+		    FROM per_processor AS p
+		    CROSS JOIN date_window AS w
+		)
+		SELECT
+		    struct(
+		        'svelte' AS widget,
+		        -last_finish_epoch AS sort,
+		        '<script>
+		    import { onMount } from "svelte";
+
+		    let {
+		        done = 0, completed = 0, errored = 0, failedRows = 0, unfinished = 0, redone = 0, retried = 0,
+		        label = "", samplePoints = [], activeSamplePoints = [], activePeak = 0,
+		        startMinute = 0, nowMinute = 0, lastFinishEpoch = 0
+		    } = $props();
+		    let nowMs = $state(Date.now());
+		    let totalColor = $state("#ffad20");
+		    let completedColor = $state("#57d68d");
+		    let erroredColor = $state("#ff7373");
+
+		    onMount(() => {
+		        const theme = getComputedStyle(document.documentElement);
+		        totalColor = theme.getPropertyValue("--accent").trim() || "#ffad20";
+		        const dark = document.documentElement.dataset.theme === "dark";
+		        completedColor = dark ? "#57d68d" : "#167c4b";
+		        erroredColor = dark ? "#ff7373" : "#ba3038";
+		        const timer = window.setInterval(() => nowMs = Date.now(), 1000);
+		        return () => window.clearInterval(timer);
+		    });
+
+		    const segments = {
+		        "0": [0, 1, 2, 3, 4, 5], "1": [1, 2],
+		        "2": [0, 1, 6, 4, 3], "3": [0, 1, 6, 2, 3],
+		        "4": [5, 6, 1, 2], "5": [0, 5, 6, 2, 3],
+		        "6": [0, 5, 6, 4, 2, 3], "7": [0, 1, 2],
+		        "8": [0, 1, 2, 3, 4, 5, 6], "9": [0, 1, 2, 3, 5, 6]
+		    };
+		    const boxes = [
+		        [3, 0, 12, 2], [15, 2, 2, 11], [15, 17, 2, 11],
+		        [3, 28, 12, 2], [1, 17, 2, 11], [1, 2, 2, 11],
+		        [3, 14, 12, 2]
+		    ];
+		    const box = (x, y, width, height) => `M ${x} ${y} h ${width} v ${height} h -${width} Z`;
+
+		    function sevenSegment(value) {
+		        let x = 0;
+		        let path = "";
+		        for (const character of value) {
+		            if (character === ":") {
+		                path += box(x + 2, 8, 2, 3) + box(x + 2, 20, 2, 3);
+		                x += 7;
+		            } else {
+		                for (const segment of segments[character] ?? []) {
+		                    const [left, top, width, height] = boxes[segment];
+		                    path += box(x + left, top, width, height);
+		                }
+		                x += 20;
+		            }
+		        }
+		        return { path, width: Math.max(x - 2, 1) };
+		    }
+
+		    let elapsed = $derived.by(() => {
+		        const seconds = Math.max(0, Math.floor(nowMs / 1000 - Number(lastFinishEpoch)));
+		        const days = Math.floor(seconds / 86400);
+		        const hours = Math.floor(seconds % 86400 / 3600);
+		        const minutes = Math.floor(seconds % 3600 / 60);
+		        const remainder = seconds % 60;
+		        const two = number => String(number).padStart(2, "0");
+		        return {
+		            dayWord: days === 1 ? "day" : "days",
+		            dayDigits: sevenSegment(String(days)),
+		            clockDigits: sevenSegment(`${two(hours)}:${two(minutes)}:${two(remainder)}`)
+		        };
+		    });
+
+		    let graph = $derived.by(() => {
+		        const start = Number(startMinute);
+		        const end = Math.max(start + 1, Number(nowMinute));
+		        const points = (samplePoints ?? []).filter(Boolean).map(point => ({
+		            minute: Number(point.minute),
+		            total: Number(point.total),
+		            completed: Number(point.completed),
+		            errored: Number(point.errored)
+		        }));
+		        const peak = Math.max(1, Number(done), Number(completed), Number(errored));
+		        const x = minute => 1000 * Math.max(0, Math.min(1, (minute - start) / (end - start)));
+		        const y = value => 100 - 100 * Math.max(0, Math.min(1, value / peak));
+		        function step(field) {
+		            let path = `M 0 ${y(0)}`;
+		            for (const point of points) path += ` H ${x(point.minute)} V ${y(point[field])}`;
+		            return path + " H 1000";
+		        }
+		        const active = (activeSamplePoints ?? []).filter(Boolean).map(point => ({
+		            minute: Number(point.minute), running: Number(point.running)
+		        }));
+		        const activeY = value => 100 - 100 * Math.max(0, Math.min(1, value / Math.max(1, Number(activePeak))));
+		        let running = `M 0 ${activeY(0)}`;
+		        for (const point of active) running += ` H ${x(point.minute)} V ${activeY(point.running)}`;
+		        return {
+		            total: step("total"),
+		            completed: step("completed"),
+		            errored: step("errored"),
+		            running
+		        };
+		    });
+		</script>
+
+		<div style="position:relative; box-sizing:border-box; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.1rem; width:100%; height:100%; min-height:6rem; padding:0.3rem; text-align:center; font-family:inherit; overflow:hidden;">
+		    <svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true" style="position:absolute; inset:0; width:100%; height:100%; opacity:0.5; pointer-events:none; z-index:0;">
+		        <path d={graph.completed} fill="none" stroke={completedColor} stroke-width="1.5" vector-effect="non-scaling-stroke" />
+		        <path d={graph.errored} fill="none" stroke={erroredColor} stroke-width="1.5" vector-effect="non-scaling-stroke" />
+		        <path d={graph.total} fill="none" stroke={totalColor} stroke-width="2.5" vector-effect="non-scaling-stroke" />
+		        <path d={graph.running} fill="none" stroke="#76c6ff" stroke-width="1.5" vector-effect="non-scaling-stroke" />
+		    </svg>
+		    <div style="position:relative; z-index:1; width:100%; text-align:center; font-size:0.9rem; font-weight:700; line-height:1.1; overflow-wrap:anywhere;">{label}</div>
+		    <div style="position:relative; z-index:1; width:100%; text-align:center; color:#15803d; font-size:1.3rem; font-weight:700; line-height:1.1; font-variant-numeric:tabular-nums;" title="Rows done: completed claims that the claim pointer of a row still holds">{Number(done).toLocaleString()} rows</div>
+		    <div style="position:relative; z-index:1; width:100%; text-align:center; color:#dc2626; font-size:0.65rem; font-weight:600; line-height:1.1;" title="Failed rows: errored claims that no retry replaced. Retried: errored claims that a retry replaced">{Number(failedRows).toLocaleString()} failed rows · {Number(retried).toLocaleString()} retried errors</div>
+		    <div style="position:relative; z-index:1; width:100%; text-align:center; color:var(--muted); font-size:0.65rem; line-height:1.1;" title="Redone: completed claims of rows that were released and made again. Unfinished: started claims that a row still holds, in flight or abandoned">{Number(redone).toLocaleString()} redone · {Number(unfinished).toLocaleString()} unfinished</div>
+		    <div style="position:relative; z-index:1; display:flex; align-items:center; justify-content:center; gap:0.3rem; width:100%; margin-top:auto; white-space:nowrap; color:var(--text);">
+		        <svg viewBox={`0 0 ${elapsed.dayDigits.width} 30`} aria-label={String(Math.floor(Math.max(0, nowMs / 1000 - Number(lastFinishEpoch)) / 86400))} style={`width:${elapsed.dayDigits.width / 2}px; height:15px; flex:none;`}><path d={elapsed.dayDigits.path} fill="currentColor" /></svg>
+		        <span style="font-size:0.75rem; line-height:1;">{elapsed.dayWord}</span>
+		        <svg viewBox={`0 0 ${elapsed.clockDigits.width} 30`} aria-label="hours minutes seconds" style={`width:${elapsed.clockDigits.width / 2}px; height:15px; flex:none;`}><path d={elapsed.clockDigits.path} fill="currentColor" /></svg>
+		    </div>
+		</div>' AS source,
+		        done AS done,
+		        completed AS completed,
+		        errored AS errored,
+		        failed_rows AS "failedRows",
+		        unfinished AS unfinished,
+		        redone AS redone,
+		        retried AS retried,
+		        label AS label,
+		        points AS "samplePoints",
+		        active_points AS "activeSamplePoints",
+		        peak_running AS "activePeak",
+		        start_minute AS "startMinute",
+		        now_minute AS "nowMinute",
+		        last_finish_epoch AS "lastFinishEpoch"
+		    ) AS thumbnail,
+		    struct(
+		        'svelte' AS widget,
+		        '<script>
+		    import { onMount } from "svelte";
+
+		    let { points = [], activePoints = [], activePeak = 0, label = "", day = "", nowMinute = 0, startMinute = 0, days = 1 } = $props();
+		    let plotElement;
+		    let error = $state("");
+		    let totalColor = $state("#ffad20");
+		    let completedColor = $state("#57d68d");
+		    let erroredColor = $state("#ff7373");
+		    let runningColor = $state("#76c6ff");
+		    let scalePosition = $state(50);
+		    let setRunningScale = () => {};
+		    const scaleEnd = value => Math.max(1, Math.ceil(Math.max(1, Number(activePeak)) * 1.2 * Math.pow(2, (50 - value) / 20)));
+		    const template = {"target_id":null,"root_id":"p1011","doc":{"version":"3.9.2","title":"","config":{"type":"object","name":"DocumentConfig","id":"p1060","attributes":{"notifications":{"type":"object","name":"Notifications","id":"p1061"}}},"roots":[{"type":"object","name":"Figure","id":"p1011","attributes":{"js_event_callbacks":{"type":"map","entries":[["tap",[{"type":"object","name":"CustomJS","id":"p3018","attributes":{"args":{"type":"map","entries":[["markers",{"type":"object","name":"ColumnDataSource","id":"p3000","attributes":{"js_property_callbacks":{"type":"map","entries":[["change:data",[{"type":"object","name":"CustomJS","id":"p5000","attributes":{"args":{"type":"map","entries":[["markers",{"id":"p3000"}],["plot",{"id":"p1011"}],["vertical",{"type":"object","name":"Arrow","id":"p4000","attributes":{"visible":false,"source":{"type":"object","name":"ColumnDataSource","id":"p4001","attributes":{"selected":{"type":"object","name":"Selection","id":"p4002","attributes":{"indices":[],"line_indices":[]}},"selection_policy":{"type":"object","name":"UnionRenderers","id":"p4003"}}},"x_start":{"type":"value","value":0},"y_start":{"type":"value","value":0},"start":{"type":"object","name":"OpenHead","id":"p4004","attributes":{"size":{"type":"value","value":8},"line_color":{"type":"value","value":"#4f90ff"},"line_alpha":{"type":"value","value":0.5}}},"x_end":{"type":"value","value":1},"y_end":{"type":"value","value":1},"end":{"type":"object","name":"OpenHead","id":"p4005","attributes":{"size":{"type":"value","value":8},"line_color":{"type":"value","value":"#4f90ff"},"line_alpha":{"type":"value","value":0.5}}},"line_color":{"type":"value","value":"#4f90ff"},"line_alpha":{"type":"value","value":0.5}}}],["horizontal",{"type":"object","name":"Arrow","id":"p4006","attributes":{"visible":false,"source":{"type":"object","name":"ColumnDataSource","id":"p4007","attributes":{"selected":{"type":"object","name":"Selection","id":"p4008","attributes":{"indices":[],"line_indices":[]}},"selection_policy":{"type":"object","name":"UnionRenderers","id":"p4009"}}},"x_start":{"type":"value","value":0},"y_start":{"type":"value","value":0},"start":{"type":"object","name":"OpenHead","id":"p4010","attributes":{"size":{"type":"value","value":8},"line_color":{"type":"value","value":"#4f90ff"},"line_alpha":{"type":"value","value":0.5}}},"x_end":{"type":"value","value":1},"y_end":{"type":"value","value":1},"end":{"type":"object","name":"OpenHead","id":"p4011","attributes":{"size":{"type":"value","value":8},"line_color":{"type":"value","value":"#4f90ff"},"line_alpha":{"type":"value","value":0.5}}},"line_color":{"type":"value","value":"#4f90ff"},"line_alpha":{"type":"value","value":0.5}}}],["series",{"type":"object","name":"ColumnDataSource","id":"p1006","attributes":{"name":"series","selected":{"type":"object","name":"Selection","id":"p1007","attributes":{"indices":[],"line_indices":[]}},"selection_policy":{"type":"object","name":"UnionRenderers","id":"p1008"},"data":{"type":"map","entries":[["x",[0,1]],["y",[0,0]],["label",["12:00 AM","12:01 AM"]]]}}}],["trend",{"type":"object","name":"Slope","id":"p3010","attributes":{"level":"underlay","visible":false,"gradient":0,"y_intercept":0,"line_color":"#4f90ff","line_alpha":0.5,"line_width":2,"line_dash":[6]}}],["sameTime",{"type":"object","name":"Span","id":"p3011","attributes":{"level":"underlay","visible":false,"location":0,"dimension":"height","line_color":"#4f90ff","line_alpha":0.5,"line_width":2,"line_dash":[6]}}],["claimsLabel",{"type":"object","name":"Label","id":"p4012","attributes":{"visible":false,"text_color":"#4f90ff","text_alpha":0.5,"text_font_size":"10pt","text_align":"center","text_baseline":"middle","x":0,"y":0,"x_offset":-11,"angle":1.5707963267948966}}],["timeLabel",{"type":"object","name":"Label","id":"p4013","attributes":{"visible":false,"text_color":"#4f90ff","text_alpha":0.5,"text_font_size":"10pt","text_align":"center","x":0,"y":0,"y_offset":10}}],["rateLabel",{"type":"object","name":"Label","id":"p5001","attributes":{"visible":false,"text_color":"#4f90ff","text_alpha":0.5,"text_font_size":"10pt","text_align":"right","text_baseline":"middle","x":0,"y":0,"x_offset":-11.464466094067262,"y_offset":11.464466094067262,"angle":-0.7853981633974483}}]]},"code":"\n// Keep dragged measurements on the plotted total-claims series.\nconst times = series.data.x;\nconst totals = series.data.total;\nif (times?.length && markers.data.x?.length) {\n    const x = [...markers.data.x];\n    const y = [...markers.data.y];\n    let changed = false;\n    for (let i = 0; i < x.length; i++) {\n        const minute = Math.max(times[0], Math.min(times.at(-1), Math.round(Number(x[i]))));\n        let low = 0;\n        let high = times.length;\n        while (low < high) {\n            const middle = (low + high) >>> 1;\n            if (times[middle] <= minute) low = middle + 1;\n            else high = middle;\n        }\n        const total = Number(totals[Math.max(0, low - 1)] ?? 0);\n        if (x[i] !== minute || y[i] !== total) changed = true;\n        x[i] = minute;\n        y[i] = total;\n    }\n    if (changed) {\n        markers.data = {...markers.data, x, y};\n        return;\n    }\n}\n\nconst xs = markers.data.x ?? [];\nconst ys = markers.data.y ?? [];\nif (xs.length !== 2 || ys.length !== 2) {\n    vertical.visible = false;\n    horizontal.visible = false;\n    trend.visible = false;\n    sameTime.visible = false;\n    claimsLabel.visible = false;\n    timeLabel.visible = false;\n    rateLabel.visible = false;\n    return;\n}\nconst width = Number(plot.inner_width);\nconst height = Number(plot.inner_height);\nconst xSpan = Math.abs(plot.x_range.end - plot.x_range.start);\nconst ySpan = Math.abs(plot.y_range.end - plot.y_range.start);\nif (!(width > 0 && height > 0 && xSpan > 0 && ySpan > 0)) {\n    vertical.visible = false;\n    horizontal.visible = false;\n    return;\n}\nconst earlier = xs[0] <= xs[1] ? 0 : 1;\nconst later = 1 - earlier;\nconst leftX = xs[earlier];\nconst rightX = xs[later];\nconst leftY = ys[earlier];\nconst rightY = ys[later];\nconst leftRadiusPx = Number(markers.data.size?.[earlier] ?? 11) / 2;\nconst rightRadiusPx = Number(markers.data.size?.[later] ?? 11) / 2;\nconst gapPx = 4;\nconst xPerPixel = xSpan / width;\nconst yPerPixel = ySpan / height;\nconst yDirection = Math.sign(rightY - leftY);\n\nvertical.x_start = leftX;\nvertical.y_start = leftY + yDirection * (leftRadiusPx + gapPx) * yPerPixel;\nvertical.x_end = leftX;\nvertical.y_end = rightY - yDirection * gapPx * yPerPixel;\nvertical.visible = Math.abs(rightY - leftY) > (leftRadiusPx + 2 * gapPx) * yPerPixel;\n\nhorizontal.x_start = leftX + gapPx * xPerPixel;\nhorizontal.y_start = rightY;\nhorizontal.x_end = rightX - (rightRadiusPx + gapPx) * xPerPixel;\nhorizontal.y_end = rightY;\nhorizontal.visible = rightX - leftX > (rightRadiusPx + 2 * gapPx) * xPerPixel;\n\n\n// Recalculate the trend and labels whenever a point is dragged.\nif (xs[0] === xs[1]) {\n    trend.visible = false;\n    sameTime.location = xs[0];\n    sameTime.visible = true;\n} else {\n    sameTime.visible = false;\n    const gradient = (ys[1] - ys[0]) / (xs[1] - xs[0]);\n    trend.gradient = gradient;\n    trend.y_intercept = ys[0] - gradient * xs[0];\n    trend.visible = true;\n}\nclaimsLabel.x = leftX;\nclaimsLabel.y = (leftY + rightY) / 2;\nclaimsLabel.text = (rightY - leftY).toLocaleString();\nclaimsLabel.visible = true;\nconst minutes = Math.abs(rightX - leftX);\nlet duration;\nif (minutes < 60) {\n    duration = `${minutes} min`;\n} else if (minutes < 1440) {\n    const hours = Math.floor(minutes / 60);\n    const rest = minutes % 60;\n    duration = `${hours} hr${rest ? ` ${rest} min` : \"\"}`;\n} else {\n    const days = Math.floor(minutes / 1440);\n    const hours = Math.floor(minutes % 1440 / 60);\n    const rest = minutes % 60;\n    duration = `${days} d${hours ? ` ${hours} hr` : \"\"}${rest ? ` ${rest} min` : \"\"}`;\n}\ntimeLabel.x = (leftX + rightX) / 2;\ntimeLabel.y = rightY;\ntimeLabel.text = duration;\ntimeLabel.visible = true;\nif (minutes > 0) {\n    const unitMinutes = minutes < 60 ? 1 : minutes < 1440 ? 60 : 1440;\n    const unit = minutes < 60 ? \"min\" : minutes < 1440 ? \"hr\" : \"day\";\n    const rate = (rightY - leftY) * unitMinutes / minutes;\n    rateLabel.x = leftX;\n    rateLabel.y = rightY;\n    rateLabel.text = `${new Intl.NumberFormat(\"en-US\", {maximumSignificantDigits: 3}).format(rate)}/${unit}`;\n    rateLabel.visible = true;\n} else {\n    rateLabel.visible = false;\n}\n"}}]]]},"selected":{"type":"object","name":"Selection","id":"p3001","attributes":{"indices":[],"line_indices":[]}},"selection_policy":{"type":"object","name":"UnionRenderers","id":"p3002"},"data":{"type":"map","entries":[["x",[]],["y",[]],["size",[]],["fill",[]]]}}}],["state",{"type":"object","name":"ColumnDataSource","id":"p3012","attributes":{"selected":{"type":"object","name":"Selection","id":"p3013","attributes":{"indices":[],"line_indices":[]}},"selection_policy":{"type":"object","name":"UnionRenderers","id":"p3014"},"data":{"type":"map","entries":[["next",[0]],["hovered",[-1]]]}}}],["trend",{"id":"p3010"}],["sameTime",{"id":"p3011"}],["series",{"id":"p1006"}],["plot",{"id":"p1011"}],["vertical",{"id":"p4000"}],["horizontal",{"id":"p4006"}],["claimsLabel",{"id":"p4012"}],["timeLabel",{"id":"p4013"}],["rateLabel",{"id":"p5001"}]]},"code":"\nfunction hideMeasurement() {\n    vertical.visible = false;\n    horizontal.visible = false;\n    claimsLabel.visible = false;\n    timeLabel.visible = false;\n    rateLabel.visible = false;\n}\n\nconst selectionColor = document.documentElement.dataset.theme === \"dark\" ? \"#93c5fd\" : \"#1d4ed8\";\nconst xs = markers.data.x;\nconst ys = markers.data.y;\nconst xSpan = Math.abs(plot.x_range.end - plot.x_range.start);\nconst ySpan = Math.abs(plot.y_range.end - plot.y_range.start);\nconst width = plot.inner_width;\nconst height = plot.inner_height;\nlet hit = -1;\nlet best = 8;\nif (Number.isFinite(cb_obj.x) && Number.isFinite(cb_obj.y) &&\n    Number.isFinite(width) && Number.isFinite(height) &&\n    xSpan > 0 && ySpan > 0) {\n    for (let i = 0; i < xs.length; i++) {\n        const dx = (cb_obj.x - xs[i]) * width / xSpan;\n        const dy = (cb_obj.y - ys[i]) * height / ySpan;\n        const distance = Math.hypot(dx, dy);\n        if (distance <= best) {\n            hit = i;\n            best = distance;\n        }\n    }\n}\n\nif (hit !== -1) {\n    const x = [...xs];\n    const y = [...ys];\n    x.splice(hit, 1);\n    y.splice(hit, 1);\n    markers.data = {\n        x, y,\n        size: x.map(() => 11),\n        fill: x.map(() => selectionColor)\n    };\n    markers.selected.indices = [];\n    state.data = {next: [x.length], hovered: [-1]};\n    trend.visible = false;\n    sameTime.visible = false;\n    hideMeasurement();\n    return;\n}\n\nconst time = Math.round(cb_obj.x);\nconst times = series.data.x;\nconst totals = series.data.total;\nif (!Number.isFinite(time) || time < times[0] || time > times[times.length - 1]) return;\nlet low = 0;\nlet high = times.length;\nwhile (low < high) {\n    const middle = (low + high) >>> 1;\n    if (times[middle] <= time) low = middle + 1;\n    else high = middle;\n}\nconst total = totals[Math.max(0, low - 1)] ?? 0;\nconst x = [...xs];\nconst y = [...ys];\nconst slot = x.length < 2 ? x.length : (state.data.next[0] ?? 0);\nif (slot < x.length) {\n    x[slot] = time;\n    y[slot] = total;\n} else {\n    x.push(time);\n    y.push(total);\n}\nmarkers.data = {\n    x, y,\n    size: x.map(() => 11),\n    fill: x.map(() => selectionColor)\n};\nmarkers.selected.indices = [];\nstate.data = {next: [1 - slot], hovered: [-1]};\nif (x.length < 2) {\n    trend.visible = false;\n    sameTime.visible = false;\n    hideMeasurement();\n    return;\n}\nif (x[0] === x[1]) {\n    trend.visible = false;\n    sameTime.location = x[0];\n    sameTime.visible = true;\n} else {\n    sameTime.visible = false;\n    const gradient = (y[1] - y[0]) / (x[1] - x[0]);\n    trend.gradient = gradient;\n    trend.y_intercept = y[0] - gradient * x[0];\n    trend.visible = true;\n}\n\n// Keep the right angle anchored to the earlier and later selected points.\nconst earlier = x[0] <= x[1] ? 0 : 1;\nconst later = 1 - earlier;\nconst leftX = x[earlier];\nconst rightX = x[later];\nconst leftY = y[earlier];\nconst rightY = y[later];\n\nclaimsLabel.x = leftX;\nclaimsLabel.y = (leftY + rightY) / 2;\n// claimsLabel.text = `\ud835\udeabClaims: ${(rightY - leftY).toLocaleString()}`;\nclaimsLabel.text = (rightY - leftY).toLocaleString();\nclaimsLabel.visible = true;\n\nconst minutes = Math.abs(rightX - leftX);\nlet duration;\nif (minutes < 60) {\n    duration = `${minutes} min`;\n} else if (minutes < 1440) {\n    const hours = Math.floor(minutes / 60);\n    const rest = minutes % 60;\n    duration = `${hours} hr${rest ? ` ${rest} min` : \"\"}`;\n} else {\n    const days = Math.floor(minutes / 1440);\n    const hours = Math.floor(minutes % 1440 / 60);\n    const rest = minutes % 60;\n    duration = `${days} d${hours ? ` ${hours} hr` : \"\"}${rest ? ` ${rest} min` : \"\"}`;\n}\ntimeLabel.x = (leftX + rightX) / 2;\ntimeLabel.y = rightY;\n// timeLabel.text = `\ud835\udeabTime: ${duration}`;\ntimeLabel.text = duration;\ntimeLabel.visible = true;\n\n// The label ends at the right-angle corner and extends down-left at 45\u00b0.\nif (minutes > 0) {\n    const unitMinutes = minutes < 60 ? 1 : minutes < 1440 ? 60 : 1440;\n    const unit = minutes < 60 ? \"min\" : minutes < 1440 ? \"hr\" : \"day\";\n    const rate = (rightY - leftY) * unitMinutes / minutes;\n    rateLabel.x = leftX;\n    rateLabel.y = rightY;\n    rateLabel.text = `${new Intl.NumberFormat(\"en-US\", {maximumSignificantDigits: 3}).format(rate)}/${unit}`;\n    rateLabel.visible = true;\n} else {\n    rateLabel.visible = false;\n}\n\n"}}]],["mousemove",[{"type":"object","name":"CustomJS","id":"p3019","attributes":{"args":{"type":"map","entries":[["markers",{"id":"p3000"}],["state",{"id":"p3012"}],["plot",{"id":"p1011"}]]},"code":"\nconst selectionColor = document.documentElement.dataset.theme === \"dark\" ? \"#93c5fd\" : \"#1d4ed8\";\nconst hoverColor = document.documentElement.dataset.theme === \"dark\" ? \"#dbeafe\" : \"#3b82f6\";\nconst xs = markers.data.x;\nconst ys = markers.data.y;\nconst xSpan = Math.abs(plot.x_range.end - plot.x_range.start);\nconst ySpan = Math.abs(plot.y_range.end - plot.y_range.start);\nconst width = plot.inner_width;\nconst height = plot.inner_height;\nlet hit = -1;\nlet best = 8;\nif (Number.isFinite(cb_obj.x) && Number.isFinite(cb_obj.y) &&\n    Number.isFinite(width) && Number.isFinite(height) &&\n    xSpan > 0 && ySpan > 0) {\n    for (let i = 0; i < xs.length; i++) {\n        const dx = (cb_obj.x - xs[i]) * width / xSpan;\n        const dy = (cb_obj.y - ys[i]) * height / ySpan;\n        const distance = Math.hypot(dx, dy);\n        if (distance <= best) {\n            hit = i;\n            best = distance;\n        }\n    }\n}\n\nif (hit === state.data.hovered[0]) return;\nstate.data = {next: [...state.data.next], hovered: [hit]};\nmarkers.data = {\n    ...markers.data,\n    size: xs.map((_, i) => i === hit ? 16 : 11),\n    fill: xs.map((_, i) => i === hit ? hoverColor : selectionColor)\n};\n"}}]],["mouseleave",[{"type":"object","name":"CustomJS","id":"p3020","attributes":{"args":{"type":"map","entries":[["markers",{"id":"p3000"}],["state",{"id":"p3012"}],["plot",{"id":"p1011"}]]},"code":"const selectionColor = document.documentElement.dataset.theme === \"dark\" ? \"#93c5fd\" : \"#1d4ed8\";\n\nif (state.data.hovered[0] === -1) return;\nstate.data = {next: [...state.data.next], hovered: [-1]};\nmarkers.data = {\n    ...markers.data,\n    size: markers.data.x.map(() => 11),\n    fill: markers.data.x.map(() => selectionColor)\n};\n"}}]]]},"js_property_callbacks":{"type":"map","entries":[["change:inner_width",[{"id":"p5000"}]],["change:inner_height",[{"id":"p5000"}]],["change:width",[{"id":"p5000"}]],["change:height",[{"id":"p5000"}]]]},"sizing_mode":"stretch_both","x_range":{"type":"object","name":"Range1d","id":"p1009","attributes":{"js_property_callbacks":{"type":"map","entries":[["change:start",[{"id":"p5000"}]],["change:end",[{"id":"p5000"}]]]},"end":1440}},"y_range":{"type":"object","name":"Range1d","id":"p1010","attributes":{"js_property_callbacks":{"type":"map","entries":[["change:start",[{"id":"p5000"}]],["change:end",[{"id":"p5000"}]]]},"end":10}},"x_scale":{"type":"object","name":"LinearScale","id":"p1021"},"y_scale":{"type":"object","name":"LinearScale","id":"p1022"},"title":{"type":"object","name":"Title","id":"p1014","attributes":{"text":"Runs finished today","text_font_size":"15pt"}},"renderers":[{"type":"object","name":"GlyphRenderer","id":"p1050c","attributes":{"data_source":{"id":"p1006"},"view":{"type":"object","name":"CDSView","id":"p1051c","attributes":{"filter":{"type":"object","name":"AllIndices","id":"p1052c"}}},"glyph":{"type":"object","name":"Step","id":"p1047c","attributes":{"y":{"type":"field","field":"completed"},"line_color":"#2563eb","line_width":3,"mode":"after"}},"nonselection_glyph":{"type":"object","name":"Step","id":"p1048c","attributes":{"y":{"type":"field","field":"completed"},"line_color":"#2563eb","line_alpha":0.1,"line_width":3,"mode":"after"}},"muted_glyph":{"type":"object","name":"Step","id":"p1049c","attributes":{"y":{"type":"field","field":"completed"},"line_color":"#2563eb","line_alpha":0.2,"line_width":3,"mode":"after"}}}},{"type":"object","name":"GlyphRenderer","id":"p1050e","attributes":{"data_source":{"id":"p1006"},"view":{"type":"object","name":"CDSView","id":"p1051e","attributes":{"filter":{"type":"object","name":"AllIndices","id":"p1052e"}}},"glyph":{"type":"object","name":"Step","id":"p1047e","attributes":{"y":{"type":"field","field":"errored"},"line_color":"#2563eb","line_width":3,"mode":"after"}},"nonselection_glyph":{"type":"object","name":"Step","id":"p1048e","attributes":{"y":{"type":"field","field":"errored"},"line_color":"#2563eb","line_alpha":0.1,"line_width":3,"mode":"after"}},"muted_glyph":{"type":"object","name":"Step","id":"p1049e","attributes":{"y":{"type":"field","field":"errored"},"line_color":"#2563eb","line_alpha":0.2,"line_width":3,"mode":"after"}}}},{"type":"object","name":"GlyphRenderer","id":"p1050","attributes":{"data_source":{"id":"p1006"},"view":{"type":"object","name":"CDSView","id":"p1051","attributes":{"filter":{"type":"object","name":"AllIndices","id":"p1052"}}},"glyph":{"type":"object","name":"Step","id":"p1047","attributes":{"y":{"type":"field","field":"total"},"line_color":"#2563eb","line_width":3,"mode":"after"}},"nonselection_glyph":{"type":"object","name":"Step","id":"p1048","attributes":{"y":{"type":"field","field":"total"},"line_color":"#2563eb","line_alpha":0.1,"line_width":3,"mode":"after"}},"muted_glyph":{"type":"object","name":"Step","id":"p1049","attributes":{"y":{"type":"field","field":"total"},"line_color":"#2563eb","line_alpha":0.2,"line_width":3,"mode":"after"}}}},{"type":"object","name":"GlyphRenderer","id":"p6009","attributes":{"data_source":{"type":"object","name":"ColumnDataSource","id":"p6006","attributes":{"name":"activity","selected":{"type":"object","name":"Selection","id":"p6007","attributes":{"indices":[],"line_indices":[]}},"selection_policy":{"type":"object","name":"UnionRenderers","id":"p6008"},"data":{"type":"map","entries":[["x",[0,1]],["active",[0,0]],["label",["",""]]]}}},"view":{"type":"object","name":"CDSView","id":"p6010","attributes":{"filter":{"type":"object","name":"AllIndices","id":"p6011"}}},"glyph":{"type":"object","name":"Step","id":"p6012","attributes":{"y":{"type":"field","field":"active"},"line_color":"#76c6ff","line_width":2,"mode":"after","line_alpha":0.85}},"nonselection_glyph":{"type":"object","name":"Step","id":"p6013","attributes":{"y":{"type":"field","field":"active"},"line_color":"#76c6ff","line_alpha":0.25,"line_width":2,"mode":"after"}},"muted_glyph":{"type":"object","name":"Step","id":"p6014","attributes":{"y":{"type":"field","field":"active"},"line_color":"#76c6ff","line_alpha":0.25,"line_width":2,"mode":"after"}},"y_range_name":"instances"}},{"type":"object","name":"GlyphRenderer","id":"p3006","attributes":{"data_source":{"id":"p3000"},"view":{"type":"object","name":"CDSView","id":"p3007","attributes":{"filter":{"type":"object","name":"AllIndices","id":"p3008"}}},"glyph":{"type":"object","name":"Scatter","id":"p3003","attributes":{"size":{"type":"field","field":"size"},"line_color":{"type":"value","value":"#ffffff"},"line_width":{"type":"value","value":1.5},"fill_color":{"type":"field","field":"fill"}}},"nonselection_glyph":{"type":"object","name":"Scatter","id":"p3004","attributes":{"size":{"type":"field","field":"size"},"line_color":{"type":"value","value":"#ffffff"},"line_alpha":{"type":"value","value":0.1},"line_width":{"type":"value","value":1.5},"fill_color":{"type":"field","field":"fill"},"fill_alpha":{"type":"value","value":0.1},"hatch_alpha":{"type":"value","value":0.1}}},"muted_glyph":{"type":"object","name":"Scatter","id":"p3005","attributes":{"size":{"type":"field","field":"size"},"line_color":{"type":"value","value":"#ffffff"},"line_alpha":{"type":"value","value":0.2},"line_width":{"type":"value","value":1.5},"fill_color":{"type":"field","field":"fill"},"fill_alpha":{"type":"value","value":0.2},"hatch_alpha":{"type":"value","value":0.2}}}}}],"toolbar":{"type":"object","name":"Toolbar","id":"p1020","attributes":{"tools":[{"type":"object","name":"PanTool","id":"p1033"},{"type":"object","name":"WheelZoomTool","id":"p1034","attributes":{"renderers":"auto"}},{"type":"object","name":"BoxZoomTool","id":"p1035","attributes":{"dimensions":"both","overlay":{"type":"object","name":"BoxAnnotation","id":"p1036","attributes":{"syncable":false,"line_color":"black","line_alpha":1,"line_width":2,"line_dash":[4,4],"fill_color":"lightgrey","fill_alpha":0.5,"level":"overlay","visible":false,"left":{"type":"number","value":"nan"},"right":{"type":"number","value":"nan"},"top":{"type":"number","value":"nan"},"bottom":{"type":"number","value":"nan"},"left_units":"canvas","right_units":"canvas","top_units":"canvas","bottom_units":"canvas","handles":{"type":"object","name":"BoxInteractionHandles","id":"p1042","attributes":{"all":{"type":"object","name":"AreaVisuals","id":"p1041","attributes":{"fill_color":"white","hover_fill_color":"lightgray"}}}}}}}},{"type":"object","name":"ResetTool","id":"p1043"},{"type":"object","name":"SaveTool","id":"p1044"},{"type":"object","name":"HoverTool","id":"p1059","attributes":{"renderers":[{"id":"p1050"}],"callback":{"type":"object","name":"CustomJS","id":"p2002","attributes":{"args":{"type":"map","entries":[["vertical",{"type":"object","name":"Span","id":"p2000","attributes":{"visible":false,"location":0,"dimension":"height","line_color":"#ffad20","line_alpha":0.65,"line_width":1.2,"line_dash":[6]}}],["horizontal",{"type":"object","name":"Span","id":"p2001","attributes":{"visible":false,"location":0,"line_color":"#ffad20","line_alpha":0.45,"line_width":1.2,"line_dash":[6]}}],["source",{"id":"p1006"}],["trend",{"id":"p3010"}],["plot",{"id":"p1011"}]]},"code":"\nconst cursor = Math.round(cb_data.geometry.x);\nconst xs = source.data.x;\nconst total = source.data.total;\nif (!Number.isFinite(cursor) || cursor < xs[0] || cursor > xs[xs.length - 1]) {\n    vertical.visible = false;\n    horizontal.visible = false;\n    return;\n}\nlet low = 0;\nlet high = xs.length;\nwhile (low < high) {\n    const middle = (low + high) >>> 1;\n    if (xs[middle] <= cursor) low = middle + 1;\n    else high = middle;\n}\nconst solidY = total[Math.max(0, low - 1)] ?? 0;\nlet guideY = solidY;\nconst firstObserved = xs.length > 2 ? xs[1] : xs[0];\nconst lastObserved = xs.length > 2 ? xs[xs.length - 2] : xs[xs.length - 1];\nif (trend.visible && (cursor < firstObserved || cursor > lastObserved)) {\n    const projected = trend.gradient * cursor + trend.y_intercept;\n    const lower = Math.min(plot.y_range.start, plot.y_range.end);\n    const upper = Math.max(plot.y_range.start, plot.y_range.end);\n    if (Number.isFinite(projected) && projected >= lower && projected <= upper) {\n        guideY = projected;\n    }\n}\nvertical.location = cursor;\nhorizontal.location = guideY;\nvertical.visible = true;\nhorizontal.visible = true;\n"}},"tooltips":[["Eastern time","$x{custom}"],["Rows done","@total{custom}"],["Completed claims","@completed{custom}"],["Errored claims","@errored{custom}"]],"formatters":{"type":"map","entries":[["$x",{"type":"object","name":"CustomJSHover","id":"p2003","attributes":{"code":"const minute = Math.round(special_vars.x);\nreturn new Intl.DateTimeFormat(\"en-US\", {\n    timeZone: \"America/New_York\", month: \"short\", day: \"numeric\",\n    hour: \"numeric\", minute: \"2-digit\", hour12: true, timeZoneName: \"short\"\n}).format(new Date(minute * 60000));"}}],["@total",{"type":"object","name":"CustomJSHover","id":"p2004","attributes":{"args":{"type":"map","entries":[["source",{"id":"p1006"}],["field","total"]]},"code":"const cursor = Math.round(special_vars.x);\nconst xs = source.data.x;\nconst values = source.data[field];\nlet low = 0;\nlet high = xs.length;\nwhile (low < high) {\n    const middle = (low + high) >>> 1;\n    if (xs[middle] <= cursor) low = middle + 1;\n    else high = middle;\n}\nreturn new Intl.NumberFormat(\"en-US\", {notation: \"standard\", useGrouping: true, maximumFractionDigits: 2}).format(values[Math.max(0, low - 1)] ?? 0);"}}],["@completed",{"type":"object","name":"CustomJSHover","id":"p2005","attributes":{"args":{"type":"map","entries":[["source",{"id":"p1006"}],["field","completed"]]},"code":"const cursor = Math.round(special_vars.x);\nconst xs = source.data.x;\nconst values = source.data[field];\nlet low = 0;\nlet high = xs.length;\nwhile (low < high) {\n    const middle = (low + high) >>> 1;\n    if (xs[middle] <= cursor) low = middle + 1;\n    else high = middle;\n}\nreturn new Intl.NumberFormat(\"en-US\", {notation: \"standard\", useGrouping: true, maximumFractionDigits: 2}).format(values[Math.max(0, low - 1)] ?? 0);"}}],["@errored",{"type":"object","name":"CustomJSHover","id":"p2006","attributes":{"args":{"type":"map","entries":[["source",{"id":"p1006"}],["field","errored"]]},"code":"const cursor = Math.round(special_vars.x);\nconst xs = source.data.x;\nconst values = source.data[field];\nlet low = 0;\nlet high = xs.length;\nwhile (low < high) {\n    const middle = (low + high) >>> 1;\n    if (xs[middle] <= cursor) low = middle + 1;\n    else high = middle;\n}\nreturn new Intl.NumberFormat(\"en-US\", {notation: \"standard\", useGrouping: true, maximumFractionDigits: 2}).format(values[Math.max(0, low - 1)] ?? 0);"}}]]},"sort_by":null,"mode":"vline"}}],"active_drag":{"id":"p1033"}}},"toolbar_location":"above","left":[{"type":"object","name":"LinearAxis","id":"p1028","attributes":{"ticker":{"type":"object","name":"BasicTicker","id":"p1029","attributes":{"mantissas":[1,2,5]}},"formatter":{"type":"object","name":"CustomJSTickFormatter","id":"p3021","attributes":{"code":"\nreturn new Intl.NumberFormat(\"en-US\", {\n    notation: \"standard\", useGrouping: true, maximumFractionDigits: 2\n}).format(tick);\n"}},"axis_label":"Finished runs","major_label_policy":{"type":"object","name":"AllLabels","id":"p1031"},"minor_tick_line_color":null}}],"below":[{"type":"object","name":"LinearAxis","id":"p1023","attributes":{"ticker":{"type":"object","name":"CustomJSTicker","id":"p1045","attributes":{"args":{"type":"map","entries":[["width",800]]},"major_code":"const start = Math.min(cb_data.start, cb_data.end);\nconst end = Math.max(cb_data.start, cb_data.end);\nconst span = end - start;\nconst target = Math.max(2, width / 40);\nconst intervals = [1, 2, 5, 10, 15, 30, 60, 120, 180, 360, 720, 1440, 2880, 10080, 43200, 129600, 525600];\nlet step = intervals[0];\nlet error = Infinity;\nfor (const candidate of intervals) {\n    const difference = Math.abs(span / candidate - target);\n    if (difference < error) {\n        step = candidate;\n        error = difference;\n    }\n}\nif (step < 1440) {\n    const first = Math.ceil(start / step) * step;\n    const ticks = [];\n    for (let minute = first; minute <= end && ticks.length < 1000; minute += step) ticks.push(minute);\n    return ticks;\n}\nconst zone = \"America/New_York\";\nconst calendar = new Intl.DateTimeFormat(\"en-US\", {\n    timeZone: zone, year: \"numeric\", month: \"2-digit\", day: \"2-digit\"\n});\nconst localClock = new Intl.DateTimeFormat(\"en-US\", {\n    timeZone: zone, year: \"numeric\", month: \"2-digit\", day: \"2-digit\",\n    hour: \"2-digit\", minute: \"2-digit\", hourCycle: \"h23\"\n});\nconst fields = (formatter, date) => Object.fromEntries(\n    formatter.formatToParts(date).map(part => [part.type, part.value])\n);\nconst firstDate = fields(calendar, new Date(start * 60000));\nconst firstDay = Date.UTC(Number(firstDate.year), Number(firstDate.month) - 1, Number(firstDate.day)) / 86400000;\nconst daysPerTick = step / 1440;\nconst ticks = [];\nfor (let day = Math.floor(firstDay / daysPerTick) * daysPerTick; ticks.length < 1000; day += daysPerTick) {\n    const utcMidnight = day * 86400000;\n    const probe = utcMidnight + 5 * 3600000;\n    const local = fields(localClock, new Date(probe));\n    const localAsUtc = Date.UTC(Number(local.year), Number(local.month) - 1,\n        Number(local.day), Number(local.hour), Number(local.minute));\n    const minute = (utcMidnight - (localAsUtc - probe)) / 60000;\n    if (minute > end) break;\n    if (minute >= start) ticks.push(minute);\n}\nreturn ticks;"}},"formatter":{"type":"object","name":"CustomJSTickFormatter","id":"p1046","attributes":{"code":"\nconst zone = \"America/New_York\";\nconst sorted = [...ticks].filter(Number.isFinite).sort((a, b) => a - b);\nconst clock = new Intl.DateTimeFormat(\"en-US\", {\n    timeZone: zone, year: \"numeric\", month: \"2-digit\", day: \"2-digit\",\n    hour: \"2-digit\", minute: \"2-digit\", hourCycle: \"h23\"\n});\nconst monthFormat = new Intl.DateTimeFormat(\"en-US\", {timeZone: zone, month: \"short\"});\nconst dayFormat = new Intl.DateTimeFormat(\"en-US\", {\n    timeZone: zone, month: \"short\", day: \"numeric\"\n});\nfunction localFields(ms) {\n    const fields = Object.fromEntries(clock.formatToParts(new Date(ms)).map(part => [part.type, part.value]));\n    return {\n        year: Number(fields.year), month: Number(fields.month), day: Number(fields.day),\n        hour: Number(fields.hour), minute: Number(fields.minute)\n    };\n}\nfunction easternMidnight(year, month, day) {\n    const target = Date.UTC(year, month - 1, day);\n    let guess = target + 5 * 3600000;\n    for (let i = 0; i < 3; i++) {\n        const seen = localFields(guess);\n        const represented = Date.UTC(seen.year, seen.month - 1, seen.day, seen.hour, seen.minute);\n        guess += target - represented;\n    }\n    return guess / 60000;\n}\nfunction closestTick(boundary) {\n    let best = sorted[0];\n    let distance = Math.abs(best - boundary);\n    for (const candidate of sorted) {\n        const nextDistance = Math.abs(candidate - boundary);\n        if (nextDistance < distance || (nextDistance === distance && candidate > best)) {\n            best = candidate;\n            distance = nextDistance;\n        }\n    }\n    return best;\n}\nconst intervals = sorted.slice(1).map((value, index) => value - sorted[index])\n    .filter(value => value > 0).sort((a, b) => a - b);\nconst gap = intervals.length ? intervals[Math.floor(intervals.length / 2)] : 60;\nconst low = sorted[0] - gap / 2;\nconst high = sorted.at(-1) + gap / 2;\nfunction ownedBoundary(boundaries) {\n    let best = null;\n    let distance = Infinity;\n    for (const boundary of boundaries) {\n        if (boundary < low || boundary > high) continue;\n        if (Math.abs(closestTick(boundary) - tick) > 0.000001) continue;\n        const currentDistance = Math.abs(boundary - tick);\n        if (currentDistance < distance) {\n            best = boundary;\n            distance = currentDistance;\n        }\n    }\n    return best;\n}\nconst local = localFields(Math.round(tick) * 60000);\nconst hour12 = hour => (hour % 12 || 12) + (hour < 12 ? \"AM\" : \"PM\");\n\n// A higher calendar unit replaces the ordinary label at its nearest visible tick.\nif (gap < 350 * 1440) {\n    const yearStart = easternMidnight(local.year, 1, 1);\n    const nextYear = easternMidnight(local.year + 1, 1, 1);\n    const boundary = ownedBoundary([yearStart, nextYear]);\n    if (boundary !== null) return String(localFields(boundary * 60000).year);\n}\nif (gap < 28 * 1440) {\n    const nextMonth = new Date(Date.UTC(local.year, local.month, 1));\n    const boundary = ownedBoundary([\n        easternMidnight(local.year, local.month, 1),\n        easternMidnight(nextMonth.getUTCFullYear(), nextMonth.getUTCMonth() + 1, 1)\n    ]);\n    if (boundary !== null) return monthFormat.format(new Date(boundary * 60000));\n}\nif (gap < 900) {\n    const nextDay = new Date(Date.UTC(local.year, local.month - 1, local.day + 1));\n    const boundary = ownedBoundary([\n        easternMidnight(local.year, local.month, local.day),\n        easternMidnight(nextDay.getUTCFullYear(), nextDay.getUTCMonth() + 1, nextDay.getUTCDate())\n    ]);\n    if (boundary !== null) return dayFormat.format(new Date(boundary * 60000));\n}\nif (gap < 45) {\n    const hourStart = Math.floor(tick / 60) * 60;\n    const boundary = ownedBoundary([hourStart, hourStart + 60]);\n    if (boundary !== null) return hour12(localFields(boundary * 60000).hour);\n    return (local.hour % 12 || 12) + \":\" + String(local.minute).padStart(2, \"0\");\n}\nif (gap < 900) return hour12(local.hour);\nif (gap < 28 * 1440) return String(local.day);\nif (gap < 350 * 1440) return monthFormat.format(new Date(tick * 60000));\nreturn String(local.year);\n"}},"axis_label":"Eastern time","major_label_standoff":3,"major_label_orientation":0.5235987755982988,"major_label_policy":{"type":"object","name":"AllLabels","id":"p1026"},"major_label_text_font_size":"8pt"}}],"center":[{"type":"object","name":"Grid","id":"p1027","attributes":{"axis":{"id":"p1023"},"grid_line_alpha":0.2}},{"type":"object","name":"Grid","id":"p1032","attributes":{"dimension":1,"axis":{"id":"p1028"},"grid_line_alpha":0.2}},{"id":"p2000"},{"id":"p2001"},{"id":"p3010"},{"id":"p3011"},{"id":"p4000"},{"id":"p4006"},{"id":"p4012"},{"id":"p4013"},{"id":"p5001"}],"extra_y_ranges":{"type":"map","entries":[["instances",{"type":"object","name":"Range1d","id":"p6001","attributes":{"start":0,"end":10}}]]},"right":[{"type":"object","name":"LinearAxis","id":"p6002","attributes":{"ticker":{"type":"object","name":"BasicTicker","id":"p6003","attributes":{"mantissas":[1,2,5],"min_interval":1}},"formatter":{"type":"object","name":"CustomJSTickFormatter","id":"p6004","attributes":{"code":"return Math.round(tick).toLocaleString();"}},"axis_label":"Running instances","major_label_policy":{"type":"object","name":"AllLabels","id":"p6005"},"minor_tick_line_color":null,"y_range_name":"instances"}}]}}],"defs":[]},"version":"3.9.2"};
+
+		    function clockLabel(minute) {
+		        return new Intl.DateTimeFormat("en-US", {
+		            timeZone: "America/New_York", month: "short", day: "numeric",
+		            hour: "numeric", minute: "2-digit", hour12: true, timeZoneName: "short"
+		        }).format(new Date(minute * 60000));
+		    }
+
+		    function findSource(node, name = "series") {
+		        if (!node || typeof node !== "object") return null;
+		        if (node.name === "ColumnDataSource" && node.attributes?.name === name) return node;
+		        for (const child of Object.values(node)) {
+		            const found = findSource(child, name);
+		            if (found) return found;
+		        }
+		        return null;
+		    }
+
+		    function loadBokeh() {
+		        if (globalThis.Bokeh?.embed?.embed_item) return Promise.resolve(globalThis.Bokeh);
+		        if (!globalThis.sparrowBokehPromise) {
+		            globalThis.sparrowBokehPromise = new Promise((resolve, reject) => {
+		                const script = document.createElement("script");
+		                script.src = "https://cdn.bokeh.org/bokeh/release/bokeh-3.9.2.min.js";
+		                script.onload = () => globalThis.Bokeh ? resolve(globalThis.Bokeh) : reject(new Error("Bokeh did not load"));
+		                script.onerror = () => reject(new Error("Could not load Bokeh"));
+		                document.head.appendChild(script);
+		            });
+		        }
+		        return globalThis.sparrowBokehPromise;
+		    }
+
+		    onMount(() => {
+		        let active = true;
+		        let views;
+		        let resizeObserver;
+		        const body = plotElement.closest(".gallery-body.single");
+		        const preview = body?.closest(".gallery-preview");
+		        const previousHeight = body?.style.getPropertyValue("height");
+		        const previousPriority = body?.style.getPropertyPriority("height");
+		        let previewObserver;
+		        let bodyObserver;
+		        let themeObserver;
+		        let removeCursorHandlers = () => {};
+		        function fitPreview() {
+		            if (!body || !preview) return;
+		            const height = `${Math.max(1, Math.round(preview.clientHeight))}px`;
+		            if (body.style.getPropertyValue("height") !== height ||
+		                body.style.getPropertyPriority("height") !== "important") {
+		                body.style.setProperty("height", height, "important");
+		            }
+		        }
+		        if (preview) {
+		            previewObserver = new ResizeObserver(fitPreview);
+		            bodyObserver = new MutationObserver(fitPreview);
+		            previewObserver.observe(preview);
+		            bodyObserver.observe(body, {attributes: true, attributeFilter: ["style"]});
+		            fitPreview();
+		        }
+		        function applySelectionTheme() {
+		            const theme = getComputedStyle(document.documentElement);
+		            const color = (name, fallback) => theme.getPropertyValue(name).trim() || fallback;
+		            const dark = document.documentElement.dataset.theme === "dark";
+		            const selectionColor = dark ? "#93c5fd" : "#1d4ed8";
+		            const hoverColor = dark ? "#dbeafe" : "#3b82f6";
+		            const ink = color("--text", "#ebe5f1");
+		            const muted = color("--muted", "#afa6ba");
+		            const grid = color("--line", "#544a60");
+		            const background = color("--background", "#141218");
+		            totalColor = color("--accent", "#ffad20");
+		            completedColor = dark ? "#57d68d" : "#167c4b";
+		            erroredColor = dark ? "#ff7373" : "#ba3038";
+		            const seriesColors = {
+		                "p1050c": completedColor, "p1050e": erroredColor,
+		                "p1050": totalColor, "p6009": runningColor
+		            };
+		            for (const view of views ?? []) {
+		                if (view.model.id !== template.root_id) continue;
+		                const plot = view.model;
+		                plot.background_fill_color = background;
+		                plot.border_fill_color = background;
+		                plot.outline_line_color = grid;
+		                plot.title.text_color = ink;
+		                for (const axis of [...plot.left, ...plot.below, ...plot.right]) {
+		                    axis.axis_label_text_color = ink;
+		                    axis.major_label_text_color = muted;
+		                    axis.axis_line_color = grid;
+		                    axis.major_tick_line_color = grid;
+		                    axis.minor_tick_line_color = grid;
+		                }
+		                for (const guide of plot.center ?? []) {
+		                    if (guide.id === "p1027" || guide.id === "p1032") {
+		                        guide.grid_line_color = grid;
+		                    }
+		                    if (["p3010", "p3011", "p4000", "p4006"].includes(guide.id)) {
+		                        guide.line_color = selectionColor;
+		                        if (guide.id === "p4000" || guide.id === "p4006") {
+		                            guide.start.line_color = selectionColor;
+		                            guide.end.line_color = selectionColor;
+		                        }
+		                    }
+		                    if (["p4012", "p4013", "p5001"].includes(guide.id)) {
+		                        guide.text_color = selectionColor;
+		                    }
+		                }
+		                for (const renderer of plot.renderers) {
+		                    const lineColor = seriesColors[renderer.id];
+		                    if (lineColor == null) continue;
+		                    for (const kind of ["glyph", "nonselection_glyph", "muted_glyph"]) {
+		                        renderer[kind].line_color = lineColor;
+		                    }
+		                }
+		                plot.right[0].axis_label_text_color = runningColor;
+		                plot.right[0].major_label_text_color = runningColor;
+		                const hover = plot.toolbar.tools.find(tool => tool.id === "p1059");
+		                for (const name of ["vertical", "horizontal"]) {
+		                    if (hover?.callback?.args?.[name]) hover.callback.args[name].line_color = totalColor;
+		                }
+		                const markers = plot.renderers.find(renderer => renderer.id === "p3006")?.data_source;
+		                if (markers?.data?.x?.length) {
+		                    const fill = markers.data.x.map((_, i) =>
+		                        markers.data.size?.[i] > 11 ? hoverColor : selectionColor
+		                    );
+		                    markers.data = {...markers.data, fill};
+		                }
+		            }
+		        }
+		        (async () => {
+		            const Bokeh = await loadBokeh();
+		            if (!active) return;
+		            const item = structuredClone(template);
+		            const root = item.doc.roots[0];
+		            const rows = (points ?? []).filter(Boolean).map(p => ({
+		                minute: Number(p.minute),
+		                total: Number(p.total),
+		                completed: Number(p.completed),
+		                errored: Number(p.errored)
+		            }));
+		            const start = Number(startMinute);
+		            const end = Math.max(start + 1, Number(nowMinute));
+		            const x = [start, ...rows.map(p => p.minute), end];
+		            const series = key => [0, ...rows.map(p => p[key]), rows.at(-1)?.[key] ?? 0];
+		            const source = findSource(root);
+		            const activitySource = findSource(root, "activity");
+		            if (!activitySource) throw new Error("Bokeh running data source missing");
+		            if (!source) throw new Error("Bokeh data source missing");
+		            source.attributes.data.entries = [
+		                ["x", x],
+		                ["total", series("total")],
+		                ["completed", series("completed")],
+		                ["errored", series("errored")],
+		                ["label", x.map(clockLabel)]
+		            ];
+		            const activityRows = (activePoints ?? []).filter(Boolean).map(p => ({
+		                minute: Number(p.minute), running: Number(p.running)
+		            }));
+		            const activeX = activityRows.length
+		                ? [start, ...activityRows.map(p => p.minute)]
+		                : [start, end];
+		            activitySource.attributes.data.entries = [
+		                ["x", activeX],
+		                ["active", activityRows.length ? [0, ...activityRows.map(p => p.running)] : [0, 0]],
+		                ["label", activeX.map(clockLabel)]
+		            ];
+
+		            const theme = getComputedStyle(document.documentElement);
+		            const color = (name, fallback) => theme.getPropertyValue(name).trim() || fallback;
+		            const dark = document.documentElement.dataset.theme === "dark";
+		            const ink = color("--text", "#ebe5f1");
+		            const muted = color("--muted", "#afa6ba");
+		            const grid = color("--line", "#544a60");
+		            const background = color("--background", "#141218");
+		            const font = getComputedStyle(plotElement).fontFamily;
+		            totalColor = color("--accent", "#ffad20");
+		            completedColor = dark ? "#57d68d" : "#167c4b";
+		            erroredColor = dark ? "#ff7373" : "#ba3038";
+		            const hover = root.attributes.toolbar.attributes.tools.find(tool => tool.name === "HoverTool");
+		            for (const [name, guide] of hover.attributes.callback.attributes.args.entries) {
+		                if (name === "vertical" || name === "horizontal") guide.attributes.line_color = totalColor;
+		            }
+
+		            root.attributes.title.attributes.text = label + " · rows done, claims, running runs · " + day;
+		            root.attributes.title.attributes.text_color = ink;
+		            root.attributes.title.attributes.text_font = font;
+		            root.attributes.title.attributes.text_font_size = "13pt";
+		            root.attributes.x_range.attributes.start = start;
+		            root.attributes.x_range.attributes.end = end;
+		            root.attributes.y_range.attributes.start = 0;
+		            root.attributes.y_range.attributes.end = Math.max(1, Math.ceil(Math.max(rows.at(-1)?.total ?? 0, rows.at(-1)?.completed ?? 0, rows.at(-1)?.errored ?? 0) * 1.1));
+		            root.attributes.extra_y_ranges.entries[0][1].attributes.end = scaleEnd(scalePosition);
+		            root.attributes.background_fill_color = background;
+		            root.attributes.border_fill_color = background;
+		            root.attributes.outline_line_color = grid;
+		            root.attributes.below[0].attributes.ticker.attributes.args.entries = [
+		                ["width", Math.max(1, plotElement.clientWidth - 60)]
+		            ];
+		            root.attributes.below[0].attributes.axis_label = "Eastern time (ET)";
+		            root.attributes.left[0].attributes.axis_label = "Rows / claims";
+		            root.attributes.right[0].attributes.axis_label = "Running runs";
+		            for (const axis of [...root.attributes.left, ...root.attributes.below, ...root.attributes.right]) {
+		                axis.attributes.axis_label_text_color = ink;
+		                axis.attributes.major_label_text_color = muted;
+		                axis.attributes.axis_label_text_font = font;
+		                axis.attributes.major_label_text_font = font;
+		                axis.attributes.axis_line_color = grid;
+		                axis.attributes.major_tick_line_color = grid;
+		                axis.attributes.minor_tick_line_color = grid;
+		            }
+		            root.attributes.right[0].attributes.axis_label_text_color = runningColor;
+		            root.attributes.right[0].attributes.major_label_text_color = runningColor;
+		            for (const guide of root.attributes.center) {
+		                if (guide.name !== "Grid") continue;
+		                guide.attributes.grid_line_color = grid;
+		                guide.attributes.grid_line_alpha = 0.4;
+		            }
+		            const styles = [
+		                {color: completedColor, alpha: 0.5, width: 1.5},
+		                {color: erroredColor, alpha: 0.5, width: 1.5},
+		                {color: totalColor, alpha: 1, width: 3},
+		                {color: runningColor, alpha: 0.85, width: 2}
+		            ];
+		            for (const [index, renderer] of root.attributes.renderers.entries()) {
+		                if (renderer.attributes?.glyph?.name !== "Step") continue;
+		                const style = styles[index];
+		                for (const kind of ["glyph", "nonselection_glyph", "muted_glyph"]) {
+		                    const glyph = renderer.attributes[kind];
+		                    glyph.attributes.line_color = style.color;
+		                    glyph.attributes.line_alpha = style.alpha;
+		                    glyph.attributes.line_width = style.width;
+		                }
+		            }
+		            root.attributes.sizing_mode = "fixed";
+		            root.attributes.width = Math.max(1, Math.round(plotElement.clientWidth));
+		            root.attributes.height = Math.max(1, Math.round(plotElement.clientHeight));
+		            views = await Bokeh.embed.embed_item(item, plotElement);
+		            const plotView = views.get_by_id(item.root_id);
+		            if (!plotView) throw new Error("Bokeh plot view missing");
+		            setRunningScale = value => {
+		                plotView.model.extra_y_ranges.instances.end = scaleEnd(value);
+		            };
+		            const panTool = plotView.model.toolbar.tools.find(tool => tool.id === "p1033");
+		            const hitArea = plotView.canvas_view.events_el;
+		            if (!panTool || !hitArea) throw new Error("Bokeh pan controls missing");
+		            const updateCursor = () => {
+		                if (plotView.model.toolbar.gestures.pan.active !== panTool) return;
+		                hitArea.style.cursor = "crosshair";
+		            };
+		            for (const name of ["pointerover", "pointermove", "pointerdown", "pointerup", "pointercancel"]) {
+		                hitArea.addEventListener(name, updateCursor);
+		            }
+		            removeCursorHandlers = () => {
+		                for (const name of ["pointerover", "pointermove", "pointerdown", "pointerup", "pointercancel"]) {
+		                    hitArea.removeEventListener(name, updateCursor);
+		                }
+		            };
+		            applySelectionTheme();
+		            themeObserver = new MutationObserver(applySelectionTheme);
+		            themeObserver.observe(document.documentElement, {
+		                attributes: true, attributeFilter: ["data-theme"]
+		            });
+		            resizeObserver = new ResizeObserver(() => {
+		                const width = Math.max(1, Math.round(plotElement.clientWidth));
+		                const height = Math.max(1, Math.round(plotElement.clientHeight));
+		                for (const view of views ?? []) {
+		                    if (view.model.id !== template.root_id) continue;
+		                    view.model.width = width;
+		                    view.model.height = height;
+		                    const ticker = view.model.below[0]?.ticker;
+		                    const axisWidth = Math.max(1, width - 60);
+		                    if (ticker && ticker.args.width !== axisWidth) {
+		                        ticker.args = {...ticker.args, width: axisWidth};
+		                    }
+		                }
+		            });
+		            resizeObserver.observe(plotElement);
+		        })().catch(reason => { if (active) error = reason.message; });
+		        return () => {
+		            active = false;
+		            resizeObserver?.disconnect();
+		            themeObserver?.disconnect();
+		            previewObserver?.disconnect();
+		            bodyObserver?.disconnect();
+		            removeCursorHandlers();
+		            if (body) {
+		                if (previousHeight) body.style.setProperty("height", previousHeight, previousPriority);
+		                else body.style.removeProperty("height");
+		            }
+		            setRunningScale = () => {};
+		            views?.clear();
+		        };
+		    });
+		</script>
+
+		<div class="frame" style="position:relative; width:100%; height:100%; min-height:0;">
+		    <div class="plot" bind:this={plotElement} style="width:auto; height:100%; min-width:0; min-height:0; background:var(--background);"></div>
+		    <div class="scale-control" title="Drag up to enlarge the running line; drag down to shrink it.">
+		        <span>Running</span>
+		        <input type="range" min="0" max="100" step="1" value={scalePosition}
+		            aria-label="Running runs vertical scale"
+		            oninput={event => { scalePosition = Number(event.currentTarget.value); setRunningScale(scalePosition); }} />
+		        <span>{scaleEnd(scalePosition)}</span>
+		    </div>
+		    <div class="legend" style="position:absolute; top:2.4rem; right:3.3rem; display:flex; gap:0.7rem; padding:0.25rem 0.5rem; color:var(--muted); background:var(--background); font-size:0.7rem; pointer-events:none;">
+		        <span style="display:inline-flex; align-items:center; gap:0.25rem;"><i style={`display:block; width:1rem; height:0.15rem; background:${totalColor};`}></i>Rows done</span>
+		        <span style="display:inline-flex; align-items:center; gap:0.25rem;"><i style={`display:block; width:1rem; height:0.15rem; background:${completedColor}; opacity:0.5;`}></i>Completed claims</span>
+		        <span style="display:inline-flex; align-items:center; gap:0.25rem;"><i style={`display:block; width:1rem; height:0.15rem; background:${erroredColor}; opacity:0.5;`}></i>Errored claims</span>
+		        <span style="display:inline-flex; align-items:center; gap:0.25rem;"><i style={`display:block; width:1rem; height:0.15rem; background:${runningColor};`}></i>Running runs</span>
+		    </div>
+		    {#if error}<div class="error" style="position:absolute; inset:0; display:grid; place-items:center; padding:1rem; color:var(--error, #b91c1c); background:var(--background);">{error}</div>{/if}
+		</div>
+
+		<style>
+		    .frame { position: relative; display: flex; width: 100%; height: 100%; min-height: 28rem; }
+		    .plot { flex: 1; width: auto; height: 100%; min-width: 0; min-height: 0; background: var(--background); }
+		    .scale-control { display: flex; flex: none; flex-direction: column; align-items: center; gap: 0.25rem; width: 2.5rem; padding: 2.7rem 0 1rem; box-sizing: border-box; color: var(--muted); background: var(--background); font-size: 0.58rem; z-index: 2; }
+		    .scale-control input { flex: 1; min-height: 5rem; width: 1rem; writing-mode: vertical-rl; direction: rtl; cursor: ns-resize; accent-color: #76c6ff; }
+		    .scale-control span { writing-mode: vertical-rl; text-align: center; }
+		    .legend { position: absolute; top: 2.4rem; right: 0.8rem; display: flex; gap: 0.7rem; padding: 0.25rem 0.5rem; color: var(--muted); background: var(--background); font-size: 0.7rem; pointer-events: none; }
+		    .legend span { display: inline-flex; align-items: center; gap: 0.25rem; }
+		    .legend i { display: block; width: 1rem; height: 0.15rem; }
+		    .error { position: absolute; inset: 0; display: grid; place-items: center; padding: 1rem; color: var(--error, #b91c1c); background: var(--background); }
+		</style>' AS source,
+		        points AS points,
+		        active_points AS "activePoints",
+		        peak_running AS "activePeak",
+		        label AS label,
+		        day AS day,
+		        now_minute AS "nowMinute",
+		        start_minute AS "startMinute",
+		        days AS days
+		    ) AS chart
+		FROM summary
+		WHERE completed + errored > 0
+		ORDER BY last_finish_epoch DESC NULLS LAST, label
+	multires_progress sql
+		-- encode_multires commits with the commit of Bluejay, without claims or runs, so claims_graph cannot show it. This counts its done columns in the tables
+		SELECT
+		    job,
+		    done,
+		    target,
+		    target - done                                AS remaining,
+		    round(100.0 * done / greatest(target, 1), 1) AS percent
+		FROM (
+		    SELECT 1 AS step, 'magick_samples: latent_rgb, latent_alpha at 768, 512, 256' AS job, count(latent_rgb_256)      AS done, count(*) AS target
+		    FROM magick_samples        WHERE rgb_on_gray IS NOT NULL AND alpha IS NOT NULL -- Images that split_alpha did
+		    UNION ALL
+		    SELECT 2 AS step, 'trimask_augmentations: latent_trimask_1024'                AS job, count(latent_trimask_1024) AS done, count(*) AS target
+		    FROM trimask_augmentations WHERE trimask IS NOT NULL                           -- Every trimask
+		    UNION ALL
+		    SELECT 3 AS step, 'trimask_augmentations: latent_trimask at 768, 512, 256'    AS job, count(latent_trimask_256)  AS done, count(*) AS target
+		    FROM trimask_augmentations WHERE trimask IS NOT NULL                           -- The trimasks of LOWRES_DIGITS (5 of 16 first hex digits, as encode_multires.py)
+		      AND contains('01234', left(encode(sha256(concat(page_id, method, CAST(variant AS VARCHAR))), 'hex'), 1))
+		)
+		ORDER BY step
