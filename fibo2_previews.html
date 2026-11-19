@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FIBO2 Training Previews</title>
+<style>
+:root { --bg: #fdfdfb; --fg: #1d1d1f; --muted: #66666b; --rule: #dcdcd6; --accent: #2f5d8a; --gutter: 16px; --measure: 1100px; --font-body: 17px; --font-small: 14px; --gap: 24px; --hairline: 1px; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #18191b; --fg: #e8e8e6; --muted: #a0a0a5; --rule: #3a3b3e; --accent: #8ab4dc; } }
+:root[data-theme="dark"] { --bg: #18191b; --fg: #e8e8e6; --muted: #a0a0a5; --rule: #3a3b3e; --accent: #8ab4dc; }
+body { background: var(--bg); color: var(--fg); font: var(--font-body)/1.6 Georgia, serif; margin: 0; }
+main { max-width: var(--measure); margin: 0 auto; padding: 0 var(--gutter); }
+a { color: var(--accent); }
+.note { color: var(--muted); font-size: var(--font-small); }
+.row { display: flex; flex-wrap: wrap; gap: var(--gap); }
+figure { margin: 0 0 var(--gap); border-top: var(--hairline) solid var(--rule); padding-top: var(--gap); }
+figure img { width: 100%; max-width: 768px; height: auto; display: block; }
+figcaption { font-size: var(--font-small); color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+<p><a href="index.html">&larr; journal</a> · <a href="compare/index.html">SANA vs FIBO2 hub</a></p>
+<h1>FIBO2 training previews</h1>
+<p>Bria FIBO2 (Fibo 2.0 dev, 8.1B) trained the same way as our SANA trimask model: an adapter LoRA first, then a control LoRA that reads the trimask (white = object, gray = unknown, black = background) through FIBO2's native context input. Previews are written by the trainer every 500 steps: 4 fixed train items, fixed noise, 20 sampler steps, CFG 5, 1024² shown at ¼ size. They are training-time samples (adapter + control on, λ = 1), not the held-out evals.</p>
+
+<h2>Control run fibo2_tri: columns = trimask | FIBO2 output | reference on 50% gray</h2>
+<p class="note">7 GPUs, 28 images per step, all 4 resolutions and all 19 trimask methods. The run crashed at step 2100 (a storage blip, 2026-11-19 1:37 AM ET) and resumes from step 2000.</p>
+<figure><img loading="lazy" src="https://raw.githubusercontent.com/RyannDaGreat/sana-sprint-alpha-incontext/journal-assets/2d/2d4489761cafe611.webp" alt="fibo2_tri step 2000"><figcaption>Step 2000</figcaption></figure>
+<figure><img loading="lazy" src="https://raw.githubusercontent.com/RyannDaGreat/sana-sprint-alpha-incontext/journal-assets/b9/b948f2a136b67ce2.webp" alt="fibo2_tri step 1500"><figcaption>Step 1500</figcaption></figure>
+<figure><img loading="lazy" src="https://raw.githubusercontent.com/RyannDaGreat/sana-sprint-alpha-incontext/journal-assets/52/5209784cc757af18.webp" alt="fibo2_tri step 1000"><figcaption>Step 1000</figcaption></figure>
+<figure><img loading="lazy" src="https://raw.githubusercontent.com/RyannDaGreat/sana-sprint-alpha-incontext/journal-assets/15/1585f52796b6573b.webp" alt="fibo2_tri step 500"><figcaption>Step 500</figcaption></figure>
+<figure><img loading="lazy" src="https://raw.githubusercontent.com/RyannDaGreat/sana-sprint-alpha-incontext/journal-assets/8a/8afbc1e73d008b51.webp" alt="fibo2_tri step 0"><figcaption>Step 0 (adapter only, control LoRA at zero)</figcaption></figure>
+
+<h2>Adapter run fibo2_adapter: columns = FIBO2 output | reference (random solid color background)</h2>
+<p class="note">1000 steps, 8 GPUs, 32 images per step. Honest reading: by step 1000 the adapter only partly moved toward flat backdrops; most outputs are still scenes. The control run above learned the gray background anyway.</p>
+<figure><img loading="lazy" src="https://raw.githubusercontent.com/RyannDaGreat/sana-sprint-alpha-incontext/journal-assets/c0/c067674d46b67f7d.webp" alt="fibo2_adapter step 1000"><figcaption>Step 1000 (the adapter the control run uses)</figcaption></figure>
+<figure><img loading="lazy" src="https://raw.githubusercontent.com/RyannDaGreat/sana-sprint-alpha-incontext/journal-assets/5a/5ae8ef9bdffbf689.webp" alt="fibo2_adapter step 500"><figcaption>Step 500</figcaption></figure>
+<figure><img loading="lazy" src="https://raw.githubusercontent.com/RyannDaGreat/sana-sprint-alpha-incontext/journal-assets/69/695156fdb87600c1.webp" alt="fibo2_adapter step 0"><figcaption>Step 0 (stock FIBO2)</figcaption></figure>
+</main>
+<footer style="margin:3em 0 1em;font-size:0.85em;opacity:0.7">Published images are full-resolution WebP q95, hosted on the repo's journal-assets branch; originals are PNG in the repo's BlueJay database.</footer>
+</body>
+</html>
