@@ -224,5 +224,38 @@ def build_trimask(source="resources/showcase", out="resources/showcase_trimask",
         print(f"wrote {folder}: {len(items)} trimasks")
 
 
+def held_out(source="resources/showcase_trimask", out="resources/showcase_trimask_held"):
+    """
+    Command. Writes the held-out-only copy of every method's eval set in SOURCE: OUT/prompts.json (SOURCE's items whose
+    split is "held-out", same order) and OUT/noise.safetensors (their noise rows), linked into OUT/<method>/ next to
+    relative symlinks to SOURCE/<method>'s mattes/, originals/, references/ and prompts_detailed.json. For models too
+    slow for the whole set (FIBO2: about a minute per image, manifest §15), so plan_eval makes only these rows.
+
+    Args:
+        source (str): trimask eval sets folder relative to the repo root (build_trimask's OUT)
+        out (str): output folder relative to the repo root
+    """
+    from safetensors import safe_open
+
+    source, base = ROOT / source, ROOT / out
+    methods = sorted(p.name for p in source.iterdir() if (p / "mattes").is_dir())
+    items = json.loads((source / methods[0] / "prompts.json").read_text())
+    keep = [k for k, item in enumerate(items) if item["split"] == "held-out"]
+    with safe_open(source / methods[0] / "noise.safetensors", "pt") as f:
+        noise, seed = f.get_tensor("noise")[keep], f.metadata()["seed"]
+    base.mkdir(parents=True, exist_ok=True)
+    (base / "prompts.json").write_text(json.dumps([items[k] for k in keep], indent=1) + "\n")
+    save_file(dict(noise=noise.contiguous()), base / "noise.safetensors", metadata=dict(seed=seed, order="same as prompts.json (held-out rows of the source)"))
+    for method in methods:
+        folder = base / method
+        folder.mkdir(exist_ok=True)
+        links = {k: source / method / k for k in ("mattes", "originals", "references", "prompts_detailed.json")}
+        links.update({k: base / k for k in ("prompts.json", "noise.safetensors")})
+        for link, target in links.items():
+            if not (folder / link).is_symlink():
+                (folder / link).symlink_to(os.path.relpath(target, folder))  # relative: the dump stays portable
+    print(f"wrote {base}: {len(keep)} held-out items x {len(methods)} methods")
+
+
 if __name__ == "__main__":
-    fire.Fire(dict(build=build, build_trimask=build_trimask))
+    fire.Fire(dict(build=build, build_trimask=build_trimask, held_out=held_out))
