@@ -31,8 +31,9 @@ DATA = ROOT / "journal/compare/data"
 ASSETS = "assets/compare"  # relative to journal/
 LOGS = ROOT / "agents/.scratchpad/logs"
 COMPARE_METHODS = ("morph_band", "scribbles", "bbox_unknown", "partial_view", "combo_chain", "glass_ripple")  # the cheap eval tier: one band, stroke, box, crop, combination and warp (manifest §15)
-RUNS = {"tri_scratch": dict(family="sana", label="SANA-Sprint 1.6B", log="train_control_tri_scratch.log", global_batch=128),  # 16 x 8 GPUs
-        "fibo2_tri": dict(family="fibo2", label="FIBO2 8.1B", log="train_fibo2_fibo2_tri.log", global_batch=28)}  # 4 x 7 GPUs; every item, paired 1:1 with SANA (m00713)
+RUNS = {"tri_scratch": dict(family="sana", label="SANA-Sprint 1.6B", log="train_control_tri_scratch.log", global_batch=128, rest="sprint_lam0_2step"),  # 16 x 8 GPUs
+        "fibo2_tri": dict(family="fibo2", label="FIBO2 8.1B", log="train_fibo2_fibo2_tri.log", global_batch=28, rest="fibo2_30step_full")}  # 4 x 7 GPUs; every item, paired 1:1 with SANA (m00713)
+# rest: the one model variant of each run in the reports (its shipped model on the full eval sets); other tags of the run (held-out subsets, 4-step tests) stay out
 LOSS_WINDOW = 50  # training-log steps averaged into one loss point (the log has one line per 10 steps)
 THREADS = 4  # the GPUs' encode and training jobs need the CPUs
 DIGITS = 4
@@ -156,7 +157,7 @@ def build():
     tags = {}
     for tag, page_id, image in zip(table.model_tag, table.page_id, table.image):
         parts = parse_tag(tag)
-        if parts and parts["run"] in RUNS:
+        if parts and parts["run"] in RUNS and parts["rest"] == RUNS[parts["run"]]["rest"]:
             assert image["position"] == 0, f"{tag} {page_id}: blob is packed in {image['blob_uri']}, not a file of its own"
             tags.setdefault(tag, (parts, {}))[1][page_id] = image["blob_uri"]
     every = {i["page_id"] for i in items}
