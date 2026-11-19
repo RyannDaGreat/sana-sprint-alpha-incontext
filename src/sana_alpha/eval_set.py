@@ -177,7 +177,7 @@ def build_trimask(source="resources/showcase", out="resources/showcase_trimask",
     Command. Writes one eval set per trimask method: OUT/<method>/mattes/<page_id>.png = the 8-bit trimask (0.5 = 128)
     of SOURCE's matte, made by trimask.generate (seeded by page_id, method, variant, so it is fixed). Everything else
     (originals/ = SOURCE's mattes, references/, prompts, noise) is a relative symlink into SOURCE. Raises unless every
-    stored 1024 trimask passes trimask.check_consistent (m00647: no incorrect trimasks).
+    stored 1024 trimask passes trimask.check_consistent (m00647: no incorrect trimasks), except trimask.CONSISTENCY_EXEMPT.
     Below 1024 (m00656) the folder is OUT_<resolution>: trimasks, originals/ and references/ are area-downsampled from
     1024 (uint8 cv2.INTER_AREA, as data/processors/encode_multires.py makes the training latents; resampling can move
     single edge pixels off the rule, so the rule is checked at 1024), and the noise is (32, r/32, r/32) seeded
@@ -219,7 +219,8 @@ def build_trimask(source="resources/showcase", out="resources/showcase_trimask",
             alpha = read("mattes", item, "L").astype(np.float32) / 255
             rgb = read("references", item, "RGB").astype(np.float32) / 255 if method in trimask.RGB_METHODS else None  # bilateral_blur follows the RGB on gray
             stored = trimask.to_uint8(trimask.generate(alpha, item["page_id"], method, variant, rgb)[0])
-            trimask.check_consistent(alpha, stored.astype(np.float32) / 255)  # m00647: the stored 8-bit values, as read
+            if method not in trimask.CONSISTENCY_EXEMPT:  # threshold is a solid outline on purpose (m00718)
+                trimask.check_consistent(alpha, stored.astype(np.float32) / 255)  # m00647: the stored 8-bit values, as read
             Image.fromarray(area(stored), "L").save(folder / "mattes" / f"{item['page_id']}.png")
         print(f"wrote {folder}: {len(items)} trimasks")
 
