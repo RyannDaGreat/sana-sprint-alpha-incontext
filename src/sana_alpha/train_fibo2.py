@@ -134,7 +134,7 @@ def gray_latents(device, bn):
 @torch.no_grad()
 def write_preview(transformer, vae, text, batch, captions, bn, path):
     """
-    Command. Samples PREVIEW_COUNT rows (fixed noise per row) and writes a PNG grid at 1/4 size.
+    Command. Samples PREVIEW_COUNT rows (fixed noise per row) and writes the grid at full resolution as a lossless PNG (m00705).
 
     Args:
         transformer: the model being trained (eval mode during the call)
@@ -160,7 +160,7 @@ def write_preview(transformer, vae, text, batch, captions, bn, path):
     grid = torch.cat([torch.cat(list(col), dim=1) for col in columns], dim=2)  # (3, rows·S, columns·S)
     path.parent.mkdir(parents=True, exist_ok=True)
     image = Image.fromarray((grid.permute(1, 2, 0).cpu().numpy() * 255).round().astype(np.uint8))
-    image.resize((image.width // 4, image.height // 4)).save(path)
+    image.save(path)
 
 
 def load_checkpoint(transformer, folder, gates):
