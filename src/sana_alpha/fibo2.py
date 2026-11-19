@@ -345,6 +345,8 @@ def load_eval_model(checkpoint, device, base=FIBO2_DIR):
     Query (reads weights, allocates GPU memory). The shipped model of one control checkpoint (§14 step 3: FIBO2 + the
     control LoRA alone, the adapter removed) with the text encoder, the VAE, its BatchNorm stats and the null prompt.
     base = TURBO_DIR transfers the control onto the 4-step model (W_turbo + control delta), as §13 moved SANA's onto Sprint.
+    A checkpoint folder made by distill_fibo2.transfer also holds student.safetensors, our distilled 4-step student LoRA:
+    W_dev + student + control.
 
     Args:
         checkpoint (str): a train_fibo2 control step folder, e.g. models/fibo2/fibo2_tri/step_002000
@@ -360,6 +362,8 @@ def load_eval_model(checkpoint, device, base=FIBO2_DIR):
     assert meta["mode"] == "control" and not meta["gates"], f"{checkpoint}: only control checkpoints without gates are evaluated"
     transformer = load_transformer(device, base=base)
     merge_lora(transformer, load_file(models.localize(checkpoint) / "lora.safetensors"), scale=1.0)
+    if (models.localize(checkpoint) / "student.safetensors").exists():  # a distill_fibo2.transfer folder: + the 4-step student LoRA
+        merge_lora(transformer, load_file(models.localize(checkpoint) / "student.safetensors"), scale=1.0)
     text = load_text_encoder(device)
     vae = AutoencoderKLFlux2.from_pretrained(models.localize(f"{FIBO2_DIR}/vae"), torch_dtype=torch.bfloat16).to(device)
     return dict(transformer=transformer, text=text, vae=vae, bn=bn_stats(f"{FIBO2_DIR}/vae"), null=encode_prompts(*text, [NULL_PROMPT]))
