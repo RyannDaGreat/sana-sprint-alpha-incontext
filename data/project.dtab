@@ -924,7 +924,10 @@ processors
 			JOIN eval_models m ON m.model_tag = g.model_tag                        -- joined to their model,
 			WHERE g.generate_eval_claim IS NULL                                    -- not yet claimed,
 			  AND g.model_tag LIKE '$EVAL_ONLY'                                    -- of the selected models,
-			ORDER BY g.model_tag, random() LIMIT $EVAL_BATCH_SIZE                  -- one model at a time, in random order
+			ORDER BY CASE right(g.model_tag, 5)                                    -- by resolution: 1024 (no _r suffix) first,
+			         WHEN '_r768' THEN 1 WHEN '_r512' THEN 2                       -- then 768, 512,
+			         WHEN '_r256' THEN 3 ELSE 0 END,                               -- then 256 (all of one size before the next),
+			         g.model_tag, random() LIMIT $EVAL_BATCH_SIZE                  -- one model at a time, in random order
 		claim	generate_eval_claim eval_generations
 		command bash
 			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src uv run --project .. python processors/generate_eval.py batch "$BATCH"

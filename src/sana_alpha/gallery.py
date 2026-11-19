@@ -188,14 +188,15 @@ def fibo2_models(run_step, pipeline="fibo2", steps=FIBO2_STEPS):
     return [(f"show_{run}_step{int(step):06d}_{word}_{steps}step", pipeline, f"models/fibo2/{run}/step_{int(step):06d}", steps, f"FIBO2{'' if word == 'fibo2' else ' ' + word}, {steps} steps")]
 
 
-def fibo2_rows(*run_steps, methods=None, pipeline="fibo2", steps=FIBO2_STEPS, guidance=FIBO2_GUIDANCE):
-    """Command. Prints the eval_models rows of FIBO2 control RUN:STEP... on the held-out trimask sets at 1024 (every method, or the comma-separated `methods`), to paste into the dtab. Turbo: --pipeline fibo2turbo --steps 4 --guidance 1."""
+def fibo2_rows(*run_steps, methods=None, pipeline="fibo2", steps=FIBO2_STEPS, guidance=FIBO2_GUIDANCE, resolution=1024, held=False):
+    """Command. Prints the eval_models rows of FIBO2 control RUN:STEP... on the trimask eval sets of one resolution, the same sets as SANA's trimask_rows (every method, or the comma-separated `methods`; --held: the held-out subset at 1024), to paste into the dtab. Turbo: --pipeline fibo2turbo --steps 4 --guidance 1."""
     from sana_alpha.trimask import METHODS
 
     methods = methods.split(",") if isinstance(methods, str) else methods or METHODS
     assert set(methods) <= set(METHODS), f"unknown methods: {set(methods) - set(METHODS)}"
-    print("".join(dtab_rows([(trimask_tag(m[0], method), *m[1:]) for r in run_steps for m in fibo2_models(r, pipeline, int(steps))],
-                            "plain", f"{HELD_SET}/{method}", float(guidance)) for method in methods), end="")
+    assert not held or resolution == 1024, "the held-out subset exists at 1024 only"
+    print("".join(dtab_rows([(trimask_tag(m[0], method, resolution), *m[1:]) for r in run_steps for m in fibo2_models(r, pipeline, int(steps))],
+                            "plain", f"{HELD_SET if held else trimask_set(resolution)}/{method}", float(guidance)) for method in methods), end="")
 
 
 def fibo2_preview_rows(*run_steps):

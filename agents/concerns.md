@@ -374,3 +374,7 @@
 - Root cause: optimizing for speed of the immediate ask instead of re-reading the manifest's requirements. The SANA path (tri_checkpoint.sh: merge -> web export -> publish_models -> Pages, galleries via generate_eval) already defines what "online" means here.
 - Fix: manifest §14 now opens with a north-star checklist; the gradio demo is removed; GPU 7 goes to the full-size FIBO2 browser export.
 - Lesson: before building anything user-facing, map it onto the existing pipeline; a new mechanism is a deviation that needs the user's OK.
+
+## 2026-11-19 2:40 AM — FIBO2 eval scope: held-out subset replaced by the full gamut (fork Fibo2Eval)
+- 11 PM–2 AM the FIBO2 cheap tier was 6 methods × the 29 held-out items at 1024 (`resources/showcase_trimask_held`), chosen because one image takes 64 s (all 67 items × 6 methods would be 7.1 GPU-h per checkpoint on the one eval GPU). The user rejected it (m00713): "why don't you use the whole gamut of test images that the first one used ... Instead you chose a tiny little subset at low resolution." FIBO2 now renders all 67 items × 19 methods × 4 resolutions, paired 1:1 with SANA's rich tier.
+- Lesson: a comparison report must show the same items as the reference model; cut cost with ordering (1024 first) and more GPU time, never with a smaller sample than the one the user already saw.
