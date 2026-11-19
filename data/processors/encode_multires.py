@@ -121,7 +121,7 @@ def model_input(batch):
     return x.to(DTYPE)
 
 
-def main(worker, workers, stop_when):
+def main(worker, workers, stop_when, batch_divisor=1):
     """
     Command. Encodes this worker's rows on the first visible GPU until all are done (see the module docstring). Chunk N + 1 is
     read and decoded in the thread pool and chunk N - 1 committed in the background while the GPU encodes chunk N.
@@ -130,6 +130,7 @@ def main(worker, workers, stop_when):
         worker (int): 0 to workers - 1
         workers (int): Number of workers (two per GPU)
         stop_when (str): A file that exists once augmentation is done
+        batch_divisor (int): Divides GPU_BATCH, for a GPU shared with other jobs (16 at 1024² needs ~8 GB of activations)
     """
     from bluejay import open_database
 
@@ -144,6 +145,7 @@ def main(worker, workers, stop_when):
         ("trimask_augmentations", trimask_keys, "concat(page_id, method)", [("trimask", "L", "latent_trimask", (1024,))], "latent_trimask_1024", "TRUE", True),
         ("trimask_augmentations", trimask_keys, "concat(page_id, method)", [("trimask", "L", "latent_trimask", (768, 512, 256))], "latent_trimask_256", lowres, False),
     ]
+    batch_of = {size: max(1, n // batch_divisor) for size, n in GPU_BATCH.items()}  # Images per encoder call
     start, encoded, commits = time.time(), {}, []
     with torch.inference_mode():
         for table, keys, key_sql, sources, done_column, extra, waits in jobs:
@@ -169,9 +171,9 @@ def main(worker, workers, stop_when):
                         pending = background.submit(prepare, pool, chunks[index + 1], sources)
                     updates = [{k: row[k] for k in keys} for row in chunk]
                     for (column, size), batch in images.items():
-                        prefix = next(p for c, _, p, _ in sources if c == column)
-                        latents = torch.cat([vae.encode(model_input(batch[i:i + GPU_BATCH[size]].to("cuda", non_blocking=True))).latent
-                                             for i in range(0, len(batch), GPU_BATCH[size])]).cpu()
+                        prefix, step = next(p for c, _, p, _ in sources if c == column), batch_of[size]
+                        latents = torch.cat([vae.encode(model_input(batch[i:i + step].to("cuda", non_blocking=True))).latent
+                                             for i in range(0, len(batch), step)]).cpu()
                         for update, latent in zip(updates, latents):
                             update[f"{prefix}_{size}"] = save({"latent": latent.contiguous()}, metadata)
                         encoded[size] = encoded.get(size, 0) + len(chunk)
