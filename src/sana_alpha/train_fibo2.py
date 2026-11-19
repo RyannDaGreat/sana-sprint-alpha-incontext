@@ -163,9 +163,33 @@ def write_preview(transformer, vae, text, batch, captions, bn, path):
     image.resize((image.width // 4, image.height // 4)).save(path)
 
 
+def load_checkpoint(transformer, folder, gates):
+    """
+    Command (loads weights into transformer). A step folder's LoRA (lora.safetensors, as fibo2.lora_state wrote it) and,
+    with gates, its gates.safetensors, into the trainable modules made by fibo2.add_lora / attach_context_gates.
+
+    Returns:
+        int: the folder's step (meta.json)
+    """
+    from peft.utils import set_peft_model_state_dict
+    from safetensors.torch import load_file
+
+    lora = {k: v for k, v in load_file(folder / "lora.safetensors").items() if not k.endswith(".alpha")}
+    result = set_peft_model_state_dict(transformer, lora)
+    assert not result.unexpected_keys, f"unexpected LoRA keys: {result.unexpected_keys[:5]}"
+    missing = [k for k in result.missing_keys if "lora_" in k]
+    assert not missing, f"LoRA keys missing from {folder}: {missing[:5]}"
+    if gates:
+        saved = load_file(folder / "gates.safetensors")
+        with torch.no_grad():
+            for i, g in enumerate(transformer.context_gates):
+                g.copy_(saved[f"context_gates.{i}"])
+    return json.loads((folder / "meta.json").read_text())["step"]
+
+
 def train(mode, run, adapter=None, rank=64, batch_size=2, max_steps=20000, warmup=500, lr=1.0, weight_decay=0.01,
           max_grad_norm=1.0, cond_drop=0.1, text_drop=0.1, save_every=500, preview_every=500, log_every=10, seed=0,
-          multires=True, gates=False):
+          multires=True, gates=False, init_from=None):
     """
     Command. Trains the adapter or control LoRA with DDP (torchrun) or on one GPU; writes models/fibo2/<run>/.
 
@@ -182,6 +206,9 @@ def train(mode, run, adapter=None, rank=64, batch_size=2, max_steps=20000, warmu
         seed (int): data order and noise
         multires (bool): step_resolution over RESOLUTION_PROBS; False = 1024 only
         gates (bool): control only: per-block zero-initialized context gates (fibo2.attach_context_gates), saved as gates.safetensors
+        init_from (str | None): a step folder of this run to resume from: its LoRA (and gates), its optimizer.pt when present
+            (Prodigy state incl. d; else the optimizer starts fresh), and its step count. Seeds are offset by that step, so
+            the resumed run draws new batches; schedules keyed on the step (resolution, warmup) continue unchanged
     """
     import lance
     import prodigyopt
@@ -214,6 +241,10 @@ def train(mode, run, adapter=None, rank=64, batch_size=2, max_steps=20000, warmu
     fibo2.add_lora(transformer, rank)
     if gates:
         fibo2.attach_context_gates(transformer)
+    start_step = 0
+    if init_from:
+        start_step = load_checkpoint(transformer, Path(init_from), gates)
+        log(f"resumed from {init_from} at step {start_step}")
     transformer.enable_gradient_checkpointing()
     transformer.train()
     trainable = [p for p in transformer.parameters() if p.requires_grad]
@@ -224,7 +255,12 @@ def train(mode, run, adapter=None, rank=64, batch_size=2, max_steps=20000, warmu
     groups = [dict(params=lora_params, weight_decay=weight_decay)] + ([dict(params=gate_params, weight_decay=0.0)] if gates else [])
     optimizer = prodigyopt.Prodigy(groups, lr=lr, betas=(0.9, 0.999),
                                    decouple=True, use_bias_correction=True, safeguard_warmup=True)
-    scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda s: min(1.0, (s + 1) / max(warmup, 1)))
+    scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda s: min(1.0, (s + start_step + 1) / max(warmup, 1)))
+    if init_from and (Path(init_from) / "optimizer.pt").exists():
+        optimizer.load_state_dict(torch.load(Path(init_from) / "optimizer.pt", map_location=device, weights_only=True))
+        log(f"optimizer state restored (prodigy_d {optimizer.param_groups[0]['d']:.2e})")
+    elif init_from:
+        log("no optimizer.pt in init_from: Prodigy starts fresh (its d re-estimates during the warmup)")
 
     vae = None
     if main and preview_every:
@@ -237,18 +273,21 @@ def train(mode, run, adapter=None, rank=64, batch_size=2, max_steps=20000, warmu
             preview_idx = preview_rows = torch.arange(PREVIEW_COUNT)
         preview = read_batch(tables, index, mode, PREVIEW_SIZE, preview_idx, preview_rows)
         preview_captions = [index["captions"][i] for i in preview_idx.tolist()]
-        write_preview(transformer, vae, text, preview, preview_captions, bn, out_dir / "previews" / "step_000000.png")
+        if not init_from:
+            write_preview(transformer, vae, text, preview, preview_captions, bn, out_dir / "previews" / "step_000000.png")
 
-    gen = torch.Generator().manual_seed(seed * 1000 + rank_id)
-    batches = draws(index, mode, batch_size, seed, gen)
+    data_seed = seed + 7919 * start_step  # a resumed run draws new batches (7919: any prime; the step is the offset)
+    gen = torch.Generator().manual_seed(data_seed * 1000 + rank_id)
+    batches = draws(index, mode, batch_size, data_seed, gen)
     step_res = lambda s: step_resolution(s, seed) if multires else 1024
     reader = ThreadPoolExecutor(1)
-    pending = reader.submit(read_batch, tables, index, mode, step_res(0), *next(batches))
+    pending = reader.submit(read_batch, tables, index, mode, step_res(start_step), *next(batches))
     meta = dict(run=run, mode=mode, adapter=str(adapter), rank=rank, batch_size=batch_size, world=world, multires=multires, gates=gates,
-                lance_versions=versions[0], objective="flow v=eps-x0, FIBO2-shifted logit-normal sigma")
+                lance_versions=versions[0], objective="flow v=eps-x0, FIBO2-shifted logit-normal sigma",
+                init_from=str(init_from), start_step=start_step)
     drawn = torch.zeros(len(METHODS), dtype=torch.long)
     res_steps, res_secs = dict.fromkeys(RESOLUTION_PROBS, 0), dict.fromkeys(RESOLUTION_PROBS, 0.0)
-    step, t_last, seen = 0, time.time(), 0
+    step, t_last, seen = start_step, time.time(), 0
     torch.cuda.reset_peak_memory_stats(device)
     while step < max_steps:
         t_step, batch = time.time(), pending.result()
@@ -301,6 +340,7 @@ def train(mode, run, adapter=None, rank=64, batch_size=2, max_steps=20000, warmu
             save_file(fibo2.lora_state(transformer, rank), folder / "lora.safetensors")
             if gates:
                 save_file({f"context_gates.{i}": g.detach().float().cpu() for i, g in enumerate(gate_params)}, folder / "gates.safetensors")
+            torch.save(optimizer.state_dict(), folder / "optimizer.pt")  # ≈ 3.2 GB: Prodigy's 4 float32 states per LoRA weight, and d
             (folder / "meta.json").write_text(json.dumps(dict(meta, step=step)) + "\n")
             (out_dir / "latest.txt").write_text(f"step_{step:06d}\n")
             log(f"saved {folder}")

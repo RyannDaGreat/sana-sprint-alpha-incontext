@@ -341,6 +341,11 @@
 - A watcher `grep -c ChildFailed` counted two lines of one old failure in an appended (tee -a) log and fired early. Lesson: in appended logs, watch only the lines after the run's start.
 - I redirected one smoke run's terminal output to /dev/null (the log file still had it), against the stdout rule. Do not.
 
+## 2026-11-18 6:30 PM — eval planning left 8 GPUs idle (main agent)
+- `run_proc_eval.fish` runs `plan_eval` (one BlueJay run per eval_models row, CPU) before any GPU work. For the M0 history (174+ new rows) it left all 8 GPUs idle for 20+ min, twice (4:01 PM and 6:06 PM).
+- Fix: the FIBO2 control run trains on GPUs 0–6 (global batch 28), and GPU 7 is the dedicated eval GPU for the compare reports, so evals never pause or slow training.
+- Lesson: never put a CPU-bound planning loop between two GPU jobs; plan evals ahead, or give evals their own GPU.
+
 ## 2026-11-19 4:00–5:05 AM — onnxruntime-web Memory64 build (fork Fibo2Web, manifest §16)
 - github.com/microsoft/onnxruntime (and every microsoft/onnxruntime* repo) answers 404 from this node, while other GitHub repos load; the source comes from the gitcode mirror (`gh_mirrors/on/onnxruntime`, same tags: v1.31.1 = 6af1a93).
 - ORT's old `--enable_wasm_memory64` build option no longer exists (neither in v1.31.1 nor in main of 2026-11-17); the code pieces remain (`ORT_WASM64`, `js_post_js_64.js`). Rebuilt it with four flags in `web/scripts/build_ort_memory64.sh`.
@@ -357,3 +362,9 @@
 - The run's 116 finished images were lost, and its 128 claims stayed `started`, so generate_eval (which takes `generate_eval_claim IS NULL`) skipped those rows. `./aviary.sh bluejay unclaim project.dtab "<SQL returning claim_id>"` released them.
 - Fixes: EVAL_BATCH_SIZE 32 (a failed commit now loses ≤ 34 min of FIBO2 work; Sana's evals are done), and `agents/.scratchpad/fibo2_eval_loop.sh` retries a failed generate up to 3 times after unclaiming that step's started claims, with a logged RETRY line, and marks a step done only after its compare data is built.
 - Lesson: long GPU runs must commit often when a background job rewrites the same tables. Open question for the main agent: skip compaction of the eval tables while evals run.
+
+## 2026-11-19 1:37 AM fibo2_tri died on a Lustre blip (fork Fibo2Train)
+- Just after step 2100: "Fatal Python error: Bus error" and tee "Cannot send after transport endpoint shutdown". The /fsx_scanline Lustre mount blipped (healthy again after). Training reads latents as mmapped Blob files on that mount, so a mount blip is fatal to the process.
+- train_fibo2 had no resume and saved no optimizer state, so 7 GPUs sat idle until a resume was written (about 5.5 h). Fix: --init_from <step folder> (LoRA, gates, step count; seeds offset by the step so batches do not repeat) and optimizer.pt (Prodigy state incl. d, ≈ 3.2 GB) in every checkpoint. step_002000 had no optimizer.pt, so the resumed run restarted Prodigy's d from 1e-6.
+- Lesson: every long run needs resume + optimizer state from its first launch, and its babysitter must restart it automatically after a crash.
+- Smoke-test gotcha: zsh does not word-split "$A" flag strings; the first resume smoke ran with no flags. Use bash -c or arrays.
