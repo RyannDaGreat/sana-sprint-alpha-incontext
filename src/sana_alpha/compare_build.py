@@ -30,7 +30,8 @@ DATA = ROOT / "journal/compare/data"
 ASSETS = "assets/compare"  # relative to journal/
 LOGS = ROOT / "agents/.scratchpad/logs"
 COMPARE_METHODS = ("morph_band", "scribbles", "bbox_unknown", "partial_view", "combo_chain", "glass_ripple")  # the cheap eval tier: one band, stroke, box, crop, combination and warp (manifest §15)
-RUNS = {"tri_scratch": dict(family="sana", label="SANA-Sprint 1.6B", log="train_control_tri_scratch.log")}  # FIBO2 runs join here
+RUNS = {"tri_scratch": dict(family="sana", label="SANA-Sprint 1.6B", log="train_control_tri_scratch.log", global_batch=128, held_only=False),  # 16 x 8 GPUs
+        "fibo2_tri": dict(family="fibo2", label="FIBO2 8.1B", log="train_fibo2_fibo2_tri.log", global_batch=28, held_only=True)}  # 4 x 7 GPUs; ~1 min per image, so held-out items only (gallery.HELD_SET)
 ATLAS_CELL = 192  # px per item in an atlas: enough to judge a silhouette, 67 items stay under 0.5 MB as WebP
 ATLAS_COLUMNS = 10
 LOSS_WINDOW = 50  # training-log steps averaged into one loss point (the log has one line per 10 steps)
@@ -108,7 +109,8 @@ def atlas(paths, cell=ATLAS_CELL, columns=ATLAS_COLUMNS):
     """
     sheet = Image.new("RGB", (columns * cell, -(-len(paths) // columns) * cell), (128, 128, 128))
     for k, path in enumerate(paths):
-        sheet.paste(Image.open(path).convert("RGB").resize((cell, cell), Image.LANCZOS), (k % columns * cell, k // columns * cell))
+        if path is not None:  # None: an item this eval skips (held-out-only runs) stays a gray cell
+            sheet.paste(Image.open(path).convert("RGB").resize((cell, cell), Image.LANCZOS), (k % columns * cell, k // columns * cell))
     return sheet
 
 
@@ -129,24 +131,27 @@ def evaluate(tag, parts, blobs, items):
     Args:
         tag (str): model_tag
         parts (dict): parse_tag(tag)
-        blobs (dict[str, str]): page_id -> blob file relative to the eval_generations dataset
+        blobs (dict[str, str]): page_id -> blob file relative to the eval_generations dataset (a held-out-only run has no train items)
         items (list[dict]): showcase items in report order
 
     Returns:
-        dict: the eval's record in compare.json
+        dict: the eval's record in compare.json (a skipped item: image null, metrics null)
     """
     read = lambda path: np.asarray(Image.open(path), np.float32) / 255
     sets = ROOT / trimask_set(parts["res"]) / parts["method"]
     images = []
     for item in items:
-        image = ROOT / "journal" / ASSETS / "img" / tag / f"{item['page_id']}.png"
-        link(LANCE / blobs[item["page_id"]], image)
+        image = ROOT / "journal" / ASSETS / "img" / tag / f"{item['page_id']}.png" if item["page_id"] in blobs else None
+        if image is not None:
+            link(LANCE / blobs[item["page_id"]], image)
         images.append(image)
     scores = [item_metrics(read(image), read(sets / "mattes" / f"{i['page_id']}.png"), read(sets / "originals" / f"{i['page_id']}.png"))
-              for image, i in zip(images, items)]
-    per_item = {m: [round(s[m], DIGITS) if s[m] == s[m] else None for s in scores] for m in scores[0]}
-    return dict(tag=tag, **parts, model=RUNS[parts["run"]]["family"],
-                images=[str(p.relative_to(ROOT / "journal")) for p in images],
+              if image is not None else None for image, i in zip(images, items)]
+    names = next(s for s in scores if s is not None)
+    per_item = {m: [round(s[m], DIGITS) if s is not None and s[m] == s[m] else None for s in scores] for m in names}
+    run = RUNS[parts["run"]]
+    return dict(tag=tag, **parts, model=run["family"], samples=parts["step"] * run["global_batch"],
+                images=[None if p is None else str(p.relative_to(ROOT / "journal")) for p in images],
                 atlas=write_atlas(images, tag), per_item=per_item,
                 summary=summarize({m: [np.nan if v is None else v for v in vs] for m, vs in per_item.items()},
                                   [i["split"] == "held-out" for i in items]))
@@ -182,7 +187,8 @@ def build():
         if parts and parts["run"] in RUNS:
             assert image["position"] == 0, f"{tag} {page_id}: blob is packed in {image['blob_uri']}, not a file of its own"
             tags.setdefault(tag, (parts, {}))[1][page_id] = image["blob_uri"]
-    complete = {t: v for t, v in tags.items() if len(v[1]) == len(items)}
+    needed = lambda run: {i["page_id"] for i in items if i["split"] == "held-out" or not RUNS[run]["held_only"]}
+    complete = {t: v for t, v in tags.items() if needed(v[0]["run"]) <= set(v[1])}
     print(f"{len(complete)} complete evals ({len(tags) - len(complete)} partial ones skipped)", flush=True)
     with ThreadPoolExecutor(THREADS) as pool:
         evals = list(pool.map(lambda kv: evaluate(kv[0], *kv[1], items), sorted(complete.items())))
