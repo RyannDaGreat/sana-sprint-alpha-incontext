@@ -169,26 +169,33 @@ def trimask_rows(*run_steps, resolution=1024, methods=None):
                             "plain", f"{trimask_set(resolution)}/{method}") for method in methods), end="")
 
 
-def fibo2_models(run_step):
+FIBO2_KINDS = dict(fibo2="fibo2", fibo2turbo="turbo")  # pipeline -> model_tag word: dev, or the control transferred onto turbo
+
+
+def fibo2_models(run_step, pipeline="fibo2", steps=FIBO2_STEPS):
     """
-    Pure function. The shipped FIBO2 model of one control step (fibo2.load_eval_model) at the pipeline's defaults.
+    Pure function. The shipped FIBO2 model of one control step (fibo2.load_eval_model), on dev ("fibo2") or transferred
+    onto the 4-step model ("fibo2turbo"), sampled with `steps` steps.
 
     Examples:
         >>> fibo2_models("fibo2_tri:2000")
         [('show_fibo2_tri_step002000_fibo2_30step', 'fibo2', 'models/fibo2/fibo2_tri/step_002000', 30, 'FIBO2, 30 steps')]
+        >>> fibo2_models("fibo2_tri:2000", "fibo2turbo", 4)[0][:2]
+        ('show_fibo2_tri_step002000_turbo_4step', 'fibo2turbo')
     """
     run, step = run_step.split(":")
-    return [(f"show_{run}_step{int(step):06d}_fibo2_{FIBO2_STEPS}step", "fibo2", f"models/fibo2/{run}/step_{int(step):06d}", FIBO2_STEPS, f"FIBO2, {FIBO2_STEPS} steps")]
+    word = FIBO2_KINDS[pipeline]
+    return [(f"show_{run}_step{int(step):06d}_{word}_{steps}step", pipeline, f"models/fibo2/{run}/step_{int(step):06d}", steps, f"FIBO2{'' if word == 'fibo2' else ' ' + word}, {steps} steps")]
 
 
-def fibo2_rows(*run_steps, methods=None):
-    """Command. Prints the eval_models rows of FIBO2 control RUN:STEP... on the held-out trimask sets at 1024 (every method, or the comma-separated `methods`), to paste into the dtab."""
+def fibo2_rows(*run_steps, methods=None, pipeline="fibo2", steps=FIBO2_STEPS, guidance=FIBO2_GUIDANCE):
+    """Command. Prints the eval_models rows of FIBO2 control RUN:STEP... on the held-out trimask sets at 1024 (every method, or the comma-separated `methods`), to paste into the dtab. Turbo: --pipeline fibo2turbo --steps 4 --guidance 1."""
     from sana_alpha.trimask import METHODS
 
     methods = methods.split(",") if isinstance(methods, str) else methods or METHODS
     assert set(methods) <= set(METHODS), f"unknown methods: {set(methods) - set(METHODS)}"
-    print("".join(dtab_rows([(trimask_tag(m[0], method), *m[1:]) for r in run_steps for m in fibo2_models(r)],
-                            "plain", f"{HELD_SET}/{method}", FIBO2_GUIDANCE) for method in methods), end="")
+    print("".join(dtab_rows([(trimask_tag(m[0], method), *m[1:]) for r in run_steps for m in fibo2_models(r, pipeline, int(steps))],
+                            "plain", f"{HELD_SET}/{method}", float(guidance)) for method in methods), end="")
 
 
 def fibo2_preview_rows(*run_steps):

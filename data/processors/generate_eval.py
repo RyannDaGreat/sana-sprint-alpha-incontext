@@ -68,7 +68,8 @@ def serve():
         if kind not in pipes or pipes[kind][0] != checkpoint:
             pipes.pop(kind, None)
             torch.cuda.empty_cache()
-            load = (lambda k, c: (fibo2.load_eval_model(c, torch.device("cuda")), {}, True)) if kind == "fibo2" else load_eval_pipeline
+            fibo2_base = dict(fibo2=fibo2.FIBO2_DIR, fibo2turbo=fibo2.TURBO_DIR)  # control transferred onto turbo (manifest §14)
+            load = (lambda k, c: (fibo2.load_eval_model(c, torch.device("cuda"), fibo2_base[k]), {}, True)) if kind in fibo2_base else load_eval_pipeline
             pipes[kind] = (checkpoint, *load(kind, checkpoint))
         return pipes[kind][1:]
 
@@ -96,7 +97,7 @@ def serve():
             prompts = [make_prompt(row) for _, row in members]
             indices = [row["noise_index"] for _, row in members]
             seeds = [STEP_NOISE_SEED + i for i in indices]
-            if kind == "fibo2":  # its own sampler; the seed is the item's noise (the set's noise is Sana-shaped)
+            if kind.startswith("fibo2"):  # its own sampler; the seed is the item's noise (the set's noise is Sana-shaped)
                 kwargs = dict(sampler="fibo2.sample", num_inference_steps=int(steps), guidance_scale=float(guidance))
                 images, seconds = fibo2.generate_images(pipe, prompts, data["mattes"][indices], seeds, int(steps), float(guidance))
                 prompts = [fibo2.caption_prompt(p) for p in prompts]

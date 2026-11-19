@@ -18,6 +18,7 @@ from safetensors.torch import load_file
 from sana_alpha import models
 
 FIBO2_DIR = "models/Fibo-2.0-dev"  # repo-relative; each subfolder is localized on its own (models.localize treats an existing folder as complete)
+TURBO_DIR = "models/Fibo-2.0-edit-turbo"  # Bria's 4-step distilled model (no CFG): same architecture, text encoder and VAE as dev
 CAPTION_KEY = "short_description"  # A caption is a JSON object with only this key: one of the forms FIBO2 was trained on
 NULL_PROMPT = ('{"short_description":"","objects":[],"background_setting":"","lighting":{},"aesthetics":{},'
                '"photographic_characteristics":{},"style_medium":"","context":"","artistic_style":""}')  # FIBO2's trained null caption
@@ -190,20 +191,21 @@ def encode_prompts(text_encoder, processor, prompts):
     return BriaFibo2Pipeline._get_qwen_prompt_embeds(text_encoder, processor, prompts, device=text_encoder.device)
 
 
-def load_transformer(device, adapter=None):
+def load_transformer(device, adapter=None, base=FIBO2_DIR):
     """
     Query (reads weights). The frozen FIBO2 transformer in bf16; with adapter, its LoRA delta is merged in (W_adapter).
 
     Args:
         device (torch.device)
         adapter (str | None): a train_fibo2 checkpoint folder of the adapter (lora.safetensors)
+        base (str): FIBO2_DIR (dev) or TURBO_DIR (the 4-step model the control is transferred onto)
 
     Returns:
         BriaFibo2Transformer2DModel: frozen, eval mode
     """
     from diffusers import BriaFibo2Transformer2DModel
 
-    transformer = BriaFibo2Transformer2DModel.from_pretrained(models.localize(f"{FIBO2_DIR}/transformer"), torch_dtype=torch.bfloat16)
+    transformer = BriaFibo2Transformer2DModel.from_pretrained(models.localize(f"{base}/transformer"), torch_dtype=torch.bfloat16)
     transformer = transformer.to(device).requires_grad_(False).eval()
     if adapter:
         merge_lora(transformer, load_file(models.localize(adapter) / "lora.safetensors"), scale=1.0)
@@ -338,14 +340,16 @@ def gray_image(size):
     return torch.full((1, 3, size, size), GRAY / 127.5 - 1)
 
 
-def load_eval_model(checkpoint, device):
+def load_eval_model(checkpoint, device, base=FIBO2_DIR):
     """
     Query (reads weights, allocates GPU memory). The shipped model of one control checkpoint (§14 step 3: FIBO2 + the
     control LoRA alone, the adapter removed) with the text encoder, the VAE, its BatchNorm stats and the null prompt.
+    base = TURBO_DIR transfers the control onto the 4-step model (W_turbo + control delta), as §13 moved SANA's onto Sprint.
 
     Args:
         checkpoint (str): a train_fibo2 control step folder, e.g. models/fibo2/fibo2_tri/step_002000
         device (torch.device)
+        base (str): FIBO2_DIR or TURBO_DIR
 
     Returns:
         dict: transformer, text (encoder, processor), vae, bn, null (embeds, mask)
@@ -354,7 +358,7 @@ def load_eval_model(checkpoint, device):
 
     meta = json.loads((models.localize(checkpoint) / "meta.json").read_text())
     assert meta["mode"] == "control" and not meta["gates"], f"{checkpoint}: only control checkpoints without gates are evaluated"
-    transformer = load_transformer(device)
+    transformer = load_transformer(device, base=base)
     merge_lora(transformer, load_file(models.localize(checkpoint) / "lora.safetensors"), scale=1.0)
     text = load_text_encoder(device)
     vae = AutoencoderKLFlux2.from_pretrained(models.localize(f"{FIBO2_DIR}/vae"), torch_dtype=torch.bfloat16).to(device)
