@@ -407,6 +407,8 @@ class TextEncoder(nn.Module):
 MAX_TEXT_TOKENS = 256  # gist_counts(config)[0][1]: prompts up to this many tokens get the minimum gist count, the one the graph is traced with
 PART_LIMIT = 1_900_000_000  # bytes per external-data file: the app reads each file into one ArrayBuffer (Chrome: < 2 GB)
 DEFAULT_STEPS, DEFAULT_GUIDANCE = 20, 5.0  # the training previews' sampler (train_fibo2: 20 steps, CFG 5)
+BASES = dict(dev=dict(dir=fibo2.FIBO2_DIR, steps=DEFAULT_STEPS, guidance=DEFAULT_GUIDANCE, cfg=True, symbol="W_fibo2"),
+             turbo=dict(dir=fibo2.TURBO_DIR, steps=4, guidance=1.0, cfg=False, symbol="W_turbo"))  # turbo: Bria's 4-step distilled model, no CFG (the control transfers onto it, manifest §14)
 TRAINED_SIZES = [1024, 768, 512, 256]  # §13 multires, as train_fibo2
 
 
@@ -532,7 +534,7 @@ def text_encoder_parts(model):
     return pipe.PROMPT_TEMPLATE, pipe.TEXT_ENCODER_OUT_LAYERS
 
 
-def export(checkpoint, version=None, bits=4, text_bits=None, all_linears=False, rows_per_item=32):
+def export(checkpoint, version=None, bits=4, text_bits=None, all_linears=False, rows_per_item=32, base="dev"):
     """
     Command (one GPU, ≈ 28 GB: the models take turns on it; ≈ 60–90 min). Writes models/web/<version>/, the
     web-model-contract folder of a FIBO2 control checkpoint, with runtime λ (manifest §16):
@@ -549,6 +551,8 @@ def export(checkpoint, version=None, bits=4, text_bits=None, all_linears=False, 
         text_bits (int | None): text encoder weights; default = bits. 8 is needed for images close to PyTorch (manifest §16)
         all_linears (bool): also quantize the transformer's linears outside the blocks (target_linears)
         rows_per_item (int): calibration tokens per linear per forward
+        base (str): "dev" (FIBO2 + control) or "turbo" (the control transferred onto Fibo-2.0-edit-turbo, 4 steps, no CFG;
+            version prefix fibo2_turbo_); the λ branch is the adapter LoRA (W_adapter − W_dev) either way, as SANA's on Sprint
     """
     import shutil
     from safetensors.torch import load_file
@@ -559,11 +563,11 @@ def export(checkpoint, version=None, bits=4, text_bits=None, all_linears=False, 
     text_bits = bits if text_bits is None else text_bits
     rank_of = lambda b: wq.RANK if b == 4 else 0
     tag = f"int{bits}" if text_bits == bits else f"int{bits}te{text_bits}"
-    version = version or f"fibo2_{meta['run']}_{checkpoint.name}-{tag}-lambda"
+    version = version or f"fibo2_{'turbo_' if base == 'turbo' else ''}{meta['run']}_{checkpoint.name}-{tag}-lambda"
     folder = WEB_DIR / version
     folder.mkdir(parents=True, exist_ok=True)
     torch.manual_seed(0)  # randomized SVD: the same weights give the same files
-    model = fibo2.load_eval_model(str(checkpoint), "cuda")
+    model = fibo2.load_eval_model(str(checkpoint), "cuda", BASES[base]["dir"])
     calib = calibration_inputs(model, eval_items())
     print(f"calibration: {len(calib)} transformer inputs", flush=True)
     template, layers = text_encoder_parts(model)
@@ -621,7 +625,7 @@ def export(checkpoint, version=None, bits=4, text_bits=None, all_linears=False, 
 
     for name in ("tokenizer.json", "tokenizer_config.json"):
         shutil.copy(models.localize(f"{fibo2.FIBO2_DIR}/processor") / name, folder / name)
-    write_manifest(folder, version, str(checkpoint), meta, adapter, lora_rank, template, layers, quantization)
+    write_manifest(folder, version, str(checkpoint), meta, adapter, lora_rank, template, layers, quantization, base)
 
 
 def quant_record(report, bits, rank, rows_per_item):
@@ -634,18 +638,18 @@ def quant_record(report, bits, rank, rows_per_item):
                 quantized_linears=len(report), mean_output_rel_error=float(np.mean(errors)), max_output_rel_error=float(np.max(errors)))
 
 
-def write_manifest(folder, version, checkpoint, meta, adapter, lora_rank, template, layers, quantization):
+def write_manifest(folder, version, checkpoint, meta, adapter, lora_rank, template, layers, quantization, base="dev"):
     """Command. Writes folder/manifest.json in the exporter format of the web-model-contract (manifest §12, §16), family "fibo2"."""
     files = sorted(p.name for p in folder.iterdir() if p.suffix in (".onnx", ".data") or p.name.startswith("tokenizer"))
     manifest = dict(
-        version=version, family="fibo2", source=checkpoint, cond="trimask", trained_sizes=TRAINED_SIZES,
-        weights=f"W_fibo2 + λ·(W_adapter − W_fibo2) + (W_control − W_adapter) · {meta['run']} step {meta['step']}",
+        version=version, family="fibo2", base=base, source=checkpoint, cond="trimask", trained_sizes=TRAINED_SIZES,
+        weights=f"{BASES[base]['symbol']} + λ·(W_adapter − W_fibo2) + (W_control − W_adapter) · {meta['run']} step {meta['step']}",
         adapter=dict(source=adapter, rank=lora_rank, delta="exact: the adapter LoRA itself (up = B·α/r, down = A)"),
         files={f: (folder / f).stat().st_size for f in files}, graphs=graph_specs(), quantization=quantization,
         text_encoder=dict(model=f"{fibo2.FIBO2_DIR}/text_encoder (Qwen3-VL-4B language model, cut after layer {max(max(b) for b in layers)})",
                           template=template, caption_key=fibo2.CAPTION_KEY, null_prompt=fibo2.NULL_PROMPT, max_tokens=MAX_TEXT_TOKENS,
                           layers=layers, output="(1, 6, T, 7680): every token, no padding, no mask"),
-        sampler=dict(kind="flow_euler_cfg", steps=DEFAULT_STEPS, guidance=DEFAULT_GUIDANCE, shift_seq=list(fibo2.SHIFT_SEQ),
+        sampler=dict(kind="flow_euler_cfg", steps=BASES[base]["steps"], guidance=BASES[base]["guidance"], cfg=BASES[base]["cfg"], shift_seq=list(fibo2.SHIFT_SEQ),
                      shift_mu=list(fibo2.SHIFT_MU),
                      schedule="u_k = linspace(1, 1/steps, steps), σ_k = e^mu / (e^mu + 1/u_k − 1), σ_steps = 0; mu linear in image tokens (LH·LW/4)",
                      step="v = transformer(x, σ_k, prompt); CFG: v = v_null + guidance·(v − v_null) (null_prompt); x += (σ_{k+1} − σ_k)·v",
@@ -698,7 +702,7 @@ def onnx_generate(sessions, tokenizer_ids, null_ids, trimask, noise, steps, guid
     return sessions["vae_decoder"].run(None, {"latent": x})[0][0].transpose(1, 2, 0)
 
 
-def verify(version, items=4, steps=4, guidance=DEFAULT_GUIDANCE, size=512):
+def verify(version, items=4, steps=4, guidance=None, size=512):
     """
     Command (one GPU). Exported graphs (ORT CUDA EP) vs the shipped PyTorch model (fibo2.load_eval_model, bf16) on held-out
     eval items: text embeddings, condition latents and one velocity pass (relative error), then whole generations with the
@@ -708,16 +712,17 @@ def verify(version, items=4, steps=4, guidance=DEFAULT_GUIDANCE, size=512):
     Args:
         version (str): folder in models/web/
         items (int): held-out items (one per method, in method order)
-        steps, guidance (int, float): sampler settings of the generations
+        steps, guidance (int, float | None): sampler settings of the generations; guidance default = the manifest's
         size (int): image side of the generations (a trained size)
     """
     import numpy as np
     from PIL import Image
     folder = WEB_DIR / version
     manifest = json.loads((folder / "manifest.json").read_text())
+    guidance = manifest["sampler"]["guidance"] if guidance is None else guidance
     out = we.VERIFY_DIR / version
     out.mkdir(parents=True, exist_ok=True)
-    model = fibo2.load_eval_model(manifest["source"], "cuda")
+    model = fibo2.load_eval_model(manifest["source"], "cuda", BASES[manifest.get("base", "dev")]["dir"])
     encoder, processor = model["text"]
     template = manifest["text_encoder"]["template"]
     ids = lambda p: processor(text=[template.format(p)], return_tensors="np")["input_ids"].astype(np.int64)
