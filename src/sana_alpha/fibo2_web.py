@@ -660,11 +660,17 @@ def write_manifest(folder, version, checkpoint, meta, adapter, lora_rank, templa
     print(f"wrote {folder / 'manifest.json'}: {sum(manifest['files'].values()) / 1e9:.2f} GB", flush=True)
 
 
-def ort_sessions(folder, providers=("CUDAExecutionProvider",)):
-    """Query (reads the graphs). One onnxruntime session per graph of an exported FIBO2 version."""
+def ort_sessions(folder, providers=("CUDAExecutionProvider",), chunks=False):
+    """
+    Query (reads the graphs). One onnxruntime session per graph of an exported FIBO2 version; with chunks, the
+    transformer is its chained transformer.chunk*.onnx graphs (web_chunks.split).
+    """
     import onnxruntime as ort
+    from sana_alpha import web_chunks
     options = ort.SessionOptions()
-    return {name: ort.InferenceSession(str(folder / f"{name}.onnx"), options, providers=list(providers)) for name in graph_specs()}
+    make = lambda path: ort.InferenceSession(str(path), options, providers=list(providers))
+    return {name: web_chunks.ChainedSession(folder, make) if chunks and name == "transformer" else make(folder / f"{name}.onnx")
+            for name in graph_specs()}
 
 
 def onnx_generate(sessions, tokenizer_ids, null_ids, trimask, noise, steps, guidance, adapter_scale=0.0):
@@ -702,7 +708,7 @@ def onnx_generate(sessions, tokenizer_ids, null_ids, trimask, noise, steps, guid
     return sessions["vae_decoder"].run(None, {"latent": x})[0][0].transpose(1, 2, 0)
 
 
-def verify(version, items=4, steps=4, guidance=None, size=512):
+def verify(version, items=4, steps=4, guidance=None, size=512, chunks=False):
     """
     Command (one GPU). Exported graphs (ORT CUDA EP) vs the shipped PyTorch model (fibo2.load_eval_model, bf16) on held-out
     eval items: text embeddings, condition latents and one velocity pass (relative error), then whole generations with the
@@ -714,6 +720,7 @@ def verify(version, items=4, steps=4, guidance=None, size=512):
         items (int): held-out items (one per method, in method order)
         steps, guidance (int, float | None): sampler settings of the generations; guidance default = the manifest's
         size (int): image side of the generations (a trained size)
+        chunks (bool): run the transformer as its chunk chain (web_chunks.split); results go to verify_chunks.json
     """
     import numpy as np
     from PIL import Image
@@ -744,7 +751,7 @@ def verify(version, items=4, steps=4, guidance=None, size=512):
     null_ids = ids(fibo2.NULL_PROMPT)
     del model, encoder
     torch.cuda.empty_cache()
-    sessions = ort_sessions(folder)
+    sessions = ort_sessions(folder, chunks=chunks)
     results = []
     for c in cases:
         emb_o = sessions["text_encoder"].run(None, {"input_ids": c["ids"], "attention_mask": np.ones_like(c["ids"])})[0]
@@ -757,9 +764,9 @@ def verify(version, items=4, steps=4, guidance=None, size=512):
                  image_psnr=psnr(image_o, c["image_t"]), nonfinite=int((~np.isfinite(image_o)).sum()))
         results.append(r)
         print(json.dumps(r), flush=True)
-        for tag, img in (("onnx", image_o), ("torch", c["image_t"])):
+        for tag, img in (("onnx_chunks" if chunks else "onnx", image_o), ("torch", c["image_t"])):
             Image.fromarray((img.clip(0, 1) * 255).round().astype(np.uint8)).save(out / f"item{c['k']}_{tag}.png")
-    (out / "verify.json").write_text(json.dumps(dict(version=version, steps=steps, guidance=guidance, size=size, items=results), indent=1))
+    (out / ("verify_chunks.json" if chunks else "verify.json")).write_text(json.dumps(dict(version=version, steps=steps, guidance=guidance, size=size, chunks=chunks, items=results), indent=1))
     print(f"wrote {out}", flush=True)
 
 

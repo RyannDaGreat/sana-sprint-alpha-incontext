@@ -33,6 +33,7 @@ from transformers import AutoModel
 
 from sana_alpha import gatecontrol as gc
 from sana_alpha import models
+from sana_alpha import web_chunks
 
 ROOT = models.ROOT
 WEB_DIR = ROOT / "models/web"
@@ -912,7 +913,8 @@ def verify(version, transformers="transformer.onnx", eval_dir="resources/eval"):
 
     Args:
         version (str): folder in models/web/
-        transformers (str | tuple): comma-separated transformer .onnx files to test (fp16, int8, int4 variants)
+        transformers (str | tuple): comma-separated transformer .onnx files to test (fp16, int8, int4 variants);
+            "chunks" = the version's transformer.chunk*.onnx chain (web_chunks.split)
         eval_dir (str): eval set folder (29 held-out items)
     """
     from PIL import Image
@@ -969,7 +971,7 @@ def verify(version, transformers="transformer.onnx", eval_dir="resources/eval"):
     rows = [[(r, c) for r, c in zip(reference, captions)]]
     for name in transformers.split(",") if isinstance(transformers, str) else transformers:
         began = time.perf_counter()
-        session = ort_session(folder / name)
+        session = web_chunks.ChainedSession(folder, ort_session) if name == "chunks" else ort_session(folder / name)
         load_s = time.perf_counter() - began
         lam = [np.zeros(1, np.float32)] if "adapter_scale" in [x.name for x in session.get_inputs()] else []  # λ graphs: λ = 0 is the reference model
         latents, seconds = [], []
