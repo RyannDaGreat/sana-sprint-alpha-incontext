@@ -13,8 +13,13 @@ and "fake" (the fake score, initialised to the teacher since a LoRA starts at ze
               loss = ½·mean((x0 − sg(x0 − g))²), whose gradient w.r.t. x0 is g (DMD's distribution-matching gradient).
     fake      flow matching on the student's (detached) samples: mean((v_fake(x_t', t') − (ε' − x0))²), FAKE_UPDATES per
               student update (DMD2's two time-scale rule, which replaces DMD's regression loss).
-No GAN term and no regression pairs (DMD2 shows TTUR alone is stable; a GAN on MAGICK images would pull the student to
-MAGICK's look, which the adapter trick exists to avoid). Data: MAGICK train captions only (no images), as JSON prompts.
+    regression  (--reg_weight > 0; DMD1's regression loss, in latent space) mean((x0_student(ε_j) − x0_teacher(ε_j))²) on
+              fixed teacher ODE pairs: noise ε_j → the teacher's 30-step CFG-5 sample (fibo2.sample, seed PAIR_SEED + j), the
+              student's one jump from pure noise (level 0). It anchors the noise → image map to the teacher's and stops the
+              mode drift seen without it (fibo2_dmd step 750: cropped heads, odd objects). Pairs are made once per size and
+              cached in models/fibo2/<run>/pairs_<size>.pt.
+No GAN term (a GAN on MAGICK images would pull the student to MAGICK's look, which the adapter trick exists to avoid; the
+regression term needs no real images and no discriminator). Data: MAGICK train captions only (no images), as JSON prompts.
 
 Outputs in models/fibo2/<run>/: step_XXXXXX/{lora.safetensors (student), fake.safetensors, optimizer.pt, meta.json} every
 --save_every steps, latest.txt, previews/step_XXXXXX.png (full resolution, lossless): [student 4 steps | dev 30 steps CFG 5] rows.
@@ -41,6 +46,8 @@ TEACHER_CFG = 5.0  # FIBO2 dev's default guidance; the student learns the guided
 FAKE_UPDATES = 5  # fake-score updates per student update (DMD2's TTUR)
 PREVIEW_COUNT = 4
 PREVIEW_CAPTIONS_SEED = 1234  # fixed preview prompts across runs
+PAIR_SEED = 900000  # noise seeds of the regression pairs (far from the preview seeds 0..3)
+TEACHER_STEPS = 30  # the teacher's ODE for the regression pairs: FIBO2 dev's default steps
 
 
 def student_levels(image_tokens, steps=STUDENT_STEPS):
@@ -165,6 +172,44 @@ def encode_pool(text, captions, batch=16):
     return out
 
 
+def pair_noise(j, shape):
+    """
+    Near-pure function (seeded). The noise of regression pair j, exactly as fibo2.sample draws it for seed PAIR_SEED + j.
+
+    Examples:
+        >>> bool((pair_noise(3, (1, 2, 4, 4)) == pair_noise(3, (1, 2, 4, 4))).all()), pair_noise(0, (1, 32, 8, 8)).shape
+        (True, torch.Size([1, 32, 8, 8]))
+    """
+    return torch.randn(shape, generator=torch.Generator().manual_seed(PAIR_SEED + j))
+
+
+@torch.no_grad()
+def make_pairs(transformer, pool, count, size, null, null_mask, path, log):
+    """
+    Command (writes path). The regression pairs: for j < count, the teacher's TEACHER_STEPS-step CFG-5 sample of pool
+    prompt j from pair_noise(j). Loads path when it holds at least count pairs.
+
+    Returns:
+        torch.Tensor: (count, 32, size/8, size/8) float32 normalized latents on the CPU
+    """
+    if path.exists():
+        cached = torch.load(path, weights_only=True)
+        if len(cached) >= count:
+            return cached[:count]
+    shape = (1, 32, size // 8, size // 8)
+    transformer.disable_adapters()
+    out, began = [], time.time()
+    for j in range(count):
+        embeds, mask = (t.to(null.device) for t in pool[j % len(pool)])
+        out.append(fibo2.sample(transformer, embeds, mask, null, null_mask, None, TEACHER_STEPS, TEACHER_CFG, PAIR_SEED + j, shape).cpu())
+        if (j + 1) % 16 == 0:
+            log(f"teacher pairs {j + 1}/{count} ({(time.time() - began) / (j + 1):.1f} s each)")
+    pairs = torch.cat(out)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    torch.save(pairs, path)
+    return pairs
+
+
 def write_preview(transformer, vae, bn, embeds, mask, references, levels, size, path):
     """
     Command. Writes a full-resolution lossless PNG: one row per preview prompt, [student 4 steps | dev 30 steps CFG 5].
@@ -190,7 +235,8 @@ def decode(vae, x, bn):
 
 
 def train(run, rank=64, lr=1e-4, fake_lr=1e-4, batch_size=1, max_steps=3000, save_every=500, preview_every=500,
-          log_every=10, seed=0, multires=False, size=512, init_from=None, captions=2000):
+          log_every=10, seed=0, multires=False, size=512, init_from=None, captions=2000, reg_weight=0.0, pairs=256,
+          reset_optimizer=False):
     """
     Command. Distills FIBO2 dev into a 4-step student LoRA on one GPU; writes models/fibo2/<run>/.
 
@@ -206,6 +252,9 @@ def train(run, rank=64, lr=1e-4, fake_lr=1e-4, batch_size=1, max_steps=3000, sav
         size (int): the training resolution without multires (512 keeps the run ≤ 25 GB on a shared GPU; previews stay 1024)
         init_from (str | None): a step folder of this run to resume from (both LoRAs, optimizer.pt, the step count)
         captions (int): size of the caption pool (embeddings precomputed on the CPU, ≈ 4.6 MB each)
+        reg_weight (float): weight of the regression term (0 = DMD + TTUR only, as fibo2_dmd steps 0-1180)
+        pairs (int): regression pairs (teacher samples of pool prompts 0..pairs-1 at `size`), made once and cached
+        reset_optimizer (bool): with init_from, load the LoRAs and the step but start both optimizers fresh
     """
     from diffusers import AutoencoderKLFlux2
     from peft import LoraConfig
@@ -218,8 +267,14 @@ def train(run, rank=64, lr=1e-4, fake_lr=1e-4, batch_size=1, max_steps=3000, sav
     for part in ("transformer", "text_encoder", "processor", "vae"):
         models.localize(f"{fibo2.FIBO2_DIR}/{part}")
     bn = fibo2.bn_stats(f"{fibo2.FIBO2_DIR}/vae")
-    text = fibo2.load_text_encoder(device)
+    text = fibo2.load_text_encoder(device)  # every prompt is encoded first and the encoder freed, before the transformer loads (peak ≈ 20 GB)
     null, null_mask = fibo2.encode_prompts(*text, [fibo2.NULL_PROMPT])
+    pool = encode_pool(text, load_captions(captions, seed))
+    preview_captions = load_captions(PREVIEW_COUNT, PREVIEW_CAPTIONS_SEED)
+    pembeds, pmask = fibo2.encode_prompts(*text, [fibo2.caption_prompt(c) for c in preview_captions])
+    del text
+    torch.cuda.empty_cache()
+    log(f"{len(pool)} prompts encoded; text encoder freed")
     vae = AutoencoderKLFlux2.from_pretrained(models.localize(f"{fibo2.FIBO2_DIR}/vae"), torch_dtype=torch.bfloat16).to(device)
     transformer = fibo2.load_transformer(device)
     for name in ("student", "fake"):
@@ -239,20 +294,15 @@ def train(run, rank=64, lr=1e-4, fake_lr=1e-4, batch_size=1, max_steps=3000, sav
             state = {k: v for k, v in load_file(folder / file).items() if not k.endswith(".alpha")}
             result = set_peft_model_state_dict(transformer, state, adapter_name=name)
             assert not result.unexpected_keys, f"{file}: unexpected keys {result.unexpected_keys[:3]}"
-        saved = torch.load(folder / "optimizer.pt", map_location=device, weights_only=True)
-        for name in optimizers:
-            optimizers[name].load_state_dict(saved[name])
+        if not reset_optimizer:
+            saved = torch.load(folder / "optimizer.pt", map_location=device, weights_only=True)
+            for name in optimizers:
+                optimizers[name].load_state_dict(saved[name])
         start_step = json.loads((folder / "meta.json").read_text())["step"]
         log(f"resumed from {folder} at step {start_step}")
     transformer.enable_gradient_checkpointing()
     transformer.train()
 
-    pool = encode_pool(text, load_captions(captions, seed))
-    preview_captions = load_captions(PREVIEW_COUNT, PREVIEW_CAPTIONS_SEED)
-    pembeds, pmask = fibo2.encode_prompts(*text, [fibo2.caption_prompt(c) for c in preview_captions])
-    del text
-    torch.cuda.empty_cache()
-    log(f"{len(pool)} prompts encoded; text encoder freed")
     references_path = out_dir / "previews" / "reference_dev30.png"
     preview_size = 1024
     pshape = (1, 32, preview_size // 8, preview_size // 8)
@@ -269,16 +319,19 @@ def train(run, rank=64, lr=1e-4, fake_lr=1e-4, batch_size=1, max_steps=3000, sav
         Image.fromarray((torch.cat(list(references), dim=1).permute(1, 2, 0).numpy() * 255).round().astype(np.uint8)).save(references_path)
         log(f"dev 30-step references -> {references_path}")
     plevels = student_levels(pshape[2] * pshape[3] // 4)
+    assert not (reg_weight and multires), "regression pairs exist at one size: use --size, not --multires"
+    targets = make_pairs(transformer, pool, pairs, size, null, null_mask, out_dir / f"pairs_{size}.pt", log) if reg_weight else None
     if not init_from:
         write_preview(transformer, vae, bn, pembeds, pmask, references, plevels, preview_size, out_dir / "previews" / "step_000000.png")
 
     gen = torch.Generator().manual_seed(seed * 1000 + 7919 * start_step)
     meta = dict(run=run, rank=rank, lr=lr, fake_lr=fake_lr, batch_size=batch_size, multires=multires, size=size, student_steps=STUDENT_STEPS,
-                teacher_cfg=TEACHER_CFG, fake_updates=FAKE_UPDATES, base=fibo2.FIBO2_DIR, method="DMD2 (DMD loss + TTUR, no GAN)",
-                init_from=str(init_from), start_step=start_step)
+                teacher_cfg=TEACHER_CFG, fake_updates=FAKE_UPDATES, base=fibo2.FIBO2_DIR,
+                method="DMD2 (DMD loss + TTUR, no GAN)" + (f" + DMD1 latent regression x{reg_weight} on {pairs} teacher pairs" if reg_weight else ""),
+                reg_weight=reg_weight, pairs=pairs, reset_optimizer=reset_optimizer, init_from=str(init_from), start_step=start_step)
     step, t_last = start_step, time.time()
     torch.cuda.reset_peak_memory_stats(device)
-    stats = dict(dmd=0.0, fake=0.0, n=0)
+    stats = dict(dmd=0.0, fake=0.0, reg=0.0, n=0)
     while step < max_steps:
         res = step_resolution(step, seed) if multires else size
         shape = (batch_size, 32, res // 8, res // 8)
@@ -303,6 +356,15 @@ def train(run, rank=64, lr=1e-4, fake_lr=1e-4, batch_size=1, max_steps=3000, sav
         transformer.enable_adapters()
         transformer.set_adapter("student")
         loss.backward()
+        if reg_weight:  # a second backward into the same gradients: two graphs never live at once (memory)
+            j = int(torch.randint(len(targets), (1,), generator=gen))
+            jembeds, jmask = (t.to(device) for t in pool[j % len(pool)])
+            jnoise = pair_noise(j, targets[j:j + 1].shape).to(device)
+            one = torch.ones(1, device=device)
+            jx0 = jnoise - velocity(transformer, "student", jnoise, one, jembeds, jmask)  # x0 = x_s − s·v at s = 1
+            reg = ((jx0 - targets[j:j + 1].to(device)) ** 2).mean()
+            (reg_weight * reg).backward()
+            stats["reg"] += reg.item()
         torch.nn.utils.clip_grad_norm_(params["student"], 1.0)
         optimizers["student"].step()
         optimizers["student"].zero_grad(set_to_none=True)
@@ -323,9 +385,9 @@ def train(run, rank=64, lr=1e-4, fake_lr=1e-4, batch_size=1, max_steps=3000, sav
 
         if step % log_every == 0:
             dt = time.time() - t_last
-            log(f"step {step} res {res} dmd {stats['dmd'] / stats['n']:.5f} fake {stats['fake'] / stats['n']:.4f} "
+            log(f"step {step} res {res} dmd {stats['dmd'] / stats['n']:.5f} fake {stats['fake'] / stats['n']:.4f} reg {stats['reg'] / stats['n']:.4f} "
                 f"{dt / stats['n']:.2f} s/step mem {torch.cuda.max_memory_allocated(device) / 2**30:.1f}GB")
-            t_last, stats = time.time(), dict(dmd=0.0, fake=0.0, n=0)
+            t_last, stats = time.time(), dict(dmd=0.0, fake=0.0, reg=0.0, n=0)
         if step % save_every == 0 or step == max_steps:
             folder = out_dir / f"step_{step:06d}"
             folder.mkdir(parents=True, exist_ok=True)
