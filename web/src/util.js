@@ -194,14 +194,17 @@ export function progressCounter(steps, passes, chunks, stages, onProgress) {
 }
 
 /**
- * Command. Resolves after one macrotask, giving the browser a chance to repaint and handle input. MessageChannel, not
- * setTimeout: it is not throttled in background tabs.
+ * Command. Lets the browser paint and handle input between progress ticks. A visible page waits for the next frame
+ * (requestAnimationFrame, then one task, so the new bar state is drawn); a hidden page, where animation frames pause,
+ * yields one task through MessageChannel (not setTimeout, which background tabs throttle).
  *
  * @returns {Promise<void>}
- * @example await yieldToBrowser() // undefined, one task later
+ * @example await yieldToBrowser() // undefined, after the next frame (visible page) or one task (hidden page)
  */
 export function yieldToBrowser() {
-  return new Promise((resolve) => { const c = new MessageChannel(); c.port1.onmessage = () => { c.port1.close(); resolve(); }; c.port2.postMessage(0); });
+  const task = (resolve) => { const c = new MessageChannel(); c.port1.onmessage = () => { c.port1.close(); resolve(); }; c.port2.postMessage(0); };
+  const visible = globalThis.document?.visibilityState === 'visible';
+  return new Promise((resolve) => (visible ? requestAnimationFrame(() => task(resolve)) : task(resolve)));
 }
 
 /**
