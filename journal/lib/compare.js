@@ -181,6 +181,25 @@ function keepOf(report, split) { return report.items.map((i) => split === 'all' 
 /** Pure function. Formats [mean, low, high]. @example fmt([0.5, 0.4, 0.6]) // '0.500 [0.400, 0.600]' */
 export function fmt(ci) { return ci ? `${ci[0].toFixed(3)} [${ci[1].toFixed(3)}, ${ci[2].toFixed(3)}]` : 'n/a'; }
 
+/**
+ * Pure function. Table of the images that exist, per model, step and resolution (methods × items), each linking to
+ * the scrub view that shows all of them (all methods), or to Strips for a step only one shipped model has.
+ */
+function imageCounts(report) {
+  const both = new Set(comparableSteps(report));
+  const rows = Object.keys(MODELS).flatMap((m) => unique(pick(report.evals, { model: m }).map((e) => e.step)).reverse().flatMap((step) =>
+    report.resolutions.map((res) => [m, step, res, pick(report.evals, { model: m, step, res })]).filter(([, , , evals]) => evals.length)));
+  const fmtInt = (n) => n.toLocaleString('en-US');
+  return el('div', { class: 'scroller' }, el('h3', {}, 'Every generated image, by model, step and resolution'),
+    el('table', { class: 'heat' }, el('tr', {}, ['model', 'step', 'resolution', 'images', 'methods × items', 'view'].map((t) => el('th', {}, t))),
+      rows.map(([m, step, res, evals]) => {
+        const images = evals.reduce((n, e) => n + e.images.filter(Boolean).length, 0);
+        const link = both.has(step) ? `scrub.html#method=all&res=${res}&step=${step}` : `strips.html#res=${res}`;
+        return el('tr', {}, el('td', {}, MODELS[m]), el('td', {}, String(step)), el('td', {}, `${res}²`), el('td', {}, fmtInt(images)),
+          el('td', {}, `${evals.length} × ${report.items.length}`), el('td', {}, el('a', { href: link }, both.has(step) ? 'all methods' : 'strips')));
+      })));
+}
+
 /** Command. Hub: verdict, status strip, headline chart, glossary. */
 function hub(report, root) {
   const keep = keepOf(report, 'held');
@@ -199,6 +218,7 @@ function hub(report, root) {
     el('div', { class: 'chart' }, el('h3', {}, 'IoU in the gray band vs training images seen (held-out, 1024², 95% bootstrap bands)'),
       lineChart(lines, BASELINES.band_iou.map(([b, label]) => ({ label, points: series(report, 'sana', b, 1024, report.methods, keep, 'samples').map((p) => [p[0], p[1]]) }))),
       el('p', { class: 'legend' }, el('span', { class: 'sana' }, '● SANA'), el('span', { class: 'fibo' }, '● FIBO2'), el('span', {}, '- - trivial baselines (band filled as background / as object)'))),
+    imageCounts(report),
     el('h2', {}, 'Glossary'),
     el('dl', { class: 'glossary' }, [
       ['trimask', 'the condition: white = surely object, black = surely background, gray = unknown (the model decides).'],
@@ -236,28 +256,38 @@ function overTime(report, root) {
   draw();
 }
 
-/** Command. Checkpoint slider: every item's trimask, SANA and FIBO2 at the chosen step, method and resolution. */
+/**
+ * Command. Checkpoint slider: for every chosen method (default: all of them, one section each) and resolution
+ * (one, or all), every item's trimask, SANA, FIBO2 turbo and FIBO2 teacher at the chosen step.
+ */
 function scrub(report, root) {
   const h = readHash();
   const steps = comparableSteps(report);  // the same step for every column; a model's other steps are in Strips
-  const slider = el('input', { type: 'range', min: 0, max: Math.max(steps.length - 1, 0), value: Math.max(steps.indexOf(Number(h.step)), steps.length - 1) });
+  const start = steps.indexOf(Number(h.step));
+  const slider = el('input', { type: 'range', min: 0, max: Math.max(steps.length - 1, 0), value: start >= 0 ? start : steps.length - 1 });
   const label = el('b', {});
-  const grid = el('div', { class: 'grid' });
+  const body = el('div', {});
+  const row = (method, res, item, i, step, tagged) => {
+    const cond = report.conditions.trimask[`${method}@${res}`];
+    return el('div', { class: 'cells' }, cond ? imageCell(cond.images[i], tagged ? `trimask ${res}²` : 'trimask') : empty('sana', report, step),
+      ...Object.keys(MODELS).map((m) => { const e = pick(report.evals, { model: m, method, res, step })[0]; return e ? imageCell(e.images[i], SHORT[m]) : empty(m, report, step); }));
+  };
   const draw = () => {
-    const s = readHash(), method = s.method || report.methods[0], res = Number(s.res || 1024), step = steps[Number(slider.value)];
+    const s = readHash(), step = steps[Number(slider.value)];
+    const methods = (s.method || 'all') === 'all' ? report.methods : [s.method];
+    const sizes = (s.res || '1024') === 'all' ? report.resolutions : [Number(s.res || 1024)];
     label.textContent = `step ${step}`;
     writeHash({ step });
-    const cond = report.conditions.trimask[`${method}@${res}`];
-    grid.replaceChildren(...report.items.map((item, i) => ((s.split || 'all') === 'all' || item.split === 'held-out' ? el('div', { class: 'item' },
-      el('div', { class: 'cells' }, cond ? imageCell(cond.images[i], 'trimask') : empty('sana', report, step),
-        ...Object.keys(MODELS).map((m) => { const e = pick(report.evals, { model: m, method, res, step })[0]; return e ? imageCell(e.images[i], SHORT[m]) : empty(m, report, step); })),
-      el('a', { href: `pixel.html#page_id=${item.page_id}&method=${method}&res=${res}&step=${step}` }, `${item.split} · ${item.caption.slice(0, 60)}`)) : null)).filter(Boolean));
+    const items = report.items.map((item, i) => [item, i]).filter(([item]) => (s.split || 'all') === 'all' || item.split === 'held-out');
+    body.replaceChildren(...methods.flatMap((method) => [el('h2', { id: method }, `${method} · ${sizes.map((r) => `${r}²`).join(', ')} · ${items.length} items`),
+      el('div', { class: 'grid' }, items.map(([item, i]) => el('div', { class: 'item' }, ...sizes.map((res) => row(method, res, item, i, step, sizes.length > 1)),
+        el('a', { href: `pixel.html#page_id=${item.page_id}&method=${method}&res=${sizes[0]}&step=${step}` }, `${item.split} · ${item.caption.slice(0, 60)}`))))]));
   };
   slider.addEventListener('input', draw);
-  root.append(el('div', { class: 'controls' }, select('method', report.methods.map((m) => [m, m]), h.method || report.methods[0], draw),
-    select('res', report.resolutions.map((r) => [r, `${r}²`]), h.res || 1024, draw),
+  root.append(el('div', { class: 'controls' }, select('method', [['all', `all ${report.methods.length} methods`], ...report.methods.map((m) => [m, m])], h.method || 'all', draw),
+    select('res', [...report.resolutions.map((r) => [r, `${r}²`]), ['all', 'all resolutions']], h.res || 1024, draw),
     select('split', [['all', 'all items'], ['held', 'held-out']], h.split || 'all', draw), label, slider),
-  el('p', { class: 'note' }, 'Cells: trimask, SANA, FIBO2 turbo, FIBO2 teacher (same item, same noise), each the original image; click one to open the file, or a caption for the pixel view. The slider only has steps where both SANA and FIBO2 turbo were evaluated; every step of each model is in Strips.'), grid);
+  el('p', { class: 'note' }, 'Cells: trimask, SANA, FIBO2 turbo, FIBO2 teacher (same item, same noise), each the original image; click one to open the file, or a caption for the pixel view. Default: every method, one section each. The slider only has steps where both SANA and FIBO2 turbo were evaluated; every step of each model is in Strips.'), body);
   draw();
 }
 
