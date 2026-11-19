@@ -302,12 +302,12 @@ export class Pipeline {
    * @returns {Promise<Record<string, ort.Tensor>>} {output_name: tensor}
    */
   async runTransformer(feeds, timings, label, tick) {
-    if (!this.chunks) { const out = await timed(timings, label, this.sessions.transformer, feeds); tick(); return out; }
+    if (!this.chunks) { const out = await timed(timings, label, this.sessions.transformer, feeds); await tick(); return out; }
     const t0 = performance.now(), values = { ...feeds }, made = [];
     for (const s of this.chunks) {
       const out = await s.run(Object.fromEntries(s.inputNames.map((n) => [n, values[n]])));
       for (const [name, tensor] of Object.entries(out)) { values[name] = tensor; made.push(tensor); }
-      tick();
+      await tick();
     }
     const name = this.name('transformer', 'output');
     for (const t of made) if (t !== values[name] && t.location === 'gpu-buffer') t.dispose();
@@ -367,11 +367,11 @@ export class Pipeline {
     const stages = cfg ? ['text', 'text', 'matte', 'decoder'] : ['text', 'matte', 'decoder'];  // text (+ null prompt), trimask, decoder
     const tick = progressCounter(steps, cfg ? 2 : 1, this.passUnits(), stages, onProgress);
     const emb = await this.embedFibo2(fibo2Prompt(prompt, m.text_encoder.caption_key), timings);
-    tick('text encoder', 0, 'text');
+    await tick('text encoder', 0, 'text');
     const nullEmb = cfg ? await this.embedFibo2(m.text_encoder.null_prompt, {}) : null;
-    if (cfg) tick('text encoder (null prompt)', 0, 'text');
+    if (cfg) await tick('text encoder (null prompt)', 0, 'text');
     const cond = await this.encodeMatte(matte, matteRev, width, height, timings);
-    tick('trimask encoder', 0, 'matte');
+    await tick('trimask encoder', 0, 'matte');
     const types = this.types.transformer, n = (k) => this.name('transformer', k);
     const t = (k, values, d) => makeTensor(types[n(k)], values, d);
     const sigmas = fibo2Sigmas(steps, fibo2Mu((dims[2] * dims[3]) / 4, m.sampler.shift_seq, m.sampler.shift_mu));
@@ -392,7 +392,7 @@ export class Pipeline {
     }
     const nLat = this.name('vae_decoder', 'latent');
     const dec = await timed(timings, 'vae_decoder', this.sessions.vae_decoder, { [nLat]: makeTensor(this.types.vae_decoder[nLat], x, dims) });
-    tick('image decoder', 0, 'decoder');
+    await tick('image decoder', 0, 'decoder');
     timings.total = performance.now() - t0;
     return { image: asFloat32(dec[this.name('vae_decoder', 'output')]).map((v) => 2 * v - 1), timings };
   }
@@ -472,9 +472,9 @@ export class Pipeline {
     const steps = timesteps.length - 1;
     const tick = progressCounter(steps, 1, this.passUnits(), ['text', 'matte', 'decoder'], onProgress);
     const emb = await this.embed(prompt, timings);
-    tick('text encoder', 0, 'text');
+    await tick('text encoder', 0, 'text');
     const matteLatent = await this.encodeMatte(matte, matteRev, width, height, timings);
-    tick('matte encoder', 0, 'matte');
+    await tick('matte encoder', 0, 'matte');
     const m = this.version.manifest, types = this.types.transformer;
     const n = (k) => this.name('transformer', k);
     const t = (k, values, dims) => makeTensor(types[n(k)], values, dims);
@@ -503,7 +503,7 @@ export class Pipeline {
     const nLat = this.name('vae_decoder', 'latent');
     const dec = await timed(timings, 'vae_decoder', this.sessions.vae_decoder,
       { [nLat]: makeTensor(this.types.vae_decoder[nLat], latent, dims) });
-    tick('image decoder', 0, 'decoder');
+    await tick('image decoder', 0, 'decoder');
     timings.total = performance.now() - t0;
     const image = asFloat32(dec[this.name('vae_decoder', 'output')]);
     return { image: m.decoder_output_range === '0,1' ? image.map((v) => 2 * v - 1) : image, timings };

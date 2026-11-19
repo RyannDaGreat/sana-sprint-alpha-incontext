@@ -172,7 +172,8 @@ const STAGE_PASS_FRACTION = { text: 0.12, matte: 0.076, decoder: 0.113 };
  * @param {number} chunks - chunks per pass (1 = unsplit graph)
  * @param {string[]} stages - the other stages of this generation (keys of STAGE_PASS_FRACTION, repeats allowed)
  * @param {Function} onProgress
- * @returns {(label: string, step?: number, stage?: string) => void} tick: step > 0 for a chunk, else stage
+ * @returns {(label: string, step?: number, stage?: string) => Promise<void>} tick: step > 0 for a chunk, else stage;
+ *   await it: it yields to the browser so the page repaints (wasm runs keep the main thread busy between ticks)
  */
 export function progressCounter(steps, passes, chunks, stages, onProgress) {
   const weight = (stage) => STAGE_PASS_FRACTION[stage] * chunks;
@@ -188,7 +189,19 @@ export function progressCounter(steps, passes, chunks, stages, onProgress) {
     current = step;
     onProgress({ done, total, label, step, steps, stepDone: step ? stepDone : 0, perStep, elapsed: now - t0,
                  remaining: chunkCount ? (total - done) * (chunkTime / chunkCount) : null });
+    return yieldToBrowser();
   };
+}
+
+/**
+ * Command. Resolves after one macrotask, giving the browser a chance to repaint and handle input. MessageChannel, not
+ * setTimeout: it is not throttled in background tabs.
+ *
+ * @returns {Promise<void>}
+ * @example await yieldToBrowser() // undefined, one task later
+ */
+export function yieldToBrowser() {
+  return new Promise((resolve) => { const c = new MessageChannel(); c.port1.onmessage = () => { c.port1.close(); resolve(); }; c.port2.postMessage(0); });
 }
 
 /**
