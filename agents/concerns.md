@@ -386,3 +386,8 @@
 - Calibration recording at 128 rows × ~110 forwards would need ≈ 180 GB CPU RAM for 322 linears: 1 item per method × 2 noise levels × 32 rows instead.
 - The int4 Qwen3-VL text encoder has 11.6% relative embedding error (fp16 alone 0.3–0.9%): the main source of the 21–22 dB image gap vs PyTorch at CFG 5. Not fixed in this version; a follow-up.
 - Lesson kept from the Memory64 work: a browser run is checked against a reference on the same inputs (here a bit-exact port of util.js gaussianNoise to Python): browser vs ORT CUDA 63.0 dB.
+
+## 2026-11-19 1:25 PM — the model never trained on a solid outline (main agent)
+- The user assumed a large share of training used the original mask (m00718). It did not: all 19 trimask methods modify the mask, and `finalize()` coarsens every one, so a plain solid silhouette, the most common real input, never appeared in training (SANA control_tri_scratch or FIBO2 fibo2_tri).
+- Fix: methods `original` and `threshold` as BlueJay processors; training mix set by the user to 30% solid outlines / 70% trimasks (m00720), first proposed by the agent as 2× weights (~17%), replaced by the user's split. Reason (m00721): "we need to make sure that it masters single outlines. It's a very common use case."
+- Lesson: when designing an augmentation set, always include the identity (un-augmented) condition, and check the realized training distribution against the real use case.

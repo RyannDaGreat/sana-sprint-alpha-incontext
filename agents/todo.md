@@ -15,8 +15,14 @@
 | 59 | Trimask journal page | — | after training |
 | 61 | FIBO2: train same way (all res, all augmentations), ckpt every 500, notify at 5 milestones (m00694, m00695) | da804e4 | adapter done (1000 steps); control fibo2_tri on GPUs 0-6 since 6:33 PM (global batch 28), GPU 7 = eval GPU for reports (NOT ASKED); 5 notifications sent |
 | 62 | SANA vs FIBO2 reports, journal/compare/ (m00698, m00699) | see git log | M0 live 11:02 PM + notified; M1 (FIBO2 ctrl 2000) via fork Fibo2Eval on GPU 7 |
-| 63 | FIBO2 in the browser: memory64 ORT-web build, >4 GB proof, int4 export (m00688, m00693, m00694) | — | fork Fibo2Web running (CPU only) |
-| 64 | Full resolution everywhere (m00705): train previews full 1024 (Fibo2Train), compare-report atlases 256 px + 512 thumbs -> original PNGs, journal-assets WebP q95 -> lossless | — | previews fix sent; reports + journal not started |
+| 63 | FIBO2 in the browser (m00688, m00693, m00694, m00710) | — | LIVE on Pages (gh-pages 22ee1f4): turbo 4-step int8 (49 dB live vs PyTorch), dev int8 (34-38 dB), dev int4; all live-tested; notified 4:58 AM + 8:03 AM. Open: turbo verify 2 items at 28.6 dB (cause unknown) |
+| 64 | Full resolution everywhere (m00705) | — | DONE: Pages serves original PNGs only (gh-pages a68dcca); compare atlases dropped; NOT ASKED: step0 JPEGs remain (no generator in repo); repo size past GitHub 5 GB guidance |
+| 67 | FIBO2 few-step (m00711, m00712) | — | DONE: A turbo transfer WORKS and ships (IoU 0.590 vs dev4 0.490); B own DMD2 student works (sharp; regression term 8cb0bf9 fixes drift; level with dev 30-step on 11 items) but turbo beats it by 0.138 for the control; DMD paused at ~step 1000 to free GPU 7 |
+| 68 | FIBO2 full eval set + report (m00713, m00714) | see git log | turbo 1024 pass (1273) LIVE in compare/scrub (gh-pages dab1da9), notified 11:39 AM; 768/512/256 + dev 30-step teacher rendering |
+| 70 | FIBO2 step 4000 in browser (dev + turbo int8) | — | LIVE + live-tested (47 / 51 dB vs PyTorch), notified 11:39 AM |
+| 71 | Web UI generation progress bar: steps + evenly spaced layer chunks (m00715), push when done | — | fork Progress running |
+| 72 | Trimask methods `original` + `threshold` via BlueJay; training mix 30% solid outlines / 70% trimasks (m00718, m00720, m00721 — "masters single outlines"), restart FIBO2 training | — | fork TrimaskPlus running; manifest §13 + concerns updated |
+| 73 | Reports: every image reachable (all-methods default view, counts on hub); journal index newest first with dates (m00719) | — | fork FullRes running |
 
 ## Open
 - [ ] Checkpoints 9000, 12000, 15000, 18000, 20000: push + manual notify each

@@ -432,3 +432,39 @@ Are the demo images being rendered with BlueJay? I noticed "blue jay" was one of
 
 ## m00709 — 2026-11-19 2:15 AM
 Why is this not the same kind of demo that I had in the web browser? Did you have severe amnesia? Please go back to the beginning of the conversation. Everything for the previous one, for SANA, was done with BlueJay for rendering. And also it had a web-based GUI that had the entire model running locally. These are our goals. These are not negotiable. Deviations from the original codebase, apart from the specific conditioning mechanisms used in training the model (which are okay to deviate), are problematic. And most of all, they must be put on GitHub Pages. And anything else I forgot, please circle back and remember your original goals. Don't lose sight; you have the north star to follow.
+
+## m00710 — 2026-11-19 2:16 AM
+I want the checkpoint we have now in the browser. Once it's pushed and tested, notify me.
+
+## m00711 — 2026-11-19 2:22 AM
+By the way, we will be distilling this down into a few-step model, right?
+
+## m00712 — 2026-11-19 2:23 AM
+Why are you guessing? Figure this out yourself. Try both things. I'm going to sleep now. You have to figure out whether it works or not.
+
+## m00713 — 2026-11-19 2:31 AM
+Fine. And for fuck's sake, why don't you use the whole gamut of test images that the first one used, so I can see all of them side by side, comparing SANA to FIBO? Instead you chose a tiny little subset at low resolution.
+
+## m00714 — 2026-11-19 2:36 AM
+And just like anything else, these should be in proper reports. Notify me when the report with the actual images that I want is up as well.
+
+## m00715 — 2026-11-19 ~12:50 PM
+You know, it might be nice to have a progress bar that shows, during generating, the number of steps it took to generate — and perhaps even add hooks into the network that track the computations of different layers. I don't know if that's possible, but it could be even more granular. Try to choose areas that are evenly spaced, like maybe between transformer layers or something. On the web UI. Please push when done.
+
+## m00716 — 2026-11-19 ~12:57 PM
+Also, did you push the latest checkpoints to GitHub or not?
+
+## m00717 — 2026-11-19 12:58 PM
+Please push the latest checkpoint.
+
+## m00718 — 2026-11-19 ~1:00 PM
+I assume that we are training on a large proportion of ones where it is just the original mask, right? If not, we need that, and one of the masks should just be thresholded. In fact, we don't need to — actually yeah, BlueJay probably should do that. We just need the original mask and then the original mask thresholded as two extras. In fact, they should probably be weighted a little bit more than the others too, because doing a solid outline is a pretty common task.
+
+## m00719 — 2026-11-19 1:15 PM
+You said that 5000 images were generated. Where are all of them? And why are all the journals not ordered by most recently modified? I mean, I can't figure out which ones are the latest.
+
+## m00720 — 2026-11-19 ~1:25 PM
+Let's make it 25% of the time we have solid outlines and then the other 75% of the time — you know, like 25% of the time it's those things that we just did — and then actually 30% of the time is that, and then the other 60 — sorry, 70% of the time it's going to be with trimasks.
+
+## m00721 — 2026-11-19 ~1:25 PM
+It's very important that you record this in the manifest. Make sure to update the manifest and concerns or whatnot. The reason why it's important is because we need to make sure that it masters single outlines. It's a very common use case.
