@@ -144,7 +144,7 @@ function lineChart(lines, baselines = [], yMax = 1) {
 /**
  * Pure function. A cell showing one original image (lazy-loaded, never downscaled on the server; a click opens the
  * file at full resolution), or a gray "rendering" cell when `src` is null (an item its eval has not reached yet).
- * @example imageCell('assets/compare/img/t/a.png', 'sana') // <a class="cell"><img src="../assets/compare/img/t/a.png"><span class="tag">sana</span></a>
+ * @example imageCell('img/a.png', 'sana') // <a class="cell"><img src="../img/a.png"><span class="tag">sana</span></a>  (real paths are rewritten by publish_pages)
  */
 function imageCell(src, label) {
   if (!src) return el('div', { class: 'empty', title: `${label}: rendering` }, `${label}: rendering`);
