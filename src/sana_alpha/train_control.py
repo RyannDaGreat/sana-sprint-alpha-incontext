@@ -171,11 +171,27 @@ def load_trimask_shard(versions, rank, world, seed, resolutions=(1024,)):
                 captions=rows.subject.astype(str).tolist(), page_ids=rows.page_id.tolist())
 
 
+METHOD_WEIGHTS = {"original": 2, "threshold": 2}  # m00718: the exact and the solid mask are common inputs; every other method 1
+
+
+def method_weights():
+    """
+    Pure function. Draw weight of each trimask.METHODS entry, in METHODS order: METHOD_WEIGHTS, else 1.
+
+    Examples:
+        >>> weights = method_weights()
+        >>> len(weights) == len(METHODS), float(weights[METHODS.index("threshold")]), float(weights[0])
+        (True, 2.0, 1.0)
+    """
+    return torch.tensor([float(METHOD_WEIGHTS.get(m, 1)) for m in METHODS])
+
+
 def method_uniform_draws(cond_owner, cond_method, count, batch_size, gen):
     """
     Near-pure function (advances gen). count // batch_size batches of (record indices, condition rows): each example
-    draws a method uniformly from trimask.METHODS, then one of that method's rows uniformly (so a method with fewer
-    rows is not under-represented); its record is the row's owner.
+    draws a method from trimask.METHODS with method_weights() (so original and threshold ~8.7% each, the other 19 ~4.3%),
+    then one of that method's rows uniformly (so a method with fewer rows is not under-represented); its record is the
+    row's owner. Raises if a method has no rows.
 
     Args:
         cond_owner, cond_method (torch.Tensor): (M,) record index and METHODS index of each condition row
@@ -195,7 +211,10 @@ def method_uniform_draws(cond_owner, cond_method, count, batch_size, gen):
         >>> len(counts) == len(METHODS), bool(counts.min() > 0)  # every method drawn, about equally often
         (True, True)
     """
-    methods = torch.randint(len(METHODS), (count // batch_size * batch_size,), generator=gen)
+    missing = [METHODS[m] for m in range(len(METHODS)) if not (cond_method == m).any()]
+    if missing:
+        raise ValueError(f"Trimask methods without condition rows: {missing}. Generate and encode them before training")
+    methods = torch.multinomial(method_weights(), count // batch_size * batch_size, replacement=True, generator=gen)
     rows = torch.zeros_like(methods)
     for m in range(len(METHODS)):
         options, pick = torch.nonzero(cond_method == m).flatten(), methods == m
