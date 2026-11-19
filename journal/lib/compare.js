@@ -2,6 +2,7 @@
 // <body data-view="...">; this module draws it from data/compare.json (written by src/sana_alpha/compare_build.py).
 
 const MODELS = { sana: 'SANA-Sprint 1.6B (shipped: Sprint, 2 steps)', fibo2: 'FIBO2 8.1B (shipped: turbo, 4 steps)', fibo2_teacher: 'FIBO2 8.1B teacher (dev, 30 steps, CFG 5)' };  // compare_build RUNS variants
+const SHORT = { sana: 'SANA', fibo2: 'FIBO2 turbo', fibo2_teacher: 'FIBO2 teacher' };  // cell labels: the long MODELS names do not fit a cell
 const VIEWS = [['index', 'Hub'], ['over_time', 'Over time'], ['scrub', 'Scrub'], ['matrix', 'Matrix'],
                ['strips', 'Strips'], ['pixel', 'Pixel'], ['fibo2', 'FIBO2 journal']];
 const METRICS = {
@@ -160,7 +161,18 @@ function imageCell(src, label) {
 function empty(model, report, step) {
   const evals = report ? pick(report.evals, { model }) : [];
   const text = !evals.length ? 'not trained yet' : pick(evals, { step }).length ? 'rendering' : `no eval at step ${step}`;
-  return el('div', { class: 'empty' }, `${MODELS[model]}: ${text}`);
+  return el('div', { class: 'empty', title: `${MODELS[model]}: ${text}` }, `${SHORT[model]}: ${text}`);
+}
+
+/**
+ * Pure function. Steps where both shipped models (SANA and FIBO2 turbo) have evals, so side-by-side views compare
+ * the same training step; all evaluated steps while FIBO2 has none yet (then only SANA shows).
+ * @example comparableSteps({ evals: [{ model: 'sana', step: 1000 }, { model: 'sana', step: 2000 }, { model: 'fibo2', step: 2000 }] }) // [2000]
+ */
+function comparableSteps(report) {
+  const of = (m) => new Set(pick(report.evals, { model: m }).map((e) => e.step));
+  const fibo = of('fibo2'), both = unique([...of('sana')].filter((s) => fibo.has(s)));
+  return both.length ? both : unique(report.evals.map((e) => e.step));
 }
 
 /** Pure function. Mask of the items in the chosen split ("held" = held-out only). */
@@ -227,7 +239,7 @@ function overTime(report, root) {
 /** Command. Checkpoint slider: every item's trimask, SANA and FIBO2 at the chosen step, method and resolution. */
 function scrub(report, root) {
   const h = readHash();
-  const steps = unique(report.evals.map((e) => e.step));
+  const steps = comparableSteps(report);  // the same step for every column; a model's other steps are in Strips
   const slider = el('input', { type: 'range', min: 0, max: Math.max(steps.length - 1, 0), value: Math.max(steps.indexOf(Number(h.step)), steps.length - 1) });
   const label = el('b', {});
   const grid = el('div', { class: 'grid' });
@@ -238,14 +250,14 @@ function scrub(report, root) {
     const cond = report.conditions.trimask[`${method}@${res}`];
     grid.replaceChildren(...report.items.map((item, i) => ((s.split || 'all') === 'all' || item.split === 'held-out' ? el('div', { class: 'item' },
       el('div', { class: 'cells' }, cond ? imageCell(cond.images[i], 'trimask') : empty('sana', report, step),
-        ...Object.keys(MODELS).map((m) => { const e = pick(report.evals, { model: m, method, res, step })[0]; return e ? imageCell(e.images[i], m) : empty(m, report, step); })),
+        ...Object.keys(MODELS).map((m) => { const e = pick(report.evals, { model: m, method, res, step })[0]; return e ? imageCell(e.images[i], SHORT[m]) : empty(m, report, step); })),
       el('a', { href: `pixel.html#page_id=${item.page_id}&method=${method}&res=${res}&step=${step}` }, `${item.split} · ${item.caption.slice(0, 60)}`)) : null)).filter(Boolean));
   };
   slider.addEventListener('input', draw);
   root.append(el('div', { class: 'controls' }, select('method', report.methods.map((m) => [m, m]), h.method || report.methods[0], draw),
     select('res', report.resolutions.map((r) => [r, `${r}²`]), h.res || 1024, draw),
     select('split', [['all', 'all items'], ['held', 'held-out']], h.split || 'all', draw), label, slider),
-  el('p', { class: 'note' }, 'Cells: trimask, SANA, FIBO2 (same item, same noise). Click a caption to compare at full resolution.'), grid);
+  el('p', { class: 'note' }, 'Cells: trimask, SANA, FIBO2 turbo, FIBO2 teacher (same item, same noise), each the original image; click one to open the file, or a caption for the pixel view. The slider only has steps where both SANA and FIBO2 turbo were evaluated; every step of each model is in Strips.'), grid);
   draw();
 }
 
@@ -255,7 +267,7 @@ function matrix(report, root) {
   const steps = unique(report.evals.map((e) => e.step));
   const table = el('div', { class: 'scroller' }), drill = el('div', {});
   const draw = () => {
-    const s = readHash(), metric = s.metric || 'band_iou', step = Number(s.step || steps.at(-1)), keep = keepOf(report, 'held');
+    const s = readHash(), metric = s.metric || 'band_iou', step = Number(s.step || comparableSteps(report).at(-1)), keep = keepOf(report, 'held');
     const shade = (v) => `color-mix(in srgb, color-mix(in srgb, var(--good) ${Math.round((METRICS[metric][2] ? v : 1 - Math.min(v * 10, 1)) * 100)}%, var(--bad)) var(--heat-strength), var(--bg))`;
     table.replaceChildren(el('table', { class: 'heat' }, el('tr', {}, el('th', {}, 'method'), report.resolutions.flatMap((r) => Object.keys(MODELS).map((m) => el('th', {}, `${m} ${r}²`)))),
       report.methods.map((method) => el('tr', {}, el('th', {}, method), report.resolutions.flatMap((res) => Object.keys(MODELS).map((m) => {
@@ -276,11 +288,11 @@ function matrix(report, root) {
     drill.replaceChildren(el('h2', {}, `${e.model} ${e.method} ${e.res}² step ${e.step}: ${METRICS[metric][0]}`),
       el('p', { class: 'note' }, 'worst / best: sorted by the metric over all items; random: a seeded draw. Each pair: trimask, generated.'),
       ...lists.flatMap(([name, idx]) => [el('h3', {}, name), el('div', { class: 'grid' }, idx.map((i) => el('div', { class: 'item' },
-        el('div', { class: 'cells' }, imageCell(cond.images[i], 'trimask'), imageCell(e.images[i], e.model)),
+        el('div', { class: 'cells' }, imageCell(cond.images[i], 'trimask'), imageCell(e.images[i], SHORT[e.model])),
         el('a', { href: `pixel.html#page_id=${report.items[i].page_id}&method=${e.method}&res=${e.res}&step=${e.step}` }, `${e.per_item[metric][i].toFixed(3)} · ${report.items[i].split}`))))]));
   };
   root.append(el('div', { class: 'controls' }, select('metric', Object.entries(METRICS).map(([k, v]) => [k, v[0]]), h.metric || 'band_iou', draw),
-    select('step', steps.map((s) => [s, s]), h.step || steps.at(-1), draw)), el('p', { class: 'note' }, 'Held-out mean per cell. Green = good, red = bad.'), table, drill);
+    select('step', steps.map((s) => [s, s]), h.step || comparableSteps(report).at(-1), draw)), el('p', { class: 'note' }, 'Held-out mean per cell. Green = good, red = bad.'), table, drill);
   draw();
 }
 
@@ -310,7 +322,7 @@ function pixel(report, root) {
   const apply = () => body.querySelectorAll('img').forEach((img) => { img.style.transform = `scale(${zoom.value})`; });
   const draw = () => {
     const s = readHash(), index = Math.max(report.items.findIndex((i) => i.page_id === s.page_id), 0);
-    const method = s.method || report.methods[0], res = Number(s.res || 1024), step = Number(s.step || steps.at(-1));
+    const method = s.method || report.methods[0], res = Number(s.res || 1024), step = Number(s.step || comparableSteps(report).at(-1));
     const figure = (src, caption) => el('figure', {}, el('div', { class: 'zoom' }, el('img', { src: url(src), loading: 'lazy', alt: caption })), el('figcaption', {}, caption));
     body.replaceChildren(figure(report.conditions.trimask[`${method}@${res}`].images[index], `trimask (${method})`),
       figure(report.conditions.matte[res].images[index], 'true matte'), figure(report.conditions.reference[res].images[index], 'MAGICK on gray (target)'),
@@ -322,7 +334,7 @@ function pixel(report, root) {
     body.style.setProperty('--ox', `${((e.clientX - r.left) / r.width) * 100}%`); body.style.setProperty('--oy', `${((e.clientY - r.top) / r.height) * 100}%`); });
   root.append(el('div', { class: 'controls' }, select('page_id', report.items.map((i) => [i.page_id, `${i.split} · ${i.caption.slice(0, 50)}`]), h.page_id || report.items[0].page_id, draw),
     select('method', report.methods.map((m) => [m, m]), h.method || report.methods[0], draw), select('res', report.resolutions.map((r) => [r, `${r}²`]), h.res || 1024, draw),
-    select('step', steps.map((x) => [x, x]), h.step || steps.at(-1), draw), el('label', {}, 'zoom ', zoom)), body);
+    select('step', steps.map((x) => [x, x]), h.step || comparableSteps(report).at(-1), draw), el('label', {}, 'zoom ', zoom)), body);
   draw();
 }
 

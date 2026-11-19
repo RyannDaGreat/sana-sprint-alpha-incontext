@@ -4,7 +4,7 @@
   --sana: #2f5d8a; --fibo: #b5473a; --base: #8a8a8a; --good: #2f7d4f; --bad: #b5473a; --cell-gray: #808080;
   --gutter: 16px; --measure: 1100px; --gap: 12px; --gap-small: 6px; --radius: 4px; --pad-cell: 4px 8px; --pad-box: 12px 16px;
   --font-body: 17px; --font-small: 14px; --font-tiny: 12px; --hairline: 1px; --line: 2px; --dot: 2.5px;
-  --chart-h: 220px; --thumb: 240px; --thumb-small: 96px; --heat-cell: 64px; --band-alpha: 0.18; --heat-strength: 45%; --multiple-min: 320px; --pixel-min: 280px; --dash: 4 3;
+  --chart-h: 220px; --thumb: 240px; --item-min: 540px; --pad-empty: 4px; --thumb-small: 96px; --heat-cell: 64px; --band-alpha: 0.18; --heat-strength: 45%; --multiple-min: 320px; --pixel-min: 280px; --dash: 4 3;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --bg: #18191b; --fg: #e8e8e6; --muted: #a0a0a5; --rule: #3a3b3e; --accent: #8ab4dc; --chip: #26292d;
@@ -34,13 +34,13 @@ nav.views a[aria-current="page"] { background: var(--chip); border-color: var(--
 .sana { stroke: var(--sana); fill: var(--sana); color: var(--sana); }
 .fibo { stroke: var(--fibo); fill: var(--fibo); color: var(--fibo); }
 .legend { font: var(--font-tiny) system-ui, sans-serif; display: flex; flex-wrap: wrap; gap: var(--gap); }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--thumb), 1fr)); gap: var(--gap); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--item-min)), 1fr)); gap: var(--gap); }
 .item { font: var(--font-tiny) system-ui, sans-serif; color: var(--muted); }
-.item .cells { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: var(--hairline); }
+.item .cells { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: var(--hairline); }  /* equal columns: minmax(0) so a long placeholder text cannot widen its column */
 .cell { aspect-ratio: 1; background-color: var(--cell-gray); position: relative; display: block; overflow: hidden; }
 .cell img { width: 100%; height: 100%; object-fit: contain; display: block; }
 .cell .tag { position: absolute; left: 0; bottom: 0; background: var(--bg); color: var(--fg); padding: 0 var(--gap-small); font-size: var(--font-tiny); opacity: 0.85; }
-.empty { aspect-ratio: 1; display: grid; place-items: center; background: var(--chip); color: var(--muted); font: var(--font-tiny) system-ui, sans-serif; text-align: center; }
+.empty { aspect-ratio: 1; min-width: 0; overflow: hidden; overflow-wrap: anywhere; padding: var(--pad-empty); display: grid; place-items: center; background: var(--chip); color: var(--muted); font: var(--font-tiny) system-ui, sans-serif; text-align: center; }
 .scroller { overflow-x: auto; }
 table.heat { border-collapse: collapse; font: var(--font-small) system-ui, sans-serif; }
 table.heat th, table.heat td { padding: var(--pad-cell); border: var(--hairline) solid var(--rule); text-align: center; min-width: var(--heat-cell); }
