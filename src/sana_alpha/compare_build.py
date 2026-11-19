@@ -31,9 +31,11 @@ DATA = ROOT / "journal/compare/data"
 ASSETS = "assets/compare"  # relative to journal/
 LOGS = ROOT / "agents/.scratchpad/logs"
 COMPARE_METHODS = ("morph_band", "scribbles", "bbox_unknown", "partial_view", "combo_chain", "glass_ripple")  # the cheap eval tier: one band, stroke, box, crop, combination and warp (manifest §15)
-RUNS = {"tri_scratch": dict(family="sana", label="SANA-Sprint 1.6B", log="train_control_tri_scratch.log", global_batch=128, rest="sprint_lam0_2step"),  # 16 x 8 GPUs
-        "fibo2_tri": dict(family="fibo2", label="FIBO2 8.1B", log="train_fibo2_fibo2_tri.log", global_batch=28, rest="fibo2_30step_full")}  # 4 x 7 GPUs; every item, paired 1:1 with SANA (m00713)
-# rest: the one model variant of each run in the reports (its shipped model on the full eval sets); other tags of the run (held-out subsets, 4-step tests) stay out
+RUNS = {"tri_scratch": dict(family="sana", label="SANA-Sprint 1.6B", log="train_control_tri_scratch.log", global_batch=128,  # 16 x 8 GPUs
+                           variants={"sprint_lam0_2step": "sana"}),  # its shipped model: Sprint, 2 steps, λ = 0
+        "fibo2_tri": dict(family="fibo2", label="FIBO2 8.1B", log="train_fibo2_fibo2_tri.log", global_batch=28,  # 4 x 7 GPUs; every item, paired 1:1 with SANA (m00713)
+                          variants={"turbo_4step_full": "fibo2", "fibo2_30step_full": "fibo2_teacher"})}  # shipped: turbo + control, 4 steps, no CFG; teacher: dev, 30 steps, CFG 5
+# variants: tag rest (gallery tag after the step) -> report model; other tags of a run (held-out subsets, 4-step tests) stay out
 LOSS_WINDOW = 50  # training-log steps averaged into one loss point (the log has one line per 10 steps)
 THREADS = 4  # the GPUs' encode and training jobs need the CPUs
 DIGITS = 4
@@ -123,7 +125,7 @@ def evaluate(tag, parts, blobs, items):
     names = next(s for s in scores if s is not None)
     per_item = {m: [round(s[m], DIGITS) if s is not None and s[m] == s[m] else None for s in scores] for m in names}
     run = RUNS[parts["run"]]
-    return dict(tag=tag, **parts, model=run["family"], samples=parts["step"] * run["global_batch"],
+    return dict(tag=tag, **parts, model=run["variants"][parts["rest"]], samples=parts["step"] * run["global_batch"],
                 images=[None if p is None else str(p.relative_to(ROOT / "journal")) for p in images],
                 per_item=per_item,
                 summary=summarize({m: [np.nan if v is None else v for v in vs] for m, vs in per_item.items()},
@@ -157,7 +159,7 @@ def build():
     tags = {}
     for tag, page_id, image in zip(table.model_tag, table.page_id, table.image):
         parts = parse_tag(tag)
-        if parts and parts["run"] in RUNS and parts["rest"] == RUNS[parts["run"]]["rest"]:
+        if parts and parts["run"] in RUNS and parts["rest"] in RUNS[parts["run"]]["variants"]:
             assert image["position"] == 0, f"{tag} {page_id}: blob is packed in {image['blob_uri']}, not a file of its own"
             tags.setdefault(tag, (parts, {}))[1][page_id] = image["blob_uri"]
     every = {i["page_id"] for i in items}
