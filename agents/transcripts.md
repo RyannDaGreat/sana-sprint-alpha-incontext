@@ -362,3 +362,73 @@ You can also have a bunch of Haiku and Sonnet swarms go fetch 10 times more mask
 
 ## m00686 — 2026-11-18 4:27 AM
 Make sure to push all these things. Notify me when done.
+
+## m00687 — 2026-11-18 11:54 AM
+I need that RGBA as well as that on-gray option. You got rid of it; that's a problem. I know it might not be perfect, but even with the trimask I still need that, so please give me back that option. Even if it's not perfect — sometimes I just do white. And also, where's my 256 option for resolution? I want all the things we trained on; I want resolution options for them.
+
+## m00688 — 2026-11-18 12:12 PM
+FIBO2 is a new model. I'd like to explore also training our dataset on this the same way that we did for our current model, and also finding ways to both distill it and put it into a browser and quantize it. Can it all be done on this node? You can launch a research sub-frenzy with five Sonnet agents.
+
+## m00689 — 2026-11-18 12:13 PM
+Give me a human-readable notification once you find out.
+
+## m00690 — 2026-11-18 12:15 PM
+Fuck the license. We don't care. It doesn't matter.
+
+## m00691 — 2026-11-18 12:16 PM
+I'm only interested in this model. I'm not interested in other, smaller models.
+
+## m00692 — 2026-11-18 12:35 PM
+Wait, so why isn't it able to run in a browser, exactly?
+
+## m00693 — 2026-11-18 12:38 PM
+That 4 gigabyte limit, is that something we can change? Can we just raise the limit? I'm more than sure there are probably some people that have done this. It's an open source project, after all.
+
+## m00694 — 2026-11-18 1:24 PM
+Right, then fuck it lol, let's forge ahead anyway lol. My MacBook has 36 GB max RAM total, so 4 GB is puny.
+
+## m00695 — 2026-11-18 1:27 PM
+(pasted) Figure out what you've got to do, organize the codebase nicely, keep the commits clean, keep it reproducible, and then start training on the new models for this FIBO one, F-I-B-O. Add all the resolutions at once, basically exactly the same as what we're doing now. I want the same type of interface, the same set of images we train on, all the different resolutions, all the different augmentations. Let's do it again. And then notify me when training starts, notify me when the data processing starts, notify me when the data processing has an accurate ETA, notify me when the data processing ends, and notify me when we save our first checkpoint. Our checkpoints can be saved every 500 for now. We'll expose 500, 1000, 2000, 3000, 6000, 10,000, 7500 steps in our web UI. Maybe you could actually make it a bit more rational — maybe 2000, 4000, 6000, 8000, 10,000, or maybe every 1000. I don't know. Keep it rational, keep it cool, keep it fun, keep it good. But it's important that you don't crash this node. So you can cancel your current stuff that you're doing; we've already pretty much finished the current training run.
+Don't wait until 20,000. We think we're done now.
+
+## m00696 — 2026-11-18 1:32 PM
+You're probably going to need to first use our GPUs to process all the latents for all the different resolutions with FIBO. How many channels, and what latent-to-pixel ratio — like 8 by 8 by 16? What is the latent space for FIBO?
+
+## m00697 — 2026-11-18 1:36 PM
+This all sounds good, please proceed.
+
+## m00698 — 2026-11-18 1:40 PM
+And of course you should have journals, by the way — intermediate journals showing us all the different results comparing SANA to FIBO. More than just the WebGPU-runnable thing: I'd like actual reports, just like the others, showing all the different things over time. In fact, you can make better ones than you did last time. You can have some Sonnet agents ponder what you should do for that, and add that to your to-do list when you plan. Each time you publish a new report, you can notify me one time.
+
+## m00699 — 2026-11-18 1:41 PM
+Note that I will probably rely on using GitHub Pages, so yeah.
+
+## m00700 — 2026-11-18 2:56 PM
+What's the total size of all blobs? You can ask Sparrow, I bet.
+
+## m00701 — 2026-11-18 3:25 PM
+Sounds good, we're well under our 1 PB limit.
+
+## m00702 — 2026-11-19 ~2:06 AM
+Why — what the hell, what's going on? Where are the images? Can you please post this? First of all, I want to see some images right now. Second of all, I want to have this checkpoint online so I can play with it immediately.
+
+## m00703 — 2026-11-19 ~2:07 AM
+And of course resume training. Training is more important than inference.
+
+## m00704 — 2026-11-19 ~2:09 AM
+I never asked for Claude AI bullshit. I don't want that. Just give me a fucking local IP address and port.
+
+## m00705 — 2026-11-19 ~2:09 AM
+Why are they so blurry? I never asked for blurry images. Make sure everything is original resolution. Never do low resolution. I'm never interested in it.
+
+## m00706 — 2026-11-19 2:10 AM
+Why is only one GPU doing any work right now? And why do we have so few demo images?
+
+## m00707 — 2026-11-19 2:10 AM
+Are these images being rendered with luge? (voice-to-text for "BlueJay", per m00708)
+
+## m00708 — 2026-11-19 2:12 AM
+Are the demo images being rendered with BlueJay? I noticed "blue jay" was one of the prompts. If that's just for fun, sure, but hopefully it was rendered THROUGH BlueJay, right?
+
+## m00709 — 2026-11-19 2:15 AM
+Why is this not the same kind of demo that I had in the web browser? Did you have severe amnesia? Please go back to the beginning of the conversation. Everything for the previous one, for SANA, was done with BlueJay for rendering. And also it had a web-based GUI that had the entire model running locally. These are our goals. These are not negotiable. Deviations from the original codebase, apart from the specific conditioning mechanisms used in training the model (which are okay to deviate), are problematic. And most of all, they must be put on GitHub Pages. And anything else I forgot, please circle back and remember your original goals. Don't lose sight; you have the north star to follow.
