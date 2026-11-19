@@ -301,10 +301,13 @@ def train(mode, run, adapter=None, rank=64, batch_size=2, max_steps=20000, warmu
                                    decouple=True, use_bias_correction=True, safeguard_warmup=True)
     scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda s: min(1.0, (s + start_step + 1) / max(warmup, 1)))
     changes = dataset_changes(out_dir)
+    if world > 1:
+        dist.barrier()  # Every rank has read the file before rank 0 rewrites it (rank 3 once read it half-written)
     if fresh_optimizer:
         assert init_from, "fresh_optimizer is for a resume (init_from): a new run always starts fresh"
-        changes = changes if changes and changes[-1] == start_step else changes + [start_step]  # A crash relaunch repeats the change
-        if main:
+        known = bool(changes) and changes[-1] == start_step  # A crash relaunch repeats the same change
+        changes = changes if known else changes + [start_step]
+        if main and not known:
             (out_dir / DATASET_CHANGE_FILE).write_text(json.dumps(dict(steps=changes, reason="m00723: dataset changed")) + "\n")
         log(f"optimizer: fresh (dataset changed, m00723); dataset change steps {changes}")
     elif init_from and (Path(init_from) / "optimizer.pt").exists():
