@@ -19,11 +19,11 @@ const DOT = 2.5;  // point radius, SVG user units
 const WORST_SHOWN = 6;  // items per list in the matrix drill-down
 
 /**
- * Pure function. Resolves a data path: absolute URLs (published WebP) as they are, journal-relative paths from a page in journal/compare/.
+ * Pure function. Resolves a data path: absolute URLs (the published original PNGs) as they are, journal-relative paths from a page in journal/compare/.
  * @param {string} path
  * @returns {string}
  * @example url('data/compare.json') // '../data/compare.json'  (no image path here: publish_pages rewrites every literal one)
- * @example url('https://h/ab/cd.webp') // 'https://h/ab/cd.webp'
+ * @example url('https://h/ab/cd.png') // 'https://h/ab/cd.png'
  */
 export function url(path) { return /^https?:/.test(path) ? path : `../${path}`; }
 
@@ -92,8 +92,9 @@ export function unique(values) { return [...new Set(values)].sort((a, b) => (a <
  * @returns {number[][]} [[x, mean, low, high], ...]
  */
 function series(report, model, metric, res, methods, keep, x = 'step') {
-  return unique(pick(report.evals, { model, res }).map((e) => e.step)).map((step) => {
-    const evals = pick(report.evals, { model, res, step }).filter((e) => methods.includes(e.method));
+  const done = report.evals.filter((e) => e.complete);  // a curve point only from finished evals: partial ones would bias it
+  return unique(pick(done, { model, res }).map((e) => e.step)).map((step) => {
+    const evals = pick(done, { model, res, step }).filter((e) => methods.includes(e.method));
     return evals.length ? [evals[0][x], ...bootstrap(itemMeans(evals, metric, keep))] : null;
   }).filter(Boolean);
 }
@@ -142,17 +143,25 @@ function lineChart(lines, baselines = [], yMax = 1) {
 
 /**
  * Pure function. A cell showing one original image (lazy-loaded, never downscaled on the server; a click opens the
- * file at full resolution), or a gray "not evaluated" cell when `src` is null (held-out-only runs).
+ * file at full resolution), or a gray "rendering" cell when `src` is null (an item its eval has not reached yet).
  * @example imageCell('assets/compare/img/t/a.png', 'sana') // <a class="cell"><img src="../assets/compare/img/t/a.png"><span class="tag">sana</span></a>
  */
 function imageCell(src, label) {
-  if (!src) return el('div', { class: 'cell', title: `${label}: not evaluated` }, el('span', { class: 'tag' }, `${label}: n/a`));
+  if (!src) return el('div', { class: 'empty', title: `${label}: rendering` }, `${label}: rendering`);
   return el('a', { class: 'cell', href: url(src), target: '_blank', title: `${label} (original file)` },
     el('img', { src: url(src), loading: 'lazy', decoding: 'async', alt: label }), el('span', { class: 'tag' }, label));
 }
 
-/** Pure function. The "not trained yet" placeholder of a model with no evals. */
-function empty(model) { return el('div', { class: 'empty' }, `${MODELS[model]}: not trained yet`); }
+/**
+ * Pure function. Placeholder for a model with no eval at this (method, resolution, step): "not trained yet" when the
+ * model has no evals at all, "rendering" when it has evals at this step (this one is queued), else "no eval at step N".
+ * @example empty('fibo2') // <div class="empty">FIBO2 8.1B: not trained yet</div>
+ */
+function empty(model, report, step) {
+  const evals = report ? pick(report.evals, { model }) : [];
+  const text = !evals.length ? 'not trained yet' : pick(evals, { step }).length ? 'rendering' : `no eval at step ${step}`;
+  return el('div', { class: 'empty' }, `${MODELS[model]}: ${text}`);
+}
 
 /** Pure function. Mask of the items in the chosen split ("held" = held-out only). */
 function keepOf(report, split) { return report.items.map((i) => split === 'all' || i.split === 'held-out'); }
@@ -227,15 +236,15 @@ function scrub(report, root) {
     label.textContent = `step ${step}`;
     writeHash({ step });
     const cond = report.conditions.trimask[`${method}@${res}`];
-    grid.replaceChildren(...report.items.map((item, i) => (s.split === 'all' || item.split === 'held-out' ? el('div', { class: 'item' },
-      el('div', { class: 'cells' }, cond ? imageCell(cond.images[i], 'trimask') : empty('sana'),
-        ...Object.keys(MODELS).map((m) => { const e = pick(report.evals, { model: m, method, res, step })[0]; return e ? imageCell(e.images[i], m) : empty(m); })),
+    grid.replaceChildren(...report.items.map((item, i) => ((s.split || 'all') === 'all' || item.split === 'held-out' ? el('div', { class: 'item' },
+      el('div', { class: 'cells' }, cond ? imageCell(cond.images[i], 'trimask') : empty('sana', report, step),
+        ...Object.keys(MODELS).map((m) => { const e = pick(report.evals, { model: m, method, res, step })[0]; return e ? imageCell(e.images[i], m) : empty(m, report, step); })),
       el('a', { href: `pixel.html#page_id=${item.page_id}&method=${method}&res=${res}&step=${step}` }, `${item.split} · ${item.caption.slice(0, 60)}`)) : null)).filter(Boolean));
   };
   slider.addEventListener('input', draw);
   root.append(el('div', { class: 'controls' }, select('method', report.methods.map((m) => [m, m]), h.method || report.methods[0], draw),
     select('res', report.resolutions.map((r) => [r, `${r}²`]), h.res || 1024, draw),
-    select('split', [['held', 'held-out'], ['all', 'all items']], h.split || 'held', draw), label, slider),
+    select('split', [['all', 'all items'], ['held', 'held-out']], h.split || 'all', draw), label, slider),
   el('p', { class: 'note' }, 'Cells: trimask, SANA, FIBO2 (same item, same noise). Click a caption to compare at full resolution.'), grid);
   draw();
 }
@@ -252,6 +261,7 @@ function matrix(report, root) {
       report.methods.map((method) => el('tr', {}, el('th', {}, method), report.resolutions.flatMap((res) => Object.keys(MODELS).map((m) => {
         const e = pick(report.evals, { model: m, method, res, step })[0];
         if (!e) return el('td', {}, '—');
+        if (!e.complete) return el('td', { class: 'click', onclick: () => showDrill(e, metric) }, `rendering ${e.images.filter(Boolean).length}/${e.images.length}`);
         const v = bootstrap(itemMeans([e], metric, keep))[0];
         return el('td', { class: 'click', style: { background: shade(v) }, onclick: () => showDrill(e, metric) }, v.toFixed(3));
       }))))));
@@ -283,7 +293,7 @@ function strips(report, root) {
     body.replaceChildren(...report.methods.flatMap((method) => Object.keys(MODELS).map((m) => {
       const evals = pick(report.evals, { model: m, method, res }).sort((a, b) => a.step - b.step);
       return el('div', {}, el('h3', {}, `${MODELS[m]} · ${method} · ${res}²`), evals.length ? el('div', { class: 'strip' },
-        imageCell(report.conditions.trimask[`${method}@${res}`].images[index], 'trimask'), evals.map((e) => imageCell(e.images[index], `${e.step}`))) : empty(m));
+        imageCell(report.conditions.trimask[`${method}@${res}`].images[index], 'trimask'), evals.map((e) => imageCell(e.images[index], `${e.step}`))) : empty(m, report));
     })));
   };
   root.append(el('div', { class: 'controls' }, select('page_id', report.items.map((i) => [i.page_id, `${i.split} · ${i.caption.slice(0, 50)}`]), h.page_id || report.items[0].page_id, draw),
@@ -304,7 +314,7 @@ function pixel(report, root) {
     const figure = (src, caption) => el('figure', {}, el('div', { class: 'zoom' }, el('img', { src: url(src), loading: 'lazy', alt: caption })), el('figcaption', {}, caption));
     body.replaceChildren(figure(report.conditions.trimask[`${method}@${res}`].images[index], `trimask (${method})`),
       figure(report.conditions.matte[res].images[index], 'true matte'), figure(report.conditions.reference[res].images[index], 'MAGICK on gray (target)'),
-      ...Object.keys(MODELS).map((m) => { const e = pick(report.evals, { model: m, method, res, step })[0]; return !e ? el('figure', {}, empty(m)) : e.images[index] ? figure(e.images[index], `${MODELS[m]} step ${step}`) : el('figure', {}, el('div', { class: 'empty' }, `${MODELS[m]}: held-out items only`)); }));
+      ...Object.keys(MODELS).map((m) => { const e = pick(report.evals, { model: m, method, res, step })[0]; return !e ? el('figure', {}, empty(m, report, step)) : e.images[index] ? figure(e.images[index], `${MODELS[m]} step ${step}`) : el('figure', {}, el('div', { class: 'empty' }, `${MODELS[m]} step ${step}: rendering`)); }));
     apply();
   };
   zoom.addEventListener('input', apply);

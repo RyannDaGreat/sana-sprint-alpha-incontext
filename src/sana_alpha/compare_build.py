@@ -31,8 +31,8 @@ DATA = ROOT / "journal/compare/data"
 ASSETS = "assets/compare"  # relative to journal/
 LOGS = ROOT / "agents/.scratchpad/logs"
 COMPARE_METHODS = ("morph_band", "scribbles", "bbox_unknown", "partial_view", "combo_chain", "glass_ripple")  # the cheap eval tier: one band, stroke, box, crop, combination and warp (manifest §15)
-RUNS = {"tri_scratch": dict(family="sana", label="SANA-Sprint 1.6B", log="train_control_tri_scratch.log", global_batch=128, held_only=False),  # 16 x 8 GPUs
-        "fibo2_tri": dict(family="fibo2", label="FIBO2 8.1B", log="train_fibo2_fibo2_tri.log", global_batch=28, held_only=True)}  # 4 x 7 GPUs; ~1 min per image, so held-out items only (gallery.HELD_SET)
+RUNS = {"tri_scratch": dict(family="sana", label="SANA-Sprint 1.6B", log="train_control_tri_scratch.log", global_batch=128),  # 16 x 8 GPUs
+        "fibo2_tri": dict(family="fibo2", label="FIBO2 8.1B", log="train_fibo2_fibo2_tri.log", global_batch=28)}  # 4 x 7 GPUs; every item, paired 1:1 with SANA (m00713)
 LOSS_WINDOW = 50  # training-log steps averaged into one loss point (the log has one line per 10 steps)
 THREADS = 4  # the GPUs' encode and training jobs need the CPUs
 DIGITS = 4
@@ -83,14 +83,16 @@ def summarize(per_item, held):
         held (list[bool]): item is held-out
 
     Returns:
-        dict: metric -> {"all": [mean, low, high], "held": [mean, low, high]}
+        dict: metric -> {"all": [mean, low, high], "held": [mean, low, high]}; None for a split with no finished item
 
     Examples:
         >>> summarize({"band_iou": [0.5, 0.7, 0.9]}, [True, True, False])["band_iou"]["held"]
         [0.6, 0.5, 0.7]
+        >>> summarize({"band_iou": [np.nan, np.nan, 0.9]}, [True, True, False])["band_iou"]  # held-out items still rendering
+        {'all': [0.9, 0.9, 0.9], 'held': None}
     """
     pick = lambda values, keep: [v for v, k in zip(values, keep) if k]
-    ci = lambda values: [round(v, DIGITS) for v in paired_bootstrap_ci(values)]
+    ci = lambda values: [round(v, DIGITS) for v in paired_bootstrap_ci(values)] if not np.isnan(values).all() else None
     return {m: {"all": ci(v), "held": ci(pick(v, held))} for m, v in per_item.items()}
 
 
@@ -101,11 +103,11 @@ def evaluate(tag, parts, blobs, items):
     Args:
         tag (str): model_tag
         parts (dict): parse_tag(tag)
-        blobs (dict[str, str]): page_id -> blob file relative to the eval_generations dataset (a held-out-only run has no train items)
+        blobs (dict[str, str]): page_id -> blob file relative to the eval_generations dataset (items still rendering are missing)
         items (list[dict]): showcase items in report order
 
     Returns:
-        dict: the eval's record in compare.json (a skipped item: image null, metrics null)
+        dict: the eval's record in compare.json (an item still rendering: image null, metrics null)
     """
     read = lambda path: np.asarray(Image.open(path), np.float32) / 255
     sets = ROOT / trimask_set(parts["res"]) / parts["method"]
@@ -157,11 +159,10 @@ def build():
         if parts and parts["run"] in RUNS:
             assert image["position"] == 0, f"{tag} {page_id}: blob is packed in {image['blob_uri']}, not a file of its own"
             tags.setdefault(tag, (parts, {}))[1][page_id] = image["blob_uri"]
-    needed = lambda run: {i["page_id"] for i in items if i["split"] == "held-out" or not RUNS[run]["held_only"]}
-    complete = {t: v for t, v in tags.items() if needed(v[0]["run"]) <= set(v[1])}
-    print(f"{len(complete)} complete evals ({len(tags) - len(complete)} partial ones skipped)", flush=True)
+    every = {i["page_id"] for i in items}
+    print(f"{len(tags)} evals, {sum(every <= set(v[1]) for v in tags.values())} complete; partial ones are shown with their missing items as rendering", flush=True)
     with ThreadPoolExecutor(THREADS) as pool:
-        evals = list(pool.map(lambda kv: evaluate(kv[0], *kv[1], items), sorted(complete.items())))
+        evals = list(pool.map(lambda kv: dict(evaluate(kv[0], *kv[1], items), complete=every <= set(kv[1][1])), sorted(tags.items())))
     methods = sorted({e["method"] for e in evals}, key=METHODS.index)
     resolutions = sorted({e["res"] for e in evals}, reverse=True)
     DATA.mkdir(parents=True, exist_ok=True)
