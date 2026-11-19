@@ -257,5 +257,43 @@ def held_out(source="resources/showcase_trimask", out="resources/showcase_trimas
     print(f"wrote {base}: {len(keep)} held-out items x {len(methods)} methods")
 
 
+def fibo2_preview(checkpoint="models/fibo2/fibo2_tri/step_002000", out="resources/fibo2_preview"):
+    """
+    Command. Writes the eval set of a FIBO2 control run's training previews (train_fibo2.control_preview_rows on rank 0
+    of the checkpoint's world size, seed and lance versions): OUT/prompts.json (page_id, caption, method, split
+    "train"), mattes/ (the trimask, 1024 8-bit), originals/ (the true alpha), references/ (MAGICK on gray), and
+    noise.safetensors (make_noise rows; FIBO2 draws its own noise from the item's seed), so BlueJay renders the same
+    4 items the trainer previews, at full resolution.
+
+    Args:
+        checkpoint (str): a control step folder; its meta.json gives world, lance_versions
+        out (str): output folder relative to the repo root
+    """
+    import lance
+
+    from sana_alpha.train_control import LANCE, TRIMASK_LANCE
+    from sana_alpha.train_fibo2 import control_preview_rows, load_index
+    from sana_alpha.trimask import METHODS
+
+    meta = json.loads((ROOT / checkpoint / "meta.json").read_text())
+    versions = tuple(meta["lance_versions"])
+    index = load_index("control", versions, 0, meta["world"], 0)  # rank 0 writes the previews; train's seed default 0
+    idx, rows = control_preview_rows(index)
+    magick, tri = lance.dataset(str(LANCE), version=versions[0]), lance.dataset(str(TRIMASK_LANCE), version=versions[1])
+    record_ids, cond_ids = index["rowids"][idx.numpy()].tolist(), index["cond_rowids"][rows.numpy()].tolist()
+    pages = magick._take_rows(record_ids, columns=["page_id"]).column("page_id").to_pylist()  # by _rowid (take() is by position)
+    base = ROOT / out
+    for kind, dataset, column, ids in (("mattes", tri, "trimask", cond_ids), ("originals", magick, "alpha", record_ids),
+                                       ("references", magick, "rgb_on_gray", record_ids)):
+        (base / kind).mkdir(parents=True, exist_ok=True)
+        for page_id, blob in zip(pages, dataset.take_blobs(column, ids=ids)):
+            (base / kind / f"{page_id}.png").write_bytes(blob.read())
+    items = [dict(page_id=p, caption=index["captions"][i], method=METHODS[int(index["cond_method"][r])], split="train")
+             for p, i, r in zip(pages, idx.tolist(), rows.tolist())]
+    (base / "prompts.json").write_text(json.dumps(items, indent=1) + "\n")
+    save_file(dict(noise=make_noise(len(items))), base / "noise.safetensors", metadata=dict(seed=str(NOISE_SEED)))
+    print(f"wrote {base}: {len(items)} preview items {[(i['page_id'], i['method']) for i in items]}")
+
+
 if __name__ == "__main__":
-    fire.Fire(dict(build=build, build_trimask=build_trimask, held_out=held_out))
+    fire.Fire(dict(build=build, build_trimask=build_trimask, held_out=held_out, fibo2_preview=fibo2_preview))

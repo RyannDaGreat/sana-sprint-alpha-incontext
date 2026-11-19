@@ -1,0 +1,26 @@
+[
+ {
+  "page_id": "f1S9HOojev",
+  "caption": "excited mermaid girl with long flowing hair scars dancing",
+  "method": "morph_band",
+  "split": "train"
+ },
+ {
+  "page_id": "EvbNmFNjvX",
+  "caption": "wide view of a teenage white transgender nonbinary courier woman brown eyes",
+  "method": "grid_coarsen",
+  "split": "train"
+ },
+ {
+  "page_id": "vF1j34viuU",
+  "caption": "blue jay or cyanocitta cristata",
+  "method": "skeleton_strokes",
+  "split": "train"
+ },
+ {
+  "page_id": "SOFWC0260a",
+  "caption": "blue british short hair kitten with candy heart,",
+  "method": "glass_ripple",
+  "split": "train"
+ }
+]

@@ -105,6 +105,26 @@ def draws(index, mode, batch_size, seed, gen):
         epoch += 1
 
 
+def control_preview_rows(index):
+    """
+    Pure function. The control previews' items: the first condition row of each of PREVIEW_COUNT methods spread
+    evenly over METHODS, and its record.
+
+    Args:
+        index (dict): load_index("control", ...): cond_method (M,), cond_owner (M,)
+
+    Returns:
+        tuple: record indices (PREVIEW_COUNT,), condition rows (PREVIEW_COUNT,)
+
+    Examples:
+        >>> idx, rows = control_preview_rows(dict(cond_method=torch.arange(19).repeat(2), cond_owner=torch.arange(38) // 2))
+        >>> rows.tolist(), idx.tolist()
+        ([0, 6, 12, 18], [0, 3, 6, 9])
+    """
+    rows = torch.tensor([int(torch.nonzero(index["cond_method"] == m)[0]) for m in torch.linspace(0, len(METHODS) - 1, PREVIEW_COUNT).long()])
+    return index["cond_owner"][rows], rows
+
+
 def read_batch(tables, index, mode, res, idx, rows):
     """
     Query (reads Blobs). One batch's raw latents at resolution res.
@@ -266,9 +286,8 @@ def train(mode, run, adapter=None, rank=64, batch_size=2, max_steps=20000, warmu
     if main and preview_every:
         from diffusers import AutoencoderKLFlux2
         vae = AutoencoderKLFlux2.from_pretrained(models.localize(VAE_DIR), torch_dtype=torch.bfloat16).to(device)
-        if mode == "control":  # one trimask each of PREVIEW_COUNT methods spread over METHODS
-            preview_rows = torch.tensor([int(torch.nonzero(index["cond_method"] == m)[0]) for m in torch.linspace(0, len(METHODS) - 1, PREVIEW_COUNT).long()])
-            preview_idx = index["cond_owner"][preview_rows]
+        if mode == "control":
+            preview_idx, preview_rows = control_preview_rows(index)
         else:
             preview_idx = preview_rows = torch.arange(PREVIEW_COUNT)
         preview = read_batch(tables, index, mode, PREVIEW_SIZE, preview_idx, preview_rows)
