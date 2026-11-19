@@ -277,7 +277,6 @@ function applyFamily(family, defaults) {
   $('steps').innerHTML = STEP_CHOICES[family].map((n) => `<option value="${n}">${n}</option>`).join('');
   $('steps').value = defaults ? String(defaults.steps) : STEP_CHOICES[family].includes(Number(keep)) ? keep : String(STEP_CHOICES[family][1]);
   if (defaults) $('guidance').value = defaults.guidance;
-  $('guidance-label').textContent = family === 'fibo2' ? 'Guidance (CFG)' : 'Guidance (embedded)';
 }
 
 /**
@@ -292,6 +291,10 @@ function syncSamplerUi() {
   $('lambda-v').textContent = $('lambda').value;
   $('lambda').disabled = !state.pipeline?.hasLambda;
   const manifest = (state.pipeline?.version ?? state.selected)?.manifest, dynamic = manifest?.dynamic_size ?? true;
+  const noCfg = fibo2 && manifest?.sampler?.cfg === false;  // a distilled few-step model (FIBO2 turbo) samples without CFG
+  $('guidance').disabled = noCfg;
+  if (noCfg) $('guidance').value = 1;
+  $('guidance-label').textContent = fibo2 ? (noCfg ? 'Guidance (CFG off: distilled model)' : 'Guidance (CFG)') : 'Guidance (embedded)';
   for (const o of $('size').options) {
     const [w, h] = o.value.split('x').map(Number);
     o.disabled = !dynamic && o.value !== '1024x1024';

@@ -14,7 +14,8 @@
 //   "complex_human_instruction": [str, ...]          (optional; default = SANA's, see prompt.js)
 //   "family": "sana" | "fibo2",                      (absent = "sana"; "fibo2" = manifest §16: Memory64 runtime, velocity graph,
 //                                                     flow Euler + CFG in pipeline.js, Qwen3-VL text encoder, FLUX.2 VAE (H/8))
-//   "sampler": {steps, guidance, shift_seq, shift_mu} (fibo2: the sampler defaults and FIBO2's resolution shift)
+//   "sampler": {steps, guidance, cfg, shift_seq, shift_mu} (fibo2: the sampler defaults, cfg false = a distilled model
+//                                                     without CFG (turbo: the guidance control is disabled), FIBO2's resolution shift)
 //   "text_encoder": {template, caption_key, null_prompt, max_tokens} (fibo2: prompt template, JSON caption key,
 //                                                     null prompt for CFG, longest prompt the transformer graph takes)
 //   "files": {                                        (paths are relative to the version folder)
