@@ -215,11 +215,11 @@ class QuantLinear(nn.Module):
         self.register_buffer("bias", None if bias is None else bias.half())
 
     def forward(self, x):
-        """Pure function (given fixed buffers). (..., K) fp16 -> (..., N) fp16."""
-        xs = x * self.inv_smooth
-        y = matmul_nbits(xs, self.packed, self.scales, self.bits, BLOCK)
+        """Pure function (given fixed buffers). (..., K) -> (..., N) in x's dtype (fp16 for SANA; the casts are then no-ops)."""
+        xs = x * self.inv_smooth.to(x.dtype)
+        y = matmul_nbits(xs, self.packed, self.scales.to(x.dtype), self.bits, BLOCK)  # MatMulNBits: scales in A's dtype
         if self.A.shape[0]:
-            y = y + (xs @ self.B) @ self.A
+            y = y + (xs @ self.B.to(x.dtype)) @ self.A.to(x.dtype)
         return y if self.bias is None else y + self.bias
 
 
