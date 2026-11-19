@@ -9,24 +9,22 @@ Live site: https://ryanndagreat.github.io/sana-sprint-alpha-incontext/
 
 Two orphan branches, each checked out as a git worktree under agents/.scratchpad/ so main's working tree is never touched:
 
-- `journal-assets`: every journal PNG as full-resolution WebP q95, named by the SHA-256 of the PNG bytes
-  (`ab/abcdef0123456789.webp`). Identical images (shared mattes, references, stock-model columns, eval/full versus
+- `journal-assets`: every journal PNG, byte for byte (original resolution, lossless), named by its SHA-256
+  (`ab/abcdef0123456789.png`). Identical images (shared mattes, references, stock-model columns, eval/full versus
   gallery copies) are stored once, and a republish only uploads images whose hash is new. Append-only: old files are
   never deleted, so links in older pages keep working. No site-size budget here (GitHub: <100 MB per file); each push
   is capped well under GitHub's 2 GB per-push limit by pushing in batches.
 - `gh-pages`: the HTML, JS, small non-PNG assets and the WebGPU app (GitHub Pages' 1 GB site limit applies). Pages
   reference images by absolute URL into `journal-assets` (ASSET_BASE; raw.githubusercontent.com serves
-  `image/webp` with `access-control-allow-origin: *`).
+  `image/png` with `access-control-allow-origin: *`).
 
-Why WebP: the journal PNGs are 2.5 GB. WebP at quality 95 keeps every pixel dimension and is visually lossless
-(~15% of the PNG bytes). The PNG originals stay in BlueJay (data/lance) and the hard links under journal/assets/.
-WebP files are cached by PNG content hash in agents/.scratchpad/webp_cache. Models are not published here: they live
+Why the original PNGs: the user wants every image at original resolution and lossless (m00705). Before 2026-11-19
+this published WebP q95; those files stay on the branch (append-only) but nothing references them. Models are not published here: they live
 on the `models` branch (publish_models.py), which the app reads on Pages; models/web/index.json here is a placeholder.
 """
 
 import hashlib
 import json
-import os
 import re
 import shutil
 import subprocess
@@ -34,27 +32,25 @@ from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 import fire
-from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[2]
 JOURNAL = ROOT / "journal"
 SITE = ROOT / "agents/.scratchpad/gh-pages"
 ASSETS_DIR = ROOT / "agents/.scratchpad/journal-assets"
-WEBP_CACHE = ROOT / "agents/.scratchpad/webp_cache"
 SITE_BRANCH = "gh-pages"
 ASSETS_BRANCH = "journal-assets"
 REPO = "RyannDaGreat/sana-sprint-alpha-incontext"
 ASSET_BASE = f"https://raw.githubusercontent.com/{REPO}/{ASSETS_BRANCH}/"
-WEBP_QUALITY = 95  # visually lossless at full resolution
 DIGEST_CHARS = 16  # 64 bits of SHA-256: no collisions at this scale
 SHARD_CHARS = 2  # first hex chars as a folder, so no folder holds thousands of files
+HASH_PROCESSES = 8  # the training jobs need the CPUs
 PAGES_LIMIT_BYTES = 900e6  # GitHub Pages allows 1 GB per site; keep headroom
-PUSH_BATCH_BYTES = 800e6  # GitHub rejects pushes over 2 GB; commit and push assets in batches of this size
+PUSH_BATCH_BYTES = 400e6  # GitHub rejects pushes over 2 GB, and a 2.4 GB push got HTTP 500 (publish_models): push in batches of this size
 SUBDIRS = ("compare", "lib")  # journal/ folders of text files (HTML, JS, CSS, JSON), copied with their image paths rewritten (manifest §15)
 EVAL_FULL_DIR = "assets/eval/full/"
 EVAL_JS_REFERENCE = "${EVAL_FULL_DIR}${dir}/${id}.png"  # the one dynamic image path, in eval_grid.js
-FOOTER = ('<footer style="margin:3em 0 1em;font-size:0.85em;opacity:0.7">Published images are full-resolution WebP q95, '
-          "hosted on the repo's journal-assets branch; originals are PNG in the repo's BlueJay database.</footer>\n")
+FOOTER = ('<footer style="margin:3em 0 1em;font-size:0.85em;opacity:0.7">Published images are the original PNG files '
+          "(original resolution, lossless), hosted on the repo's journal-assets branch.</footer>\n")
 MODELS_PLACEHOLDER = {"versions": [], "note": "On Pages the app reads models from the repo's `models` branch "
                                                 "(raw.githubusercontent.com); see src/sana_alpha/publish_models.py."}
 
@@ -65,9 +61,9 @@ def asset_name(digest):
 
     Examples:
         >>> asset_name("ab" + "cd" * 31)
-        'ab/abcdcdcdcdcdcdcd.webp'
+        'ab/abcdcdcdcdcdcdcd.png'
     """
-    return f"{digest[:SHARD_CHARS]}/{digest[:DIGEST_CHARS]}.webp"
+    return f"{digest[:SHARD_CHARS]}/{digest[:DIGEST_CHARS]}.png"
 
 
 def rewrite_asset_refs(text, urls):
@@ -80,8 +76,8 @@ def rewrite_asset_refs(text, urls):
         urls (dict[str, str]): path relative to journal/ (`assets/x/y.png`) -> absolute URL
 
     Examples:
-        >>> rewrite_asset_refs('<img src="assets/a/b.png"> a 1024x1024 PNG', {"assets/a/b.png": "https://h/ab/cd.webp"})
-        '<img src="https://h/ab/cd.webp"> a 1024x1024 PNG'
+        >>> rewrite_asset_refs('<img src="assets/a/b.png"> a 1024x1024 PNG', {"assets/a/b.png": "https://h/ab/cd.png"})
+        '<img src="https://h/ab/cd.png"> a 1024x1024 PNG'
     """
     return re.sub(r"assets/[^\"'\s<>`]+?\.png\b", lambda match: urls[match.group(0)], text)
 
@@ -93,16 +89,16 @@ def rewrite_eval_grid_js(text, urls):
 
     Examples:
         >>> js = rewrite_eval_grid_js('x = `${EVAL_FULL_DIR}${dir}/${id}.png`, `${EVAL_FULL_DIR}${dir}/${id}.png`;',
-        ...                           {"assets/eval/full/matte/a.png": "https://h/ab/cd.webp"})
+        ...                           {"assets/eval/full/matte/a.png": "https://h/ab/cd.png"})
         >>> js.startswith('x = `${evalUrl(dir, id)}`, `${evalUrl(dir, id)}`;')
         True
-        >>> '"matte/a": "https://h/ab/cd.webp"' in js
+        >>> '"matte/a": "https://h/ab/cd.png"' in js
         True
     """
     assert text.count(EVAL_JS_REFERENCE) == 2, "eval_grid.js changed: update EVAL_JS_REFERENCE handling"
     eval_urls = {path.removeprefix(EVAL_FULL_DIR).removesuffix(".png"): url
                  for path, url in urls.items() if path.startswith(EVAL_FULL_DIR)}
-    helper = ("\n\n// Generated by publish_pages.py: full-resolution WebP hosted on the journal-assets branch.\n"
+    helper = ("\n\n// Generated by publish_pages.py: the original PNGs, hosted on the journal-assets branch.\n"
               f"const EVAL_URLS = {json.dumps(eval_urls, indent=0)};\n"
               "function evalUrl(dir, id) {\n"
               "  const url = EVAL_URLS[`${dir}/${id}`];\n"
@@ -114,7 +110,7 @@ def rewrite_eval_grid_js(text, urls):
 
 def add_footer(html):
     """
-    Pure function. Inserts the WebP footer note just before </body>.
+    Pure function. Inserts the footer note (where the images live) just before </body>.
 
     Examples:
         >>> add_footer("<body><p>x</p></body>").startswith("<body><p>x</p><footer")
@@ -124,15 +120,9 @@ def add_footer(html):
     return html.replace("</body>", FOOTER + "</body>")
 
 
-def encode_webp(png_path):
-    """Command. Encodes one PNG to the WebP cache (keyed by content hash) unless cached; returns the PNG's digest."""
-    digest = hashlib.sha256(Path(png_path).read_bytes()).hexdigest()
-    cached = WEBP_CACHE / f"{digest}.webp"
-    if not cached.exists():
-        partial = cached.with_suffix(f".{os.getpid()}.partial")  # per process: hard-linked duplicates run in parallel
-        Image.open(png_path).save(partial, "WEBP", quality=WEBP_QUALITY, method=4)
-        os.replace(partial, cached)
-    return digest
+def png_digest(png_path):
+    """Query. SHA-256 hex digest of a PNG file's bytes."""
+    return hashlib.sha256(Path(png_path).read_bytes()).hexdigest()
 
 
 def git(*args, cwd=ROOT):
@@ -167,18 +157,17 @@ def commit_all(path, message):
     return True
 
 
-def encode_all(pngs):
-    """Command. Encodes every PNG (cached by content hash, parallel); returns {path relative to journal/: digest}."""
-    WEBP_CACHE.mkdir(parents=True, exist_ok=True)
-    print(f"encoding {len(pngs)} PNGs (cached by content hash)", flush=True)
-    with ProcessPoolExecutor() as pool:
-        digests = list(pool.map(encode_webp, pngs, chunksize=8))
+def hash_all(pngs):
+    """Query. SHA-256 of every PNG (parallel, HASH_PROCESSES); returns {path relative to journal/: digest}."""
+    print(f"hashing {len(pngs)} PNGs", flush=True)
+    with ProcessPoolExecutor(HASH_PROCESSES) as pool:
+        digests = list(pool.map(png_digest, pngs, chunksize=32))
     return {p.relative_to(JOURNAL).as_posix(): digest for p, digest in zip(pngs, digests)}
 
 
-def sync_assets(digests, do_push):
+def sync_assets(digests, sources, do_push):
     """
-    Command. Adds the WebP of every digest not yet in the journal-assets worktree, committing (and pushing) in
+    Command. Copies the PNG of every digest not yet in the journal-assets worktree, committing (and pushing) in
     batches of PUSH_BATCH_BYTES. Never deletes. Returns the number of files added.
     """
     new = sorted(d for d in set(digests.values()) if not (ASSETS_DIR / asset_name(d)).exists())
@@ -187,7 +176,7 @@ def sync_assets(digests, do_push):
     for index, digest in enumerate(new):
         destination = ASSETS_DIR / asset_name(digest)
         destination.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(WEBP_CACHE / f"{digest}.webp", destination)
+        shutil.copyfile(sources[digest], destination)
         batch_bytes += destination.stat().st_size
         if batch_bytes >= PUSH_BATCH_BYTES or index == len(new) - 1:
             commit_all(ASSETS_DIR, f"[C] Add {batch_bytes / 1e6:.0f} MB of journal images (up to #{index + 1}/{len(new)})")
@@ -243,8 +232,9 @@ def publish(push=True, build_web=False):
     open_worktree(ASSETS_DIR, ASSETS_BRANCH)
     open_worktree(SITE, SITE_BRANCH)
     pngs = sorted(p for p in (JOURNAL / "assets").rglob("*.png") if p.is_file())
-    digests = encode_all(pngs)
-    sync_assets(digests, push)
+    digests = hash_all(pngs)
+    sources = {digest: JOURNAL / path for path, digest in digests.items()}
+    sync_assets(digests, sources, push)
     if push:
         push_branch(ASSETS_DIR, ASSETS_BRANCH)  # also sends commits left unpushed by an earlier --push=False or failed run
     urls = {path: ASSET_BASE + asset_name(digest) for path, digest in digests.items()}
