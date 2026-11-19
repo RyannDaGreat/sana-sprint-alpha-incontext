@@ -378,3 +378,11 @@
 ## 2026-11-19 2:40 AM — FIBO2 eval scope: held-out subset replaced by the full gamut (fork Fibo2Eval)
 - 11 PM–2 AM the FIBO2 cheap tier was 6 methods × the 29 held-out items at 1024 (`resources/showcase_trimask_held`), chosen because one image takes 64 s (all 67 items × 6 methods would be 7.1 GPU-h per checkpoint on the one eval GPU). The user rejected it (m00713): "why don't you use the whole gamut of test images that the first one used ... Instead you chose a tiny little subset at low resolution." FIBO2 now renders all 67 items × 19 methods × 4 resolutions, paired 1:1 with SANA's rich tier.
 - Lesson: a comparison report must show the same items as the reference model; cut cost with ordering (1024 first) and more GPU time, never with a smaller sample than the one the user already saw.
+
+## 2026-11-19 6:00–8:30 AM — FIBO2 step 2000 into the web app (fork Fibo2Web, manifest §16)
+- ORT's non-JSPI web build turns an external-data Blob into one Uint8Array, and the app reads each file into one ArrayBuffer: a 6.7 GB transformer.onnx.data would fail in Chrome (≈ 2 GB per ArrayBuffer read). Fix: `split_external_data` writes ≤ 1.9 GB files (transformer.onnx.p0–p3.data).
+- FIBO2's gist count depends on the text length (a Python int in its forward): one graph traced at 256 gists, and the app refuses prompts over 256 tokens (max_tokens), instead of five graphs.
+- `verify` first created onnxruntime CUDA sessions next to the loaded bf16 PyTorch model: GPU OOM (BFC arena). Fix: all PyTorch results first, free the model, then ORT.
+- Calibration recording at 128 rows × ~110 forwards would need ≈ 180 GB CPU RAM for 322 linears: 1 item per method × 2 noise levels × 32 rows instead.
+- The int4 Qwen3-VL text encoder has 11.6% relative embedding error (fp16 alone 0.3–0.9%): the main source of the 21–22 dB image gap vs PyTorch at CFG 5. Not fixed in this version; a follow-up.
+- Lesson kept from the Memory64 work: a browser run is checked against a reference on the same inputs (here a bit-exact port of util.js gaussianNoise to Python): browser vs ORT CUDA 63.0 dB.
