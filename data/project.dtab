@@ -18,6 +18,7 @@ environ
 	 Eval (plan_eval, generate_eval)
 	EVAL_SET resources/eval	 Eval images, captions and fixed noise, relative to the repo root. src/sana_alpha/eval_set.py makes it. Default of eval_models.eval_set
 	EVAL_BATCH_SIZE 32	      eval_generations rows per run of generate_eval. A run costs ~12 s besides the GPU (8 rows took 15 s); a failed commit loses the run (FIBO2: 32 x 64 s = 34 min)
+	EVAL_ONLY %	              SQL LIKE pattern of the eval_models tags generate_eval takes; env EVAL_ONLY overrides it, e.g. to run 4-step rows before a 30-step backlog
 
 	 Trimask augmentations (trimask_<method>, manifest §13)
 	TRIMASK_SUBSET 01	 A method uses a train image when the first hex digit of sha256(page_id + method) is one of these: about 17.6k images (m00653: ~16k)
@@ -738,6 +739,25 @@ tables
 			,	model_tag preview_fibo2_tri_step001000_fibo2_30step			pipeline fibo2		checkpoint models/fibo2/fibo2_tri/step_001000							prompt_variant plain		steps 30	guidance 5.0	eval_set resources/fibo2_preview
 			,	model_tag preview_fibo2_tri_step001500_fibo2_30step			pipeline fibo2		checkpoint models/fibo2/fibo2_tri/step_001500							prompt_variant plain		steps 30	guidance 5.0	eval_set resources/fibo2_preview
 			,	model_tag preview_fibo2_tri_step002000_fibo2_30step			pipeline fibo2		checkpoint models/fibo2/fibo2_tri/step_002000							prompt_variant plain		steps 30	guidance 5.0	eval_set resources/fibo2_preview
+			 fibo2_tri step 2000, few-step test (m00712, manifest §14): the control transferred onto Fibo-2.0-edit-turbo at 4 steps without CFG, vs dev at 4 and 30 steps
+			,	model_tag tri_morph_band_fibo2_tri_step002000_turbo_4step	pipeline fibo2turbo	checkpoint models/fibo2/fibo2_tri/step_002000							prompt_variant plain		steps 4		guidance 1.0	eval_set resources/showcase_trimask_held/morph_band
+			,	model_tag tri_scribbles_fibo2_tri_step002000_turbo_4step	pipeline fibo2turbo	checkpoint models/fibo2/fibo2_tri/step_002000							prompt_variant plain		steps 4		guidance 1.0	eval_set resources/showcase_trimask_held/scribbles
+			,	model_tag tri_bbox_unknown_fibo2_tri_step002000_turbo_4step	pipeline fibo2turbo	checkpoint models/fibo2/fibo2_tri/step_002000							prompt_variant plain		steps 4		guidance 1.0	eval_set resources/showcase_trimask_held/bbox_unknown
+			,	model_tag tri_partial_view_fibo2_tri_step002000_turbo_4step	pipeline fibo2turbo	checkpoint models/fibo2/fibo2_tri/step_002000							prompt_variant plain		steps 4		guidance 1.0	eval_set resources/showcase_trimask_held/partial_view
+			,	model_tag tri_combo_chain_fibo2_tri_step002000_turbo_4step	pipeline fibo2turbo	checkpoint models/fibo2/fibo2_tri/step_002000							prompt_variant plain		steps 4		guidance 1.0	eval_set resources/showcase_trimask_held/combo_chain
+			,	model_tag tri_glass_ripple_fibo2_tri_step002000_turbo_4step	pipeline fibo2turbo	checkpoint models/fibo2/fibo2_tri/step_002000							prompt_variant plain		steps 4		guidance 1.0	eval_set resources/showcase_trimask_held/glass_ripple
+			,	model_tag tri_morph_band_fibo2_tri_step002000_fibo2_4step	pipeline fibo2		checkpoint models/fibo2/fibo2_tri/step_002000							prompt_variant plain		steps 4		guidance 5.0	eval_set resources/showcase_trimask_held/morph_band
+			,	model_tag tri_scribbles_fibo2_tri_step002000_fibo2_4step	pipeline fibo2		checkpoint models/fibo2/fibo2_tri/step_002000							prompt_variant plain		steps 4		guidance 5.0	eval_set resources/showcase_trimask_held/scribbles
+			,	model_tag tri_bbox_unknown_fibo2_tri_step002000_fibo2_4step	pipeline fibo2		checkpoint models/fibo2/fibo2_tri/step_002000							prompt_variant plain		steps 4		guidance 5.0	eval_set resources/showcase_trimask_held/bbox_unknown
+			,	model_tag tri_partial_view_fibo2_tri_step002000_fibo2_4step	pipeline fibo2		checkpoint models/fibo2/fibo2_tri/step_002000							prompt_variant plain		steps 4		guidance 5.0	eval_set resources/showcase_trimask_held/partial_view
+			,	model_tag tri_combo_chain_fibo2_tri_step002000_fibo2_4step	pipeline fibo2		checkpoint models/fibo2/fibo2_tri/step_002000							prompt_variant plain		steps 4		guidance 5.0	eval_set resources/showcase_trimask_held/combo_chain
+			,	model_tag tri_glass_ripple_fibo2_tri_step002000_fibo2_4step	pipeline fibo2		checkpoint models/fibo2/fibo2_tri/step_002000							prompt_variant plain		steps 4		guidance 5.0	eval_set resources/showcase_trimask_held/glass_ripple
+			,	model_tag tri_morph_band_fibo2_tri_step002000_fibo2_30step	pipeline fibo2		checkpoint models/fibo2/fibo2_tri/step_002000							prompt_variant plain		steps 30	guidance 5.0	eval_set resources/showcase_trimask_held/morph_band
+			,	model_tag tri_scribbles_fibo2_tri_step002000_fibo2_30step	pipeline fibo2		checkpoint models/fibo2/fibo2_tri/step_002000							prompt_variant plain		steps 30	guidance 5.0	eval_set resources/showcase_trimask_held/scribbles
+			,	model_tag tri_bbox_unknown_fibo2_tri_step002000_fibo2_30step	pipeline fibo2		checkpoint models/fibo2/fibo2_tri/step_002000							prompt_variant plain		steps 30	guidance 5.0	eval_set resources/showcase_trimask_held/bbox_unknown
+			,	model_tag tri_partial_view_fibo2_tri_step002000_fibo2_30step	pipeline fibo2		checkpoint models/fibo2/fibo2_tri/step_002000							prompt_variant plain		steps 30	guidance 5.0	eval_set resources/showcase_trimask_held/partial_view
+			,	model_tag tri_combo_chain_fibo2_tri_step002000_fibo2_30step	pipeline fibo2		checkpoint models/fibo2/fibo2_tri/step_002000							prompt_variant plain		steps 30	guidance 5.0	eval_set resources/showcase_trimask_held/combo_chain
+			,	model_tag tri_glass_ripple_fibo2_tri_step002000_fibo2_30step	pipeline fibo2		checkpoint models/fibo2/fibo2_tri/step_002000							prompt_variant plain		steps 30	guidance 5.0	eval_set resources/showcase_trimask_held/glass_ripple
 
 	eval_generations
 		 One row per model and eval image: the image that the model makes from the caption and the fixed noise
@@ -903,6 +923,7 @@ processors
 			FROM eval_generations g                                                -- from the planned rows,
 			JOIN eval_models m ON m.model_tag = g.model_tag                        -- joined to their model,
 			WHERE g.generate_eval_claim IS NULL                                    -- not yet claimed,
+			  AND g.model_tag LIKE '$EVAL_ONLY'                                    -- of the selected models,
 			ORDER BY g.model_tag, random() LIMIT $EVAL_BATCH_SIZE                  -- one model at a time, in random order
 		claim	generate_eval_claim eval_generations
 		command bash
@@ -914,7 +935,7 @@ processors
 				noise_seed @	      [Key]  int    Seed of the fixed noise                                           20261117
 				caption @	                 str    The MAGICK caption                                                "red apple on a solid"
 				noise_index @	             int    Row of the latents in eval_set/noise.safetensors                  10
-				pipeline @	                 str    "teacher" (SanaPipeline), "sprint" (SanaSprint) or "fibo2"        "sprint"
+				pipeline @	                 str    "teacher", "sprint", "fibo2" or "fibo2turbo" (control on turbo)   "sprint"
 				checkpoint @	             str    "stock", or a repo path: see models.load_eval_pipeline            "stock"
 				steps @	                     int    Sampling steps                                                    2
 				guidance @	                 float  CFG for the teacher, embedded guidance for Sprint                 4.5
