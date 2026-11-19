@@ -11,6 +11,7 @@ __pycache__/
 journal/assets/*/full/
 journal/assets/gallery_*/
 journal/assets/compare/
+journal/assets/fibo2_previews/
 web/node_modules/
 web/vendor/
 web/.cert/
