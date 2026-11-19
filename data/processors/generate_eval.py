@@ -67,6 +67,9 @@ def serve():
         """Command. Returns the loaded pipeline of kind with checkpoint's weights, loading it if needed (fibo2: fibo2.load_eval_model, no defaults, conditioned)."""
         if kind not in pipes or pipes[kind][0] != checkpoint:
             pipes.pop(kind, None)
+            if kind.startswith("fibo2"):  # one FIBO2 model at a time (~28 GB each): the eval GPU also holds other jobs
+                for other in [k for k in pipes if k.startswith("fibo2")]:
+                    pipes.pop(other)
             torch.cuda.empty_cache()
             fibo2_base = dict(fibo2=fibo2.FIBO2_DIR, fibo2turbo=fibo2.TURBO_DIR)  # control transferred onto turbo (manifest §14)
             load = (lambda k, c: (fibo2.load_eval_model(c, torch.device("cuda"), fibo2_base[k]), {}, True)) if kind in fibo2_base else load_eval_pipeline
