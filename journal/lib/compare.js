@@ -140,20 +140,15 @@ function lineChart(lines, baselines = [], yMax = 1) {
   return svg;
 }
 
-/** Command. Fills `cell` with item `index` of an atlas once the cell scrolls into view (no image loads before that). */
-const observer = new IntersectionObserver((entries) => entries.forEach((e) => {
-  if (e.isIntersecting) { e.target.style.backgroundImage = `url("${e.target.dataset.atlas}")`; observer.unobserve(e.target); }
-}), { rootMargin: '400px' });
-
-/** Command. An atlas cell element for item `index`, lazily loaded. */
-function atlasCell(report, atlas, index, label) {
-  const { columns } = report.atlas;
-  const rows = Math.ceil(report.items.length / columns);
-  const cell = el('div', { class: 'cell', 'data-atlas': url(atlas), title: label,
-    style: { backgroundSize: `${columns * 100}% ${rows * 100}%`, backgroundPosition: `${((index % columns) / (columns - 1)) * 100}% ${(Math.floor(index / columns) / (rows - 1)) * 100}%` } },
-    el('span', { class: 'tag' }, label));
-  observer.observe(cell);
-  return cell;
+/**
+ * Pure function. A cell showing one original image (lazy-loaded, never downscaled on the server; a click opens the
+ * file at full resolution), or a gray "not evaluated" cell when `src` is null (held-out-only runs).
+ * @example imageCell('assets/compare/img/t/a.png', 'sana') // <a class="cell"><img src="../assets/compare/img/t/a.png"><span class="tag">sana</span></a>
+ */
+function imageCell(src, label) {
+  if (!src) return el('div', { class: 'cell', title: `${label}: not evaluated` }, el('span', { class: 'tag' }, `${label}: n/a`));
+  return el('a', { class: 'cell', href: url(src), target: '_blank', title: `${label} (original file)` },
+    el('img', { src: url(src), loading: 'lazy', decoding: 'async', alt: label }), el('span', { class: 'tag' }, label));
 }
 
 /** Pure function. The "not trained yet" placeholder of a model with no evals. */
@@ -233,8 +228,8 @@ function scrub(report, root) {
     writeHash({ step });
     const cond = report.conditions.trimask[`${method}@${res}`];
     grid.replaceChildren(...report.items.map((item, i) => (s.split === 'all' || item.split === 'held-out' ? el('div', { class: 'item' },
-      el('div', { class: 'cells' }, cond ? atlasCell(report, cond.atlas, i, 'trimask') : empty('sana'),
-        ...Object.keys(MODELS).map((m) => { const e = pick(report.evals, { model: m, method, res, step })[0]; return e ? atlasCell(report, e.atlas, i, m) : empty(m); })),
+      el('div', { class: 'cells' }, cond ? imageCell(cond.images[i], 'trimask') : empty('sana'),
+        ...Object.keys(MODELS).map((m) => { const e = pick(report.evals, { model: m, method, res, step })[0]; return e ? imageCell(e.images[i], m) : empty(m); })),
       el('a', { href: `pixel.html#page_id=${item.page_id}&method=${method}&res=${res}&step=${step}` }, `${item.split} · ${item.caption.slice(0, 60)}`)) : null)).filter(Boolean));
   };
   slider.addEventListener('input', draw);
@@ -271,7 +266,7 @@ function matrix(report, root) {
     drill.replaceChildren(el('h2', {}, `${e.model} ${e.method} ${e.res}² step ${e.step}: ${METRICS[metric][0]}`),
       el('p', { class: 'note' }, 'worst / best: sorted by the metric over all items; random: a seeded draw. Each pair: trimask, generated.'),
       ...lists.flatMap(([name, idx]) => [el('h3', {}, name), el('div', { class: 'grid' }, idx.map((i) => el('div', { class: 'item' },
-        el('div', { class: 'cells' }, atlasCell(report, cond.atlas, i, 'trimask'), atlasCell(report, e.atlas, i, e.model)),
+        el('div', { class: 'cells' }, imageCell(cond.images[i], 'trimask'), imageCell(e.images[i], e.model)),
         el('a', { href: `pixel.html#page_id=${report.items[i].page_id}&method=${e.method}&res=${e.res}&step=${e.step}` }, `${e.per_item[metric][i].toFixed(3)} · ${report.items[i].split}`))))]));
   };
   root.append(el('div', { class: 'controls' }, select('metric', Object.entries(METRICS).map(([k, v]) => [k, v[0]]), h.metric || 'band_iou', draw),
@@ -288,7 +283,7 @@ function strips(report, root) {
     body.replaceChildren(...report.methods.flatMap((method) => Object.keys(MODELS).map((m) => {
       const evals = pick(report.evals, { model: m, method, res }).sort((a, b) => a.step - b.step);
       return el('div', {}, el('h3', {}, `${MODELS[m]} · ${method} · ${res}²`), evals.length ? el('div', { class: 'strip' },
-        atlasCell(report, report.conditions.trimask[`${method}@${res}`].atlas, index, 'trimask'), evals.map((e) => atlasCell(report, e.atlas, index, `${e.step}`))) : empty(m));
+        imageCell(report.conditions.trimask[`${method}@${res}`].images[index], 'trimask'), evals.map((e) => imageCell(e.images[index], `${e.step}`))) : empty(m));
     })));
   };
   root.append(el('div', { class: 'controls' }, select('page_id', report.items.map((i) => [i.page_id, `${i.split} · ${i.caption.slice(0, 50)}`]), h.page_id || report.items[0].page_id, draw),

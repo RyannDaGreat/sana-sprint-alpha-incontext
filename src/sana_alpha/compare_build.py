@@ -6,8 +6,9 @@ Builds the data of the SANA vs FIBO2 compare reports (manifest §15) from BlueJa
 
 Writes journal/compare/data/compare.json (items, every evaluated (run, step, method, resolution) with per-item
 metrics, means and 95% bootstrap intervals) and journal/compare/data/loss_<run>.json (from the training logs), and
-hard-links every eval image plus one atlas per eval into journal/assets/compare/ (git ignores it; publish_pages turns
-the PNGs into WebP on journal-assets). Paths in the JSON are relative to journal/ so publish_pages rewrites them.
+hard-links every eval image into journal/assets/compare/ (git ignores it; publish_pages puts the original PNGs on
+journal-assets). Paths in the JSON are relative to journal/ so publish_pages rewrites them. Every report cell shows the
+original image: no atlases, thumbnails or downscaled copies (user rule m00705).
 CPU only (a few threads): it reads the stored images, it never generates any.
 """
 
@@ -32,8 +33,6 @@ LOGS = ROOT / "agents/.scratchpad/logs"
 COMPARE_METHODS = ("morph_band", "scribbles", "bbox_unknown", "partial_view", "combo_chain", "glass_ripple")  # the cheap eval tier: one band, stroke, box, crop, combination and warp (manifest §15)
 RUNS = {"tri_scratch": dict(family="sana", label="SANA-Sprint 1.6B", log="train_control_tri_scratch.log", global_batch=128, held_only=False),  # 16 x 8 GPUs
         "fibo2_tri": dict(family="fibo2", label="FIBO2 8.1B", log="train_fibo2_fibo2_tri.log", global_batch=28, held_only=True)}  # 4 x 7 GPUs; ~1 min per image, so held-out items only (gallery.HELD_SET)
-ATLAS_CELL = 192  # px per item in an atlas: enough to judge a silhouette, 67 items stay under 0.5 MB as WebP
-ATLAS_COLUMNS = 10
 LOSS_WINDOW = 50  # training-log steps averaged into one loss point (the log has one line per 10 steps)
 THREADS = 4  # the GPUs' encode and training jobs need the CPUs
 DIGITS = 4
@@ -95,38 +94,9 @@ def summarize(per_item, held):
     return {m: {"all": ci(v), "held": ci(pick(v, held))} for m, v in per_item.items()}
 
 
-def atlas(paths, cell=ATLAS_CELL, columns=ATLAS_COLUMNS):
-    """
-    Query (reads image files). One grid image of every path, `cell` px per image, row-major, gray padding.
-
-    Args:
-        paths (list[Path]): images in item order
-        cell (int): cell side in pixels
-        columns (int): cells per row
-
-    Returns:
-        PIL.Image.Image: RGB, (ceil(len/columns)·cell, columns·cell)
-    """
-    sheet = Image.new("RGB", (columns * cell, -(-len(paths) // columns) * cell), (128, 128, 128))
-    for k, path in enumerate(paths):
-        if path is not None:  # None: an item this eval skips (held-out-only runs) stays a gray cell
-            sheet.paste(Image.open(path).convert("RGB").resize((cell, cell), Image.LANCZOS), (k % columns * cell, k // columns * cell))
-    return sheet
-
-
-def write_atlas(paths, name):
-    """Command. Saves the atlas of `paths` as journal/<ASSETS>/atlas/<name>.png unless it exists; returns its journal-relative path."""
-    relative = f"{ASSETS}/atlas/{name}.png"
-    target = ROOT / "journal" / relative
-    if not target.exists():
-        target.parent.mkdir(parents=True, exist_ok=True)
-        atlas(paths).save(target)
-    return relative
-
-
 def evaluate(tag, parts, blobs, items):
     """
-    Command (hard-links images, writes the atlas). Metrics, image paths and atlas of one eval tag.
+    Command (hard-links images). Metrics and image paths of one eval tag.
 
     Args:
         tag (str): model_tag
@@ -152,19 +122,19 @@ def evaluate(tag, parts, blobs, items):
     run = RUNS[parts["run"]]
     return dict(tag=tag, **parts, model=run["family"], samples=parts["step"] * run["global_batch"],
                 images=[None if p is None else str(p.relative_to(ROOT / "journal")) for p in images],
-                atlas=write_atlas(images, tag), per_item=per_item,
+                per_item=per_item,
                 summary=summarize({m: [np.nan if v is None else v for v in vs] for m, vs in per_item.items()},
                                   [i["split"] == "held-out" for i in items]))
 
 
 def condition_images(items, folder, kind, name):
-    """Command. Links one condition set (trimasks, true mattes or references) into journal/<ASSETS>/cond/<name>/ and writes its atlas; returns both paths."""
+    """Command. Links one condition set (trimasks, true mattes or references) into journal/<ASSETS>/cond/<name>/; returns their paths."""
     images = []
     for item in items:
         image = ROOT / "journal" / ASSETS / "cond" / name / f"{item['page_id']}.png"
         link(ROOT / folder / kind / f"{item['page_id']}.png", image)
         images.append(image)
-    return dict(atlas=write_atlas(images, name), images=[str(p.relative_to(ROOT / "journal")) for p in images])
+    return dict(images=[str(p.relative_to(ROOT / "journal")) for p in images])
 
 
 def conditions(items, methods, resolutions):
@@ -197,7 +167,7 @@ def build():
     DATA.mkdir(parents=True, exist_ok=True)
     report = dict(items=[dict(page_id=i["page_id"], split=i["split"], caption=i["caption"]) for i in items],
                   runs=RUNS, methods=methods, resolutions=resolutions, evals=evals,
-                  conditions=conditions(items, methods, resolutions), atlas=dict(cell=ATLAS_CELL, columns=ATLAS_COLUMNS))
+                  conditions=conditions(items, methods, resolutions))
     (DATA / "compare.json").write_text(json.dumps(report, separators=(",", ":")) + "\n")
     for run, spec in RUNS.items():
         (DATA / f"loss_{run}.json").write_text(json.dumps(loss_curve((LOGS / spec["log"]).read_text().splitlines())) + "\n")
