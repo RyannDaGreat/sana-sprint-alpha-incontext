@@ -733,6 +733,11 @@ tables
 			,	model_tag tri_partial_view_fibo2_tri_step001000_fibo2_30step	pipeline fibo2		checkpoint models/fibo2/fibo2_tri/step_001000							prompt_variant plain		steps 30	guidance 5.0	eval_set resources/showcase_trimask_held/partial_view
 			,	model_tag tri_combo_chain_fibo2_tri_step001000_fibo2_30step	pipeline fibo2		checkpoint models/fibo2/fibo2_tri/step_001000							prompt_variant plain		steps 30	guidance 5.0	eval_set resources/showcase_trimask_held/combo_chain
 			,	model_tag tri_glass_ripple_fibo2_tri_step001000_fibo2_30step	pipeline fibo2		checkpoint models/fibo2/fibo2_tri/step_001000							prompt_variant plain		steps 30	guidance 5.0	eval_set resources/showcase_trimask_held/glass_ripple
+			 FIBO2 fibo2_tri training-preview items at full resolution (gallery.fibo2_preview_rows, eval_set.fibo2_preview), m00708
+			,	model_tag preview_fibo2_tri_step000500_fibo2_30step			pipeline fibo2		checkpoint models/fibo2/fibo2_tri/step_000500							prompt_variant plain		steps 30	guidance 5.0	eval_set resources/fibo2_preview
+			,	model_tag preview_fibo2_tri_step001000_fibo2_30step			pipeline fibo2		checkpoint models/fibo2/fibo2_tri/step_001000							prompt_variant plain		steps 30	guidance 5.0	eval_set resources/fibo2_preview
+			,	model_tag preview_fibo2_tri_step001500_fibo2_30step			pipeline fibo2		checkpoint models/fibo2/fibo2_tri/step_001500							prompt_variant plain		steps 30	guidance 5.0	eval_set resources/fibo2_preview
+			,	model_tag preview_fibo2_tri_step002000_fibo2_30step			pipeline fibo2		checkpoint models/fibo2/fibo2_tri/step_002000							prompt_variant plain		steps 30	guidance 5.0	eval_set resources/fibo2_preview
 
 	eval_generations
 		 One row per model and eval image: the image that the model makes from the caption and the fixed noise

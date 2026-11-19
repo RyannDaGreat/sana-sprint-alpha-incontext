@@ -27,6 +27,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SHOWCASE = "resources/showcase"
 TRIMASK_SET = "resources/showcase_trimask"  # one eval set per trimask method (eval_set.build_trimask)
 HELD_SET = "resources/showcase_trimask_held"  # its held-out items only (eval_set.held_out), for FIBO2 (~1 min per image)
+PREVIEW_SET = "resources/fibo2_preview"  # the 4 items train_fibo2 previews (eval_set.fibo2_preview), rendered at full resolution
 FIBO2_STEPS, FIBO2_GUIDANCE = 30, 5.0  # BriaFibo2Pipeline's defaults (diffusers 0.43)
 LANCE = ROOT / "data/lance/eval_generations.lance"
 TEACHER_LAMBDAS = (1, 0.75, 0.5, 0.25, 0)
@@ -188,6 +189,12 @@ def fibo2_rows(*run_steps, methods=None):
     assert set(methods) <= set(METHODS), f"unknown methods: {set(methods) - set(METHODS)}"
     print("".join(dtab_rows([(trimask_tag(m[0], method), *m[1:]) for r in run_steps for m in fibo2_models(r)],
                             "plain", f"{HELD_SET}/{method}", FIBO2_GUIDANCE) for method in methods), end="")
+
+
+def fibo2_preview_rows(*run_steps):
+    """Command. Prints the eval_models rows of FIBO2 control RUN:STEP... on the training-preview set (PREVIEW_SET, 4 items at 1024), to paste into the dtab."""
+    print(dtab_rows([(m[0].replace("show_", "preview_", 1), *m[1:]) for r in run_steps for m in fibo2_models(r)],
+                    "plain", PREVIEW_SET, FIBO2_GUIDANCE), end="")
 
 
 def build_trimask(*run_steps, notes="", name=None, resolution=1024):
@@ -451,4 +458,5 @@ Each of the {n} showcase items ({held} <span class="split held-out">held-out</sp
 """
 
 if __name__ == "__main__":
-    fire.Fire(dict(rows=rows, build=build, trimask_rows=trimask_rows, fibo2_rows=fibo2_rows, build_trimask=build_trimask))
+    fire.Fire(dict(rows=rows, build=build, trimask_rows=trimask_rows, fibo2_rows=fibo2_rows, fibo2_preview_rows=fibo2_preview_rows,
+                   build_trimask=build_trimask))
