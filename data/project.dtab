@@ -17,7 +17,7 @@ environ
 
 	 Eval (plan_eval, generate_eval)
 	EVAL_SET resources/eval	 Eval images, captions and fixed noise, relative to the repo root. src/sana_alpha/eval_set.py makes it. Default of eval_models.eval_set
-	EVAL_BATCH_SIZE 128	      eval_generations rows per run of generate_eval. A run costs ~12 s besides the GPU (8 rows took 15 s), so big batches
+	EVAL_BATCH_SIZE 32	      eval_generations rows per run of generate_eval. A run costs ~12 s besides the GPU (8 rows took 15 s); a failed commit loses the run (FIBO2: 32 x 64 s = 34 min)
 
 	 Trimask augmentations (trimask_<method>, manifest §13)
 	TRIMASK_SUBSET 01	 A method uses a train image when the first hex digit of sha256(page_id + method) is one of these: about 17.6k images (m00653: ~16k)
