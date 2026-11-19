@@ -1,5 +1,5 @@
 """
-Trimask augmentations (manifest §13): fourteen methods that turn a MAGICK matte into a trimask, the second model's condition.
+Trimask augmentations (manifest §13): twenty-one methods that turn a MAGICK matte into a trimask, the second model's condition.
 
 A trimask is (H, W) float32 in [0, 1]: 1 = surely object, 0 = surely background, 0.5 = unknown (the model decides).
 fuzzy_ramp may use values between these; every other method uses only {0, 0.5, 1}.
@@ -20,6 +20,8 @@ strictly between 0 and 1, and (for fuzzy_ramp's continuous values) opaque pixels
 Each method builds this by construction: it ends with finalize, which turns sure pixels gray, coarsely (m00652: no
 pixel-level detail of the matte may get into a trimask): sure only inside the coarse allowed regions, the forced-gray set
 grown and smoothed, tiny sure islands gray. generate() raises on any violation; it never repairs one.
+Two methods skip finalize (m00718): original (the matte itself; consistent by definition) and threshold (the matte at
+alpha >= 0.5), the one method in CONSISTENCY_EXEMPT: the user asked for a solid outline, which marks soft edges as sure.
 """
 
 import hashlib
@@ -33,8 +35,10 @@ METHODS = ("morph_band", "noisy_band", "blur_quantize", "scribbles", "bbox_unkno
            "convex_hull", "grid_coarsen", "polygon_simplify", "unknown_patches", "fuzzy_ramp",
            "combo_union", "combo_chain", "skeleton_strokes", "partial_view",  # m00648
            "bilateral_blur", "random_stack",  # m00649
-           "perlin_warp", "op_chain", "glass_ripple")  # m00651
+           "perlin_warp", "op_chain", "glass_ripple",  # m00651
+           "original", "threshold")  # m00718: the matte itself and the matte thresholded (no finalize)
 RGB_METHODS = ("bilateral_blur",)  # Their make_trimask also takes rgb: (H, W, 3) float32 in [0, 1], the image on gray
+CONSISTENCY_EXEMPT = ("threshold",)  # m00718: the user asked for a solid outline; it marks soft edges as sure object
 
 
 def seed(page_id, method, variant):
@@ -290,7 +294,8 @@ def generate(alpha, page_id, method, variant, rgb=None):
     extra = {"rgb": rgb} if method in RGB_METHODS else {}
     trimask, params = module.make_trimask(alpha, rng, **extra, **module.sample_params(rng))
     json.dumps(params)  # Raises here, not in the processor's writer, if a method returns a non-JSON value
-    return check_consistent(alpha, check_trimask(trimask, alpha)), params
+    check_trimask(trimask, alpha)
+    return (trimask if method in CONSISTENCY_EXEMPT else check_consistent(alpha, trimask)), params
 
 
 def to_uint8(trimask):
