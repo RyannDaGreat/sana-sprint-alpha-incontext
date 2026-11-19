@@ -18,6 +18,7 @@ becomes web_export.LambdaLinear(base, B·α/r, A): no SVD, no approximation.
     PYTHONPATH=src uv run python -m sana_alpha.fibo2_web export models/fibo2/fibo2_tri/step_002000 --adapter models/fibo2/fibo2_adapter/step_001000
 """
 
+import gc
 import json
 import re
 import time
@@ -133,15 +134,21 @@ class LambdaVelocityGraph(VelocityGraph):
         return super().forward(latents, cond_latents, sigma, prompt_embeds)
 
 
-def target_linears(transformer):
+MIN_QUANT_SIDE = 256  # all_linears: smaller linears (embedders, the final projection) stay fp16
+
+
+def target_linears(transformer, all_linears=False):
     """
-    Query. The FIBO2 linears to quantize: every linear of the 46 blocks (fibo2.LORA_TARGETS), the same set the LoRAs train.
+    Query. The FIBO2 linears to quantize: every linear of the 46 blocks (fibo2.LORA_TARGETS), the same set the LoRAs train;
+    with all_linears, also every other linear with both sides ≥ MIN_QUANT_SIDE (the Perceiver, the injection blocks'
+    cross-attention, adaLN modulation: 2.1 GB of fp16 in the int4 version of step 2000).
 
     Returns:
-        dict: qualified name -> nn.Linear (322 for FIBO2: 46 blocks × 7)
+        dict: qualified name -> nn.Linear (322 for FIBO2's blocks)
     """
     pattern = re.compile(fibo2.LORA_TARGETS + "$")
-    return {n: m for n, m in transformer.named_modules() if isinstance(m, nn.Linear) and pattern.match(n)}
+    big = lambda n, m: min(m.in_features, m.out_features) >= MIN_QUANT_SIDE and not n.startswith("t_embedder")  # FIBO2 reads t_embedder's .weight.dtype
+    return {n: m for n, m in transformer.named_modules() if isinstance(m, nn.Linear) and (pattern.match(n) or (all_linears and big(n, m)))}
 
 
 def quantize_linears(root, linears, inputs, bits, rank, device):
@@ -525,10 +532,10 @@ def text_encoder_parts(model):
     return pipe.PROMPT_TEMPLATE, pipe.TEXT_ENCODER_OUT_LAYERS
 
 
-def export(checkpoint, version=None, bits=4, rank=wq.RANK, rows_per_item=32):
+def export(checkpoint, version=None, bits=4, text_bits=None, all_linears=False, rows_per_item=32):
     """
-    Command (one free 80 GB GPU; ≈ 60–90 min). Writes models/web/<version>/, the web-model-contract folder of a FIBO2
-    control checkpoint, int4 with runtime λ (manifest §16):
+    Command (one GPU, ≈ 28 GB: the models take turns on it; ≈ 60–90 min). Writes models/web/<version>/, the
+    web-model-contract folder of a FIBO2 control checkpoint, with runtime λ (manifest §16):
       transformer.onnx (+ .p<k>.data)   FIBO2 + control LoRA, SVDQuant int4, the adapter LoRA as the exact λ branch, fp16
       text_encoder.onnx (+ .p<k>.data)  Qwen3-VL-4B language model, SVDQuant int4, fp16
       vae_encoder.onnx / vae_decoder.onnx  FLUX.2 VAE, fp32 (small; no fp16 risk in the convolutions)
@@ -537,8 +544,11 @@ def export(checkpoint, version=None, bits=4, rank=wq.RANK, rows_per_item=32):
 
     Args:
         checkpoint (str): train_fibo2 control step folder, e.g. models/fibo2/fibo2_tri/step_002000 (its meta.json names the adapter)
-        version (str | None): default fibo2_<run>_step_<NNNNNN>-int4-lambda
-        bits, rank, rows_per_item: see web_export.quantize
+        version (str | None): default fibo2_<run>_step_<NNNNNN>-int<bits>-lambda (-int<bits>te<text_bits>- when they differ)
+        bits (int): transformer weights, 4 (SVDQuant rank 32) or 8 (rank 0, as web_export)
+        text_bits (int | None): text encoder weights; default = bits. 8 is needed for images close to PyTorch (manifest §16)
+        all_linears (bool): also quantize the transformer's linears outside the blocks (target_linears)
+        rows_per_item (int): calibration tokens per linear per forward
     """
     import shutil
     from safetensors.torch import load_file
@@ -546,45 +556,59 @@ def export(checkpoint, version=None, bits=4, rank=wq.RANK, rows_per_item=32):
     checkpoint = Path(checkpoint)
     meta = json.loads((models.localize(checkpoint) / "meta.json").read_text())
     adapter = meta["adapter"]
-    version = version or f"fibo2_{meta['run']}_{checkpoint.name}-int{bits}-lambda"
+    text_bits = bits if text_bits is None else text_bits
+    rank_of = lambda b: wq.RANK if b == 4 else 0
+    tag = f"int{bits}" if text_bits == bits else f"int{bits}te{text_bits}"
+    version = version or f"fibo2_{meta['run']}_{checkpoint.name}-{tag}-lambda"
     folder = WEB_DIR / version
     folder.mkdir(parents=True, exist_ok=True)
     torch.manual_seed(0)  # randomized SVD: the same weights give the same files
     model = fibo2.load_eval_model(str(checkpoint), "cuda")
     calib = calibration_inputs(model, eval_items())
     print(f"calibration: {len(calib)} transformer inputs", flush=True)
-    quantization = {}
-
-    transformer = model["transformer"].half()
-    make_exportable(transformer)
-    graph = VelocityGraph(transformer).eval()
-    linears = target_linears(transformer)
-    report = quantize_linears(transformer, linears, we.record_inputs(linears, lambda: [graph(*c) for c in calib], rows_per_item),
-                              bits, rank, "cuda")
-    scale = we.AdapterScale("cuda")
-    lora = load_file(models.localize(adapter) / "lora.safetensors")
-    attach_lora_lambda(transformer, lora, scale)
-    export_velocity(LambdaVelocityGraph(transformer, scale).eval(), folder / "transformer.onnx", calib[0], adapter_scale=True,
-                    gist=transformer.config.min_num_gist_tokens)
-    split_external_data(folder / "transformer.onnx")
-    quantization["transformer"] = quant_record(report, bits, rank, rows_per_item)
-    lora_rank = lora[next(k for k in lora if k.endswith(".lora_A.weight"))].shape[0]
-    del transformer, graph, calib
-    model["transformer"] = None
-    torch.cuda.empty_cache()
-
     template, layers = text_encoder_parts(model)
     encoder, processor = model["text"]
-    text = TextEncoder(encoder.model.language_model.half(), layers).eval()
     prompts = [template.format(fibo2.caption_prompt(c)) for c, _ in eval_items(per_method=2)] + [template.format(fibo2.NULL_PROMPT)]
     tokens = [processor(text=[p], return_tensors="pt").to("cuda") for p in prompts]
+    encoder.cpu()  # the models take turns on the GPU
+    torch.cuda.empty_cache()
+    quantization = {}
+
+    lora = load_file(models.localize(adapter) / "lora.safetensors")
+    lora_rank = lora[next(k for k in lora if k.endswith(".lora_A.weight"))].shape[0]
+    record = folder / "quantization_transformer.json"  # written when the transformer graph is done: a rerun skips it
+    if record.exists():
+        quantization["transformer"] = json.loads(record.read_text())
+        print(f"transformer: already exported ({record})", flush=True)
+    else:
+        transformer = model["transformer"].half()
+        make_exportable(transformer)
+        graph = VelocityGraph(transformer).eval()
+        linears = target_linears(transformer, all_linears)
+        report = quantize_linears(transformer, linears, we.record_inputs(linears, lambda: [graph(*c) for c in calib], rows_per_item),
+                                  bits, rank_of(bits), "cuda")
+        del linears, graph  # the dict still holds the replaced fp16 linears
+        scale = we.AdapterScale("cuda")
+        attach_lora_lambda(transformer, lora, scale)
+        export_velocity(LambdaVelocityGraph(transformer, scale).eval(), folder / "transformer.onnx", calib[0], adapter_scale=True,
+                        gist=transformer.config.min_num_gist_tokens)
+        split_external_data(folder / "transformer.onnx")
+        quantization["transformer"] = quant_record(report, bits, rank_of(bits), rows_per_item)
+        record.write_text(json.dumps(quantization["transformer"]))
+        del transformer, scale
+    del calib
+    model["transformer"] = None
+    gc.collect()
+    torch.cuda.empty_cache()
+
+    text = TextEncoder(encoder.model.language_model.half().cuda(), layers).eval()
     linears = {n: m for n, m in text.model.layers.named_modules(prefix="model.layers") if isinstance(m, nn.Linear)}
     report = quantize_linears(text, linears, we.record_inputs(linears, lambda: [text(t.input_ids, t.attention_mask) for t in tokens], rows_per_item),
-                              bits, rank, "cuda")
+                              text_bits, rank_of(text_bits), "cuda")
     T = torch.export.Dim("T", min=2, max=4096)
     export_plain(text, "text_encoder", folder / "text_encoder.onnx", (tokens[0].input_ids, tokens[0].attention_mask), [{1: T}, {1: T}])
     split_external_data(folder / "text_encoder.onnx")
-    quantization["text_encoder"] = quant_record(report, bits, rank, rows_per_item)
+    quantization["text_encoder"] = quant_record(report, text_bits, rank_of(text_bits), rows_per_item)
     del text
     torch.cuda.empty_cache()
 
