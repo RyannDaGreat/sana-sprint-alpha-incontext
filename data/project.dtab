@@ -1123,8 +1123,8 @@ processors
 	trimask_morph_band, trimask_noisy_band, trimask_blur_quantize, trimask_scribbles, trimask_bbox_unknown, trimask_convex_hull,
 	trimask_grid_coarsen, trimask_polygon_simplify, trimask_unknown_patches, trimask_fuzzy_ramp, trimask_combo_union, trimask_combo_chain,
 	trimask_skeleton_strokes, trimask_partial_view, trimask_bilateral_blur, trimask_random_stack, trimask_perlin_warp, trimask_op_chain,
-	trimask_glass_ripple
-		 Each makes the trimasks of its method (src/sana_alpha/trimask/<method>.py) for its train images. This block holds what the nineteen share:
+	trimask_glass_ripple, trimask_original, trimask_threshold
+		 Each makes the trimasks of its method (src/sana_alpha/trimask/<method>.py) for its train images. This block holds what the twenty-one share:
 		 the matte in, one trimask_augmentations row per variant out. Each one's own query, Claim pointer and command follow it
 		materialize	               TYPE  DESCRIPTION                            EXAMPLE
 			alpha.png alpha	        blob  The matte                              120 KB .png
@@ -1413,6 +1413,34 @@ processors
 		command bash
 			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" glass_ripple $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
 
+	trimask_original
+		query sql
+			SELECT page_id, alpha, split FROM magick_samples                                                  -- MAGICK images
+			WHERE   trimask_original_claim IS NULL                                                            -- not yet claimed,
+			    AND alpha                  IS NOT NULL                                                        -- that split_alpha did,
+			    AND split                  = 'train'                                                          -- not eval,
+			    AND page_id NOT IN (SELECT page_id FROM _no_trimask_items)                                    -- not a showcase image or an empty matte,
+			    AND (contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'original')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET)
+			         OR left(encode(sha256(page_id), 'hex'), 3) <= '$TRIMASK_COMPARE_MAX')                    -- or in the comparison set,
+			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                       -- one batch at a time, in random order
+		claim	trimask_original_claim magick_samples
+		command bash
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" original $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
+
+	trimask_threshold
+		query sql
+			SELECT page_id, alpha, split FROM magick_samples                                                   -- MAGICK images
+			WHERE   trimask_threshold_claim IS NULL                                                            -- not yet claimed,
+			    AND alpha                   IS NOT NULL                                                        -- that split_alpha did,
+			    AND split                   = 'train'                                                          -- not eval,
+			    AND page_id NOT IN (SELECT page_id FROM _no_trimask_items)                                     -- not a showcase image or an empty matte,
+			    AND (contains('$TRIMASK_SUBSET', left(encode(sha256(concat(page_id, 'threshold')), 'hex'), 1)) -- in this method's subset (TRIMASK_SUBSET)
+			         OR left(encode(sha256(page_id), 'hex'), 3) <= '$TRIMASK_COMPARE_MAX')                     -- or in the comparison set,
+			ORDER BY random() LIMIT $TRIMASK_BATCH_SIZE                                                        -- one batch at a time, in random order
+		claim	trimask_threshold_claim magick_samples
+		command bash
+			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" threshold $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
+
 
 functions
 	model_labels	 The journal's weight equation and sampler of eval_models rows: src/sana_alpha/journal_assets.py label_of. Lists, so one query starts one process
@@ -1590,6 +1618,8 @@ queries
 		    shot(t.trimask, t.method, t.caption, 'perlin_warp')                        AS perlin_warp,
 		    shot(t.trimask, t.method, t.caption, 'op_chain')                           AS op_chain,
 		    shot(t.trimask, t.method, t.caption, 'glass_ripple')                       AS glass_ripple,
+		    shot(t.trimask, t.method, t.caption, 'original')                           AS original,
+		    shot(t.trimask, t.method, t.caption, 'threshold')                          AS threshold,
 		    avg(t.white_fraction)                                                      AS white_fraction,
 		    avg(t.gray_fraction)                                                       AS gray_fraction,
 		    avg(t.black_fraction)                                                      AS black_fraction
