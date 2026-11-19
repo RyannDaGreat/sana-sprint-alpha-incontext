@@ -31,6 +31,9 @@ import subprocess
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
 import fire
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -46,6 +49,9 @@ SHARD_CHARS = 2  # first hex chars as a folder, so no folder holds thousands of 
 HASH_PROCESSES = 8  # the training jobs need the CPUs
 PAGES_LIMIT_BYTES = 900e6  # GitHub Pages allows 1 GB per site; keep headroom
 PUSH_BATCH_BYTES = 400e6  # GitHub rejects pushes over 2 GB, and a 2.4 GB push got HTTP 500 (publish_models): push in batches of this size
+NEW_COUNT = 3  # index entries marked "new" (m00719: the user could not tell which journals are the latest)
+INDEX_ENTRY = re.compile(r'^<li><a href="([^"]+)">')
+STAMP_STYLE = "margin:0.5em 1em;font:13px system-ui,sans-serif;opacity:0.75"
 SUBDIRS = ("compare", "lib")  # journal/ folders of text files (HTML, JS, CSS, JSON), copied with their image paths rewritten (manifest §15)
 EVAL_FULL_DIR = "assets/eval/full/"
 EVAL_JS_REFERENCE = "${EVAL_FULL_DIR}${dir}/${id}.png"  # the one dynamic image path, in eval_grid.js
@@ -118,6 +124,79 @@ def add_footer(html):
     """
     assert html.count("</body>") == 1, "expected exactly one </body>"
     return html.replace("</body>", FOOTER + "</body>")
+
+
+def page_sources(href):
+    """
+    Pure function. The repo paths whose git history dates a published page: the page file itself; for the compare
+    reports their shells, data and shared scripts; for the app its source.
+
+    Examples:
+        >>> page_sources("gallery_v2.html"), page_sources("compare/scrub.html"), page_sources("webgpu/")
+        (['journal/gallery_v2.html'], ['journal/compare', 'journal/lib'], ['web/src', 'web/index.html'])
+    """
+    if href.startswith("compare/"):
+        return ["journal/compare", "journal/lib"]
+    if href.startswith("webgpu"):
+        return ["web/src", "web/index.html"]
+    return [f"journal/{href}"]
+
+
+def last_commit_time(paths):
+    """Query (git). Unix time of the newest commit touching any of `paths`; fails loudly when none has history."""
+    stamp = git("log", "-1", "--format=%ct", "--", *paths).strip()
+    assert stamp, f"no git history for {paths}"
+    return int(stamp)
+
+
+def eastern(timestamp):
+    """
+    Pure function. A Unix time as US Eastern date and 12-hour time.
+
+    Examples:
+        >>> eastern(1763542800)
+        'Nov 19, 2025, 4:00 AM ET'
+    """
+    when = datetime.fromtimestamp(timestamp, ZoneInfo("America/New_York"))
+    return f"{when:%b} {when.day}, {when.year}, {when.hour % 12 or 12}:{when:%M} {'AM' if when.hour < 12 else 'PM'} ET"
+
+
+def add_updated(html, timestamp):
+    """
+    Pure function. Inserts a "Last updated" line right after the <body ...> tag.
+
+    Examples:
+        >>> add_updated('<body data-view="x"><main>', 1763542800)
+        '<body data-view="x"><p class="updated-stamp" style="margin:0.5em 1em;font:13px system-ui,sans-serif;opacity:0.75">Last updated Nov 19, 2025, 4:00 AM ET</p><main>'
+    """
+    match = re.search(r"<body[^>]*>", html)
+    assert match, "expected a <body> tag"
+    stamp = f'<p class="updated-stamp" style="{STAMP_STYLE}">Last updated {eastern(timestamp)}</p>'
+    return html[:match.end()] + stamp + html[match.end():]
+
+
+def order_index(html, times, new_count=NEW_COUNT):
+    r"""
+    Pure function. Sorts the index's entries (one `<li><a href="...">` per line) newest first by `times[href]`,
+    putting each entry's date and time, and a "new" mark on the newest `new_count`, right after its title link. A
+    listed href without a time fails loudly (KeyError).
+
+    Examples:
+        >>> html = '<ul>\n<li><a href="a.html">A</a></li>\n<li><a href="b.html">B</a></li>\n</ul>'
+        >>> print(order_index(html, {"a.html": 1763542800, "b.html": 1763546400}, new_count=1))
+        <ul>
+        <li><a href="b.html">B</a> <span class="updated">Nov 19, 2025, 5:00 AM ET</span> <b class="new">new</b></li>
+        <li><a href="a.html">A</a> <span class="updated">Nov 19, 2025, 4:00 AM ET</span></li>
+        </ul>
+    """
+    lines = html.split("\n")
+    rows = [k for k, line in enumerate(lines) if INDEX_ENTRY.match(line)]
+    assert rows == list(range(rows[0], rows[-1] + 1)), "index entries must be consecutive lines"
+    entries = sorted((lines[k] for k in rows), key=lambda line: -times[INDEX_ENTRY.match(line).group(1)])
+    mark = lambda line, rank: (f' <span class="updated">{eastern(times[INDEX_ENTRY.match(line).group(1)])}</span>'
+                               + (' <b class="new">new</b>' if rank < new_count else ""))
+    stamped = [line.replace("</a>", "</a>" + mark(line, rank), 1) for rank, line in enumerate(entries)]
+    return "\n".join(lines[:rows[0]] + stamped + lines[rows[-1] + 1:])
 
 
 def png_digest(png_path):
@@ -199,10 +278,14 @@ def build_site(urls, build_web=False):
         if entry.name != ".git":
             shutil.rmtree(entry) if entry.is_dir() else entry.unlink()
 
+    times = {href: last_commit_time(page_sources(href)) for href in
+             [p.name for p in JOURNAL.glob("*.html")] + [f"compare/{p.name}" for p in (JOURNAL / "compare").glob("*.html")] + ["webgpu/"]}
     for source in JOURNAL.glob("*"):
         text = source.read_text() if source.suffix in (".html", ".js", ".css") else None
-        if source.suffix == ".html":
-            (SITE / source.name).write_text(add_footer(rewrite_asset_refs(text, urls)))
+        if source.name == "index.html":
+            (SITE / source.name).write_text(add_footer(order_index(rewrite_asset_refs(text, urls), times)))
+        elif source.suffix == ".html":
+            (SITE / source.name).write_text(add_footer(add_updated(rewrite_asset_refs(text, urls), times[source.name])))
         elif source.name == "eval_grid.js":
             (SITE / source.name).write_text(rewrite_eval_grid_js(rewrite_asset_refs(text, urls), urls))
         elif text is not None:
@@ -211,7 +294,8 @@ def build_site(urls, build_web=False):
         destination = SITE / source.relative_to(JOURNAL)
         destination.parent.mkdir(parents=True, exist_ok=True)
         text = rewrite_asset_refs(source.read_text(), urls)
-        destination.write_text(add_footer(text) if source.suffix == ".html" else text)
+        page = source.relative_to(JOURNAL).as_posix()
+        destination.write_text(add_footer(add_updated(text, times[page])) if source.suffix == ".html" else text)
     shutil.copytree(JOURNAL / "webgpu", SITE / "webgpu")
     (SITE / "models/web").mkdir(parents=True)
     (SITE / "models/web/index.json").write_text(json.dumps(MODELS_PLACEHOLDER, indent=1))
