@@ -391,3 +391,10 @@
 - The user assumed a large share of training used the original mask (m00718). It did not: all 19 trimask methods modify the mask, and `finalize()` coarsens every one, so a plain solid silhouette, the most common real input, never appeared in training (SANA control_tri_scratch or FIBO2 fibo2_tri).
 - Fix: methods `original` and `threshold` as BlueJay processors; training mix set by the user to 30% solid outlines / 70% trimasks (m00720), first proposed by the agent as 2× weights (~17%), replaced by the user's split. Reason (m00721): "we need to make sure that it masters single outlines. It's a very common use case."
 - Lesson: when designing an augmentation set, always include the identity (un-augmented) condition, and check the realized training distribution against the real use case.
+
+## 2026-11-19 ~1:25 PM — trimask method weights: equal → 30% solid outlines (m00718, m00720, m00721)
+- Until now, training drew each of the 19 trimask methods equally (1/19 each). None of them was the plain matte or a thresholded matte, so the model never practiced the most common real input: a solid outline.
+- m00718 added two methods, `original` (the matte itself) and `threshold` (alpha >= 0.5), and first proposed giving them weight 2 (~8.7% each, ~17% together). That proposal was replaced before any training used it.
+- m00720/m00721 set the split: 30% of draws are the two solid outlines (15% each), 70% the 19 other methods (uniform, ~3.7% each). User's reason, verbatim: "we need to make sure that it masters single outlines. It's a very common use case." Constant: `train_control.OUTLINE_SHARE` = 0.30.
+- `threshold` is the one method exempt from the consistency rule (it marks soft edges as sure), because the user asked for exactly that input.
+- Lesson: the condition distribution must cover the inputs people actually give, not only the clever augmentations.

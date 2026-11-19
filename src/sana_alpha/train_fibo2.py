@@ -36,7 +36,8 @@ from torch.nn.parallel import DistributedDataParallel
 
 from sana_alpha import fibo2, models
 from sana_alpha.train_adapter import barrier, setup_distributed
-from sana_alpha.train_control import LANCE, METHOD_LOG_EVERY, RESOLUTION_PROBS, TRIMASK_LANCE, method_uniform_draws, step_resolution
+from sana_alpha.train_control import (LANCE, METHOD_LOG_EVERY, OUTLINE_SHARE, RESOLUTION_PROBS, TRIMASK_LANCE, method_uniform_draws,
+                                      outline_fraction, step_resolution)
 from sana_alpha.train_data import epoch_batches, rank_shard, read_latent_blobs
 from sana_alpha.train_objective import add_flow_noise, flow_velocity_target
 from sana_alpha.trimask import METHODS
@@ -351,7 +352,7 @@ def train(mode, run, adapter=None, rank=64, batch_size=2, max_steps=20000, warmu
                 f"{r}: {n} steps {res_secs[r] / max(n, 1):.2f} s/step" for r, n in res_steps.items())))
             res_steps, res_secs = dict.fromkeys(RESOLUTION_PROBS, 0), dict.fromkeys(RESOLUTION_PROBS, 0.0)
             if mode == "control":
-                log(f"trimask methods drawn (rank 0, last {METHOD_LOG_EVERY} steps): {dict(zip(METHODS, drawn.tolist()))}")
+                log(f"trimask methods drawn (rank 0, last {METHOD_LOG_EVERY} steps): {dict(zip(METHODS, drawn.tolist()))}, outlines {outline_fraction(drawn)} (target {OUTLINE_SHARE})")
                 drawn.zero_()
         if main and (step % save_every == 0 or step == max_steps):
             folder = out_dir / f"step_{step:06d}"

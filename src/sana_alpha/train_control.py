@@ -171,25 +171,42 @@ def load_trimask_shard(versions, rank, world, seed, resolutions=(1024,)):
                 captions=rows.subject.astype(str).tolist(), page_ids=rows.page_id.tolist())
 
 
-METHOD_WEIGHTS = {"original": 2, "threshold": 2}  # m00718: the exact and the solid mask are common inputs; every other method 1
+OUTLINE_METHODS = ("original", "threshold")  # The solid outlines: the matte itself and the matte thresholded (m00718)
+OUTLINE_SHARE = 0.30  # m00720/m00721: 30% of draws are solid outlines, 70% the other trimask methods: "we need to make sure that it masters single outlines. It's a very common use case"
 
 
 def method_weights():
     """
-    Pure function. Draw weight of each trimask.METHODS entry, in METHODS order: METHOD_WEIGHTS, else 1.
+    Pure function. Draw probability of each trimask.METHODS entry, in METHODS order: OUTLINE_SHARE split evenly over
+    OUTLINE_METHODS, the rest split evenly over every other method.
 
     Examples:
         >>> weights = method_weights()
-        >>> len(weights) == len(METHODS), float(weights[METHODS.index("threshold")]), float(weights[0])
-        (True, 2.0, 1.0)
+        >>> round(float(weights[METHODS.index("threshold")]), 3), round(float(weights[0]), 4), round(float(weights.sum()), 6)
+        (0.15, 0.0368, 1.0)
     """
-    return torch.tensor([float(METHOD_WEIGHTS.get(m, 1)) for m in METHODS])
+    outline = [m in OUTLINE_METHODS for m in METHODS]
+    return torch.tensor([OUTLINE_SHARE / sum(outline) if o else (1 - OUTLINE_SHARE) / (len(METHODS) - sum(outline)) for o in outline],
+                        dtype=torch.float64)
+
+
+def outline_fraction(counts):
+    """
+    Pure function. Fraction of draws that were solid outlines, from per-method draw counts in METHODS order (to check the
+    realized OUTLINE_SHARE in the training log).
+
+    Examples:
+        >>> outline_fraction(torch.tensor([7] * 19 + [15, 15]))
+        0.184
+    """
+    outline = torch.tensor([m in OUTLINE_METHODS for m in METHODS])
+    return round(float(counts[outline].sum() / counts.sum()), 3)
 
 
 def method_uniform_draws(cond_owner, cond_method, count, batch_size, gen):
     """
     Near-pure function (advances gen). count // batch_size batches of (record indices, condition rows): each example
-    draws a method from trimask.METHODS with method_weights() (so original and threshold ~8.7% each, the other 19 ~4.3%),
+    draws a method from trimask.METHODS with method_weights() (original and threshold 15% each, the other 19 ~3.7%),
     then one of that method's rows uniformly (so a method with fewer rows is not under-represented); its record is the
     row's owner. Raises if a method has no rows.
 
@@ -207,8 +224,9 @@ def method_uniform_draws(cond_owner, cond_method, count, batch_size, gen):
         >>> draws = method_uniform_draws(owner, method, 100, 10, torch.Generator().manual_seed(0))
         >>> len(draws), bool((owner[draws[0][1]] == draws[0][0]).all())
         (10, True)
-        >>> counts = torch.bincount(method[torch.cat([c for _, c in draws])], minlength=len(METHODS))
-        >>> len(counts) == len(METHODS), bool(counts.min() > 0)  # every method drawn, about equally often
+        >>> many = method_uniform_draws(owner, method, 4000, 10, torch.Generator().manual_seed(0))
+        >>> counts = torch.bincount(method[torch.cat([c for _, c in many])], minlength=len(METHODS))
+        >>> bool(counts.min() > 0), abs(outline_fraction(counts) - OUTLINE_SHARE) < 0.03  # every method drawn, ~30% outlines
         (True, True)
     """
     missing = [METHODS[m] for m in range(len(METHODS)) if not (cond_method == m).any()]
@@ -507,7 +525,7 @@ def train(run, data=str(OVERFIT_DIR), adapter=None, rank=16, batch_size=16, max_
             if trimask:
                 drawn += torch.bincount(pool["cond_method"][rows], minlength=len(METHODS))
                 if step % METHOD_LOG_EVERY == 0:
-                    log(f"trimask methods drawn (rank 0, last {METHOD_LOG_EVERY} steps): {dict(zip(METHODS, drawn.tolist()))}")
+                    log(f"trimask methods drawn (rank 0, last {METHOD_LOG_EVERY} steps): {dict(zip(METHODS, drawn.tolist()))}, outlines {outline_fraction(drawn)} (target {OUTLINE_SHARE})")
                     drawn.zero_()
             if main and (step % save_every == 0 or step == max_steps):
                 gc.save_control(transformer, out_dir / f"step_{step:06d}", lora_config, dict(meta, step=step))
