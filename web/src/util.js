@@ -212,13 +212,13 @@ export function yieldToBrowser() {
  * @returns {string}
  *
  * @example progressLine({label: 'transformer 2', step: 2, steps: 4, stepDone: 3, perStep: 5, elapsed: 4200, remaining: 6100}, 5)
- * // 'Step 2 of 4 · transformer 2 · blocks 3/5 done · 4.2 s · about 6 s left'
+ * // 'Step 2 of 4 · transformer 2 · blocks 3/5 done · 4.2 s · about 0:07 left'
  * @example progressLine({label: 'text encoder', step: 0, steps: 4, stepDone: 0, perStep: 5, elapsed: 900, remaining: null}, 5)
  * // 'text encoder done · 0.9 s'
  */
 export function progressLine(p, chunks) {
   const seconds = `${(p.elapsed / 1000).toFixed(1)} s`;
-  const left = p.remaining === null ? '' : ` · about ${Math.round(p.remaining / 1000)} s left`;
+  const left = p.remaining === null ? '' : ` · about ${formatEta(p.remaining / 1000)} left`;
   if (!p.step) return `${p.label} done · ${seconds}${left}`;
   const blocks = chunks > 1 ? ` · blocks ${((p.stepDone - 1) % chunks) + 1}/${chunks} done` : '';
   return `Step ${p.step} of ${p.steps} · ${p.label}${blocks} · ${seconds}${left}`;
