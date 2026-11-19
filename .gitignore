@@ -13,7 +13,7 @@ journal/assets/gallery_*/
 journal/assets/compare/
 journal/assets/fibo2_previews/
 web/node_modules/
-web/vendor/
+web/public/ort-memory64/
 web/.cert/
 journal/webgpu/
 web/public/masks/categories.json

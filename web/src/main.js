@@ -12,10 +12,11 @@ import { countEmbeddings, clearEmbeddings } from './embcache.js';
 import { formatBytes, formatEta, rate, mattePixelsToTensor, decodeToPixels, fitRect, cropRect, SIZE } from './util.js';
 // pipeline.js (with ONNX Runtime) is a separate chunk: ORT's WASM worker re-imports its own
 // module URL, which must not be this file (it touches the DOM).
-const { Pipeline, sprintTimesteps } = await import('./pipeline.js');
+const { Pipeline, sprintTimesteps, fibo2Sigmas, fibo2Mu, canLoadHere } = await import('./pipeline.js');
 const { Segmenter, SEG_FILE } = await import('./segment.js');
 
 const REALTIME_DEBOUNCE_MS = 120;   // wait this long after the last edit before a real-time run
+const STEP_CHOICES = { sana: [1, 2, 3, 4], fibo2: [1, 2, 4, 8, 12, 20, 30, 50] };  // Sprint: few-step; FIBO2: a flow model (training previews: 20)
 const PROGRESS_REDRAW_MS = 100;     // throttle for progress-bar text updates
 const SEED_RANGE = 2 ** 31;
 
@@ -215,6 +216,9 @@ function download(canvas, name) {
 $('dl-gray').addEventListener('click', () => download($('out-gray'), `${state.last}_on_gray.png`));
 $('dl-rgba').addEventListener('click', () => download($('out-rgba'), `${state.last}_rgba.png`));
 
+/** Pure function. The model family of a version ('sana' when its manifest has none). @example familyOf({manifest: {}}) // 'sana' */
+const familyOf = (v) => v?.manifest.family ?? 'sana';
+
 /** Query. The sampler settings in the UI: steps, guidance, the TrigFlow angles they give, and the output size. */
 function samplerSettings() {
   const steps = Number($('steps').value);
@@ -249,10 +253,31 @@ function matteAtSize(width, height) {
  * // 'W_sprint + (W_control − W_adapter) + gates · control_v2 step 1500 · transformer fp16 · Gemma fp16 · Sprint sampler, 2 steps at s = 1.5708, 1.3 · guidance 4.5 (embedded) · 1024 × 1024 · seed 0'
  */
 function equationText(manifest, { steps, guidance, timesteps, width, height, adapterScale }, seed) {
-  const s = timesteps.slice(0, -1).map((v) => +v.toFixed(4)).join(', ');
   const weights = manifest.weights ?? 'weight equation missing from manifest.json';
-  return `${manifest.adapter ? weights.replace('λ', adapterScale) : weights} · ${manifest.precision} · ` +
-    `Sprint sampler, ${steps} step${steps > 1 ? 's' : ''} at s = ${s} · guidance ${guidance} (embedded) · ${width} × ${height} · seed ${seed}`;
+  const head = `${manifest.adapter ? weights.replace('λ', adapterScale) : weights} · ${manifest.precision} · `;
+  const tail = `${width} × ${height} · seed ${seed}`;
+  if (manifest.family === 'fibo2') {
+    const sig = fibo2Sigmas(steps, fibo2Mu((width * height) / 256, manifest.sampler.shift_seq, manifest.sampler.shift_mu));
+    return `${head}FIBO2 flow Euler, ${steps} step${steps > 1 ? 's' : ''} at σ = ${sig.slice(0, -1).map((v) => +v.toFixed(3)).join(', ')} · ` +
+      `CFG ${guidance}${guidance > 1 ? ' (2 passes per step, null prompt)' : ' (off)'} · ${tail}`;
+  }
+  const s = timesteps.slice(0, -1).map((v) => +v.toFixed(4)).join(', ');
+  return `${head}Sprint sampler, ${steps} step${steps > 1 ? 's' : ''} at s = ${s} · guidance ${guidance} (embedded) · ${tail}`;
+}
+
+/**
+ * Command. Sets the steps choices and the guidance label for a family; with defaults (a newly loaded version), also its
+ * default steps and guidance.
+ *
+ * @param {string} family - 'sana' | 'fibo2'
+ * @param {{steps: number, guidance: number}|null} defaults
+ */
+function applyFamily(family, defaults) {
+  const keep = $('steps').value;
+  $('steps').innerHTML = STEP_CHOICES[family].map((n) => `<option value="${n}">${n}</option>`).join('');
+  $('steps').value = defaults ? String(defaults.steps) : STEP_CHOICES[family].includes(Number(keep)) ? keep : String(STEP_CHOICES[family][1]);
+  if (defaults) $('guidance').value = defaults.guidance;
+  $('guidance-label').textContent = family === 'fibo2' ? 'Guidance (CFG)' : 'Guidance (embedded)';
 }
 
 /**
@@ -260,7 +285,9 @@ function equationText(manifest, { steps, guidance, timesteps, width, height, ada
  * 1024² need a version with dynamic-size graphs; the dashed frame shows the matte crop of a non-square size.
  */
 function syncSamplerUi() {
-  $('s-mid').disabled = $('steps').value !== '2';
+  const fibo2 = familyOf(state.pipeline?.version ?? state.selected) === 'fibo2';
+  $('s-max').disabled = fibo2;
+  $('s-mid').disabled = fibo2 || $('steps').value !== '2';
   $('guidance-v').textContent = $('guidance').value;
   $('lambda-v').textContent = $('lambda').value;
   $('lambda').disabled = !state.pipeline?.hasLambda;
@@ -438,6 +465,12 @@ function progressRows(files, box = $('files')) {
 
 /** Command. Downloads (or reads from cache) and initializes a version. */
 async function loadVersion(v) {
+  if (!canLoadHere(v)) {  // the other model family's ONNX Runtime build is already running in this page (pipeline.js)
+    const url = new URL(location.href);
+    url.searchParams.set('version', v.id);
+    location.assign(url);
+    return;
+  }
   state.selected = v;
   state.pipeline = null;
   applyCond(v);
@@ -452,6 +485,7 @@ async function loadVersion(v) {
   url.searchParams.set('version', v.id);
   history.replaceState(null, '', url);
   $('generate').disabled = false;
+  applyFamily(familyOf(v), familyOf(v) === 'fibo2' ? v.manifest.sampler : null);
   syncSamplerUi();
   status(`${v.id} ready in ${((performance.now() - t0) / 1000).toFixed(1)} s (${ep}). Press Generate.`);
   await renderVersions();
@@ -481,6 +515,7 @@ async function init() {
   const pre = state.versions.find((v) => v.id === wanted);
   if (wanted && !pre) status(`Unknown version "${wanted}"; pick one below.`, true);
   state.selected = pre ?? state.versions[0];
+  applyFamily(familyOf(state.selected), null);
   applyCond(state.selected);
   await renderVersions();
   await refreshCacheInfo();

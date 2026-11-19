@@ -12,6 +12,11 @@
 //                                                     absent in older exports = "matte"; both feed vae_encoder the same gray image)
 //   "trained_sizes": [int, ...],                     (square sides the control trained at, largest first; absent in older exports = [1024])
 //   "complex_human_instruction": [str, ...]          (optional; default = SANA's, see prompt.js)
+//   "family": "sana" | "fibo2",                      (absent = "sana"; "fibo2" = manifest §16: Memory64 runtime, velocity graph,
+//                                                     flow Euler + CFG in pipeline.js, Qwen3-VL text encoder, FLUX.2 VAE (H/8))
+//   "sampler": {steps, guidance, shift_seq, shift_mu} (fibo2: the sampler defaults and FIBO2's resolution shift)
+//   "text_encoder": {template, caption_key, null_prompt, max_tokens} (fibo2: prompt template, JSON caption key,
+//                                                     null prompt for CFG, longest prompt the transformer graph takes)
 //   "files": {                                        (paths are relative to the version folder)
 //     "tokenizer": {path, bytes}, "tokenizer_config": {path, bytes},
 //     "text_encoder" | "vae_encoder" | "transformer" | "vae_decoder": {
@@ -60,7 +65,8 @@ export async function loadVersions(base) {
   }));
 }
 
-// Exporter graph input/output names → this app's role keys (see DEFAULT_NAMES in pipeline.js).
+// Exporter graph input/output names → this app's role keys (see DEFAULT_NAMES in pipeline.js). FIBO2 versions use
+// their graph names directly (FIBO2_NAMES in pipeline.js), so they get no "names" entry.
 const EXPORT_NAMES = {
   transformer: { noise: 'latents', matte_latent: 'cond_latents', encoder_hidden_states: 'prompt_embeds',
     encoder_attention_mask: 'prompt_mask', timestep: 'timestep', guidance: 'guidance', adapter_scale: 'adapter_scale',
@@ -92,15 +98,17 @@ export function normalizeManifest(raw) {
     const role = name.replace(/\.onnx(\.data)?$|\.json$/, '');
     if (name.endsWith('.data')) continue;
     const entry = (n, b) => ({ path: n, bytes: b, sha256: raw.sha256?.[n], parts: raw.parts?.[n] });
-    files[role] = { ...entry(name, bytes), names: EXPORT_NAMES[role] };
-    // external weights: <name>.data, plus extra files <name>.<tag>.data (the -lambda delta: transformer.onnx.lambda.data)
+    files[role] = { ...entry(name, bytes), ...(raw.family === 'fibo2' ? {} : { names: EXPORT_NAMES[role] }) };
+    // external weights: <name>.data, plus extra files <name>.<tag>.data (the -lambda delta: transformer.onnx.lambda.data;
+    // FIBO2's < 2 GB pieces: transformer.onnx.p0.data, …)
     const data = Object.keys(raw.files).filter((n) => n.startsWith(`${name}.`) && n.endsWith('.data')).sort();
     if (data.length) files[role].external_data = data.map((n) => entry(n, raw.files[n]));
   }
   return {
     label: raw.version, description: raw.source ? `Exported from ${raw.source}.` : '',
+    family: raw.family ?? 'sana', sampler: raw.sampler, text_encoder: raw.text_encoder,
     scaling_factor: raw.vae.scaling_factor, timestep: raw.sampler.timestep, guidance: raw.sampler.guidance,
-    weights: raw.weights, precision: precisionLabel(raw.quantization), adapter: raw.adapter ?? null, cond: raw.cond,
+    weights: raw.weights, precision: precisionLabel(raw.quantization, raw.family), adapter: raw.adapter ?? null, cond: raw.cond,
     trained_sizes: raw.trained_sizes ?? [1024],  // exports before trained_sizes all come from 1024-only runs
     dynamic_size: typeof raw.graphs.transformer.inputs[0][1][2] === 'string',  // [1, 32, "LH", "LW"]: any size
     max_sequence_length: 300, latent_scaling_in_graph: true, decoder_output_range: '0,1',
@@ -116,10 +124,11 @@ export function normalizeManifest(raw) {
  *
  * @example precisionLabel({transformer: {bits: 4, lowrank_rank: 32}, text_encoder: {bits: 8, lowrank_rank: 0}}) // 'transformer int4 SVDQuant r32 · Gemma int8'
  * @example precisionLabel({transformer: {fp16: 'transformer.onnx'}, text_encoder: {fp16: 'text_encoder.onnx'}}) // 'transformer fp16 · Gemma fp16'
+ * @example precisionLabel({transformer: {bits: 4, lowrank_rank: 32}, text_encoder: {bits: 4, lowrank_rank: 32}}, 'fibo2') // 'transformer int4 SVDQuant r32 · Qwen3-VL int4 SVDQuant r32'
  */
-export function precisionLabel(q) {
+export function precisionLabel(q, family = 'sana') {
   const one = (g) => (g?.bits ? `int${g.bits}${g.lowrank_rank ? ` SVDQuant r${g.lowrank_rank}` : ''}` : 'fp16');
-  return `transformer ${one(q.transformer)} · Gemma ${one(q.text_encoder)}`;
+  return `transformer ${one(q.transformer)} · ${family === 'fibo2' ? 'Qwen3-VL' : 'Gemma'} ${one(q.text_encoder)}`;
 }
 
 /**

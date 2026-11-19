@@ -6,7 +6,8 @@
 #   -sMEMORY64 for every compile and link (CFLAGS / CXXFLAGS / LDFLAGS), -DORT_WASM64, js_post_js_64.js,
 #   and MAXIMUM_MEMORY 16 GB (Chrome's wasm64 cap).
 # Same version as web/package.json's onnxruntime-web. github.com/microsoft/onnxruntime answers 404 from this node,
-# so the source comes from a mirror (MIRROR). Output: web/vendor/ort-memory64/ (git-ignored; sizes in manifest §16).
+# so the source comes from a mirror (MIRROR). Output: web/public/ort-memory64/ (git-ignored;
+# run it before publish_pages --build_web; sizes in manifest §16).
 # Usage: web/scripts/build_ort_memory64.sh            BUILD_DIR=<fast local disk> JOBS=24 to override
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
@@ -15,7 +16,7 @@ MIRROR=${MIRROR:-https://gitcode.com/gh_mirrors/on/onnxruntime.git}
 BUILD_DIR=${BUILD_DIR:-agents/.scratchpad/ort_build}
 JOBS=${JOBS:-24}  # A quarter of the cores: training's data path shares the CPUs
 MAXIMUM_MEMORY=17179869184  # 16 GB, Chrome's Memory64 limit
-OUT=web/vendor/ort-memory64
+OUT=web/public/ort-memory64  # Vite copies public/ into the site; the app loads it as ort-memory64/ (pipeline.js MEMORY64_PATH)
 SRC=$BUILD_DIR/onnxruntime-$ORT_VERSION
 
 [ -d $SRC ] || git clone --progress --depth 1 --branch v$ORT_VERSION $MIRROR $SRC
