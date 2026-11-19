@@ -12,6 +12,7 @@ journal/assets/*/full/
 journal/assets/gallery_*/
 journal/assets/compare/
 web/node_modules/
+web/vendor/
 web/.cert/
 journal/webgpu/
 web/public/masks/categories.json
