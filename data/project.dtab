@@ -726,6 +726,13 @@ tables
 			,	model_tag tri_partial_view_tri_scratch_step015500_sprint_lam0_2step	pipeline sprint		checkpoint models/control/control_tri_scratch/sprint_step_015500		prompt_variant plain		steps 2		guidance 4.5	eval_set resources/showcase_trimask/partial_view
 			,	model_tag tri_combo_chain_tri_scratch_step015500_sprint_lam0_2step	pipeline sprint		checkpoint models/control/control_tri_scratch/sprint_step_015500		prompt_variant plain		steps 2		guidance 4.5	eval_set resources/showcase_trimask/combo_chain
 			,	model_tag tri_glass_ripple_tri_scratch_step015500_sprint_lam0_2step	pipeline sprint		checkpoint models/control/control_tri_scratch/sprint_step_015500		prompt_variant plain		steps 2		guidance 4.5	eval_set resources/showcase_trimask/glass_ripple
+			 fibo2_tri step 1000: compare reports, FIBO2 cheap tier (manifest §15): held-out items, 30 steps, CFG 5
+			,	model_tag tri_morph_band_fibo2_tri_step001000_fibo2_30step	pipeline fibo2		checkpoint models/fibo2/fibo2_tri/step_001000							prompt_variant plain		steps 30	guidance 5.0	eval_set resources/showcase_trimask_held/morph_band
+			,	model_tag tri_scribbles_fibo2_tri_step001000_fibo2_30step	pipeline fibo2		checkpoint models/fibo2/fibo2_tri/step_001000							prompt_variant plain		steps 30	guidance 5.0	eval_set resources/showcase_trimask_held/scribbles
+			,	model_tag tri_bbox_unknown_fibo2_tri_step001000_fibo2_30step	pipeline fibo2		checkpoint models/fibo2/fibo2_tri/step_001000							prompt_variant plain		steps 30	guidance 5.0	eval_set resources/showcase_trimask_held/bbox_unknown
+			,	model_tag tri_partial_view_fibo2_tri_step001000_fibo2_30step	pipeline fibo2		checkpoint models/fibo2/fibo2_tri/step_001000							prompt_variant plain		steps 30	guidance 5.0	eval_set resources/showcase_trimask_held/partial_view
+			,	model_tag tri_combo_chain_fibo2_tri_step001000_fibo2_30step	pipeline fibo2		checkpoint models/fibo2/fibo2_tri/step_001000							prompt_variant plain		steps 30	guidance 5.0	eval_set resources/showcase_trimask_held/combo_chain
+			,	model_tag tri_glass_ripple_fibo2_tri_step001000_fibo2_30step	pipeline fibo2		checkpoint models/fibo2/fibo2_tri/step_001000							prompt_variant plain		steps 30	guidance 5.0	eval_set resources/showcase_trimask_held/glass_ripple
 
 	eval_generations
 		 One row per model and eval image: the image that the model makes from the caption and the fixed noise
@@ -902,7 +909,7 @@ processors
 				noise_seed @	      [Key]  int    Seed of the fixed noise                                           20261117
 				caption @	                 str    The MAGICK caption                                                "red apple on a solid"
 				noise_index @	             int    Row of the latents in eval_set/noise.safetensors                  10
-				pipeline @	                 str    "teacher" (SanaPipeline) or "sprint" (SanaSprintPipeline)         "sprint"
+				pipeline @	                 str    "teacher" (SanaPipeline), "sprint" (SanaSprint) or "fibo2"        "sprint"
 				checkpoint @	             str    "stock", or a repo path: see models.load_eval_pipeline            "stock"
 				steps @	                     int    Sampling steps                                                    2
 				guidance @	                 float  CFG for the teacher, embedded guidance for Sprint                 4.5

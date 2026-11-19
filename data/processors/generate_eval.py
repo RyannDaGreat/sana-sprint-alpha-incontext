@@ -54,6 +54,7 @@ def serve():
     import numpy as np
     import torch
     from PIL import Image
+    from sana_alpha import fibo2
     from sana_alpha.eval_set import PROMPT_SUFFIXES, load_eval_set
     from sana_alpha.generate import STEP_NOISE_SEED, encode_mattes, generate
     from sana_alpha.metrics import image_metrics
@@ -63,11 +64,12 @@ def serve():
     pipes = {}  # pipeline kind -> (checkpoint, pipe, default call kwargs, conditioned); one per kind, so at most two
 
     def get_pipe(kind, checkpoint):
-        """Command. Returns the loaded pipeline of kind with checkpoint's weights, loading it if needed."""
+        """Command. Returns the loaded pipeline of kind with checkpoint's weights, loading it if needed (fibo2: fibo2.load_eval_model, no defaults, conditioned)."""
         if kind not in pipes or pipes[kind][0] != checkpoint:
             pipes.pop(kind, None)
             torch.cuda.empty_cache()
-            pipes[kind] = (checkpoint, *load_eval_pipeline(kind, checkpoint))
+            load = (lambda k, c: (fibo2.load_eval_model(c, torch.device("cuda")), {}, True)) if kind == "fibo2" else load_eval_pipeline
+            pipes[kind] = (checkpoint, *load(kind, checkpoint))
         return pipes[kind][1:]
 
     def make_prompt(row):
@@ -91,16 +93,21 @@ def serve():
             for _, row in members:
                 assert data["items"][row["noise_index"]]["page_id"] == row["page_id"], f"noise_index does not match {row}"
             pipe, defaults, conditioned = get_pipe(kind, checkpoint)
-            if conditioned and "cond" not in data:
-                data["cond"] = encode_mattes(pipe.vae, data["mattes"])
-            kwargs = dict(defaults, num_inference_steps=int(steps), guidance_scale=float(guidance))
-            if kind == "sprint" and int(steps) != 2:
-                kwargs["intermediate_timesteps"] = None  # 2 steps only; popping it leaves the pipeline default 1.3
             prompts = [make_prompt(row) for _, row in members]
             indices = [row["noise_index"] for _, row in members]
             seeds = [STEP_NOISE_SEED + i for i in indices]
-            cond = data["cond"][indices] if conditioned else None
-            images, seconds = generate(pipe, prompts, data["noise"][indices], seeds=seeds, batch_size=GPU_BATCH, cond=cond, **kwargs)
+            if kind == "fibo2":  # its own sampler; the seed is the item's noise (the set's noise is Sana-shaped)
+                kwargs = dict(sampler="fibo2.sample", num_inference_steps=int(steps), guidance_scale=float(guidance))
+                images, seconds = fibo2.generate_images(pipe, prompts, data["mattes"][indices], seeds, int(steps), float(guidance))
+                prompts = [fibo2.caption_prompt(p) for p in prompts]
+            else:
+                if conditioned and "cond" not in data:
+                    data["cond"] = encode_mattes(pipe.vae, data["mattes"])
+                kwargs = dict(defaults, num_inference_steps=int(steps), guidance_scale=float(guidance))
+                if kind == "sprint" and int(steps) != 2:
+                    kwargs["intermediate_timesteps"] = None  # 2 steps only; popping it leaves the pipeline default 1.3
+                cond = data["cond"][indices] if conditioned else None
+                images, seconds = generate(pipe, prompts, data["noise"][indices], seeds=seeds, batch_size=GPU_BATCH, cond=cond, **kwargs)
             for (sample, row), prompt, image, sec, seed in zip(members, prompts, images, seconds, seeds):
                 Image.fromarray(np.round(image * 255).astype(np.uint8)).save(sample / "image.png")
                 result = dict(prompt=prompt, call_kwargs=json.dumps(kwargs), step_noise_seed=seed, seconds=sec,

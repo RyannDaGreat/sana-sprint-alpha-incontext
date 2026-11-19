@@ -26,6 +26,8 @@ from sana_alpha.journal_assets import label_of, link
 ROOT = Path(__file__).resolve().parents[2]
 SHOWCASE = "resources/showcase"
 TRIMASK_SET = "resources/showcase_trimask"  # one eval set per trimask method (eval_set.build_trimask)
+HELD_SET = "resources/showcase_trimask_held"  # its held-out items only (eval_set.held_out), for FIBO2 (~1 min per image)
+FIBO2_STEPS, FIBO2_GUIDANCE = 30, 5.0  # BriaFibo2Pipeline's defaults (diffusers 0.43)
 LANCE = ROOT / "data/lance/eval_generations.lance"
 TEACHER_LAMBDAS = (1, 0.75, 0.5, 0.25, 0)
 SPRINT_LAMBDAS = (1, 0.75, 0.5, 0)
@@ -62,7 +64,7 @@ def step_models(run, step):
     return teacher + sprint
 
 
-def dtab_rows(models, variant, eval_set=SHOWCASE):
+def dtab_rows(models, variant, eval_set=SHOWCASE, guidance=4.5):
     """
     Pure function. eval_models initial_rows text for models on the showcase set: one DTAB line per row, each cell
     tab-padded to the column the dtab's rows use (tab = 4 columns: 16, 76, 96, 168, 196, 208, 224). Longer model tags
@@ -72,6 +74,7 @@ def dtab_rows(models, variant, eval_set=SHOWCASE):
         models (list[tuple]): from step_models or STOCK
         variant (str): prompt_variant
         eval_set (str): eval set folder relative to the repo root
+        guidance (float): the rows' guidance (4.5: Sana's; FIBO2_GUIDANCE for FIBO2)
 
     Returns:
         str
@@ -93,7 +96,7 @@ def dtab_rows(models, variant, eval_set=SHOWCASE):
         cells = [f"{k} {v}" for k, v in zip(keys, values)]
         assert all(len(c) < b - a for c, a, b in zip(cells, (16,) + stops, stops)), f"a cell is too wide for its column: {cells}"
         return "\t\t\t,\t" + "".join(pad(c, a, b) for c, a, b in zip(cells, (16,) + stops, stops)) + cells[-1] + "\n"
-    return "".join(line((variant_tag(tag, variant), pipeline, checkpoint, variant, steps, 4.5, eval_set))
+    return "".join(line((variant_tag(tag, variant), pipeline, checkpoint, variant, steps, guidance, eval_set))
                    for tag, pipeline, checkpoint, steps, _ in models)
 
 
@@ -163,6 +166,28 @@ def trimask_rows(*run_steps, resolution=1024, methods=None):
     assert set(methods) <= set(METHODS), f"unknown methods: {set(methods) - set(METHODS)}"
     print("".join(dtab_rows([(trimask_tag(m[0], method, resolution), *m[1:]) for r in run_steps for m in trimask_models(r)],
                             "plain", f"{trimask_set(resolution)}/{method}") for method in methods), end="")
+
+
+def fibo2_models(run_step):
+    """
+    Pure function. The shipped FIBO2 model of one control step (fibo2.load_eval_model) at the pipeline's defaults.
+
+    Examples:
+        >>> fibo2_models("fibo2_tri:2000")
+        [('show_fibo2_tri_step002000_fibo2_30step', 'fibo2', 'models/fibo2/fibo2_tri/step_002000', 30, 'FIBO2, 30 steps')]
+    """
+    run, step = run_step.split(":")
+    return [(f"show_{run}_step{int(step):06d}_fibo2_{FIBO2_STEPS}step", "fibo2", f"models/fibo2/{run}/step_{int(step):06d}", FIBO2_STEPS, f"FIBO2, {FIBO2_STEPS} steps")]
+
+
+def fibo2_rows(*run_steps, methods=None):
+    """Command. Prints the eval_models rows of FIBO2 control RUN:STEP... on the held-out trimask sets at 1024 (every method, or the comma-separated `methods`), to paste into the dtab."""
+    from sana_alpha.trimask import METHODS
+
+    methods = methods.split(",") if isinstance(methods, str) else methods or METHODS
+    assert set(methods) <= set(METHODS), f"unknown methods: {set(methods) - set(METHODS)}"
+    print("".join(dtab_rows([(trimask_tag(m[0], method), *m[1:]) for r in run_steps for m in fibo2_models(r)],
+                            "plain", f"{HELD_SET}/{method}", FIBO2_GUIDANCE) for method in methods), end="")
 
 
 def build_trimask(*run_steps, notes="", name=None, resolution=1024):
@@ -426,4 +451,4 @@ Each of the {n} showcase items ({held} <span class="split held-out">held-out</sp
 """
 
 if __name__ == "__main__":
-    fire.Fire(dict(rows=rows, build=build, trimask_rows=trimask_rows, build_trimask=build_trimask))
+    fire.Fire(dict(rows=rows, build=build, trimask_rows=trimask_rows, fibo2_rows=fibo2_rows, build_trimask=build_trimask))

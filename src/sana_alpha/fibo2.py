@@ -338,6 +338,63 @@ def gray_image(size):
     return torch.full((1, 3, size, size), GRAY / 127.5 - 1)
 
 
+def load_eval_model(checkpoint, device):
+    """
+    Query (reads weights, allocates GPU memory). The shipped model of one control checkpoint (§14 step 3: FIBO2 + the
+    control LoRA alone, the adapter removed) with the text encoder, the VAE, its BatchNorm stats and the null prompt.
+
+    Args:
+        checkpoint (str): a train_fibo2 control step folder, e.g. models/fibo2/fibo2_tri/step_002000
+        device (torch.device)
+
+    Returns:
+        dict: transformer, text (encoder, processor), vae, bn, null (embeds, mask)
+    """
+    from diffusers import AutoencoderKLFlux2
+
+    meta = json.loads((models.localize(checkpoint) / "meta.json").read_text())
+    assert meta["mode"] == "control" and not meta["gates"], f"{checkpoint}: only control checkpoints without gates are evaluated"
+    transformer = load_transformer(device)
+    merge_lora(transformer, load_file(models.localize(checkpoint) / "lora.safetensors"), scale=1.0)
+    text = load_text_encoder(device)
+    vae = AutoencoderKLFlux2.from_pretrained(models.localize(f"{FIBO2_DIR}/vae"), torch_dtype=torch.bfloat16).to(device)
+    return dict(transformer=transformer, text=text, vae=vae, bn=bn_stats(f"{FIBO2_DIR}/vae"), null=encode_prompts(*text, [NULL_PROMPT]))
+
+
+@torch.no_grad()
+def generate_images(model, captions, trimasks, seeds, steps, guidance):
+    """
+    Query (runs the GPU). One image per caption from its trimask, as the shipped model runs: caption_prompt, the trimask
+    encoded as training encodes it (8-bit, 2·v/255 − 1, copied to 3 channels, VAE mode, normalized), sample, decode.
+
+    Args:
+        model (dict): load_eval_model
+        captions (list[str]): N MAGICK captions
+        trimasks (np.ndarray): (N, S, S) float32 in [0, 1] (8-bit PNG / 255: unknown = 128 / 255)
+        seeds (list[int]): N noise seeds (the item's noise, fixed across checkpoints)
+        steps (int), guidance (float): sampler steps and CFG
+
+    Returns:
+        tuple: images (N, S, S, 3) float32 RGB in [0, 1], seconds per image (list of N floats)
+    """
+    import time
+
+    vae, bn, device = model["vae"], model["bn"], model["vae"].device
+    images, seconds = [], []
+    for caption, trimask, seed in zip(captions, trimasks, seeds):
+        torch.cuda.synchronize()
+        began = time.perf_counter()
+        x = torch.from_numpy(np.round(trimask * 255) / 127.5 - 1).float().to(device).expand(1, 3, *trimask.shape)
+        cond = normalize_latents(vae.encode(x.to(vae.dtype)).latent_dist.mode(), *bn)
+        embeds, mask = encode_prompts(*model["text"], [caption_prompt(caption)])
+        out = sample(model["transformer"], embeds, mask, *model["null"], cond, steps, guidance, seed, cond.shape)
+        image = (vae.decode(denormalize_latents(out, *bn).to(vae.dtype)).sample.float().clamp(-1, 1) + 1) / 2
+        images.append(image[0].permute(1, 2, 0).cpu().numpy())
+        torch.cuda.synchronize()
+        seconds.append(time.perf_counter() - began)
+    return np.stack(images), seconds
+
+
 @torch.no_grad()
 def sample(transformer, embeds, mask, null_embeds, null_mask, cond, steps, guidance, seed, shape):
     """
