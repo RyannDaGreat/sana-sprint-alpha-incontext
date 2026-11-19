@@ -9,7 +9,7 @@ import { buildTrimaskUi, DEFAULT_GUI } from './trimask_ui.js';
 import { levelFractions, rgbaToMask } from './trimask_ops.js';
 import { loadVersions, versionFiles, cachedFlags, cacheBytes, clearCache } from './models.js';
 import { countEmbeddings, clearEmbeddings } from './embcache.js';
-import { formatBytes, formatEta, rate, mattePixelsToTensor, decodeToPixels, fitRect, cropRect, SIZE } from './util.js';
+import { formatBytes, formatEta, rate, mattePixelsToTensor, decodeToPixels, fitRect, cropRect, SIZE, progressLine } from './util.js';
 // pipeline.js (with ONNX Runtime) is a separate chunk: ORT's WASM worker re-imports its own
 // module URL, which must not be this file (it touches the DOM).
 const { Pipeline, sprintTimesteps, fibo2Sigmas, fibo2Mu, canLoadHere } = await import('./pipeline.js');
@@ -318,6 +318,19 @@ function showTimings(t) {
 
 // ---------- generation ----------
 
+/** Command. Draws one generation event: the overall bar, one segment per sampler step, and the progress line. */
+function showProgress(p) {
+  const steps = $('gen-steps');
+  if (steps.children.length !== p.steps) steps.innerHTML = '<div><div></div></div>'.repeat(p.steps);
+  $('gen-progress').hidden = false;
+  $('gen-progress').querySelector('.bar > div').style.width = `${(100 * p.done) / p.total}%`;
+  [...steps.children].forEach((seg, i) => {
+    const fill = i + 1 < p.step || (!p.step && p.done === p.total) ? 1 : i + 1 === p.step ? p.stepDone / p.perStep : 0;
+    seg.firstElementChild.style.width = `${100 * fill}%`;
+  });
+  $('gen-label').textContent = progressLine(p, state.pipeline.passUnits());
+}
+
 /** Command. Runs one generation from the current editor state; queues one more if busy. */
 async function generate() {
   if (!state.pipeline) return;
@@ -326,9 +339,13 @@ async function generate() {
   status('Generating…');
   const sampler = samplerSettings(), seed = Number($('seed').value), { width, height } = sampler;
   const matte = matteAtSize(width, height);
+  $('gen-steps').innerHTML = '';
   const { image, timings } = await state.pipeline.generate({
     prompt: $('prompt').value, matte: mattePixelsToTensor(matte, width * height), matteRev: editor.rev, seed, ...sampler,
-  }).catch(fail).finally(() => { state.busy = false; });
+  }, showProgress).catch(fail).finally(() => { state.busy = false; });
+  const steps = $('gen-steps').children.length;
+  $('gen-label').textContent = `Took ${steps} step${steps === 1 ? '' : 's'} in ${(timings.total / 1000).toFixed(1)} s`
+    + (state.pipeline.passUnits() > 1 ? ` · ${state.pipeline.passUnits()} block groups per transformer pass` : '');
   $('equation').textContent = equationText(state.pipeline.version.manifest, sampler, seed);
   const { onGray, cutout } = decodeToPixels(image, matte, width * height);
   for (const [id, pixels] of [['out-gray', onGray], ['out-rgba', cutout]]) {

@@ -161,6 +161,13 @@ button.link { border: 0; background: none; padding: 0; color: var(--muted); font
 .bar > div { height: 100%; width: 0; background: var(--accent); }
 .file.cached .bar > div { background: var(--fg); }
 
+/* Generation progress (main.js showProgress): overall bar, one segment per sampler step, the progress line. */
+.gen-progress { display: grid; row-gap: var(--space-1); margin: var(--space-2) 0; }
+.gen-steps { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; column-gap: var(--space-1); }
+.gen-steps > div { height: var(--bar-height); background: var(--line); }
+.gen-steps > div > div { height: 100%; width: 0; background: var(--fg); }
+.gen-progress .meta { margin: 0; font-variant-numeric: tabular-nums; }
+
 /* Trimask controls (trimask_ui.js): value palette, filter groups, remap matrix. */
 .trimask { border-top: var(--hairline) solid var(--line); padding-top: var(--space-2); margin-bottom: var(--space-2); }
 .sub-h { font-weight: var(--weight-title); font-size: var(--size-h2); margin: var(--space-2) 0; }

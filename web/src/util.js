@@ -1,4 +1,4 @@
-// Small pure helpers: formatting, seeded noise, image tensors.
+// Small helpers: formatting, seeded noise, image tensors, generation progress.
 
 const MB = 1024 * 1024;
 export const SIZE = 1024; // image and matte side, in pixels
@@ -153,4 +153,60 @@ export function decodeToPixels(chw, matte, hw) {
     cutout[4 * i + 3] = matte[4 * i];
   }
   return { onGray, cutout };
+}
+
+// Expected time of a stage as a fraction of one transformer pass, so the bar moves with time, not with stage count.
+// From the first real WebGPU run (user's machine, FIBO2, m00722): pass ≈ 42.9 s, text encoder 5.1 s, trimask encoder 3.3 s,
+// decoder 4.9 s. SANA's ratios are not measured; it uses the same ones.
+const STAGE_PASS_FRACTION = { text: 0.12, matte: 0.076, decoder: 0.113 };
+
+/**
+ * Command (calls onProgress). Progress of one generation in time-weighted units: a transformer chunk is 1 unit, a
+ * pass is `chunks` units, a stage is STAGE_PASS_FRACTION × chunks units. Each tick reports {done, total, label, step,
+ * steps, stepDone, perStep, elapsed ms, remaining ms | null}: step 0 = before or after the sampler steps; stepDone =
+ * chunks done in that step of perStep (passes × chunks); remaining = units left × the mean chunk time measured so far
+ * in this run (null until a chunk has run).
+ *
+ * @param {number} steps - sampler steps
+ * @param {number} passes - transformer passes per step (2 with CFG)
+ * @param {number} chunks - chunks per pass (1 = unsplit graph)
+ * @param {string[]} stages - the other stages of this generation (keys of STAGE_PASS_FRACTION, repeats allowed)
+ * @param {Function} onProgress
+ * @returns {(label: string, step?: number, stage?: string) => void} tick: step > 0 for a chunk, else stage
+ */
+export function progressCounter(steps, passes, chunks, stages, onProgress) {
+  const weight = (stage) => STAGE_PASS_FRACTION[stage] * chunks;
+  const perStep = passes * chunks, total = steps * perStep + stages.reduce((s, k) => s + weight(k), 0);
+  const t0 = performance.now();
+  let done = 0, stepDone = 0, current = 0, last = t0, chunkTime = 0, chunkCount = 0;
+  return (label, step = 0, stage = null) => {
+    const now = performance.now();
+    if (step) { chunkTime += now - last; chunkCount += 1; }
+    last = now;
+    done += step ? 1 : weight(stage);
+    stepDone = step === current ? stepDone + 1 : 1;
+    current = step;
+    onProgress({ done, total, label, step, steps, stepDone: step ? stepDone : 0, perStep, elapsed: now - t0,
+                 remaining: chunkCount ? (total - done) * (chunkTime / chunkCount) : null });
+  };
+}
+
+/**
+ * Pure function. The progress line of one generation event (pipeline.js progressCounter).
+ *
+ * @param {{label: string, step: number, steps: number, stepDone: number, perStep: number, elapsed: number, remaining: number|null}} p
+ * @param {number} chunks - transformer chunks per pass (1 = unsplit graph)
+ * @returns {string}
+ *
+ * @example progressLine({label: 'transformer 2', step: 2, steps: 4, stepDone: 3, perStep: 5, elapsed: 4200, remaining: 6100}, 5)
+ * // 'Step 2 of 4 · transformer 2 · blocks 3/5 done · 4.2 s · about 6 s left'
+ * @example progressLine({label: 'text encoder', step: 0, steps: 4, stepDone: 0, perStep: 5, elapsed: 900, remaining: null}, 5)
+ * // 'text encoder done · 0.9 s'
+ */
+export function progressLine(p, chunks) {
+  const seconds = `${(p.elapsed / 1000).toFixed(1)} s`;
+  const left = p.remaining === null ? '' : ` · about ${Math.round(p.remaining / 1000)} s left`;
+  if (!p.step) return `${p.label} done · ${seconds}${left}`;
+  const blocks = chunks > 1 ? ` · blocks ${((p.stepDone - 1) % chunks) + 1}/${chunks} done` : '';
+  return `Step ${p.step} of ${p.steps} · ${p.label}${blocks} · ${seconds}${left}`;
 }
