@@ -739,7 +739,7 @@ tables
 			,	model_tag preview_fibo2_tri_step001000_fibo2_30step			pipeline fibo2		checkpoint models/fibo2/fibo2_tri/step_001000							prompt_variant plain		steps 30	guidance 5.0	eval_set resources/fibo2_preview
 			,	model_tag preview_fibo2_tri_step001500_fibo2_30step			pipeline fibo2		checkpoint models/fibo2/fibo2_tri/step_001500							prompt_variant plain		steps 30	guidance 5.0	eval_set resources/fibo2_preview
 			,	model_tag preview_fibo2_tri_step002000_fibo2_30step			pipeline fibo2		checkpoint models/fibo2/fibo2_tri/step_002000							prompt_variant plain		steps 30	guidance 5.0	eval_set resources/fibo2_preview
-			 fibo2_tri step 2000, few-step test (m00712, manifest §14): the control transferred onto Fibo-2.0-edit-turbo at 4 steps without CFG, vs dev at 4 and 30 steps
+			 fibo2_tri step 2000, few-step test (m00712, manifest §14): the control transferred onto Fibo-2.0-edit-turbo at 4 steps without CFG, vs dev at 4 steps (30 steps: the full gamut)
 			,	model_tag tri_morph_band_fibo2_tri_step002000_turbo_4step	pipeline fibo2turbo	checkpoint models/fibo2/fibo2_tri/step_002000							prompt_variant plain		steps 4		guidance 1.0	eval_set resources/showcase_trimask_held/morph_band
 			,	model_tag tri_scribbles_fibo2_tri_step002000_turbo_4step	pipeline fibo2turbo	checkpoint models/fibo2/fibo2_tri/step_002000							prompt_variant plain		steps 4		guidance 1.0	eval_set resources/showcase_trimask_held/scribbles
 			,	model_tag tri_bbox_unknown_fibo2_tri_step002000_turbo_4step	pipeline fibo2turbo	checkpoint models/fibo2/fibo2_tri/step_002000							prompt_variant plain		steps 4		guidance 1.0	eval_set resources/showcase_trimask_held/bbox_unknown
@@ -752,12 +752,6 @@ tables
 			,	model_tag tri_partial_view_fibo2_tri_step002000_fibo2_4step	pipeline fibo2		checkpoint models/fibo2/fibo2_tri/step_002000							prompt_variant plain		steps 4		guidance 5.0	eval_set resources/showcase_trimask_held/partial_view
 			,	model_tag tri_combo_chain_fibo2_tri_step002000_fibo2_4step	pipeline fibo2		checkpoint models/fibo2/fibo2_tri/step_002000							prompt_variant plain		steps 4		guidance 5.0	eval_set resources/showcase_trimask_held/combo_chain
 			,	model_tag tri_glass_ripple_fibo2_tri_step002000_fibo2_4step	pipeline fibo2		checkpoint models/fibo2/fibo2_tri/step_002000							prompt_variant plain		steps 4		guidance 5.0	eval_set resources/showcase_trimask_held/glass_ripple
-			,	model_tag tri_morph_band_fibo2_tri_step002000_fibo2_30step	pipeline fibo2		checkpoint models/fibo2/fibo2_tri/step_002000							prompt_variant plain		steps 30	guidance 5.0	eval_set resources/showcase_trimask_held/morph_band
-			,	model_tag tri_scribbles_fibo2_tri_step002000_fibo2_30step	pipeline fibo2		checkpoint models/fibo2/fibo2_tri/step_002000							prompt_variant plain		steps 30	guidance 5.0	eval_set resources/showcase_trimask_held/scribbles
-			,	model_tag tri_bbox_unknown_fibo2_tri_step002000_fibo2_30step	pipeline fibo2		checkpoint models/fibo2/fibo2_tri/step_002000							prompt_variant plain		steps 30	guidance 5.0	eval_set resources/showcase_trimask_held/bbox_unknown
-			,	model_tag tri_partial_view_fibo2_tri_step002000_fibo2_30step	pipeline fibo2		checkpoint models/fibo2/fibo2_tri/step_002000							prompt_variant plain		steps 30	guidance 5.0	eval_set resources/showcase_trimask_held/partial_view
-			,	model_tag tri_combo_chain_fibo2_tri_step002000_fibo2_30step	pipeline fibo2		checkpoint models/fibo2/fibo2_tri/step_002000							prompt_variant plain		steps 30	guidance 5.0	eval_set resources/showcase_trimask_held/combo_chain
-			,	model_tag tri_glass_ripple_fibo2_tri_step002000_fibo2_30step	pipeline fibo2		checkpoint models/fibo2/fibo2_tri/step_002000							prompt_variant plain		steps 30	guidance 5.0	eval_set resources/showcase_trimask_held/glass_ripple
 
 	eval_generations
 		 One row per model and eval image: the image that the model makes from the caption and the fixed noise
