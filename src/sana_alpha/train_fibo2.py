@@ -118,9 +118,10 @@ def control_preview_rows(index):
         tuple: record indices (PREVIEW_COUNT,), condition rows (PREVIEW_COUNT,)
 
     Examples:
-        >>> idx, rows = control_preview_rows(dict(cond_method=torch.arange(19).repeat(2), cond_owner=torch.arange(38) // 2))
+        >>> n = len(METHODS)
+        >>> idx, rows = control_preview_rows(dict(cond_method=torch.arange(n).repeat(2), cond_owner=torch.arange(2 * n) // 2))
         >>> rows.tolist(), idx.tolist()
-        ([0, 6, 12, 18], [0, 3, 6, 9])
+        ([0, 6, 13, 20], [0, 3, 6, 10])
     """
     rows = torch.tensor([int(torch.nonzero(index["cond_method"] == m)[0]) for m in torch.linspace(0, len(METHODS) - 1, PREVIEW_COUNT).long()])
     return index["cond_owner"][rows], rows
@@ -184,6 +185,25 @@ def write_preview(transformer, vae, text, batch, captions, bn, path):
     image.save(path)
 
 
+DATASET_CHANGE_FILE = "dataset_change.json"  # In a run folder: the steps at which the training data changed (m00723)
+
+
+def dataset_changes(run_dir):
+    """
+    Query (reads run_dir/DATASET_CHANGE_FILE). The steps at which this run's dataset changed, oldest first; [] if never.
+
+    Examples:
+        >>> import tempfile; folder = Path(tempfile.mkdtemp())
+        >>> dataset_changes(folder)
+        []
+        >>> _ = (folder / DATASET_CHANGE_FILE).write_text('{"steps": [5000], "reason": "m00723"}')
+        >>> dataset_changes(folder)
+        [5000]
+    """
+    path = Path(run_dir) / DATASET_CHANGE_FILE
+    return json.loads(path.read_text())["steps"] if path.exists() else []
+
+
 def load_checkpoint(transformer, folder, gates):
     """
     Command (loads weights into transformer). A step folder's LoRA (lora.safetensors, as fibo2.lora_state wrote it) and,
@@ -210,7 +230,7 @@ def load_checkpoint(transformer, folder, gates):
 
 def train(mode, run, adapter=None, rank=64, batch_size=2, max_steps=20000, warmup=500, lr=1.0, weight_decay=0.01,
           max_grad_norm=1.0, cond_drop=0.1, text_drop=0.1, save_every=500, preview_every=500, log_every=10, seed=0,
-          multires=True, gates=False, init_from=None):
+          multires=True, gates=False, init_from=None, fresh_optimizer=False):
     """
     Command. Trains the adapter or control LoRA with DDP (torchrun) or on one GPU; writes models/fibo2/<run>/.
 
@@ -230,6 +250,9 @@ def train(mode, run, adapter=None, rank=64, batch_size=2, max_steps=20000, warmu
         init_from (str | None): a step folder of this run to resume from: its LoRA (and gates), its optimizer.pt when present
             (Prodigy state incl. d; else the optimizer starts fresh), and its step count. Seeds are offset by that step, so
             the resumed run draws new batches; schedules keyed on the step (resolution, warmup) continue unchanged
+        fresh_optimizer (bool): with init_from, load only the LoRA (and gates), never optimizer.pt, and record the step as
+            the run's dataset change (DATASET_CHANGE_FILE); a later resume refuses an optimizer.pt from a step at or before
+            the newest change (m00723: "We changed the dataset, so the optimizer state should be discarded")
     """
     import lance
     import prodigyopt
@@ -277,7 +300,17 @@ def train(mode, run, adapter=None, rank=64, batch_size=2, max_steps=20000, warmu
     optimizer = prodigyopt.Prodigy(groups, lr=lr, betas=(0.9, 0.999),
                                    decouple=True, use_bias_correction=True, safeguard_warmup=True)
     scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda s: min(1.0, (s + start_step + 1) / max(warmup, 1)))
-    if init_from and (Path(init_from) / "optimizer.pt").exists():
+    changes = dataset_changes(out_dir)
+    if fresh_optimizer:
+        assert init_from, "fresh_optimizer is for a resume (init_from): a new run always starts fresh"
+        changes = changes if changes and changes[-1] == start_step else changes + [start_step]  # A crash relaunch repeats the change
+        if main:
+            (out_dir / DATASET_CHANGE_FILE).write_text(json.dumps(dict(steps=changes, reason="m00723: dataset changed")) + "\n")
+        log(f"optimizer: fresh (dataset changed, m00723); dataset change steps {changes}")
+    elif init_from and (Path(init_from) / "optimizer.pt").exists():
+        if changes and start_step <= changes[-1]:
+            raise ValueError(f"{init_from} (step {start_step}) has optimizer state from before the dataset change at step {changes[-1]}"
+                             " (m00723): resume with --fresh_optimizer True")
         optimizer.load_state_dict(torch.load(Path(init_from) / "optimizer.pt", map_location=device, weights_only=True))
         log(f"optimizer state restored (prodigy_d {optimizer.param_groups[0]['d']:.2e})")
     elif init_from:
@@ -304,7 +337,7 @@ def train(mode, run, adapter=None, rank=64, batch_size=2, max_steps=20000, warmu
     pending = reader.submit(read_batch, tables, index, mode, step_res(start_step), *next(batches))
     meta = dict(run=run, mode=mode, adapter=str(adapter), rank=rank, batch_size=batch_size, world=world, multires=multires, gates=gates,
                 lance_versions=versions[0], objective="flow v=eps-x0, FIBO2-shifted logit-normal sigma",
-                init_from=str(init_from), start_step=start_step)
+                init_from=str(init_from), start_step=start_step, fresh_optimizer=fresh_optimizer, dataset_change_steps=changes)
     drawn = torch.zeros(len(METHODS), dtype=torch.long)
     res_steps, res_secs = dict.fromkeys(RESOLUTION_PROBS, 0), dict.fromkeys(RESOLUTION_PROBS, 0.0)
     step, t_last, seen = start_step, time.time(), 0

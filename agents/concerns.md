@@ -398,3 +398,8 @@
 - m00720/m00721 set the split: 30% of draws are the two solid outlines (15% each), 70% the 19 other methods (uniform, ~3.7% each). User's reason, verbatim: "we need to make sure that it masters single outlines. It's a very common use case." Constant: `train_control.OUTLINE_SHARE` = 0.30.
 - `threshold` is the one method exempt from the consistency rule (it marks soft edges as sure), because the user asked for exactly that input.
 - Lesson: the condition distribution must cover the inputs people actually give, not only the clever augmentations.
+
+## 2026-11-19 ~1:30 PM — fresh optimizer after a dataset change (m00723, m00724)
+- Adding `original` and `threshold` changed fibo2_tri's training data at step 5000. Prodigy's state (its d and moments) was estimated on the old data, so the user ruled: "Make sure that you don't recycle the optimizer from the latest training step. We changed the dataset, so the optimizer state should be discarded."
+- Fix in code, not by deleting files: `--fresh_optimizer` loads only the LoRA, records the change step in `dataset_change.json`, and any later resume from a step at or before it refuses that optimizer.pt. The supervisor adds the flag only in that case.
+- Also m00724: training was stopped so all GPUs encode the new data first, then train.
