@@ -342,7 +342,7 @@ def write_preview(pipe, transformer, records, indices, cond_indices, path):
             for m, o, r in zip(mattes, out, refs)]
     grid = np.concatenate(rows, axis=0)
     path.parent.mkdir(parents=True, exist_ok=True)
-    Image.fromarray((grid * 255).round().astype(np.uint8)).resize((grid.shape[1] // 4, grid.shape[0] // 4)).save(path)
+    Image.fromarray((grid * 255).round().astype(np.uint8)).save(path)  # full resolution (m00705: never downscale)
 
 
 def train(run, data=str(OVERFIT_DIR), adapter=None, rank=16, batch_size=16, max_steps=10000, warmup=500,

@@ -37,7 +37,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SOURCES = dict(toy=lambda *shard, column: load_toy_records(ROOT / "agents/.scratchpad/toy_train", *shard),
                lance=lambda *shard, column: load_lance_records(ROOT / "data/lance/magick_samples.lance", *shard, column))
 SIGMA_BUCKETS = (0.0, 0.5, 0.8, 1.0)  # loss is logged per noise-level band; median training sigma is 0.75
-SAMPLE_TILE = 512  # px per image in the sample grid
+SAMPLE_TILE = 1024  # px per image in the sample grid: the model's own resolution (m00705: never downscale)
 
 
 def lr_at(step, lr, warmup_steps):
