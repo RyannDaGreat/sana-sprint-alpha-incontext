@@ -21,6 +21,7 @@ li { border-bottom: var(--hairline) solid var(--rule); padding: var(--pad-item) 
 <h1>SANA-Sprint in-context alpha &rarr; RGB on gray: journal</h1>
 <p>We teach SANA-Sprint to take an alpha matte and a caption and paint the object on a flat 50% gray background. One entry per step. Every step uses the same 29 eval images and the same noise.</p>
 <ul>
+<li><a href="compare/index.html"><b>SANA vs FIBO2: compare reports over training time</b></a> <span class="note">2026-11-18. Hub, metrics over time, checkpoint scrubber, method × resolution matrix, filmstrips, pixel view. FIBO2 not trained yet.</span></li>
 <li><a href="step6_adapter_v2.html"><b>Step 6: adapter_v2. The key finding: the adapter must not know the gray</b></a> <span class="note">2026-11-17. Subtracting adapter_v1 removed the gray backdrop (IoU 0.48). adapter_v2, trained on random solid colors, fixes it: full subtraction IoU 0.92 on the teacher, 0.96 on stock Sprint in 2 steps with no training. Results table, 13 items at full resolution, caveats, WebGPU demo link.</span></li>
 <li><a href="step0_curation.html">Step 0: curation</a> <span class="note">2026-11-17. MAGICK turned into a BlueJay table of mattes, gray composites and latents: 140,955 images, 17 failures, 29 held out for eval.</span></li>
 <li><a href="step1_baseline.html">Step 1: baseline</a> <span class="note">2026-11-17. Stock Sprint and teacher on the eval prompts, with and without a gray-background suffix.</span></li>
