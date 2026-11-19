@@ -295,6 +295,10 @@ Exact form (written by `src/sana_alpha/web_export.py`; all graph I/O float32 exc
 
 **Training data path.** The latents (≈ 1.2 TB) do not fit in RAM (1.1 TB), unlike §13's preload; training keeps only the row index (row ids, captions, methods) in RAM and reads each batch's Blobs from disk in a prefetch thread. FIBO2 steps take seconds, so the read rate is small.
 
+**Few-step FIBO2 (m00711, m00712: "Try both things ... figure out whether it works").** FIBO2 dev needs 30 steps with CFG (60 forward passes, 64 s per 1024 image on an A100), far too slow for the browser. Two routes, both tested, both through BlueJay:
+- **A. Transfer** (the §13 trick: SANA's control moved onto the Sprint student without distillation). `fibo2.load_eval_model(..., base=TURBO_DIR)` = W_turbo + control LoRA, where `models/Fibo-2.0-edit-turbo` is Bria's 4-step, no-CFG model (same architecture, config, scheduler, text encoder and VAE as dev; a full-weight delta from dev, so the LoRA keys map one to one). `generate_eval` pipeline `fibo2turbo`; eval rows `tri_<method>_fibo2_tri_step<S>_turbo_4step` (guidance 1), compared on the cheap-tier held-out items (§15) with dev + control at 4 steps CFG 5 (`_fibo2_4step`, what turbo buys) and the 30-step reference (`_fibo2_30step`). DTAB setting `EVAL_ONLY` (LIKE pattern on model_tag, env-overridable) lets these run before a 30-step backlog.
+- **B. Distill** our own 4-step student from dev (DMD2-style, LoRA student, frozen teacher, fake-score LoRA), then transfer the control onto it the same way. Details and measured numbers below once proven.
+
 ## 15. Compare reports: SANA vs FIBO2 over time (m00698, m00699)
 
 **Goal.** Journal reports, "just like the others" but better, that compare the SANA trimask model (§13, `control_tri_scratch`) with the FIBO2 one (§14) over training time, not only the WebGPU demo (m00698). Static GitHub Pages only (m00699): HTML + JSON, images lazy from the `journal-assets` branch. Design: a Sonnet panel (viz designer, ML researcher, skeptic) in `agents/.scratchpad/frenzy/report_design/PLAN.md`. Each published report gets one phone notification (m00698), sent by the main agent.
