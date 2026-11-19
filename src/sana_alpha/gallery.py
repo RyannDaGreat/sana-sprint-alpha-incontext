@@ -172,30 +172,37 @@ def trimask_rows(*run_steps, resolution=1024, methods=None):
 FIBO2_KINDS = dict(fibo2="fibo2", fibo2turbo="turbo")  # pipeline -> model_tag word: dev, or the control transferred onto turbo
 
 
-def fibo2_models(run_step, pipeline="fibo2", steps=FIBO2_STEPS):
+def fibo2_models(run_step, pipeline="fibo2", steps=FIBO2_STEPS, student=None):
     """
     Pure function. The shipped FIBO2 model of one control step (fibo2.load_eval_model), on dev ("fibo2") or transferred
-    onto the 4-step model ("fibo2turbo"), sampled with `steps` steps.
+    onto the 4-step model ("fibo2turbo"), sampled with `steps` steps. student = "RUN:STEP" of a distill_fibo2 student:
+    the control on dev + that student LoRA (the distill_fibo2.transfer folder), tag word d<STEP>.
 
     Examples:
         >>> fibo2_models("fibo2_tri:2000")
         [('show_fibo2_tri_step002000_fibo2_30step', 'fibo2', 'models/fibo2/fibo2_tri/step_002000', 30, 'FIBO2, 30 steps')]
         >>> fibo2_models("fibo2_tri:2000", "fibo2turbo", 4)[0][:2]
         ('show_fibo2_tri_step002000_turbo_4step', 'fibo2turbo')
+        >>> fibo2_models("fibo2_tri:2000", steps=4, student="fibo2_dmd:500")[0][:3]
+        ('show_fibo2_tri_step002000_d500_4step', 'fibo2', 'models/fibo2/fibo2_dmd/step_000500_fibo2_tri_step_002000')
     """
     run, step = run_step.split(":")
-    word = FIBO2_KINDS[pipeline]
-    return [(f"show_{run}_step{int(step):06d}_{word}_{steps}step", pipeline, f"models/fibo2/{run}/step_{int(step):06d}", steps, f"FIBO2{'' if word == 'fibo2' else ' ' + word}, {steps} steps")]
+    checkpoint, word = f"models/fibo2/{run}/step_{int(step):06d}", FIBO2_KINDS[pipeline]
+    if student:
+        srun, sstep = student.split(":")
+        checkpoint, word = f"models/fibo2/{srun}/step_{int(sstep):06d}_{run}_step_{int(step):06d}", f"d{int(sstep)}"
+    return [(f"show_{run}_step{int(step):06d}_{word}_{steps}step", pipeline, checkpoint, steps, f"FIBO2{'' if word == 'fibo2' else ' ' + word}, {steps} steps")]
 
 
-def fibo2_rows(*run_steps, methods=None, pipeline="fibo2", steps=FIBO2_STEPS, guidance=FIBO2_GUIDANCE, resolution=1024, held=False):
-    """Command. Prints the eval_models rows of FIBO2 control RUN:STEP... on the trimask eval sets of one resolution, the same sets as SANA's trimask_rows (every method, or the comma-separated `methods`; --held: the held-out subset at 1024), to paste into the dtab. Turbo: --pipeline fibo2turbo --steps 4 --guidance 1."""
+def fibo2_rows(*run_steps, methods=None, pipeline="fibo2", steps=FIBO2_STEPS, guidance=FIBO2_GUIDANCE, resolution=1024, held=False, student=None):
+    """Command. Prints the eval_models rows of FIBO2 control RUN:STEP... on the trimask eval sets of one resolution, the same sets as SANA's trimask_rows (every method, or the comma-separated `methods`; --held: the held-out subset at 1024), to paste into the dtab. Turbo: --pipeline fibo2turbo --steps 4 --guidance 1. Our distilled student: --student fibo2_dmd:500 --steps 4 --guidance 1 (after distill_fibo2 transfer)."""
     from sana_alpha.trimask import METHODS
 
     methods = methods.split(",") if isinstance(methods, str) else methods or METHODS
     assert set(methods) <= set(METHODS), f"unknown methods: {set(methods) - set(METHODS)}"
     assert not held or resolution == 1024, "the held-out subset exists at 1024 only"
-    print("".join(dtab_rows([(trimask_tag(m[0], method, resolution), *m[1:]) for r in run_steps for m in fibo2_models(r, pipeline, int(steps))],
+    full = "" if held else "_full"  # the full gamut's own tags: held-subset rows with the bare tags are already in the database, and initialize never replaces a row
+    print("".join(dtab_rows([(trimask_tag(m[0] + full, method, resolution), *m[1:]) for r in run_steps for m in fibo2_models(r, pipeline, int(steps), student)],
                             "plain", f"{HELD_SET if held else trimask_set(resolution)}/{method}", float(guidance)) for method in methods), end="")
 
 
