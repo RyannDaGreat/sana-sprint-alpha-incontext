@@ -177,8 +177,18 @@ Compare two: <select id="ca"></select> vs <select id="cb"></select> on row <inpu
 </details>
 
 <details open><summary>The sneak peek timeline</summary>
-<p>Per-block previews jump back at every new step (a sawtooth) unless blended with the previous step's x̂0 (weights fitted on held-out generations); with the previous x̂0 as a head input the highway is monotone by itself. Figures (λ = 0, the user's setting; λ = 1, the training setting, when ready): <a href="sneakpeek/">sneakpeek/</a>.</p>
-<img src="sneakpeek/timeline_8step_512.png" style="max-width:100%">
+<p>Per-block previews jump back at every new step (a sawtooth) unless blended with the previous step's x̂0 (weights fitted on held-out generations); with the previous x̂0 as a head input the highway is monotone by itself. The sneak peek runs in the app end to end (headless Chrome, wasm, 256², turbo 4 steps): +2.3% wall time with it on, 80 previews.</p>
+<p><img src="assets/sneakpeek/live_test_256/peek_02.png" width="256" height="256"> <img src="assets/sneakpeek/live_test_256/peek_05.png" width="256" height="256"> <img src="assets/sneakpeek/live_test_256/timeline_accordion.png"></p>
+<p class="meta">Held-out generations, ridge heads; gray/blue = plain head alone / blended; dashed = with the previous x̂0 as an input. λ = 0 is the user's setting, λ = 1 the training setting (m00834).</p>
+<h4>Turbo, 1024², 4 steps (the shipped mode), λ = 0</h4><img src="assets/sneakpeek/timeline_turbo1024_4step_lam0.png" style="max-width:100%">
+<h4>Turbo, 1024², 4 steps, λ = 1</h4><img src="assets/sneakpeek/timeline_turbo1024_4step_lam1.png" style="max-width:100%">
+<h4>Dev, 512², 8 steps, CFG 5, λ = 0</h4><img src="assets/sneakpeek/timeline_dev512_8step_cfg5_lam0.png" style="max-width:100%">
+<h4>Dev, 512², 8 steps, CFG 5, λ = 1</h4><img src="assets/sneakpeek/timeline_dev512_8step_cfg5_lam1.png" style="max-width:100%">
+<h4>Blend-weight heatmap (dev, 512², 8 steps, λ = 0)</h4><img src="assets/sneakpeek/timeline_8step_512.png" style="max-width:100%">
+</details>
+
+<details open><summary>Feature distillation: the verdict</summary>
+<p>Five Sonnet agents distilled the full FLUX.2 decoder's intermediate activations into small students (FitNets hints through 1×1 adapters, progressive stage-wise training, attention/Gram/relational losses, weight inheritance by slicing the full decoder, hints plus a late hinge/R1 GAN), each with an output-only ablation of the same student and steps. Re-measured on the 300 held-out 1024² images: <b>the feature losses never beat output-only distillation on SSIM or LPIPS (5 of 5)</b>; only one improved ΔE (1.57 vs 1.94). Slicing the full decoder's channels destroyed it (SSIM 0.79) and the recovery was too short. Caveat: about an hour of training each; hint losses may pay off with far longer schedules (BK-SDM trains much longer) [FitNets; BK-SDM].</p>
 </details>
 
 <details><summary>Sources cited</summary><ul>
