@@ -13,6 +13,7 @@ import { highwayWeight } from './sneakpeek.js';
 import { loadVersions, versionFiles, cachedFlags, cacheState, cacheBytes, clearCache } from './models.js';
 import { countEmbeddings, clearEmbeddings } from './embcache.js';
 import { saveUiState, loadUiState, clearUiState, readInputs, writeInputs } from './persist.js';
+import { addItem, listItems, deleteItem, clearItems, itemBytes } from './history.js';
 import { TurnScheduler } from './scheduler.js';
 import { rgbaFromComposites, splitterPixels } from './splitter.js';
 import { formatBytes, formatEta, rate, mattePixelsToTensor, decodeToPixels, fitRect, cropRect, SIZE, progressLine } from './util.js';
@@ -89,14 +90,19 @@ function scheduleSave() {
   clearTimeout(persist.timer);
   persist.timer = setTimeout(async () => {
     try {
-      await saveUiState({ raster: await editor.raster.convertToBlob({ type: 'image/png' }), objects: structuredClone(editor.objects),
-                          invert: editor.invert, inputs: readInputs($, PERSIST_IDS), mode: padMode() ? 'pad' : 'single',
-                          pad: pad.slots.map(({ prompt, seed, off }) => ({ prompt, seed, off })) });
+      await saveUiState(await uiSnapshot());
     } catch (e) {
       if (!persist.warned) status(`Could not save your matte and prompt in this browser (${e.message}); they will not survive a reload.`, true);
       persist.warned = true;
     }
   }, SAVE_DEBOUNCE_MS);
+}
+
+/** Query. The editor and inputs as one storable object (persistence and the gallery's "Load settings"). */
+async function uiSnapshot() {
+  return { raster: await editor.raster.convertToBlob({ type: 'image/png' }), objects: structuredClone(editor.objects),
+           invert: editor.invert, inputs: readInputs($, PERSIST_IDS), mode: padMode() ? 'pad' : 'single',
+           pad: pad.slots.map(({ prompt, seed, off }) => ({ prompt, seed, off })) };
 }
 
 /** Command. Restores the saved matte and inputs, if any; returns whether something was restored. */
@@ -105,6 +111,13 @@ async function restoreUiState() {
   try { saved = await loadUiState(); } catch (e) { status(`Could not read your saved matte and prompt (${e.message}).`, true); }
   persist.ready = true;
   if (!saved) return false;
+  await applyUiState(saved);
+  return true;
+}
+
+/** Command. Puts a stored snapshot (uiSnapshot) back into the editor and the inputs. */
+async function applyUiState(saved) {
+  editor.rctx.clearRect(0, 0, editor.raster.width, editor.raster.height);
   editor.rctx.drawImage(await createImageBitmap(saved.raster), 0, 0);
   editor.rasterRev++;
   editor.objects = saved.objects; editor.invert = saved.invert; editor.selected = null;
@@ -113,7 +126,6 @@ async function restoreUiState() {
   writeInputs($, saved.inputs);
   if (saved.pad?.length) buildPad(saved.pad);
   if (saved.mode === 'pad') setMode('pad');
-  return true;
 }
 
 $('reset-all').addEventListener('click', async () => {
@@ -258,9 +270,118 @@ for (const t of document.querySelectorAll('.tab')) {
     for (const view of ['gray', 'rgba', 'alpha', 'uncertainty', 'timeline']) $(`out-${view}`).hidden = t.dataset.view !== view;
     $('timeline-controls').hidden = t.dataset.view !== 'timeline';
     $('tl-plot').hidden = t.dataset.view !== 'timeline' || !timeline.errors;
+    $('out-gallery').hidden = t.dataset.view !== 'gallery';
+    document.querySelector('#single-head + .square').hidden = t.dataset.view === 'gallery';
+    if (t.dataset.view === 'gallery') renderGallery();
     if (t.dataset.view === 'timeline') showFrame(Number($('tl-slider').value));
   });
 }
+
+// ---------- gallery (m00876, m00878: KISS): every finished generation, newest first, in its own IndexedDB store ----------
+
+const GALLERY_THUMB_PX = 192;  // grid thumbnails only; the full view shows the stored lossless original at 1:1
+const gal = { items: [], urls: [], open: -1, output: 0 };
+
+/**
+ * Command. Saves the finished generation (asynchronous, after the run; never on the compute path): each output
+ * canvas as a lossless PNG, a thumbnail, the full UI state and a one-line summary.
+ *
+ * @param {string[]} ids - output canvases, e.g. ['out-gray', 'out-rgba']
+ * @param {string} info - summary (version, prompt, seed, sampler)
+ */
+async function saveToGallery(ids, info) {
+  try {
+    const outputs = await Promise.all(ids.map(async (id) => ({ name: id.replace('out-', ''), blob: await new Promise((r) => $(id).toBlob(r, 'image/png')) })));
+    const src = $(ids[0]), k = GALLERY_THUMB_PX / Math.max(src.width, src.height);
+    const t = new OffscreenCanvas(Math.round(src.width * k), Math.round(src.height * k));
+    t.getContext('2d').drawImage(src, 0, 0, t.width, t.height);
+    await addItem({ ts: Date.now(), version: state.pipeline.version.id, info, state: await uiSnapshot(), outputs, thumb: await t.convertToBlob({ type: 'image/png' }) });
+    if (!$('out-gallery').hidden) renderGallery();
+  } catch (e) { status(`Could not save this generation to the gallery (${e.message}).`, true); }
+}
+
+/** Command. Lists the stored generations as a newest-first thumbnail grid, with the space they use. */
+async function renderGallery() {
+  gal.urls.forEach((u) => URL.revokeObjectURL(u));
+  gal.items = await listItems().catch((e) => { status(`Could not read the gallery (${e.message}).`, true); return []; });
+  gal.urls = gal.items.map((it) => URL.createObjectURL(it.thumb));
+  $('gal-grid').innerHTML = '';
+  gal.items.forEach((it, i) => {
+    const b = document.createElement('button');
+    b.className = 'gal-cell';
+    b.title = it.info;
+    b.innerHTML = `<img src="${gal.urls[i]}" alt=""><span class="meta">${new Date(it.ts).toLocaleString()}</span>`;
+    b.addEventListener('click', () => openItem(i));
+    $('gal-grid').append(b);
+  });
+  $('gal-empty').hidden = gal.items.length > 0;
+  $('gal-used').textContent = `${gal.items.length} generation${gal.items.length === 1 ? '' : 's'} · ${formatBytes(gal.items.reduce((n, it) => n + itemBytes(it), 0))}`;
+}
+
+/** Command. Opens item i in the full view: its first output, lossless at 1:1 (the view scrolls). */
+function openItem(i) {
+  gal.open = i;
+  gal.output = 0;
+  const it = gal.items[i];
+  $('gal-info').textContent = `${i + 1} / ${gal.items.length} · ${new Date(it.ts).toLocaleString()} · ${it.info}`;
+  $('gal-outputs').innerHTML = '';
+  it.outputs.forEach((o, k) => {
+    const b = document.createElement('button');
+    b.className = `tab${k === 0 ? ' on' : ''}`;
+    b.textContent = o.name;
+    b.addEventListener('click', () => showOutput(k));
+    $('gal-outputs').append(b);
+  });
+  showOutput(0);
+  $('gal-view').hidden = false;
+}
+
+/** Command. Shows output k of the open item. */
+function showOutput(k) {
+  gal.output = k;
+  [...$('gal-outputs').children].forEach((b, j) => b.classList.toggle('on', j === k));
+  if ($('gal-img').src) URL.revokeObjectURL($('gal-img').src);
+  $('gal-img').src = URL.createObjectURL(gal.items[gal.open].outputs[k].blob);
+}
+
+$('gal-close').addEventListener('click', () => { $('gal-view').hidden = true; });
+$('gal-load').addEventListener('click', async () => {
+  await applyUiState(gal.items[gal.open].state);
+  syncSamplerUi();
+  scheduleSave();
+  $('gal-view').hidden = true;
+  status(`Loaded the settings of ${new Date(gal.items[gal.open].ts).toLocaleString()} (model: ${gal.items[gal.open].version}).`);
+});
+$('gal-download').addEventListener('click', () => {
+  const it = gal.items[gal.open], o = it.outputs[gal.output], a = document.createElement('a');
+  a.href = URL.createObjectURL(o.blob);
+  a.download = `${it.version}_${it.ts}_${o.name}.png`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+$('gal-delete').addEventListener('click', async () => {
+  await deleteItem(gal.items[gal.open].id);
+  $('gal-view').hidden = true;
+  renderGallery();
+});
+$('gal-clear').addEventListener('click', async () => {
+  if ($('gal-clear').dataset.armed !== '1') {  // two presses (no confirm() in some hosts): the first arms, the second clears
+    $('gal-clear').dataset.armed = '1';
+    $('gal-clear').textContent = 'Press again to delete all';
+    setTimeout(() => { $('gal-clear').dataset.armed = ''; $('gal-clear').textContent = 'Clear gallery'; }, 4000);
+    return;
+  }
+  await clearItems();
+  $('gal-clear').dataset.armed = '';
+  $('gal-clear').textContent = 'Clear gallery';
+  renderGallery();
+});
+document.addEventListener('keydown', (e) => {
+  if ($('gal-view').hidden) return;
+  if (e.key === 'Escape') $('gal-view').hidden = true;
+  else if (e.key === 'ArrowRight' && gal.open < gal.items.length - 1) openItem(gal.open + 1);
+  else if (e.key === 'ArrowLeft' && gal.open > 0) openItem(gal.open - 1);
+});
 
 // ---------- sneak peek timeline (m00875): every preview of the last generation, scrubbable after (and during) the run ----------
 
@@ -694,6 +815,7 @@ async function generate() {
   $('out-empty').hidden = true;
   $('dl-gray').disabled = $('dl-rgba').disabled = false;
   if (timeline.next) timelineAdd($('out-gray'), 'final image', { w: width, h: height }).then(timelineErrors);  // the gray image (head 0)
+  saveToGallery(views.map(([id]) => id), `${$('prompt').value.slice(0, 80)} · seed ${seed} · ${equationText(state.pipeline.version.manifest, sampler, seed)}`);
   state.last = `${state.pipeline.version.id}_seed${$('seed').value}`;
   showTimings(timings);
   if (timeline?.final) showTimeline(timeline);

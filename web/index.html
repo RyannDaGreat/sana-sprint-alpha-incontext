@@ -53,6 +53,7 @@
           <button class="tab" data-view="alpha" id="tab-alpha" hidden title="The alpha matte the splitter predicts from the trimask (white = opaque)">Alpha</button>
           <button class="tab" data-view="uncertainty" id="tab-uncertainty" hidden title="How much the gray, white and black images disagree with one RGBA (black = they agree)">Uncertainty</button>
           <button class="tab" data-view="timeline" id="tab-timeline" hidden title="Every sneak peek preview of the last generation; scrub or play them">Timeline</button>
+          <button class="tab" data-view="gallery" title="Every past generation, stored in this browser">Gallery</button>
         </span>
       </h2>
       <div class="square">
@@ -69,6 +70,20 @@
         <span id="tl-label" class="meta"></span>
       </div>
       <div id="tl-plot" class="peek-plot tl-plot" hidden></div>
+      <div id="out-gallery" class="gallery" hidden>
+        <p class="row gallery-bar"><span id="gal-used" class="meta"></span><button id="gal-clear">Clear gallery</button></p>
+        <div id="gal-grid" class="gal-grid"></div>
+        <p id="gal-empty" class="empty">No generations yet: each finished generation is saved here.</p>
+      </div>
+      <div id="gal-view" class="gal-view" hidden role="dialog" aria-label="Generation">
+        <div class="gal-view-bar row">
+          <span id="gal-info" class="meta"></span>
+          <span id="gal-outputs" class="tabs"></span>
+          <button id="gal-load">Load settings</button><button id="gal-download">Download</button><button id="gal-delete">Delete</button>
+          <button id="gal-close" title="Close (Esc)">×</button>
+        </div>
+        <div class="gal-view-img"><img id="gal-img" alt=""></div>
+      </div>
       <div id="pad" class="pad" hidden></div>
       <p id="pad-help" class="meta" hidden>Click an image to switch it off (it dims and pauses; the others get its turns). Editing a prompt or seed restarts that one; editing the mask or the settings restarts all.</p>
       <p id="equation" class="meta equation"></p>
