@@ -476,3 +476,16 @@
 ## 2026-11-20 ~4:10 AM — sneak peek web test: an unfair first timing and a duty-cycle bug (fork SneakPeek)
 - The first headless run measured +25% with the sneak peek on. Two causes: (1) only the first generation runs the text encoder (later ones hit the embedding cache), and the "on" run was first; (2) `blockPeek` charged the highway head's time to the duty cycle before `offer()`, so the offer always fell inside the new wait and was refused: no per-block preview was ever drawn (only the 4 step previews).
 - Fix: offer first, then charge; the test now runs a warm-up generation, then off, then on. Result: +2.3%, 80 previews.
+
+## 2026-11-20 ~10:40 AM — FIBO2 on WebGPU failed readbacks; rows stuck 'waiting'; NotReadableError (fork GpuCrash, m00858–m00863)
+- User (Mac, WebGPU): `BufferManager::Download … MapAsyncStatus 0 … Failed to download data from buffer`, then `Failed to wait for the operation:2`, then the Memory64 runtime aborted (`Cannot convert null to a BigInt`); also with sneak peek off. It worked around 4:40 AM (gh-pages 256b259).
+- No real WebGPU on this node (headless Chrome only gets SwiftShader; the NVIDIA Vulkan ICD exists but Chrome never uses it), so the fix is by code reading; the user confirms on their machine.
+- Causes found and fixed (web/src):
+  1. Switching versions never released the old pipeline's ORT sessions: each loaded FIBO2 (≈ 14 GB) stayed in GPU memory → Pipeline.release() on switch; one load at a time (two overlapping loads created sessions concurrently).
+  2. Pipeline.run kept every GPU-resident intermediate of a chain until the chain ended (46 transformer parts per pass at 1024²: several GB) → each output is disposed right after its last consumer (lastUses).
+  3. Sneak peek's fast decoder ran concurrently with the chain on the same ORT runtime (drain() was never awaited); the asyncify build does not support concurrent runs → decoding now happens between parts, inside the job's turn.
+  4. ort.env.wasm.numThreads = 1 (351b011) applied to WebGPU too; WebGPU worked with the default → only for the wasm EP (coordinator's bisect: it was one of the changes after the last working build).
+  5. Plain (non-real-time) generations went through the TurnScheduler gate (f4d86b6, also after the last working build) → ungated unless real time is on.
+  6. After a failed run the runtime is unusable; the pipeline is marked broken and later runs fail with "reload the page" instead of aborting the runtime.
+- Rows stuck at 'waiting' (predates tonight): progress rows were keyed by download URL; blob URLs are content-addressed, so two files with identical bytes shared a key and the first row never updated → keyed by role/name/url, every matching row updated, and every row is finalized when its bytes are in hand.
+- NotReadableError ("the requested file could not be read…"): a File snapshot of an OPFS cache file goes stale when another tab (old + new build after a service-worker update) rewrites it → a Web Lock per cache key across tabs, and one re-read on NotReadableError. Cache names and keys unchanged: every cached model is reused.
