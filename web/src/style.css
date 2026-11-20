@@ -62,6 +62,8 @@
   --radius: 6px;
   --slot-off-opacity: 0.5;   /* a switched-off pad slot (m00848: 50% transparent) */
   --slot-state-opacity: 0.85;
+  --danger: #dc2626;         /* a paused pad slot's border and label */
+  --slot-off-border: 3px;
   --slot-seed-w: 7em;
   --radius-lg: 10px;
   --tip-w: 300px;          /* plain-language tooltips (λ, γ, μ, previews): about two short lines of text */
@@ -115,7 +117,7 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #101012; --surface: #19191c; --fg: #ededef; --muted: #a0a0a8; --line: #2a2a2f; --line-strong: #3a3a41; --field: #222226; --hover: #2a2a30;
-    --accent: #3b7bf0; --accent-soft: #1d2a47; --cache-partial: #f2c200; --cache-full: #3ddc6e;
+    --danger: #f87171; --accent: #3b7bf0; --accent-soft: #1d2a47; --cache-partial: #f2c200; --cache-full: #3ddc6e;
     --peek-raw: #77777f; --peek-shown: #5b93f5; --peek-step: #3a3a41;
     --matte-frame: rgba(255, 255, 255, 0.12); --checker-a: #3a3a3a; --checker-b: #2a2a2a;
     --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.6);
@@ -124,7 +126,7 @@
 }
 :root[data-theme="dark"] {
   --bg: #101012; --surface: #19191c; --fg: #ededef; --muted: #a0a0a8; --line: #2a2a2f; --line-strong: #3a3a41; --field: #222226; --hover: #2a2a30;
-  --accent: #3b7bf0; --accent-soft: #1d2a47; --cache-partial: #f2c200; --cache-full: #3ddc6e;
+  --danger: #f87171; --accent: #3b7bf0; --accent-soft: #1d2a47; --cache-partial: #f2c200; --cache-full: #3ddc6e;
     --peek-raw: #77777f; --peek-shown: #5b93f5; --peek-step: #3a3a41;
   --matte-frame: rgba(255, 255, 255, 0.12); --checker-a: #3a3a3a; --checker-b: #2a2a2a;
   --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.6);
@@ -450,7 +452,10 @@ button.link { border: 0; background: none; padding: 0; min-height: 0; }
 .slot .square { cursor: pointer; flex: none; width: 100%; }  /* not the output panel's flexible square (it shrank under the prompt, m00883) */
 .output-panel .pad { flex: 1 1 0; min-height: 0; overflow-y: auto; align-content: start; }
 .slot canvas { width: 100%; height: 100%; display: block; }
-.slot.off .square { opacity: var(--slot-off-opacity); }
+.slot.off canvas { opacity: var(--slot-off-opacity); }
+.slot.off .square { outline: var(--slot-off-border) solid var(--danger); outline-offset: calc(-1 * var(--slot-off-border)); }  /* visible on an empty slot too (m00904) */
+.slot.off .slot-state { color: var(--danger); }
+.slot.off .slot-state::before { content: 'paused · '; }  /* in front of whatever the state says: starting, Step 2 of 4, idle */
 .slot-state { position: absolute; left: var(--space-1); bottom: var(--space-1); margin: 0; padding: 0 var(--space-1); font-size: var(--size-meta);
               background: var(--surface); color: var(--muted); border-radius: var(--radius); opacity: var(--slot-state-opacity); }
 .slot .slot-prompt { width: 100%; font-size: var(--size-meta); }
