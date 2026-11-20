@@ -294,10 +294,30 @@ def split(folder, roles=tuple(UNIT_PATTERNS), k=None):
     manifest_path.write_text(json.dumps(manifest, indent=1) + "\n")
 
 
+def shrink_options(session):
+    """
+    Query. RunOptions that release a session's arena memory back to the device after each run (onnxruntime's
+    memory.enable_memory_arena_shrinkage, for the CPU arena and, under CUDA, the session's GPU).
+
+    Args:
+        session (onnxruntime.InferenceSession)
+
+    Returns:
+        onnxruntime.RunOptions
+    """
+    import onnxruntime as ort
+    options = ort.RunOptions()
+    cuda = session.get_provider_options().get("CUDAExecutionProvider")
+    options.add_run_config_entry("memory.enable_memory_arena_shrinkage", "cpu:0" + (f";gpu:{cuda['device_id']}" if cuda else ""))
+    return options
+
+
 class ChainedSession:
     """
     Query object (holds the sessions). A folder's parts of one graph behind the two onnxruntime InferenceSession calls the
     verify tools use (get_inputs, run), so web_export.verify and fibo2_web.verify can test the chain like the unsplit graph.
+    Every part run shrinks its session's memory arena afterwards: each session has its own BFC arena that otherwise
+    keeps its peak, and the ~113 parts of a FIBO2 version kept together ran an 80 GB GPU out of memory (2026-11-20).
     """
 
     def __init__(self, folder, make_session, role="transformer"):
@@ -313,6 +333,7 @@ class ChainedSession:
         declared = {i.name: i for s in self.sessions for i in s.get_inputs()}
         self.inputs = [declared[i.name] for i in graph.input]
         self.outputs = [o.name for o in graph.output]
+        self.run_options = [shrink_options(s) for s in self.sessions]
 
     def get_inputs(self):
         """Query. The unsplit graph's inputs (name, type), in its order."""
@@ -321,9 +342,9 @@ class ChainedSession:
     def run(self, output_names, feeds):
         """Command (runs the sessions). Runs the parts in order; returns the unsplit graph's outputs (or output_names)."""
         values = dict(feeds)
-        for s in self.sessions:
+        for s, options in zip(self.sessions, self.run_options):
             names = [o.name for o in s.get_outputs()]
-            values.update(zip(names, s.run(names, {i.name: values[i.name] for i in s.get_inputs()})))
+            values.update(zip(names, s.run(names, {i.name: values[i.name] for i in s.get_inputs()}, options)))
         return [values[n] for n in output_names or self.outputs]
 
 

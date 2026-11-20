@@ -724,15 +724,21 @@ def split_manifest(meta):
                 rgba="least squares per pixel over the K images: C_k = α·F + (1 − α)·b_k (fibo2.rgba_from_composites)")
 
 
+CUDA_ARENA = {"arena_extend_strategy": "kSameAsRequested"}  # see ort_sessions
+
+
 def ort_sessions(folder, providers=("CUDAExecutionProvider",), chunks=False):
     """
     Query (reads the graphs). One onnxruntime session per graph of an exported FIBO2 version; with chunks, every split
-    graph is its chained <role>.part*.onnx graphs (web_chunks.split).
+    graph is its chained <role>.part*.onnx graphs (web_chunks.split). The CUDA arena grows by exactly what is requested
+    (CUDA_ARENA): the default doubling rounds every session's weights up to a power of two, and with ~113 part sessions
+    the rounding alone overflowed an 80 GB GPU (2026-11-20, manifest §19).
     """
     import onnxruntime as ort
     from sana_alpha import web_chunks
     options = ort.SessionOptions()
-    make = lambda path: ort.InferenceSession(str(path), options, providers=list(providers))
+    chosen = [(p, CUDA_ARENA) if p == "CUDAExecutionProvider" else p for p in providers]
+    make = lambda path: ort.InferenceSession(str(path), options, providers=chosen)
     split = json.loads((Path(folder) / "manifest.json").read_text()).get("chunked", {}) if chunks else {}
     return {name: web_chunks.ChainedSession(Path(folder), make, name) if name in split else make(Path(folder) / f"{name}.onnx")
             for name in graph_specs()}
