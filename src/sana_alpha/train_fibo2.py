@@ -39,7 +39,7 @@ from PIL import Image
 from safetensors.torch import load_file, save_file
 from torch.nn.parallel import DistributedDataParallel
 
-from sana_alpha import fibo2, models
+from sana_alpha import fibo2, models, sneak_peek
 from sana_alpha.train_adapter import barrier, setup_distributed
 from sana_alpha.train_control import (LANCE, METHOD_LOG_EVERY, OUTLINE_SHARE, RESOLUTION_PROBS, TRIMASK_LANCE, method_uniform_draws,
                                       outline_fraction, step_resolution)
@@ -247,7 +247,7 @@ def load_checkpoint(transformer, folder, gates):
 
 def train(mode, run, adapter=None, control=None, rank=64, batch_size=2, max_steps=20000, warmup=500, lr=1.0, weight_decay=0.01,
           max_grad_norm=1.0, cond_drop=0.1, text_drop=0.1, save_every=500, preview_every=500, log_every=10, seed=0,
-          multires=True, gates=False, init_from=None, fresh_optimizer=False):
+          multires=True, gates=False, init_from=None, fresh_optimizer=False, sneak_peek_highway=False, highway_lr=1e-4):
     """
     Command. Trains the adapter or control LoRA with DDP (torchrun) or on one GPU; writes models/fibo2/<run>/.
 
@@ -271,6 +271,10 @@ def train(mode, run, adapter=None, control=None, rank=64, batch_size=2, max_step
         fresh_optimizer (bool): with init_from, load only the LoRA (and gates), never optimizer.pt, and record the step as
             the run's dataset change (DATASET_CHANGE_FILE); a later resume refuses an optimizer.pt from a step at or before
             the newest change (m00723: "We changed the dataset, so the optimizer state should be discarded")
+        sneak_peek_highway (bool): also train the sneak peek highway (manifest §18): one head per main block on its detached
+            image tokens, predicting the final layer's output; its own AdamW (highway_lr), so the model's training is unchanged
+            (its gradients are bit-identical with it on or off). Resumes from init_from's sneak_peek.HIGHWAY_FILE when present,
+            else every head starts as a copy of the final linear
     """
     import lance
     import prodigyopt
@@ -315,6 +319,13 @@ def train(mode, run, adapter=None, control=None, rank=64, batch_size=2, max_step
     transformer.enable_gradient_checkpointing()
     transformer.train()
     trainable = [p for p in transformer.parameters() if p.requires_grad]
+    highway = tap = None
+    if sneak_peek_highway:  # outside the model and its optimizer: stop-gradient, own AdamW (§18)
+        highway, tap = sneak_peek.SneakPeekHighway(transformer), sneak_peek.HighwayTap(transformer)
+        resumed = bool(init_from) and sneak_peek.load_highway(highway, Path(init_from))
+        highway_opt = torch.optim.AdamW(highway.parameters(), lr=highway_lr, weight_decay=0.0)
+        log(f"sneak peek highway: {len(highway.heads)} heads, {sum(p.numel() for p in highway.parameters()) / 1e6:.1f}M params, "
+            + ("resumed" if resumed else "each a copy of the final linear"))
     gate_params = list(transformer.context_gates) if gates else []
     lora_params = [p for p in trainable if all(p is not g for g in gate_params)]
     log(f"trainable params {sum(p.numel() for p in trainable) / 1e6:.1f}M (LoRA rank {rank}{' + 46 context gates' if gates else ''}"
@@ -390,13 +401,23 @@ def train(mode, run, adapter=None, control=None, rank=64, batch_size=2, max_step
         sigmas = fibo2.sample_sigmas(b, x0.shape[2] * x0.shape[3] // 4, gen).to(device)
         noise = torch.randn(x0.shape, generator=gen).to(device)
         xt = add_flow_noise(x0, noise, sigmas)
+        if tap is not None:
+            tap.capturing = True
         with torch.autocast("cuda", torch.bfloat16):
             pred = model(hidden_states=xt.to(torch.bfloat16), timestep=sigmas, encoder_hidden_states=embeds,
                          encoder_attention_mask=mask, context_latents=context, return_dict=False)[0]
         if mode == "splitter":  # every head against its own x0, one shared ε (§17); pred is head 0 again
             pred, x0, noise = fibo2.split_velocities(fibo2.splitter_of(transformer), *x0.shape[2:]), x0s, noise[:, None]
         loss = ((pred.float() - flow_velocity_target(x0, noise)) ** 2).mean()
+        if tap is not None:
+            tap.capturing = False  # the backward recomputes checkpointed blocks: keep only this forward's outputs
         loss.backward()
+        if highway is not None:  # after the model's backward: its gradients are already final
+            highway_rel = sneak_peek.highway_backward(highway, tap)
+            sneak_peek.all_reduce_grads(highway, world)
+            highway_opt.step()
+            highway_opt.zero_grad(set_to_none=True)
+            tap.clear()
         grad_norm = torch.nn.utils.clip_grad_norm_(trainable, max_grad_norm)
         optimizer.step()
         scheduler.step()
@@ -410,7 +431,9 @@ def train(mode, run, adapter=None, control=None, rank=64, batch_size=2, max_step
             dt = time.time() - t_last
             log(f"step {step} res {res} loss {loss.item():.4f} grad {grad_norm.item():.3f} {seen / dt:.2f} img/s "
                 f"mem {torch.cuda.max_memory_allocated(device) / 2**30:.1f}GB prodigy_d {optimizer.param_groups[0]['d']:.2e}"
-                + (f" mean tanh(gate) {torch.cat(gate_params).tanh().mean().item():.4f}" if gates else ""))
+                + (f" mean tanh(gate) {torch.cat(gate_params).tanh().mean().item():.4f}" if gates else "")
+                + (" highway rel err " + " ".join(f"b{i}:{highway_rel[i]:.3f}" for i in sneak_peek.LOSS_REPORT_BLOCKS if i < len(highway_rel))
+                   if highway is not None else ""))
             t_last, seen = time.time(), 0
         if step % METHOD_LOG_EVERY == 0:
             log("resolutions (last %d steps): %s" % (METHOD_LOG_EVERY, ", ".join(
@@ -428,6 +451,8 @@ def train(mode, run, adapter=None, control=None, rank=64, batch_size=2, max_step
                           folder / fibo2.SPLITTER_HEAD_FILE)
             if gates:
                 save_file({f"context_gates.{i}": g.detach().float().cpu() for i, g in enumerate(gate_params)}, folder / "gates.safetensors")
+            if highway is not None:
+                sneak_peek.save_highway(highway, folder)
             torch.save(optimizer.state_dict(), folder / "optimizer.pt")  # ≈ 3.2 GB: Prodigy's 4 float32 states per LoRA weight, and d
             (folder / "meta.json").write_text(json.dumps(dict(meta, step=step)) + "\n")
             (out_dir / "latest.txt").write_text(f"step_{step:06d}\n")
