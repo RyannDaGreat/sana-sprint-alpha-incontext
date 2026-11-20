@@ -79,6 +79,129 @@ export function fillFontSelect(select) {
     for (const f of FONTS.filter((x) => x.group === group)) og.append(new Option(f.name, fontFamily(f)));
     select.append(og);
   }
+  enhanceFontSelect(select);
+}
+
+const PREVIEW_SUFFIX = ' preview'; // preview faces get their own family name: they hold only a few glyphs and must never shadow the full font
+const PREVIEW_ROOT_MARGIN = '100px';
+const TYPEAHEAD_MS = 700;
+const previews = new Map(); // font name -> Promise<css family>
+
+/**
+ * Pure function. Cheap preview request for a font: default weight, only the glyphs of the font's own name.
+ *
+ * @param {{name: string}} f
+ * @returns {string}
+ *
+ * @example previewCssUrl({name: 'Bebas Neue'}) // 'https://fonts.googleapis.com/css2?family=Bebas+Neue&display=block&text=Bebas%20Neue'
+ */
+export const previewCssUrl = (f) => `${googleCssUrl({ name: f.name })}&text=${encodeURIComponent(f.name)}`;
+
+/**
+ * Command. Loads a font's preview face once (appends a <style> to <head>); built-in fonts need nothing.
+ * Rejects when the CSS request fails.
+ *
+ * @param {{name: string, family?: string}} f
+ * @returns {Promise<string>} CSS font-family to preview with
+ */
+function ensurePreview(f) {
+  if (f.family) return Promise.resolve(f.family);
+  const family = `'${f.name}${PREVIEW_SUFFIX}'`;
+  if (!previews.has(f.name)) {
+    previews.set(f.name, fetch(previewCssUrl(f))
+      .then((r) => { if (!r.ok) throw new Error(`Preview of ${f.name}: HTTP ${r.status}`); return r.text(); })
+      .then((css) => {
+        document.head.append(Object.assign(document.createElement('style'), { textContent: css.replaceAll(`'${f.name}'`, family) }));
+        return document.fonts.load(`16px ${family}`, f.name);
+      })
+      .then(() => family));
+  }
+  return previews.get(f.name);
+}
+
+/**
+ * Command. Hides `select` (it stays the source of truth: .value reads and writes, 'change' events) and puts a
+ * combobox button plus a listbox popup beside it. Each option is drawn in its own font, loaded when it scrolls
+ * into view. Choosing sets select.value and dispatches a bubbling 'change'. Keys: Up/Down/Home/End/Enter/Space/Esc
+ * and type-ahead. Setting select.value from code refreshes the button.
+ *
+ * @param {HTMLSelectElement} select - filled by fillFontSelect
+ */
+export function enhanceFontSelect(select) {
+  const el = (tag, cls, attrs = {}) => Object.assign(document.createElement(tag), { className: cls }, attrs);
+  const root = el('div', 'fontpick'), button = el('button', 'fontpick-button', { type: 'button' });
+  const list = el('ul', 'fontpick-list', { role: 'listbox', id: `fontpick-${select.id}`, hidden: true });
+  button.setAttribute('role', 'combobox');
+  button.setAttribute('aria-haspopup', 'listbox');
+  button.setAttribute('aria-controls', list.id);
+  const opts = [];
+  for (const group of [...new Set(FONTS.map((f) => f.group))]) {
+    list.append(el('li', 'fontpick-group', { textContent: group, role: 'presentation' }));
+    for (const f of FONTS.filter((x) => x.group === group)) {
+      const li = el('li', 'fontpick-option', { textContent: f.name, role: 'option', id: `${list.id}-${opts.length}` });
+      li.font = f;
+      opts.push(li);
+      list.append(li);
+    }
+  }
+  const seen = new IntersectionObserver((entries) => entries.filter((e) => e.isIntersecting).forEach(({ target }) => {
+    seen.unobserve(target);
+    ensurePreview(target.font).then((family) => { target.style.fontFamily = family; }).catch((e) => {
+      target.dataset.failed = '';
+      target.title = e.message;
+      throw e; // marked in the list, and reported in the console
+    });
+  }), { root: list, rootMargin: PREVIEW_ROOT_MARGIN });
+  const current = () => opts.findIndex((o) => fontFamily(o.font) === select.value);
+  const activeIndex = () => opts.findIndex((o) => o.classList.contains('active'));
+  const sync = () => {
+    const selected = opts[current()];
+    button.textContent = selected.font.name;
+    ensurePreview(selected.font).then((family) => { button.style.fontFamily = family; });
+    opts.forEach((o) => o.setAttribute('aria-selected', o === selected));
+  };
+  const activate = (i) => {
+    i = Math.max(0, Math.min(opts.length - 1, i));
+    opts.forEach((o, k) => o.classList.toggle('active', k === i));
+    button.setAttribute('aria-activedescendant', opts[i].id);
+    opts[i].scrollIntoView({ block: 'nearest' });
+  };
+  const setOpen = (open) => {
+    list.hidden = !open;
+    button.setAttribute('aria-expanded', open);
+    if (open) { opts.forEach((o) => seen.observe(o)); activate(Math.max(0, current())); }
+  };
+  const choose = (i) => {
+    select.value = fontFamily(opts[i].font);
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+    setOpen(false);
+  };
+  let typed = '', typedAt = 0;
+  button.addEventListener('click', () => setOpen(list.hidden));
+  button.addEventListener('blur', () => setOpen(false));
+  list.addEventListener('mousedown', (e) => { // keep focus on the button
+    e.preventDefault();
+    const o = e.target.closest('.fontpick-option');
+    if (o) choose(opts.indexOf(o));
+  });
+  button.addEventListener('keydown', (e) => {
+    const step = { ArrowDown: 1, ArrowUp: -1 }[e.key], jump = { Home: 0, End: opts.length - 1 }[e.key];
+    if (step || jump !== undefined) { e.preventDefault(); list.hidden ? setOpen(true) : activate(jump ?? activeIndex() + step); }
+    else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); list.hidden ? setOpen(true) : choose(activeIndex()); }
+    else if (e.key === 'Escape') setOpen(false);
+    else if (e.key.length === 1) { // type-ahead: a prefix typed within TYPEAHEAD_MS
+      typed = (e.timeStamp - typedAt > TYPEAHEAD_MS ? '' : typed) + e.key.toLowerCase();
+      typedAt = e.timeStamp;
+      const hit = opts.findIndex((o) => o.font.name.toLowerCase().startsWith(typed));
+      if (hit >= 0) { setOpen(true); activate(hit); }
+    }
+  });
+  const valueProp = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
+  Object.defineProperty(select, 'value', { get() { return valueProp.get.call(this); }, set(v) { valueProp.set.call(this, v); sync(); } });
+  select.hidden = true;
+  root.append(button, list);
+  select.before(root);
+  sync();
 }
 
 const loaded = new Map(); // family -> Promise

@@ -57,7 +57,10 @@
   --tool-gap: 6px;
   --icon-size: 22px;
   --icon-stroke: 1.5;
-  --op-w: 116px;            /* filter button cell width: every button in a group is this wide or a share of the row */
+  --size-preview: 1.25rem;  /* font names in the font picker */
+  --popup-max-h: 22rem;
+  --popup-min-w: 11em;
+  --op-w: 116px;           /* filter button cell width: every button in a group is this wide or a share of the row */
   --glyph-w: 52px;          /* before → after glyph on filter buttons */
   --leading-tight: 1.2;
   --v-white: #ffffff;       /* matte values drawn in glyphs, same in both themes */
@@ -210,6 +213,20 @@ button.link { border: 0; background: none; padding: 0; color: var(--muted); font
 .cell { display: inline-grid; place-items: center; width: var(--cell-size); height: var(--cell-size); cursor: pointer; }
 .cell input { accent-color: var(--accent); margin: 0; }
 .trimask button.primary-lite:not(:disabled) { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+/* Font picker (fonts.js enhanceFontSelect): a listbox whose options are drawn in their own fonts. */
+.fontpick { position: relative; display: inline-block; }
+.fontpick-button { min-width: var(--popup-min-w); display: flex; justify-content: space-between; gap: var(--space-2); text-align: left; }
+.fontpick-button::after { content: '▾'; color: var(--muted); font-family: var(--font); }
+.fontpick-list { position: absolute; z-index: 10; top: 100%; left: 0; min-width: 100%; max-width: calc(100vw - 2 * var(--mobile-pad));
+  max-height: var(--popup-max-h); overflow-y: auto; margin: 0; padding: 0; list-style: none;
+  background: var(--field); border: var(--hairline) solid var(--fg); }
+.fontpick-group { position: sticky; top: 0; padding: var(--space-1) var(--control-pad-x); background: var(--field); color: var(--muted);
+  font: var(--weight-text) var(--size-meta) var(--font); border-bottom: var(--hairline) solid var(--line); }
+.fontpick-option { padding: var(--space-1) var(--control-pad-x); font-size: var(--size-preview); line-height: var(--leading); cursor: pointer; white-space: nowrap; }
+.fontpick-option[aria-selected="true"] { color: var(--accent); }
+.fontpick-option.active { background: var(--fg); color: var(--bg); }
+.fontpick-option[data-failed] { text-decoration: line-through; color: var(--muted); }
+
 /* Filter groups: a title column and a grid of equal-width buttons (glyph above label). */
 .group { flex-wrap: nowrap; align-items: start; }
 .ops { flex: 1; display: grid; grid-template-columns: repeat(auto-fill, var(--op-w)); gap: var(--space-1); }
