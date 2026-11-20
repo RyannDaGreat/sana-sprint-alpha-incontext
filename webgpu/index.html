@@ -12,9 +12,9 @@
   <!-- PWA (manifest §12, m00836): the site's one service worker and manifest live at the Pages root, one folder up; absent in `npm run dev` -->
   <link rel="manifest" href="../pwa/manifest.webmanifest">
   <script src="../pwa/register.js" defer></script>
-  <script type="module" crossorigin src="./assets/index-BNhlQlwh.js"></script>
-  <link rel="modulepreload" crossorigin href="./assets/splitter-Bd4S26Qp.js">
-  <link rel="stylesheet" crossorigin href="./assets/index-BHsjz4s-.css">
+  <script type="module" crossorigin src="./assets/index-DXzh29Cn.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/splitter-J0CtVuid.js">
+  <link rel="stylesheet" crossorigin href="./assets/index-CzyabVb4.css">
 </head>
 <body>
   <header class="top">
@@ -23,6 +23,7 @@
     <div class="top-right">
       <span id="ep" class="meta"></span>
       <a class="meta" href="../index.html">Journal</a>
+      <button id="reset-all" class="link" title="Forget the saved matte, prompt and settings, and start over">Reset all</button>
       <button id="theme" class="link">Theme</button>
     </div>
   </header>
@@ -41,7 +42,13 @@
     </section>
 
     <section class="panel output-panel">
-      <h2>Output
+      <div class="mode-row">
+        <span class="tabs" id="mode-tabs" title="Single: one image. Four-way pad: up to four prompts and seeds on the same mask, diffusing together">
+          <button class="tab on" data-mode="single">Single</button>
+          <button class="tab" data-mode="pad">Four-way pad</button>
+        </span>
+      </div>
+      <h2 id="single-head">Output
         <span class="tabs">
           <button class="tab on" data-view="gray" id="tab-gray">RGB on gray</button>
           <button class="tab" data-view="rgba">RGBA</button>
@@ -56,6 +63,8 @@
         <canvas id="out-uncertainty" width="1024" height="1024" hidden></canvas>
         <p id="out-empty" class="empty">No image yet.</p>
       </div>
+      <div id="pad" class="pad" hidden></div>
+      <p id="pad-help" class="meta" hidden>Click an image to switch it off (it dims and pauses; the others get its turns). Editing a prompt or seed restarts that one; editing the mask or the settings restarts all.</p>
       <p id="equation" class="meta equation"></p>
     </section>
 
@@ -132,6 +141,7 @@
         <label class="field">Seed <input id="seed" type="number" value="0" min="0"></label>
         <button id="new-seed">New seed</button>
         <label class="switch"><input id="realtime" type="checkbox"><span>Real-time</span></label>
+        <label class="switch" title="Sneak peek: quick previews while it generates, after every step and (with a highway) inside each step, from the fast decoder; at most 10% of the time"><input id="sneak-peek" type="checkbox" checked><span>Sneak peek</span></label>
         <button id="generate" class="primary" disabled>Generate</button>
       </div>
       <div class="row sampler">
@@ -171,6 +181,10 @@
         <button id="dl-rgba" disabled>Download RGBA</button>
       </div>
       <table id="timings" class="timings"></table>
+      <details id="peek-timeline" class="note" hidden><summary>Preview timeline</summary>
+        <p class="meta hint">Every sneak peek of the last generation: its error against the final image (relative error of the clean-latent estimate x̂0, latent averaged over 4×4), the highway's own estimate and what was shown (blended with the previous step). Right: the blend weight w on the highway per step and block.</p>
+        <div id="peek-timeline-body"></div>
+      </details>
     </section>
 
     </div>
