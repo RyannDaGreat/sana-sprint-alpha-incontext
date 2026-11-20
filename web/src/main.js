@@ -1261,4 +1261,5 @@ async function init() {
 
 initPanes(document.querySelector('.workbench'));
 attachPanZoom($('out-gray').parentElement);  // the output views (RGB / RGBA / splitter views) share one view
+attachPanZoom(document.querySelector('.gal-view-img'));  // the gallery full view (m00889)
 init().catch(fail);
