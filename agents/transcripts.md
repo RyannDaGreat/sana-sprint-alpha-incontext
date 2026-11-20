@@ -1037,3 +1037,6 @@ The gallery still kills every other button once I go into it. I can't even click
 
 ## m00909 — 2026-11-20 ~6:57 PM
 Again, I said to use PanZoom from my SvelteLib library; it's one of my GitHub repositories. If you're not using it, get the fuck out and don't use PanZoom at all. In fact, I think we're done here. No more pan zoom.
+
+## m00910 — 2026-11-20 ~7:15 PM
+And again, the check mark for Every layer sneak peek: it's just a lie.
