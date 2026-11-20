@@ -39,11 +39,20 @@ const modelsBase = new URL(params.get('models') ?? defaultModels, location.href)
 const state = { versions: [], selected: null, pipeline: null, busy: false, pending: false, timer: null, last: null, segmenter: null, hasPhoto: false,
   progress: null, progressFrame: 0 };  // progress: the newest progress event; progressFrame: its pending animation frame
 
-/** Command. Shows a message in the status line (red when it is an error). */
+/** Command. Shows a message in the status line, the gallery bar and the selected model's card (red when it is an error), and logs it. */
 function status(text, isError = false) {
-  $('status').textContent = text;
-  $('status').style.color = isError ? 'var(--accent)' : '';
+  (isError ? console.error : console.log)(`status: ${text}`);
+  for (const el of [$('status'), $('gal-status'), document.querySelector('.version.selected .load-line')].filter(Boolean)) {  // whichever page is open shows it
+    el.textContent = text;
+    el.style.color = isError ? 'var(--accent)' : '';
+  }
 }
+
+// m00900 (no silent freezes): every main-thread block longer than this is logged, with the page that was open
+const LONG_TASK_LOG_MS = 200;
+new PerformanceObserver((list) => {
+  for (const e of list.getEntries()) if (e.duration > LONG_TASK_LOG_MS) console.warn(`main thread blocked ${e.duration.toFixed(0)} ms (${document.querySelector('#mode-tabs .tab.on')?.textContent} page)`);
+}).observe({ type: 'longtask' });
 
 /** Command. Reports an error in the UI and rethrows it, so it also reaches the console. */
 function fail(e) {
@@ -93,6 +102,7 @@ function scheduleSave() {
     try {
       await saveUiState(await uiSnapshot());
     } catch (e) {
+      console.error('saving the UI state failed', e);
       if (!persist.warned) status(`Could not save your matte and prompt in this browser (${e.message}); they will not survive a reload.`, true);
       persist.warned = true;
     }
@@ -109,7 +119,7 @@ async function uiSnapshot() {
 /** Command. Restores the saved matte and inputs, if any; returns whether something was restored. */
 async function restoreUiState() {
   let saved;
-  try { saved = await loadUiState(); } catch (e) { status(`Could not read your saved matte and prompt (${e.message}).`, true); }
+  try { saved = await loadUiState(); } catch (e) { console.error(e); status(`Could not read your saved matte and prompt (${e.message}).`, true); }
   persist.ready = true;
   if (!saved) return false;
   await applyUiState(saved);
@@ -132,7 +142,7 @@ async function applyUiState(saved) {
 $('reset-all').addEventListener('click', async () => {
   persist.ready = false;  // no save may land after the delete
   clearTimeout(persist.timer);
-  await clearUiState().catch((e) => status(`Could not clear the saved state (${e.message}).`, true));
+  await clearUiState().catch((e) => { console.error(e); status(`Could not clear the saved state (${e.message}).`, true); });
   location.reload();
 });
 for (const id of PERSIST_IDS) for (const ev of ['input', 'change']) $(id)?.addEventListener(ev, scheduleSave);
@@ -294,14 +304,16 @@ async function saveToGallery(ids, info) {
     const t = new OffscreenCanvas(Math.round(src.width * k), Math.round(src.height * k));
     t.getContext('2d').drawImage(src, 0, 0, t.width, t.height);
     await addItem({ ts: Date.now(), version: state.pipeline.version.id, info, state: await uiSnapshot(), outputs, thumb: await t.convertToBlob({ type: 'image/png' }) });
-    if (!$('out-gallery').hidden) renderGallery();  // the gallery page is open
-  } catch (e) { status(`Could not save this generation to the gallery (${e.message}).`, true); }
+    if (!$('out-gallery').hidden) renderGallery().catch(fail);  // the gallery page is open
+  } catch (e) { console.error(e); status(`Could not save this generation to the gallery (${e.message}).`, true); }
 }
 
 /** Command. Lists the stored generations as a newest-first thumbnail grid, with the space they use. */
 async function renderGallery() {
   gal.urls.forEach((u) => URL.revokeObjectURL(u));
-  gal.items = await listItems().catch((e) => { status(`Could not read the gallery (${e.message}).`, true); return []; });
+  console.log('gallery: reading the stored generations');
+  gal.items = await listItems();  // a failure reaches setMode's fail (status line and console)
+  console.log(`gallery: ${gal.items.length} generations`);
   gal.urls = gal.items.map((it) => URL.createObjectURL(it.thumb));
   $('gal-grid').innerHTML = '';
   gal.items.forEach((it, i) => {
@@ -364,7 +376,7 @@ $('gal-download').addEventListener('click', () => {
 $('gal-delete').addEventListener('click', async () => {
   await deleteItem(gal.items[gal.open].id);
   $('gal-view').hidden = true;
-  renderGallery();
+  renderGallery().catch(fail);
 });
 $('gal-clear').addEventListener('click', async () => {
   if ($('gal-clear').dataset.armed !== '1') {  // two presses (no confirm() in some hosts): the first arms, the second clears
@@ -376,7 +388,7 @@ $('gal-clear').addEventListener('click', async () => {
   await clearItems();
   $('gal-clear').dataset.armed = '';
   $('gal-clear').textContent = 'Clear gallery';
-  renderGallery();
+  renderGallery().catch(fail);
 });
 document.addEventListener('keydown', (e) => {
   if ($('gal-view').hidden) return;
@@ -806,7 +818,7 @@ async function generate() {
     onPreview: $('sneak-peek').checked ? showPeek : null,
     everyLayer: $('every-layer').checked,
     gate: single.sched.gateFor(single.key),  // Cancel / Pause (m00894) and real-time edits act between graph parts
-  }, showProgress).catch((e) => { if (e.name !== 'AbortError') fail(e); return null; }).finally(() => { state.busy = false; syncRunButtons(); });
+  }, showProgress).catch((e) => { if (e.name !== 'AbortError') fail(e); console.log(`run ${single.key} cancelled`); return null; }).finally(() => { state.busy = false; syncRunButtons(); });
   if (state.cancelled) {
     state.cancelled = false;
     status(`Cancelled at ${state.progress ? progressLine(state.progress) : 'the start'}. The previews so far stay in the Timeline tab.`);
@@ -971,7 +983,8 @@ async function padRestart(i) {
     onPreview: $('sneak-peek')?.checked ? (image) => { if (live()) paintPreview(slot.canvas, image); } : null,
     gate: pad.sched.gateFor(key, slot.off),
   }, (p) => { if (live()) slot.state.textContent = progressLine(p); }).catch((e) => {
-    if (e.name !== 'AbortError' && live()) { slot.state.textContent = `error: ${e.message}`; console.error(e); }
+    if (e.name === 'AbortError') console.log(`${key} cancelled`);
+    else { console.error(e); if (live()) slot.state.textContent = `error: ${e.message}`; }
     return null;
   }).finally(() => { if (live()) { slot.running = false; syncRunButtons(); } });
   if (!res || !live()) return;

@@ -15,6 +15,7 @@ function openDb() {
     req.onupgradeneeded = () => req.result.createObjectStore(STORE, { keyPath: 'id', autoIncrement: true });
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
+    req.onblocked = () => reject(new Error(`IndexedDB ${DB_NAME}: blocked by another open tab of this app; close it and reload`));
   });
 }
 
