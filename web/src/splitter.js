@@ -1,6 +1,6 @@
 // The splitter (manifest §17): a FIBO2 version whose transformer returns one velocity per background head (gray, white,
 // black), so the app gets the object on K known backgrounds and solves RGBA from them. Mirrors fibo2.sample's x0 rule
-// and fibo2.rgba_from_composites (src/sana_alpha/fibo2.py).
+// and fibo2.rgba_from_composites (src/sana_alpha/fibo2.py), the iterative least squares RGBA fit (m00826).
 
 /**
  * Pure function. Every head's clean latent from the last step (fibo2.sample): with the shared noise estimate
@@ -19,16 +19,22 @@ export function splitX0(x, v, sigma, heads) {
   return Array.from({ length: heads }, (_, k) => x.map((xi, i) => xi + (1 - sigma) * v[i] - v[k * n + i]));
 }
 
+const ALPHA_ILS_ITERATIONS = 32;  // as fibo2.ALPHA_ILS_ITERATIONS: 20 reach the box-constrained optimum on every validated pixel
+const ALPHA_ILS_TOLERANCE = 1e-7;  // a pixel stops iterating once a step moves α by less than this (float32 resolution near 1)
+const ALPHA_ILS_FLOOR = 1e-9;  // as fibo2.ALPHA_ILS_FLOOR: the F step divides by max(α, this), so α can leave 0
+
 /**
- * Pure function. RGBA from one image on K known solid backgrounds: C_k = α·F + (1 − α)·b_k, least squares per pixel
- * over the K backgrounds × 3 channels for α (shared) and α·F (per channel), as fibo2.rgba_from_composites:
- *   1 − α = Σ_k,c (C_kc − mean_k C_c)·(b_k − b̄) / (3·Σ_k (b_k − b̄)²),  α·F_c = mean_k C_kc − (1 − α)·b̄
- * α is clipped to [0, 1] first; F = α·F / α (0 where α = 0), clipped to [0, 1]. The uncertainty is the RMS residual of
- * the fit: 0 where the K images agree with one RGBA.
+ * Pure function. RGBA with decontaminated color from one image on K known solid backgrounds (m00824, m00826), the same
+ * iterative least squares as fibo2.rgba_from_composites: per pixel min over α ∈ [0, 1], F ∈ [0, 1]³ of
+ * Σ_k,c (C_kc − α·F_c − (1 − α)·b_kc)², by alternating exact 1-D solves from the clipped unconstrained fit
+ *   1 − α = Σ_k,c (C_kc − C̄_c)·(b_kc − b̄_c) / Σ_k,c (b_kc − b̄_c)²
+ *   F_c ← clip(mean_k (C_kc − (1 − α)·b_kc) / α, 0, 1),  α ← clip(Σ (C − b)·(F − b) / Σ (F − b)², 0, 1)
+ * F = 0 where α = 0. The uncertainty is the RMS residual of the fit: 0 where the K images agree with one RGBA.
  *
  * @param {Float32Array[]} composites - K planar (3, H, W) images in [0, 1] (vae_decoder outputs)
- * @param {number[]} backgrounds - (K,) each image's background value, e.g. [0.5, 1, 0]
+ * @param {Array<number|number[]>} backgrounds - (K,) gray levels, e.g. [0.5, 1, 0], or (K, 3) RGB colors
  * @param {number} hw - H·W
+ * @param {number} [iterations] - alternating steps
  * @returns {{color: Float32Array, alpha: Float32Array, uncertainty: Float32Array}} color (3, H, W) planar straight
  *   (not premultiplied), alpha (H·W,), uncertainty (H·W,)
  *
@@ -38,28 +44,44 @@ export function splitX0(x, v, sigma, heads) {
  * const r = rgbaFromComposites(C, [0.5, 1, 0], 1);
  * [...r.color, r.alpha[0]].map((v) => +v.toFixed(6))  // [0.9, 0.1, 0.4, 0.25]
  * r.uncertainty[0] < 1e-6  // true
- * // the gray image disagrees by 0.3 in red: uncertainty rises (rgba_from_composites gives the same)
- * C[0][0] += 0.3; +rgbaFromComposites(C, [0.5, 1, 0], 1).uncertainty[0].toFixed(3)  // 0.082
+ * // an opaque pixel whose gray image is 0.3 redder: the uncertainty rises (rgba_from_composites gives the same)
+ * const D = [0.5, 1, 0].map(() => Float32Array.of(0.2, 0.6, 1)); D[0][0] += 0.3;
+ * +rgbaFromComposites(D, [0.5, 1, 0], 1).uncertainty[0].toFixed(3)  // 0.082
  */
-export function rgbaFromComposites(composites, backgrounds, hw) {
-  const k = backgrounds.length, bMean = backgrounds.reduce((a, b) => a + b, 0) / k;
-  const bDev = backgrounds.map((b) => b - bMean), bVar = bDev.reduce((a, d) => a + d * d, 0);
+export function rgbaFromComposites(composites, backgrounds, hw, iterations = ALPHA_ILS_ITERATIONS) {
+  const k = backgrounds.length;
+  const b = backgrounds.map((v) => (typeof v === 'number' ? [v, v, v] : v));  // (K, 3)
+  const bMean = [0, 1, 2].map((c) => b.reduce((s, bk) => s + bk[c], 0) / k);
+  const bSum = bMean.map((m) => m * k);
+  let bVar = 0, bSq = 0;
+  for (const bk of b) for (let c = 0; c < 3; c++) { bVar += (bk[c] - bMean[c]) ** 2; bSq += bk[c] ** 2; }
+  if (bVar === 0) throw new Error(`rgbaFromComposites needs at least two different backgrounds, got ${JSON.stringify(backgrounds)}`);
   const color = new Float32Array(3 * hw), alpha = new Float32Array(hw), uncertainty = new Float32Array(hw);
-  const mean = [0, 0, 0];
+  const mean = [0, 0, 0], cMinusB = [0, 0, 0], f = [0, 0, 0];
+  const solveColor = (a) => { for (let c = 0; c < 3; c++) f[c] = Math.min(1, Math.max(0, (mean[c] - (1 - a) * bMean[c]) / Math.max(a, ALPHA_ILS_FLOOR))); };
   for (let i = 0; i < hw; i++) {
-    let beta = 0;
+    let beta = 0, cross = 0;
     for (let c = 0; c < 3; c++) {
-      let m = 0;
-      for (let j = 0; j < k; j++) m += composites[j][c * hw + i];
-      mean[c] = m / k;
-      for (let j = 0; j < k; j++) beta += (composites[j][c * hw + i] - mean[c]) * bDev[j];
+      let m = 0, d = 0;
+      for (let j = 0; j < k; j++) { const v = composites[j][c * hw + i]; m += v; d += v - b[j][c]; cross += (v - b[j][c]) * b[j][c]; }
+      mean[c] = m / k; cMinusB[c] = d;
+      for (let j = 0; j < k; j++) beta += (composites[j][c * hw + i] - mean[c]) * (b[j][c] - bMean[c]);
     }
-    const a = Math.min(1, Math.max(0, 1 - beta / (3 * bVar)));
+    let a = Math.min(1, Math.max(0, 1 - beta / bVar));
+    for (let t = 0; t < iterations; t++) {
+      solveColor(a);
+      const num = f[0] * cMinusB[0] + f[1] * cMinusB[1] + f[2] * cMinusB[2] - cross;
+      const den = k * (f[0] * f[0] + f[1] * f[1] + f[2] * f[2]) - 2 * (f[0] * bSum[0] + f[1] * bSum[1] + f[2] * bSum[2]) + bSq;
+      const next = den > 0 ? Math.min(1, Math.max(0, num / den)) : a;
+      if (Math.abs(next - a) < ALPHA_ILS_TOLERANCE) { a = next; break; }  // converged: the remaining steps would not move α
+      a = next;
+    }
+    solveColor(a);
     let sq = 0;
     for (let c = 0; c < 3; c++) {
-      const premul = mean[c] - (1 - a) * bMean;
-      for (let j = 0; j < k; j++) sq += (composites[j][c * hw + i] - premul - (1 - a) * backgrounds[j]) ** 2;
-      color[c * hw + i] = a > 0 ? Math.min(1, Math.max(0, premul / a)) : 0;
+      const fc = a > 0 ? f[c] : 0;
+      for (let j = 0; j < k; j++) sq += (composites[j][c * hw + i] - a * fc - (1 - a) * b[j][c]) ** 2;
+      color[c * hw + i] = fc;
     }
     alpha[i] = a;
     uncertainty[i] = Math.sqrt(sq / (3 * k));
