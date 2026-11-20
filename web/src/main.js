@@ -4,6 +4,7 @@ import '@fontsource-variable/inter'; // the UI font
 import '@fontsource-variable/jost';   // a built-in choice of the text tool (fonts.js)
 import './style.css';
 import { MatteEditor } from './matte.js';
+import { initPanes } from './panes.js';
 import { fillFontSelect, ensureFont } from './fonts.js';
 import { MaskGallery } from './gallery.js';
 import { buildTrimaskUi, DEFAULT_GUI } from './trimask_ui.js';
@@ -574,4 +575,5 @@ async function init() {
   if (pre || fully) await loadVersion(state.selected);
 }
 
+initPanes(document.querySelector('.workbench'));
 init().catch(fail);
