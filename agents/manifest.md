@@ -202,6 +202,8 @@ Training entry points (e.g. `train_adapter.sh`, `train_control.sh`) may also liv
   - GitHub: publish on GitHub Pages with model files on a separate branch, no LFS, shards if needed (m00633); notify when live (m00634); repo is public, never create private repos (m00635, m00636); the repo must hold everything (m00637); latest and best models hosted (m00641).
   - Trimask model (§13): fuzzy masks / trimasks as a second model class, dilate/erode tools, ten augmentation strategies by ten Sonnet agents as BlueJay processors into one table, Sparrow view, fine-tune vs scratch, 16 h (m00644).
 
+- **Bookkeeping (m00736):** "update all the manifests with my transcriptions and instructions … and keep the git repository clean by updating periodically": every user message goes into `agents/transcripts.md` and its instructions into this manifest at once; commit bookkeeping and finished work in small orthogonal commits, so `git status` holds only in-progress fork work.
+
 ## 9. Semantic Bindings
 
 ### dtab-rules
