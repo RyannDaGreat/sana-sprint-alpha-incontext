@@ -48,4 +48,6 @@
 6. Fast-decoder training started (sneak peek) + ETA; then a measured-ETA follow-up
 7. Sneak peek highway attached to training (training restart) + ETA; then a follow-up
 8. Splitter evaluation: how good or bad (readable, amnesia)
+11. Fast decoder: a clearly better set of candidates worth looking at (beats fal Tiny AE color or fal-lite D speed with Tiny-AE look), with the link (m00788)
+10. Morning (~8 AM): fast-decoder report, every candidate sorted best → worst, ≥ 48 examples, link (m00786)
 9. Problems at once

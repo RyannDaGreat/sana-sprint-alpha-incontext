@@ -209,6 +209,7 @@ Training entry points (e.g. `train_adapter.sh`, `train_control.sh`) may also liv
 - **Bookkeeping (m00736):** "update all the manifests with my transcriptions and instructions … and keep the git repository clean by updating periodically": every user message goes into `agents/transcripts.md` and its instructions into this manifest at once; commit bookkeeping and finished work in small orthogonal commits, so `git status` holds only in-progress fork work.
 - **System RAM cap (m00751):** "if you go above 600 gigabytes of system RAM, we will run into tons of major issues. If we run up to a terabyte of RAM, you will crash the node and lose all work." Node total 1,118 GB. Keep used RAM (`free -g` used) under 600 GB; `agents/.scratchpad/ram_guard.sh` (tmux ram_guard) kills CPU-side side jobs (e2e_compare, fibo2_web, generate_eval, web_export) when used RAM passes 560 GB, never training or the encode.
 - **Results log (m00776):** every measured result goes into §19 the same day, dated, with setup and raw-data paths, so it can be used in a paper later.
+- **Hosting (m00794, m00797):** models on the one Hugging Face model repo; journal PNGs on GitHub (branch journal-assets of the recreated repo, 2026-11-20); no second Hugging Face repo. The Hub refused > 20,000 files in the model repo (the MAGICK dataset repo holds ~100k files, so the cap is likely per repo type; not confirmed).
 
 ## 9. Semantic Bindings
 
@@ -449,14 +450,68 @@ Every measured result, with date (ET), setup and where the raw data lives. Newes
 
 **Fast decoder candidates (§18), 2026-11-20, 512² held-out images, CPU 12 threads; full FLUX.2 decoder ≈ 23 s per 1024², 49.6M params, 37.96 dB vs the source images.**
 
-| Variant | Params | PSNR vs full decoder | SSIM | LPIPS | 1024² CPU | Speedup |
+| Variant | Params | PSNR vs source image (300 held-out rows) | SSIM | LPIPS | 1024² CPU | Speedup |
 |---|---|---|---|---|---|---|
 | ComfyUI-style linear latent→RGB | 99 | 21.3 | 0.79 | 0.41 | 2.4 ms | ≈ 9,500× |
 | 3×3 conv, least squares | 0.89M | 25.6 | 0.85 | 0.26 | 11 ms | ≈ 2,100× |
 | fal FLUX.2 Tiny AE (as is) | 1.3M | 29.2 | 0.95 | 0.036 | 2.9 s (39 ms GPU fp16) | 11× |
 | fal-lite D (agent 4, slimmed Tiny AE) | 0.96M | 28.6 | 0.92 | 0.10 | 0.37 s (13 ms GPU) | 89× |
 
+**Fast decoder setup (raw data).** Pairs: 4,000 fit + 300 test magick_samples train-split rows, disjoint, seed 0 (`agents/.scratchpad/sneakpeek/pairs512.pt`): `fibo2_gray_512` latents (raw FLUX.2, normalized with the VAE BatchNorm as the transformer sees them) and `rgb_on_gray` area-resized 1024 → 512. Metrics (`agents/.scratchpad/frenzy/fastdec/common.py`): PSNR, SSIM (pytorch_msssim, data range 1), LPIPS (alex), L2 on [0, 1]; ms = median of 20 decodes of one (1, 32, 128, 128) latent after 3 warm-ups. Full decoder reference (`full_decoder.json`, `full_decoder_test.pt`, first 48 test rows): 37.96 dB, SSIM 0.982, LPIPS 0.0037 vs the source images; 21.8 s per 1024² on CPU fp32 32 threads, 23.2 s at 12 threads (node CPU shared with other jobs). Each variant's numbers: `agents/.scratchpad/frenzy/fastdec/agent_N/results.json`.
+
+**Sneak peek highway: gradient identity and init (tiny FIBO2, CPU), 2026-11-20 ~1:00 AM.** `agents/.scratchpad/sneakpeek/test_highway.py`: random BriaFibo2Transformer2DModel (dim 64, 4 main blocks, 2 heads), batch 2, 8×8 latents. The model's gradients with the highway on vs off: bit-identical (torch.equal on every parameter), with and without gradient checkpointing. The last block's head starts exact (relative error 0.0, logit-lens init). 400 AdamW steps (lr 3e-3) on the heads alone: relative error per block 0.144/0.086/0.055/0.000 → 0.113/0.077/0.040/0.000. Save/load round trip exact; with a splitter the target is head 0's tokens. All 7 checks pass (code `c30dfba`).
+
+**Fast decoder round 0 best + color (ΔE2000), 2026-11-20 ~1:50 AM.** ΔE = mean CIEDE2000 (skimage) vs the source image on test rows 0–7 at 512² (`agents/.scratchpad/sneakpeek/delta_e.py`). Full decoder 1.06. GPU timings: one shared A100 (GPU 7), PyTorch fp16, full decoder 572 ms per 1024² there. fal_lite = fal/FLUX.2-Tiny-AutoEncoder's decoder with its tail pruned and fine-tuned on our pairs (L1 + (1 − SSIM) + 0.1 LPIPS, 256² crops; `agents/.scratchpad/frenzy/fastdec/agent_4/lite.py`, `train_lite.py`).
+
+| Variant | Params | PSNR | SSIM | LPIPS | ΔE | CPU ms (×) | GPU ms (×) |
+|---|---|---|---|---|---|---|---|
+| fal Tiny AE as is | 1.32M | 29.2 | 0.951 | 0.036 | 2.71 | 2,908 (11×) | 38.9 (15×) |
+| fal_lite_A_gpu (full-res block → 2 small convs) | 1.22M | 33.9 | 0.970 | 0.017 | 1.44 | 573 (57×) | 34.9 (16×) |
+| fal_lite_C_gpu (stop at ½ res, conv + PixelShuffle 2) | 1.18M | 33.1 | 0.963 | 0.023 | 1.61 | 363 (90×) | 26.1 (22×) |
+| fal_lite_D (C with one ½-res block, CPU-trained) | 0.96M | 28.6 | 0.920 | 0.103 | 3.27 | 369 (89×) | 12.8 (45×) |
+| academiasd TAE as is | 1.66M | 28.3 | 0.934 | 0.085 | 3.42 | 2,545 (13×) | 39.0 (15×) |
+
+Reading: fine-tuning on our own pairs beats the pretrained tiny AE in color (ΔE 1.61 vs 2.71) at 90× on CPU; on the GPU the speedup is only 22×, so round 1 (5 Sonnet agents, `agents/.scratchpad/frenzy/fastdec_r1/`) targets GPU/ORT speed at ΔE ≤ 2.0.
+
+**Fast decoder round 0, visual verdict (main-agent VLM look at `agents/.scratchpad/frenzy/fastdec/crops_r0.png`: 7 hard regions of test rows 0–7, 3× nearest; m00782).** fal Tiny AE: sharpest edges but oversaturated (cat irises neon green, contrast pushed, beard face too dark) and smooths fine grain (lava texture). lite C_gpu: colors faithful to the source, but soft (fur, woman's face) — it stops at ½ resolution (PixelShuffle 2). lite A_gpu: closest to the full decoder in both color and sharpness (keeps a small full-resolution stage). lite D: blurry, bright halos around the cat's eyes, mushy faces: a dead end at that width. So the target is A's look at C/D's speed: keep a cheap full-resolution stage, slim the ½- and ¼-resolution stages.
+
+**Fast decoder lineage (m00784: successive frenzies that evolve a solution; round N+1 = mutations/crossovers of round N's best, chosen by metrics + VLM crop verdicts).** Metrics: SSIM/LPIPS vs source (300 test rows), ΔE2000 (48 rows), GPU = shared A100 PyTorch fp16 ms per 1024² (full decoder 572 ms).
+
+| Round | Candidate | Parent | Change | SSIM | LPIPS | ΔE | GPU ms | Verdict |
+|---|---|---|---|---|---|---|---|---|
+| 0 | fal Tiny AE | — (pretrained, Apache-2.0) | as is | 0.951 | 0.036 | 2.71 | 38.9 | sharpest; oversaturated (neon irises) |
+| 0 | fal_lite_A_gpu | fal Tiny AE | full-res block → conv 64→16, SiLU, conv 16→3; fine-tuned on our pairs | 0.970 | 0.017 | 1.44 | 34.9 | closest to full decoder; **parent for round 1** |
+| 0 | fal_lite_C_gpu | fal Tiny AE | stop at ½ res, conv 64→12 + PixelShuffle 2; fine-tuned | 0.963 | 0.023 | 1.61 | 26.1 | faithful color, soft; **parent for round 1** |
+| 0 | fal_lite_D | fal_lite_C | one ½-res block only; CPU-trained | 0.920 | 0.103 | 3.27 | 12.8 | blurry, halos: dead end |
+| 1 | 7 agents running (`fastdec_r1/agent_1..7`) | A, C, D, F | narrower student; color losses on D; global color head; mixed-res longer training; ONNX/depthwise speed; full Tiny AE fine-tune + Lab + PatchGAN; GAN-sharpened slim A/C | | | | | |
+
+**Sneak peek highway on the real 8B FIBO2 splitter, 2026-11-20 1:20–1:28 AM ET.** `agents/.scratchpad/sneakpeek/highway_gpu_smoke.sh` (logs `agents/.scratchpad/logs/train_fibo2_hw_smoke_{off,on}.log`): splitter mode on fibo2_tri step 7500, one A100 (GPU 6, shared with an ONNX verify), batch 1, 1024² only, 30 steps, same seed, run without and then with `--sneak_peek_highway True` (44 heads, 20.2M params, AdamW lr 1e-4). Main loss identical at steps 5–25 to 4 digits (0.2297, 0.3341, 0.2931, 0.2264, 0.3482); step 30 0.2076 vs 0.2077 and grad norm 0.499 vs 0.498 at step 20 = CUDA nondeterminism (the tiny-model test is bit-identical). Peak memory 32.9 → 34.0 GB (+1.1 GB, +3.3%). Speed 0.17–0.20 vs 0.17–0.21 img/s: no measurable cost (shared GPU, noise ≈ ±10%). Highway relative error per block (mean((p − y)²)/mean(y²), the training batch) at step 5 (≈ logit lens): b0 0.761, b11 0.812, b22 0.634, b33 0.273, b43 0.001; at step 30: b0 0.488, b11 0.546, b22 0.418, b33 0.128, b43 0.000. The last block's head is exact by construction; early blocks learn fast.
+
+**Clean-GPU timing (m00806), 2026-11-20 1:54 AM ET.** `agents/.scratchpad/sneakpeek/clean_window.sh 6`: every other process on GPU 6 (A100 80 GB) SIGSTOPped for 32 s, 0% utilization confirmed, ONNX Runtime 1.x CUDA EP, fp32 graphs as exported (agent fp16 exports run as fp16), one (1, 32, 128, 128) latent = 1024², warm-up 5, median of 25 (`agents/.scratchpad/frenzy/report_all/clean_timing.json`). **Full FLUX.2 decoder: 248.3 ms** (the earlier 572 ms was PyTorch fp16 on a crowded GPU). Highway head per block (LayerNorm · (1 + scale) + Linear 3584 → 128 on 4,096 tokens, torch fp16): 0.18 ms. fp16 re-conversion failed in this window (bug, fixed; rerun pending).
+
+**10% budget (m00807, m00809).** Per preview = 0.10 × T_total / (passes × L + steps). FIBO2 (L = 46, user's WebGPU run m00722: T_total 99,208 ms, 2 transformer passes, 2 steps): 0.10 × 99,208 / 94 = **105.5 ms per preview in the browser at 1024²** (fast decoder + highway head). On the A100 by the full decoder ratio 4,853 ms (browser, m00722) / 248 ms (clean ORT) = 19.5×: **≈ 5.4 ms per preview at 1024²** (≈ ¼ of it at 512² previews). Per-step previews only (2 per image): ≈ 5 s each, any candidate fits. SANA-Sprint 1.6B (L = 20): T_total in WebGPU is not measured, so its budget is 0.10 × T_total / (passes × 20 + steps); its DC-AE latents (32× down) need their own fast decoder (taesana exists, MIT), out of scope for now.
+
+| Candidate (ONNX as exported) | ORT CUDA ms per 1024² (clean) | Speedup | Per-block budget at 1024² (≤ 5.4 ms incl. head) |
+|---|---|---|---|
+| fastdec/agent_1/lsq32to3 | 3.52 | 70× | fits |
+| fastdec/agent_1/lsq_patch_k1 | 3.56 | 70× | fits |
+| fastdec/agent_1/lsq_patch_k3 | 3.63 | 68× | fits |
+| fastdec/agent_1/lsq_patch_k5_1000img | 3.74 | 66× | fits |
+| fastdec/agent_4/academiasd_tae | 21.53 | 12× | over |
+| fastdec/agent_4/fal_tiny_ae | 22.61 | 11× | over |
+| fastdec/agent_5/runs/c48 | 6.36 | 39× | over |
+| fastdec_r1/agent_3/D_ctl_1500 | 8.28 | 30× | over |
+| fastdec_r1/agent_5/lite_A | 15.47 | 16× | over |
+| fastdec_r1/agent_5/lite_A_fp16 | 21.90 | 11× | over |
+| fastdec_r1/agent_5/lite_C | 12.32 | 20× | over |
+| fastdec_r1/agent_5/lite_C_fp16 | 9.69 | 26× | over |
+| fastdec_r1/agent_5/lite_D | 8.44 | 29× | over |
+| fastdec_r1/agent_5/lite_D_fp16 | 7.32 | 34× | over |
+
 **UI blind slop test (§12, m00768), 2026-11-20.** Each trial: one professional editor screenshot + ours side by side, sides random, Haiku asked which is the amateur one; pass ≤ 65% picking ours. References: drawio, excalidraw, jspaint, mermaid.live, Photopea, Pixlr, Sketchpad, Squoosh, tldraw, Carbon, Clipdrop, Photoroom. Rounds 1–4 (Agent-tool Haiku, logos visible): 77%, 77%, 73%, 87%. Confounds found: Haiku read logos and titles; Agent-tool Haiku inherited this repo's context ("matches this project's recent web-app commits"). Fair test (app bar and product names covered, fresh `claude --model haiku -p` from a neutral directory): r4 UI 63% (30 trials), 48% (60 trials); r5 UI 53% (60 trials) — pass. Sampling noise ≈ ±6.5 points at 60 trials. Runner: agents/.scratchpad/uipolish/run_blind.py (UIPolish worktree).
+- **Genetic rounds (m00804).** Candidates are a population with genome cards; after each round, selection by a stated fitness rule, random groups of agents meet (mailbox) and breed children (crossover + mutation); each round keeps competing, divergent methods (≤ 2 children per lineage, ≥ 1 wildcard).
+- **Timing rule (m00806).** Speed is measured only on an uncrowded GPU: other processes on that GPU are paused (SIGSTOP/SIGCONT) for the timing window; warmup + median of ≥ 20 runs; labelled "clean-GPU timing".
+- **10% budget (m00807).** Per preview: 0.10 × T_total / (passes × 46 + steps). User's WebGPU run (m00722: 99,208 ms, 2 passes): ≈ 105 ms per preview at 1024² in the browser (fast decoder + highway head), ≈ 12 ms on the A100 (full-decoder ratio 4,853 / 572 ≈ 8.5); ≈ 3 ms on the A100 for 512² previews. Estimate: assumes WebGPU scales like the A100.
 
 **Progress bars and graph parts (§12 Progress; fork ProgressBars), 2026-11-20 12:00–7:00 AM ET.** Hardware: node with 96-core Intel Xeon Platinum 8275CL @ 3.00 GHz, 1.1 TB RAM, 8 × A100-SXM4-80GB; browser runs: headless Chrome (Puppeteer), wasm EP of the Memory64 onnxruntime-web 1.31.1 build (`web/scripts/build_ort_memory64.sh`), default threads, the node shared with the splitter encode/training jobs (load average 37–112 during the runs, so CPU times carry ± several % of noise; not "clean" per the timing rule). Versions: SANA `control_v2_sprint_step_006000-int4` (20 transformer blocks, Gemma-2 26 layers, DC-AE), FIBO2 turbo `fibo2_turbo_fibo2_tri_step_006000-int8-lambda` (46 blocks, Qwen3-VL 35 layers, FLUX.2 VAE); test copies (hard links + own manifests) in `agents/.scratchpad/progressbars/models/`, served by `agents/.scratchpad/progressbars/serve.mjs`; harness `agents/.scratchpad/pptr/check_progress_bars.js` (records every painted progress state with a MutationObserver; time = the app's own "Done in N ms") and `agents/.scratchpad/progressbars/matrix.sh` (builds the variants: prod; UI off = showProgress a no-op; raw = UI off and no per-part yield; SANA test builds force the Memory64 runtime because SANA int4 needs > 4 GB on wasm32). Raw data: `agents/.scratchpad/progressbars/matrix/<run>/report.json` (all painted states), `agents/.scratchpad/logs/progressbars_matrix*.log`.
 
@@ -477,3 +532,4 @@ Every measured result, with date (ET), setup and where the raw data lives. Newes
 - Reading: SANA per-unit parts cost ≈ +2.5 % (fastest vs fastest, 93.1 vs 90.8 s) to +3.9 % (medians 95.1 vs 91.5 s) on wasm CPU; the UI adds ≈ 1.5 % (96.6 vs 95.1 s), inside the run-to-run noise. FIBO2 CPU numbers are dominated by load noise (raw slower than with UI); the unsplit FIBO2 graph did not fit the wasm heap at run time while the parts did. With the non-blocking UI, wasm paints only because of the per-part task yield (2 painted states without it, 106–113 with it). WebGPU: not measured here.
 - Structure (`web_chunks.verify`, CPU, random inputs; all parts hold exactly the unsplit nodes): SANA transformer 20 parts / 9,002 nodes, diff 0.635 (yardstick 0.706, mean |out| 0.418); Gemma 26 / 6,215, diff 0.0938 (no float input, mean 1.69); DC-AE encoder 20 / 1,536, diff 0.00805 (yardstick 0.0163); decoder 23 / 1,518, diff 0.00173 (yardstick 0.000666). FIBO2 transformer 46 / 19,112, diff 0.0229 (yardstick 0.0112, mean 0.85); Qwen3-VL 35 / 8,271, diff 0.0364 (mean 0.495); FLUX.2 encoder 14 / 283, diff 2.98e-6 (yardstick 1.49e-5); decoder 18 / 325, diff 2.98e-7 (yardstick 7.63e-6). Split time 10–20 s per version (CPU), verify 42 s (SANA) / ≈ 7 min (FIBO2).
 - Chunk verify vs PyTorch (`fibo2_web.verify <v> --chunks True`, GPU 6 A100 80 GB alone, 4 held-out items, 512², 4 steps, dev CFG 5 / turbo no CFG; all four graphs chained): step 7500 dev image PSNR 38.86 / 31.46 / 37.12 / 21.51 dB (unsplit 39.05 / 31.47 / 36.74 / 21.52), turbo 23.45 / 35.72 / 39.37 / 36.98 dB (unsplit 23.50 / 35.71 / 39.56 / 36.83). Peak GPU memory (nvidia-smi, 1 s samples): committed code 81,142 MiB (dev, OOM in Pow) / 80,670 MiB (turbo, OOM at session init); with kSameAsRequested + arena shrinkage 52,150 / 54,841 MiB. Raw: `agents/.scratchpad/web_verify/<v>/verify_chunks.json`, `agents/.scratchpad/logs/progressbars_chunkverify_{asis,fixed}*.{log,mem}`.
+- **Time-conditioned highway, preview-space loss, monotone previews (m00813).** Heads get the timestep (adaLN-zero scale/shift from FIBO2's own embedding) and their block index; loss ||σ·(v̂_k − v_final)||² = error of the shown x̂0; the preview error must not rise along the timeline (no sawtooth at each new step): measured per (step, block), remedies = residual from the previous step's x̂0, a calibrated blend, or skipping a worse preview; reported in the journal.

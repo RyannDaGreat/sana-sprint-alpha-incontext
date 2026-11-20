@@ -635,3 +635,117 @@ I'm really talking about the sneak peek highway for that one. The sneak peek hig
 
 ## m00776 — 2026-11-20 ~1:12 AM
 Record the result of all your tests in the manifest, so that later on I can do paper stuff on it.
+
+## m00777 — 2026-11-20 ~1:00–1:38 AM (clock-corrected; exact minute unknown)
+Is there some URL I can go to see the differences? I'd like to visualize them, please. Start a web server on a local IP and port and give me the link, or put it in a journal and give me the link.
+
+## m00778 — 2026-11-20 ~1:00–1:38 AM (clock-corrected; exact minute unknown)
+The column names are gibberish.
+
+## m00779 — 2026-11-20 ~1:00–1:38 AM (clock-corrected; exact minute unknown)
+OK, so that 89x faster one is OK... but the 11x faster one is markedly better in colors. Can you please iterate? Up to 3 successive 5-Sonnet frenzies?
+
+## m00780 — 2026-11-20 ~1:00–1:38 AM (clock-corrected; exact minute unknown)
+Like, the 11x slower one looks way better, to be honest.
+
+## m00781 — 2026-11-20 ~1:00–1:38 AM (clock-corrected; exact minute unknown)
+Much less blurry.
+
+## m00782 — 2026-11-20 ~1:00–1:38 AM (clock-corrected; exact minute unknown)
+Tiny decoder we trained (132k weights, 82× faster, SSIM 0.94) looks better than "Same, slimmed down" (0.96M weights, 89× faster, SSIM 0.92). Use your VLM to judge it too, in addition to the metrics. The metrics should always go down, but your VLM can be a judge of what went wrong and where you might find dead ends. Look at the cat's eyes.
+
+## m00783 — 2026-11-20 ~1:00–1:38 AM (clock-corrected; exact minute unknown) (pasted)
+Go ahead, send whatever messages you want. We need better candidates. You can train your own things, that's fine. The one thing, though, is your trained candidates — well, they do kind of look smudgy and blurry. I'm wondering if you can add a kind of VAE loss, GAN loss to it too, perhaps? Or maybe that's too much to ask for. I mean, GAN losses do typically make things sharper, right? I'm not really sure what I'm looking for, but the colors on that one actually look kind of better. Some of the crisp details, though, on the 89× faster one, some of them actually do look a bit sharper; in general it's kind of a toss-up. The one that you said is 11 times faster, though, is better — that's the best one here apart from the original, although the resolution is actually lower than the original too, which is — I'll actually note the resolution is not lower, both of them — wait, are these being displayed at original resolution or not? Well, if that's the case, then yeah, that's by far the best one then. Even that one, the colors are off a little bit, though. A training-based solution probably is the best one; that's my hunch. That's why you have the two GPUs free for now.
+
+## m00784 — 2026-11-20 ~1:00–1:38 AM (clock-corrected; exact minute unknown)
+So your multiple frenzies can experiment and do research on all these different things, to see how the people do it. I said successive frenzies, so that you can kind of evolve a good solution.
+
+## m00785 — 2026-11-20 ~1:00–1:38 AM (clock-corrected; exact minute unknown)
+Like, if you look at the geometry of the astronaut woman's face, the "Same, slimmed down" one has much better geometry than the decoders we trained. So, I mean, there's obviously a trade-off here. And I'm wondering if you can somehow mix the weights of them, use GANs or something, I don't know. GANs are notoriously hard to train, which is... eh. You should look up papers that learn how to adapt VQGANs and VAEs and stuff. Maybe that might help us get a boost without needing to do the whole GAN, because everybody knows that GANs are hard.
+
+## m00786 — 2026-11-20 ~1:00–1:38 AM (clock-corrected; exact minute unknown)
+Tomorrow morning I'd like a report of all the different ones, just like this: another page with all the different ones, sorted from best to worst, so that I can see — another page like the one you have here, but with, like, tons more examples.
+
+## m00787 — 2026-11-20 ~1:00–1:38 AM (clock-corrected; exact minute unknown)
+If you need LPIPS to measure it too, that might help — give you another metric to look at.
+
+## m00788 — 2026-11-20 ~1:00–1:38 AM (clock-corrected; exact minute unknown)
+Notify me once you have a better set of candidates and you're eager for me to look at them.
+
+## m00789 — 2026-11-20 ~1:00–1:38 AM (clock-corrected; exact minute unknown)
+I said to get rid of the branches, so that we can shrink the GitHub repository size and put everything on Hugging Face.
+
+## m00790 — 2026-11-20 ~1:00–1:38 AM (clock-corrected; exact minute unknown)
+That's how you solve GitHub.
+
+## m00791 — 2026-11-20 ~1:00–1:38 AM (clock-corrected; exact minute unknown)
+Why can't you delete the old branch on GitHub that's taking up those 88 gigabytes?
+
+## m00792 — 2026-11-20 ~1:00–1:38 AM (clock-corrected; exact minute unknown)
+Fine, you can delete and recreate the same repo. I'm fine with that, as long as you can do it safely. We have all the source code here, so it shouldn't be an issue, right?
+
+## m00793 — 2026-11-20 ~1:00–1:38 AM (clock-corrected; exact minute unknown)
+Feels neat to bring back up GitHub Pages and everything.
+
+## m00794 — 2026-11-20 ~1:00–1:38 AM (clock-corrected; exact minute unknown)
+Fine, yeah, we can do it on that GitHub repo instead. I'm fine with that, that's cool. Kind of weird that Hugging Face has a 20,000 file cap, though, considering that the Magick dataset is also on Hugging Face and has over a hundred thousand images.
+
+## m00795 — 2026-11-20 ~1:00–1:38 AM (clock-corrected; exact minute unknown)
+Why don't you take a look? I'm guaranteeing you they're all stored as PNGs. I made the repository.
+
+## m00796 — 2026-11-20 ~1:00–1:38 AM (clock-corrected; exact minute unknown)
+OK, the repository's been deleted. Go ahead, make another.
+
+## m00797 — 2026-11-20 ~1:00–1:38 AM (clock-corrected; exact minute unknown)
+For now on, we'll keep the plan.
+
+## m00798 — 2026-11-20 ~1:39 AM
+Lol, nobody's using GPU 6 at all.
+
+## m00799 — 2026-11-20 ~1:50 AM
+Have they made any progress? Do we have a better decoder?
+
+## m00800 — 2026-11-20 ~1:55 AM
+Very cool. Do we have a visual for it yet?
+
+## m00801 — 2026-11-20 ~1:58 AM (pasted)
+There's one other method that I want you to try, which is similar to diffusion distillation — DMD — you know, like how DMD works: in diffusion, let's say we had a hundred diffusion steps, we would train a four-step model to match the predictions of the teacher model at 0, 25, 50 and 75, if we were doing a four-step distillation of 100. Well, I'm wondering if we can do the same thing for the convolutional outputs, or whatever intermediate layers are inside the decoder: whether we can have a distillation method that mimics the activations of the original decoder, which we'll call the teacher, added with some other spice and bells and whistles that your agents can go through. Is this a known technique? Is there research on this? Whether or not there is, I'd like to try some and see if it's better or not. I'm kind of bullish on this, but who knows? I might be wrong.
+
+## m00802 — 2026-11-20 ~2:01 AM
+Also, the columns should say the number of milliseconds it took to run, including the original.
+
+## m00803 — 2026-11-20 ~2:03 AM
+Alright, well then I'd like to have some agents — you can add maybe 5 additional Sonnet agents to test different versions of feature distillation.
+
+## m00804 — 2026-11-20 ~2:05 AM
+Let them have babies with each other. After each round, they can talk and come up with plans, kind of like a genetic algorithm. But the plans should be divergent. Every new round should have competing methods, but they can intermingle and talk. Or maybe random sets of them will intermingle and talk with each other, to evolve a better strategy.
+
+## m00805 — 2026-11-20 ~2:08 AM
+GPU 572 ms per 1024² — how? I remember it took multiple seconds?
+
+## m00806 — 2026-11-20 ~2:09 AM
+And make sure that whatever GPU is doing the benchmarking is not overcrowded with other tests.
+
+## m00807 — 2026-11-20 ~2:11 AM
+Got it. Well, you may do any of the ones in the current visualization. Okay. What's the number of milliseconds required to stay within that 10% bound I asked for? Report that on the top, and tell me here.
+
+## m00808 — 2026-11-20 ~2:12 AM
+Assuming we did it on every sneak peek thing, right? Because we're going to be doing many sneak peeks.
+
+## m00809 — 2026-11-20 ~2:13 AM
+Remember how that has to take into account the number of layers in the model or whatever.
+
+## m00810 — 2026-11-20 ~2:14 AM
+Well, then what's the number? Spit it out.
+
+## m00811 — 2026-11-20 ~2:16 AM
+Also, why does it claim to be showing me 1024x1024 images when it's clearly not that high resolution? Is it dumbing it down again? In its original instructions it was explicitly told to never, ever, ever, ever dumb down images that are used for visualization. I always want full resolution and full quality.
+
+## m00812 — 2026-11-20 ~2:20 AM
+Also, I don't know why the fast decoder thing deleted the old results. I mean, we should really be sorting them in terms of rounds or something. Maybe you can color-code each column depending on the round. Round -1 is the one we started with, before we started doing these.
+
+## m00813 — 2026-11-20 ~2:23 AM (pasted)
+By the way, in addition to that highway thing, there should be some components in there that tell us the diffusion step, along with the layer information or whatever, or whatever other obvious repeatable parameters there are, to most accurately estimate not just the prediction — the highway is responsible for doing the prediction — but, more importantly than just the prediction, we need predicting of the model output: we need to predict the final noise as accurately as possible. That's the most important thing. But actually, more than that, we need to predict it weighted across whatever the Tweedie formula is, right? So that it goes monotonically better when I'm looking at the preview. If it jumps — because at diffusion step 2 it puts more weight on diffusion step 2 when doing Tweedie's formula, but we're looking at the first layer, which is less accurate — we may actually see a jump in inaccuracy throughout the visualization process, and then it no longer looks like it's getting progressively better; it would look like it's spiking downwards over and over, like down, down, down, down. So when we do this inside your research reports, if you ever notice this is a problem, please take remedy for this, and report it inside everything, and keep it in your journal and whatnot.
+
+## m00814 — 2026-11-20 ~2:25 AM
+Did you transcribe everything, by the way? Don't forget!

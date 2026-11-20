@@ -440,3 +440,9 @@
 - Bug: the chained `fibo2_web.verify --chunks` ran an 80 GB A100 out of memory (peak 81.1 GB) with ~113 part sessions: every CUDA session has its own BFC arena that rounds its weights up to a power of two and keeps its activation peak. Fix: kSameAsRequested + shrink after each part run (peak 52–55 GB). First suspected cause (another job on GPU 6) was ruled out by a rerun on a clean GPU.
 - The first all-graph matrix crashed at load ("reading 'includes'"): `versionFiles` copied only some fields of a part entry and dropped `external`. Caught by the headless run before any commit.
 - Measurement caveat: the node was shared (load 37–112), so wasm CPU timings carry several % noise; the SANA pair was repeated 3–5 times and both fastest and median are recorded (§19). WebGPU cost is still unmeasured.
+
+## 2026-11-20 ~2:16 AM — decoder comparison pages showed 512² images (main agent + SneakPeek)
+- The fast-decoder candidates were evaluated and visualized on a 512² test set (latents fibo2_gray_512, sources downsampled from the 1024² originals), while page headers said "1024²" (the timing size). The user: "is it dumbing it down again? ... never ever dumb down images that are used for visualization; I always want full resolution and full quality" (m00811).
+- Root cause: the sub-agents picked a smaller test size for speed and nobody checked it against the full-resolution rule; my own view.html copied their 512² PNGs.
+- Fix: evaluation and every visualization at 1024² originals, 1:1 lossless PNG; headers say exactly what is shown. My 512² view.html server (port 47781) is stopped.
+- Lesson: before showing any image page, check the native size of the source data and that the page shows it 1:1.
