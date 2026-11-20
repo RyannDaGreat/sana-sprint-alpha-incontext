@@ -12,13 +12,18 @@
   <!-- PWA (manifest §12, m00836): the site's one service worker and manifest live at the Pages root, one folder up; absent in `npm run dev` -->
   <link rel="manifest" href="../pwa/manifest.webmanifest">
   <script src="../pwa/register.js" defer></script>
-  <script type="module" crossorigin src="./assets/index-D8357OCY.js"></script>
-  <link rel="modulepreload" crossorigin href="./assets/splitter-Becwcjer.js">
-  <link rel="stylesheet" crossorigin href="./assets/index-CzyabVb4.css">
+  <script type="module" crossorigin src="./assets/index-B8BTRq6p.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/splitter-YOK4nHUE.js">
+  <link rel="stylesheet" crossorigin href="./assets/index-DV3syssG.css">
 </head>
 <body>
   <header class="top">
     <h1>Matte → Image</h1>
+    <span class="tabs" id="mode-tabs" title="Editor: one image. Four-way pad: up to four prompts and seeds on the same mask. Gallery: every past generation">
+      <button class="tab on" data-mode="single">Editor</button>
+      <button class="tab" data-mode="pad">Four-way pad</button>
+      <button class="tab" data-mode="gallery">Gallery</button>
+    </span>
     <p class="sub">SANA-Sprint, 1–4 steps, on your GPU in the browser. Draw a white silhouette, describe it, generate.</p>
     <div class="top-right">
       <span id="ep" class="meta"></span>
@@ -42,18 +47,13 @@
     </section>
 
     <section class="panel output-panel">
-      <div class="mode-row">
-        <span class="tabs" id="mode-tabs" title="Single: one image. Four-way pad: up to four prompts and seeds on the same mask, diffusing together">
-          <button class="tab on" data-mode="single">Single</button>
-          <button class="tab" data-mode="pad">Four-way pad</button>
-        </span>
-      </div>
       <h2 id="single-head">Output
         <span class="tabs">
           <button class="tab on" data-view="gray" id="tab-gray">RGB on gray</button>
           <button class="tab" data-view="rgba">RGBA</button>
           <button class="tab" data-view="alpha" id="tab-alpha" hidden title="The alpha matte the splitter predicts from the trimask (white = opaque)">Alpha</button>
           <button class="tab" data-view="uncertainty" id="tab-uncertainty" hidden title="How much the gray, white and black images disagree with one RGBA (black = they agree)">Uncertainty</button>
+          <button class="tab" data-view="timeline" id="tab-timeline" hidden title="Every sneak peek preview of the last generation; scrub or play them">Timeline</button>
         </span>
       </h2>
       <div class="square">
@@ -61,8 +61,19 @@
         <canvas id="out-rgba" class="checker" width="1024" height="1024" hidden></canvas>
         <canvas id="out-alpha" width="1024" height="1024" hidden></canvas>
         <canvas id="out-uncertainty" width="1024" height="1024" hidden></canvas>
+        <canvas id="out-timeline" width="1024" height="1024" hidden></canvas>
         <p id="out-empty" class="empty">No image yet.</p>
       </div>
+      <div id="timeline-controls" class="row timeline-controls" hidden>
+        <button id="tl-play" title="Play the previews in order">Play</button>
+        <input type="range" id="tl-slider" min="0" max="0" value="0" aria-label="Preview">
+        <span id="tl-label" class="meta"></span>
+      </div>
+      <div id="tl-plot" class="peek-plot tl-plot" hidden></div>
+      <span id="pad-tabs" class="tabs pad-tabs" hidden>
+        <button class="tab on" data-padview="gray">RGB</button><button class="tab" data-padview="rgba">RGBA</button>
+        <button class="tab" data-padview="alpha" hidden>Alpha</button><button class="tab" data-padview="uncertainty" hidden>Uncertainty</button>
+      </span>
       <div id="pad" class="pad" hidden></div>
       <p id="pad-help" class="meta" hidden>Click an image to switch it off (it dims and pauses; the others get its turns). Editing a prompt or seed restarts that one; editing the mask or the settings restarts all.</p>
       <p id="equation" class="meta equation"></p>
@@ -142,7 +153,10 @@
         <button id="new-seed">New seed</button>
         <label class="switch"><input id="realtime" type="checkbox"><span>Real-time</span></label>
         <label class="switch" title="Sneak peek: quick previews while it generates, after every step and (with a highway) inside each step, from the fast decoder; at most 10% of the time"><input id="sneak-peek" type="checkbox" checked><span>Sneak peek</span></label>
+        <label class="switch" title="Show a preview after every layer: no 10% time cap and no skipping (slower)"><input id="every-layer" type="checkbox"><span>Every layer</span></label>
+        <label title="Preview decoder: small = fastest, big = sharper and truer colors">Preview decoder <select id="peek-decoder"><option value="small">small</option><option value="big">big</option></select></label>
         <button id="generate" class="primary" disabled>Generate</button>
+        <button id="pause" hidden title="Pause or resume between graph parts">Pause</button>
       </div>
       <div class="row sampler">
         <label class="field">Steps
@@ -154,8 +168,9 @@
           </select>
         </label>
         <label class="field"><span id="guidance-label">Guidance (embedded)</span> <input id="guidance" type="range" min="0" max="10" step="0.1" value="4.5"><span id="guidance-v" class="meta">4.5</span></label>
-        <label class="field" id="lambda-field" title="λ = fraction of the adapter delta (W_adapter − W_teacher) kept, applied at run time as a low-rank (SVD) branch. 0 = full subtraction (the final model), 1 = the control model as trained. Only versions ending in -lambda have it.">λ (adapter) <input id="lambda" type="range" min="0" max="1" step="0.05" value="0"><span id="lambda-v" class="meta">0</span></label>
-        <label class="field" id="gamma-field" title="γ = how much the splitter splits (manifest §17): 0 = the model without it (gray, white and black images identical, so no alpha), 1 = the splitter as trained. Only splitter versions have it.">γ (splitter) <input id="gamma" type="range" min="0" max="1" step="0.05" value="1"><span id="gamma-v" class="meta">1</span></label>
+        <label class="field" id="lambda-field" title="λ = fraction of the adapter delta (W_adapter − W_teacher) kept, applied at run time as a low-rank (SVD) branch. 0 = full subtraction (the final model), 1 = the control model as trained. Only versions ending in -lambda have it.">λ (adapter) <input id="lambda" type="range" min="0" max="1" step="0.05" value="0"><input id="lambda-v" class="greek-num" type="number" step="0.05" value="0" title="Any value, also below 0 or above 1 (the slider pins at its end)"></label>
+        <label class="field" id="gamma-field" title="γ = how much the splitter splits (manifest §17): 0 = the model without it (gray, white and black images identical, so no alpha), 1 = the splitter as trained. Only splitter versions have it.">γ (splitter) <input id="gamma" type="range" min="0" max="1" step="0.05" value="1"><input id="gamma-v" class="greek-num" type="number" step="0.05" value="1" title="Any value, also below 0 or above 1 (the slider pins at its end)"></label>
+        <label class="field" id="mu-field" title="μ = how much the matte adapter predicts the alpha matte directly (manifest §21): 0 = the splitter model alone (alpha from the gray/white/black fit), 1 = the matte head as trained. Only matte versions have it.">μ (matte) <input id="mu" type="range" min="0" max="1" step="0.05" value="1"><input id="mu-v" class="greek-num" type="number" step="0.05" value="1" title="Any value, also below 0 or above 1 (the slider pins at its end)"></label>
         <label class="field" title="&quot;trained&quot; marks the sizes the loaded model was trained at (matte models: 1024 only; trimask models: 1024, 768, 512, 256). Other sizes work (SANA has no positional embedding) but are extrapolation: for a 1024-only model 768² looks close, 512² is oversaturated with texture artifacts. Non-square sizes use the centered crop of the matte shown by the frame.">Size
           <select id="size">
             <option value="1024x1024" selected>1024 × 1024</option>
@@ -189,6 +204,20 @@
 
     </div>
 
+    <section id="out-gallery" class="gen-gallery" hidden aria-label="Gallery">
+      <p class="row gallery-bar"><span id="gal-used" class="meta"></span><button id="gal-clear">Clear gallery</button></p>
+      <div id="gal-grid" class="gal-grid"></div>
+      <p id="gal-empty" class="empty">No generations yet: each finished generation is saved here.</p>
+      <div id="gal-view" class="gal-view" hidden role="dialog" aria-label="Generation">
+        <div class="gal-view-bar row">
+          <span id="gal-info" class="meta"></span>
+          <span id="gal-outputs" class="tabs"></span>
+          <button id="gal-load" title="Restores the mask, prompt, seed and settings; never switches the model">Load settings</button><span id="gal-model-note" class="meta" hidden></span><button id="gal-download">Download</button><button id="gal-delete">Delete</button>
+          <button id="gal-close" title="Close (Esc)">×</button>
+        </div>
+        <div class="gal-view-img"><img id="gal-img" alt=""></div>
+      </div>
+    </section>
     <section class="panel models-panel">
       <h2>Models <span class="meta" id="cache-size"></span></h2>
       <div id="versions" class="versions"></div>
