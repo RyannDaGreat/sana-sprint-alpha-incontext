@@ -9,6 +9,7 @@ import { fillFontSelect, ensureFont } from './fonts.js';
 import { MaskGallery } from './gallery.js';
 import { buildTrimaskUi, DEFAULT_GUI } from './trimask_ui.js';
 import { levelFractions, rgbaToMask } from './trimask_ops.js';
+import { highwayWeight } from './sneakpeek.js';
 import { loadVersions, versionFiles, cachedFlags, cacheState, cacheBytes, clearCache } from './models.js';
 import { countEmbeddings, clearEmbeddings } from './embcache.js';
 import { saveUiState, loadUiState, clearUiState, readInputs, writeInputs } from './persist.js';
@@ -403,6 +404,83 @@ function drawProgress() {
   $('gen-label').textContent = progressLine(p);
 }
 
+const peekFrame = { latest: null, scheduled: false };  // sneak peek: at most one paint per animation frame, newest preview only
+
+/**
+ * Command (paints #out-gray on the next frame). Shows a sneak peek preview (manifest §18), scaled to the output size.
+ * Called from the fast decoder's queue, never from the compute loop; previews that arrive within one frame collapse to the newest.
+ *
+ * @param {{data: Float32Array, dims: number[]}} image - (1, 3, h, w) in [0, 1]
+ * @param {string} label
+ */
+function showPeek(image, label) {
+  peekFrame.latest = { image, label };
+  if (peekFrame.scheduled) return;
+  peekFrame.scheduled = true;
+  requestAnimationFrame(() => {
+    peekFrame.scheduled = false;
+    if (!state.busy) return;  // the final image is already shown
+    const { image: { data, dims: [, , h, w] }, label: text } = peekFrame.latest;
+    const px = new Uint8ClampedArray(w * h * 4);
+    for (let i = 0; i < w * h; i++) {
+      for (let c = 0; c < 3; c++) px[4 * i + c] = 255 * data[c * w * h + i];
+      px[4 * i + 3] = 255;
+    }
+    const small = new OffscreenCanvas(w, h);
+    small.getContext('2d').putImageData(new ImageData(px, w, h), 0, 0);
+    const out = $('out-gray'), ctx = out.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(small, 0, 0, out.width, out.height);
+    $('out-gray').title = `Sneak peek · ${text}`;
+    $('out-empty').hidden = true;
+  });
+}
+
+/**
+ * Pure function. Relative error mean((a − ref)²) / mean(ref²).
+ *
+ * @example relError(new Float32Array([1, 1]), new Float32Array([2, 0])) // 1
+ */
+function relError(a, ref) {
+  let num = 0, den = 0;
+  for (let i = 0; i < ref.length; i++) { num += (a[i] - ref[i]) ** 2; den += ref[i] ** 2; }
+  return num / den;
+}
+
+/**
+ * Command (fills #peek-timeline-body). The "Preview timeline" accordion (m00822): every preview of the last generation
+ * and its error against the final x̂0 (the highway's own estimate and the shown one), step boundaries, and the blend
+ * weight heatmap (step × block) of this schedule. Computed once, after the generation (it never slows it down).
+ *
+ * @param {{steps: number, blocks: number, points: object[], final: Float32Array, weights: object|null, stats: object}} t
+ */
+function showTimeline(t) {
+  const W = 640, H = 200, pad = 34, pts = t.points.map((p) => ({ ...p, raw: relError(p.raw, t.final), shown: relError(p.shown, t.final) }));
+  const ys = pts.flatMap((p) => [p.raw, p.shown]).filter((v) => v > 0);
+  const lo = Math.log10(Math.min(...ys, 1e-4)), hi = Math.log10(Math.max(...ys, 1));
+  const X = (i) => pad + ((W - pad - 6) * i) / Math.max(1, pts.length - 1);
+  const Y = (v) => 6 + ((H - 6 - pad) * (hi - Math.log10(Math.max(v, 1e-6)))) / (hi - lo || 1);
+  const path = (key) => pts.map((p, i) => `${i ? 'L' : 'M'}${X(i).toFixed(1)},${Y(p[key]).toFixed(1)}`).join('');
+  const steps = pts.map((p, i) => (p.block === t.blocks ? `<line class="step" x1="${X(i)}" x2="${X(i)}" y1="6" y2="${H - pad}"/>` : '')).join('');
+  const ticks = [lo, hi].map((v) => `<text x="2" y="${Y(10 ** v) + 4}">${(10 ** v).toExponential(0)}</text>`).join('');
+  let heat = '';
+  if (t.weights && t.blocks) {
+    const cw = 180 / t.steps, ch = 180 / t.blocks;
+    for (let s = 0; s < t.steps; s++)
+      for (let b = 0; b < t.blocks; b++) {
+        const w = highwayWeight(t.weights, s, t.steps, b);
+        heat += `<rect x="${s * cw}" y="${180 - (b + 1) * ch}" width="${cw + 0.5}" height="${ch + 0.5}" fill="var(--peek-shown)" fill-opacity="${w.toFixed(3)}"/>`;
+      }
+    heat = `<svg class="heat" viewBox="0 0 180 200"><title>blend weight w on the highway: step (x) × block (y)</title>${heat}<text x="0" y="196">step 1 → ${t.steps} · block 1 ↑ ${t.blocks}</text></svg>`;
+  }
+  $('peek-timeline-body').innerHTML = `<div class="peek-plot"><svg viewBox="0 0 ${W} ${H}" width="100%">
+    <title>preview error vs the final image</title>${steps}${ticks}
+    <path class="line-raw" d="${path('raw')}"/><path class="line-shown" d="${path('shown')}"/>
+    <text x="${pad}" y="${H - 8}">${pts.length} previews (gray: highway estimate, blue: shown) · ${t.stats.shown} decoded, ${t.stats.dropped} dropped, ${(100 * t.stats.fraction).toFixed(1)}% of the time</text>
+  </svg>${heat}</div>`;
+  $('peek-timeline').hidden = false;
+}
+
 /** Command. Runs one generation from the current editor state; queues one more if busy. */
 async function generate() {
   if (!state.pipeline) return;
@@ -412,8 +490,10 @@ async function generate() {
   status(`Generating ${width} × ${height}, ${sampler.steps} step${sampler.steps === 1 ? '' : 's'}: progress below.`);
   const matte = matteAtSize(width, height);
   $('gen-steps').innerHTML = $('gen-model').innerHTML = '';
-  const { image, images, timings } = await state.pipeline.generate({
+  if ($('sneak-peek').checked && state.pipeline.fastDecoder) Object.assign($('out-gray'), { width, height });  // previews paint here
+  const { image, images, timings, timeline } = await state.pipeline.generate({
     prompt: $('prompt').value, matte: mattePixelsToTensor(matte, width * height), matteRev: editor.rev, seed, ...sampler,
+    onPreview: $('sneak-peek').checked ? showPeek : null,
   }, showProgress).catch(fail).finally(() => { state.busy = false; });
   $('equation').textContent = equationText(state.pipeline.version.manifest, sampler, seed);
   const { onGray, cutout } = decodeToPixels(image, matte, width * height);
@@ -429,6 +509,7 @@ async function generate() {
   $('dl-gray').disabled = $('dl-rgba').disabled = false;
   state.last = `${state.pipeline.version.id}_seed${$('seed').value}`;
   showTimings(timings);
+  if (timeline?.final) showTimeline(timeline);
   status(`Done in ${timings.total.toFixed(0)} ms (${state.pipeline.ep}).`);
   refreshCacheInfo();
   if (state.pending) { state.pending = false; generate(); }

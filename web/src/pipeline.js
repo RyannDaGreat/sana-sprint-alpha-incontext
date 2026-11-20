@@ -10,6 +10,7 @@ import { gemmaInputs, selectIndex, COMPLEX_HUMAN_INSTRUCTION } from './prompt.js
 import { embeddingKey, getEmbedding, putEmbedding } from './embcache.js';
 import { gaussianNoise, progressCounter, yieldTask } from './util.js';
 import { splitX0 } from './splitter.js';
+import { SneakPeek, tweedieX0, blendX0, poolLatent, highwayWeight, tableAt } from './sneakpeek.js';
 
 const LATENT_CHANNELS = 32;          // both VAEs: (B, LC, LH, LW); LH = H / 32 (DC-AE, SANA) or H / 8 (FLUX.2, FIBO2)
 const VAE_FACTOR = { sana: 32, fibo2: 8 };
@@ -272,6 +273,17 @@ export class Pipeline {
       p.chains[role] = sessions;
       p.types[role] = Object.assign({}, ...sessions.map(inputTypes));
     }
+    p.fastDecoder = null;  // sneak peek (manifest §18): optional; float32 latent (1, 32, LH, LW) → float32 image (1, 3, h, w) in [0, 1]
+    if (byRole.fast_decoder) {
+      const fd = byRole.fast_decoder[0];
+      p.fastDecoder = { session: await ort.InferenceSession.create(fd.data, { executionProviders: [ep] }),
+                        names: { latent: 'latent', image: 'image', ...version.manifest.files.fast_decoder.names } };
+    }
+    p.highway = null;  // sneak peek highway (§18): optional; one graph for every block's head, on a chunk part's main stream
+    if (byRole.highway) {
+      if (!version.manifest.highway?.stream) throw new Error(`${version.id}: a highway file but no manifest.highway (stream names, c, start)`);
+      p.highway = { session: await ort.InferenceSession.create(byRole.highway[0].data, { executionProviders: [ep] }), ...version.manifest.highway };
+    }
     const tf = version.manifest.files.text_encoder;
     p.encoderId = `${new URL(tf.path, version.url).href}:${tf.bytes}`;
     p.memory = new Map(); // embedding key → value (this page's lifetime)
@@ -324,15 +336,18 @@ export class Pipeline {
    * @param {Record<string, number|string>} timings
    * @param {string} label
    * @param {(c: number) => void} startPart
+   * @param {(c: number, values: Record<string, ort.Tensor>) => Promise<void>} [afterPart] - after part c's outputs exist
+   *   (the sneak peek reads a part's main stream there; it returns at once unless it takes a preview)
    * @returns {Promise<Record<string, ort.Tensor>>} {output_name: tensor}
    */
-  async run(role, feeds, timings, label, startPart) {
+  async run(role, feeds, timings, label, startPart, afterPart) {
     const t0 = performance.now(), values = { ...feeds }, made = [];
     for (const [c, s] of this.chains[role].entries()) {
       if (this.gpu) this.gpu.queue.onSubmittedWorkDone().then(() => startPart(c));
       else { startPart(c); await yieldTask(); }
       const out = await s.run(Object.fromEntries(s.inputNames.map((n) => [n, values[n]])));
       for (const [name, tensor] of Object.entries(out)) { values[name] = tensor; made.push(tensor); }
+      if (afterPart) await afterPart(c, values);
     }
     const name = this.name(role, 'output');
     for (const t of made) if (t !== values[name] && t.location === 'gpu-buffer') t.dispose();
@@ -389,7 +404,7 @@ export class Pipeline {
    * @returns {Promise<{image: Float32Array, images: Float32Array[]|null, timings: Record<string, number|string>}>} image
    *   (1, 3, H, W) in [−1, 1] (head 0 for a splitter); images: a splitter's K heads (1, 3, H, W) in [0, 1], else null
    */
-  async generateFibo2({ prompt, matte, matteRev, seed, steps, guidance, width, height, adapterScale, gamma }, onProgress) {
+  async generateFibo2({ prompt, matte, matteRev, seed, steps, guidance, width, height, adapterScale, gamma, onPreview }, onProgress) {
     const timings = {};
     const t0 = performance.now();
     const m = this.version.manifest, f = VAE_FACTOR.fibo2, cfg = guidance > 1;
@@ -409,14 +424,46 @@ export class Pipeline {
                     ...(this.splitter ? { [n('gamma')]: t('gamma', [gamma], [1]) } : {}) };
     const promptT = t('prompt_embeds', emb.data, emb.dims), nullT = nullEmb && t('prompt_embeds', nullEmb.data, nullEmb.dims);
     let x = gaussianNoise(dims.reduce((a, b) => a * b), seed), heads = null;
+    const fd = this.fastDecoder, hw = this.highway, peek = fd && onPreview && new SneakPeek(fd.session,
+      (z, d) => ({ [fd.names.latent]: new ort.Tensor('float32', z, d) }), fd.names.image, onPreview);
+    const timeline = peek ? { steps, blocks: hw?.blocks ?? 0, points: [], weights: hw?.weights ?? null } : null;  // the accordion's plot data
+    let prevX0 = null, lastExpected = Infinity;  // the previous step's full-model x̂0; the expected error of the last shown preview
+    const blockOfPart = hw ? Object.fromEntries(Object.entries(hw.stream).map(([name, b]) => [this.partProducing(name), [b, name]])) : {};
+    // Per-block previews (§18): after a part that ends main block b, if the preview queue is free, the highway head b estimates
+    // the velocity from that block's stream; x̂0 = x − σ·v̂, blended with the previous step's x̂0 (w from the manifest
+    // table), then the fast decoder. Only the conditional pass is used (a CFG preview would need both passes' heads).
+    const blockPeek = (k) => async (c, values) => {
+      const hit = blockOfPart[c];
+      if (!hit || !peek.ready()) return;
+      const [b, name] = hit, t1 = performance.now();
+      // remedy (c) of §18: never show a preview that is expected (held-out table) to be worse than the last one shown
+      const expected = hw.expected ? tableAt(hw.expected, k, steps, b) : -Infinity;
+      if (expected >= lastExpected) return;
+      const out = await hw.session.run({ stream: values[name], c: values[hw.c], latents: new ort.Tensor('float32', x, dims),
+                                         block: new ort.Tensor('int64', BigInt64Array.from([BigInt(b)]), []),
+                                         start: new ort.Tensor('int64', BigInt64Array.from([BigInt(hw.start)]), []) });
+      const raw = tweedieX0(x, asFloat32(out.velocity), sigmas[k]);
+      const w = highwayWeight(hw.weights, k, steps, b);
+      const shown = prevX0 && w < 1 ? blendX0(raw, prevX0, w) : raw;
+      peek.charge(performance.now() - t1);
+      peek.offer(shown, dims, `step ${k + 1} of ${steps} · block ${b + 1} of ${hw.blocks}`);
+      if (hw.expected) lastExpected = expected;
+      timeline.points.push({ step: k, block: b, w, raw: poolLatent(raw, dims), shown: poolLatent(shown, dims) });
+    };
     for (let k = 0; k < steps; k++) {
       const pass = async (e, label, j) => asFloat32((await this.run('transformer', {
         ...fixed, [n('latents')]: t('latents', x, dims), [n('sigma')]: t('sigma', [sigmas[k]], [1]), [n('prompt_embeds')]: e,
-      }, timings, label, (c) => progress.start(progress.passPart(k + 1, j, c))))[n('output')]);
+      }, timings, label, (c) => progress.start(progress.passPart(k + 1, j, c)), hw && peek && j === 1 ? blockPeek(k) : undefined))[n('output')]);
       let v = await pass(promptT, `transformer ${k + 1}`, 1);
       if (nullT) {
         const vNull = await pass(nullT, `transformer ${k + 1} (null)`, 2);
         v = v.map((c, i) => vNull[i] + guidance * (c - vNull[i]));
+      }
+      if (peek) {  // the step's own Tweedie estimate (full model): always offered, it is the best preview so far (§18)
+        prevX0 = tweedieX0(x, v, sigmas[k]);
+        if (hw?.expected_step_end) lastExpected = tableAt(Object.fromEntries(Object.entries(hw.expected_step_end).map(([n, e]) => [n, e.map((x) => [x])])), k, steps, 0);
+        peek.offer(prevX0, dims, `step ${k + 1} of ${steps}`, true);
+        timeline.points.push({ step: k, block: timeline.blocks, w: 1, raw: poolLatent(prevX0, dims), shown: poolLatent(prevX0, dims) });
       }
       if (this.splitter && k === steps - 1) heads = splitX0(x, v, sigmas[k], this.splitter.heads.length);  // v: head-major (1, K, 32, LH, LW)
       const ds = sigmas[k + 1] - sigmas[k];
@@ -429,7 +476,20 @@ export class Pipeline {
     for (const [j, z] of (heads ?? [x]).entries()) images.push(await decode(z, heads ? `vae_decoder ${this.splitter.heads[j]}` : 'vae_decoder', j));
     progress.finish();
     timings.total = performance.now() - t0;
-    return { image: images[0].map((v) => 2 * v - 1), images: heads ? images : null, timings };
+    if (timeline) { timeline.final = poolLatent(prevX0, dims); timeline.stats = peek.stats(); }
+    return { image: images[0].map((v) => 2 * v - 1), images: heads ? images : null, timings, timeline };
+  }
+
+  /**
+   * Query. The index of the transformer part that outputs tensor `name` (a chunked version's main-stream tensors).
+   *
+   * @param {string} name - e.g. 'add_101'
+   * @returns {number}
+   */
+  partProducing(name) {
+    const c = this.chains.transformer.findIndex((s) => s.outputNames.includes(name));
+    if (c < 0) throw new Error(`no transformer part outputs ${name} (manifest.highway.stream)`);
+    return c;
   }
 
   /**

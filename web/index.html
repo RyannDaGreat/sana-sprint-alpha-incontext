@@ -131,6 +131,7 @@
         <label class="field">Seed <input id="seed" type="number" value="0" min="0"></label>
         <button id="new-seed">New seed</button>
         <label class="switch"><input id="realtime" type="checkbox"><span>Real-time</span></label>
+        <label class="switch" title="Sneak peek: quick previews while it generates, after every step and (with a highway) inside each step, from the fast decoder; at most 10% of the time"><input id="sneak-peek" type="checkbox" checked><span>Sneak peek</span></label>
         <button id="generate" class="primary" disabled>Generate</button>
       </div>
       <div class="row sampler">
@@ -170,6 +171,10 @@
         <button id="dl-rgba" disabled>Download RGBA</button>
       </div>
       <table id="timings" class="timings"></table>
+      <details id="peek-timeline" class="note" hidden><summary>Preview timeline</summary>
+        <p class="meta hint">Every sneak peek of the last generation: its error against the final image (relative error of the clean-latent estimate x̂0, latent averaged over 4×4), the highway's own estimate and what was shown (blended with the previous step). Right: the blend weight w on the highway per step and block.</p>
+        <div id="peek-timeline-body"></div>
+      </details>
     </section>
 
     </div>

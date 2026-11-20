@@ -14,6 +14,11 @@
   --accent-soft: #e8efff;   /* selected swatch / row background */
   --cache-partial: #d99a00; /* model cache dots: yellow = some files cached, green = all */
   --cache-full: #2e9e4f;
+  --peek-raw: #8b8b94;      /* preview timeline: the highway's own estimate */
+  --peek-shown: #2563eb;    /* preview timeline: the shown (blended) preview */
+  --peek-step: #d4d4d8;     /* preview timeline: step boundaries */
+  --peek-plot-h: 220px;
+  --peek-heat-w: 180px;
   --matte-frame: rgba(0, 0, 0, 0.12);
   --checker-a: #cfcfcf;
   --checker-b: #f2f2f2;
@@ -101,6 +106,7 @@
   :root:not([data-theme="light"]) {
     --bg: #101012; --surface: #19191c; --fg: #ededef; --muted: #a0a0a8; --line: #2a2a2f; --line-strong: #3a3a41; --field: #222226; --hover: #2a2a30;
     --accent: #3b7bf0; --accent-soft: #1d2a47; --cache-partial: #f2c200; --cache-full: #3ddc6e;
+    --peek-raw: #77777f; --peek-shown: #5b93f5; --peek-step: #3a3a41;
     --matte-frame: rgba(255, 255, 255, 0.12); --checker-a: #3a3a3a; --checker-b: #2a2a2a;
     --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.6);
     color-scheme: dark;
@@ -109,6 +115,7 @@
 :root[data-theme="dark"] {
   --bg: #101012; --surface: #19191c; --fg: #ededef; --muted: #a0a0a8; --line: #2a2a2f; --line-strong: #3a3a41; --field: #222226; --hover: #2a2a30;
   --accent: #3b7bf0; --accent-soft: #1d2a47; --cache-partial: #f2c200; --cache-full: #3ddc6e;
+    --peek-raw: #77777f; --peek-shown: #5b93f5; --peek-step: #3a3a41;
   --matte-frame: rgba(255, 255, 255, 0.12); --checker-a: #3a3a3a; --checker-b: #2a2a2a;
   --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.6);
   color-scheme: dark;
@@ -411,3 +418,11 @@ button.link { border: 0; background: none; padding: 0; min-height: 0; }
   :root { --control-h: var(--touch); --tool-w: var(--touch); }
   .switch, input[type="range"] { min-height: var(--touch); }
 }
+
+.peek-plot { display: flex; gap: var(--radius-lg); flex-wrap: wrap; align-items: flex-start; }
+.peek-plot svg { height: var(--peek-plot-h); }
+.peek-plot .line-raw { stroke: var(--peek-raw); fill: none; }
+.peek-plot .line-shown { stroke: var(--peek-shown); fill: none; }
+.peek-plot .step { stroke: var(--peek-step); }
+.peek-plot text { fill: var(--muted); font-size: var(--size-meta); }
+.peek-plot .heat { width: var(--peek-heat-w); }

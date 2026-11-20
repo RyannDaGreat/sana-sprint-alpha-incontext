@@ -110,7 +110,8 @@ export function normalizeManifest(raw) {
   for (const [name, bytes] of Object.entries(raw.files)) {
     const role = name.replace(/\.onnx(\.data)?$|\.json$/, '');
     if (name.endsWith('.data') || PART_FILE.test(name)) continue;
-    files[role] = { ...entry(name, bytes), ...(raw.family === 'fibo2' ? {} : { names: EXPORT_NAMES[role] }) };
+    files[role] = { ...entry(name, bytes), ...(raw.family === 'fibo2' ? {} : { names: EXPORT_NAMES[role] }),
+                    ...(raw.file_names?.[role] ? { names: raw.file_names[role] } : {}) };  // e.g. the fast decoder's I/O names (§18)
     // external weights: <name>.data, plus extra files <name>.<tag>.data (the -lambda delta: transformer.onnx.lambda.data;
     // FIBO2's < 2 GB pieces: transformer.onnx.p0.data, …)
     const data = Object.keys(raw.files).filter((n) => n.startsWith(`${name}.`) && n.endsWith('.data')).sort();
@@ -127,6 +128,7 @@ export function normalizeManifest(raw) {
     scaling_factor: raw.vae.scaling_factor, timestep: raw.sampler.timestep, guidance: raw.sampler.guidance,
     weights: raw.weights, precision: precisionLabel(raw.quantization, raw.family), adapter: raw.adapter ?? null, cond: raw.cond,
     splitter: raw.splitter ?? null,
+    highway: raw.highway ?? null,  // sneak peek highway (§18): chunk stream names, c, start, blend and expected-error tables
     trained_sizes: raw.trained_sizes ?? [1024],  // exports before trained_sizes all come from 1024-only runs
     dynamic_size: typeof raw.graphs.transformer.inputs[0][1][2] === 'string',  // [1, 32, "LH", "LW"]: any size
     max_sequence_length: 300, latent_scaling_in_graph: true, decoder_output_range: '0,1',
