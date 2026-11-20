@@ -401,19 +401,27 @@ def split_velocities(head, height, width):
     return einx.rearrange("B (H W) (K C PH PW) -> B K C (H PH) (W PW)", head.last, H=height // 2, K=head.heads, PH=2, PW=2)
 
 
-def rgba_from_composites(composites, backgrounds):
+ALPHA_ILS_FLOOR = 1e-9  # rgba_from_composites' F step divides by max(α, this): at α = 0 the objective ignores F, but its direction lets α leave 0
+ALPHA_ILS_ITERATIONS = 32  # rgba_from_composites' alternating steps: 16 reach the multi-start L-BFGS-B optimum (gap ≤ 2e-14) on every validated pixel (K = 2, 3, 9, noise ≤ 0.1, manifest §19); 32 for margin
+
+
+def rgba_from_composites(composites, backgrounds, iterations=ALPHA_ILS_ITERATIONS):
     """
-    Pure function. RGBA from one image composited on K known solid backgrounds (§17): C_k = α·F + (1 − α)·b_k, least
-    squares per pixel over the K backgrounds × 3 channels for α (shared) and α·F (per channel). The residual is the
-    uncertainty: 0 when the K images agree with one RGBA.
-
-        1 − α = Σ_k,c (C_kc − mean_k C_c)·(b_k − b̄) / (3·Σ_k (b_k − b̄)²),   α·F_c = mean_k C_kc − (1 − α)·b̄
-
-    α is clipped to [0, 1] before α·F is computed; F = α·F / α (0 where α = 0), clipped to [0, 1].
+    Pure function. RGBA with decontaminated color (m00824, m00826) from one image composited on K known solid
+    backgrounds (§17): per pixel, the box-constrained least squares
+        min over α ∈ [0, 1], F ∈ [0, 1]³ of  Σ_k,c (C_kc − α·F_c − (1 − α)·b_kc)²
+    solved by iterative least squares (alternating exact 1-D solves, each the global optimum of its block):
+        F_c ← clip(mean_k (C_kc − (1 − α)·b_kc) / α, 0, 1)                      (α fixed; α floored at ALPHA_ILS_FLOOR here)
+        α  ← clip(Σ_k,c (C_kc − b_kc)·(F_c − b_kc) / Σ_k,c (F_c − b_kc)², 0, 1)  (F fixed)
+    started from the unconstrained linear fit 1 − α = Σ_k,c (C_kc − C̄_c)·(b_kc − b̄_c) / Σ_k,c (b_kc − b̄_c)², clipped.
+    Unlike that one-shot fit + clipping, it reaches the constrained optimum (validated against projected Adam and
+    multi-start L-BFGS-B, manifest §19). F is decontaminated: the known backgrounds' share is removed exactly. The
+    uncertainty is the RMS residual: 0 when the K images agree with one RGBA. F is reported as 0 where α = 0.
 
     Args:
         composites (np.ndarray): (K, H, W, 3) float RGB in [0, 1], e.g. the splitter's decoded heads
-        backgrounds (Sequence[float]): (K,) each composite's background value, e.g. SPLIT_BACKGROUNDS.values()
+        backgrounds (Sequence): (K,) gray levels, e.g. SPLIT_BACKGROUNDS.values(), or (K, 3) RGB background colors
+        iterations (int): alternating steps
 
     Returns:
         tuple: rgba (H, W, 4) float32 straight (not premultiplied) alpha, uncertainty (H, W) float32 RMS residual
@@ -425,20 +433,42 @@ def rgba_from_composites(composites, backgrounds):
         >>> rgba, err = rgba_from_composites(C, b)
         >>> np.round(rgba.astype(float), 6).tolist(), float(err.max()) < 1e-6
         ([[[0.2, 0.6, 1.0, 1.0], [0.9, 0.1, 0.4, 0.25]]], True)
-        >>> C[0, 0, 0] += 0.3  # the gray image disagrees at one pixel: its uncertainty rises
+        >>> C[0, 0, 0] += 0.3  # the gray image disagrees at one pixel: its uncertainty rises (residual of the feasible fit)
         >>> np.round(rgba_from_composites(C, b)[1].astype(float), 3).tolist()
-        [[0.141, 0.0]]
+        [[0.153, 0.0]]
+        >>> rgb = np.array([[0.5] * 3, [1.0] * 3, [0.0] * 3, [1, 0, 0], [0, 1, 0], [0, 0, 1], [0, 1, 1], [1, 0, 1], [1, 1, 0]])
+        >>> C9 = np.stack([0.4 * np.array([0.9, 0.3, 0.1]) + 0.6 * k for k in rgb])[:, None, None]  # 9 RGB backgrounds
+        >>> np.round(rgba_from_composites(C9, rgb)[0].astype(float), 6).tolist()  # exact with RGB background colors
+        [[[0.9, 0.3, 0.1, 0.4]]]
+        >>> Cs = np.stack([np.full(3, 0.02 * 1.0 + 0.98 * k) for k in b])[:, None, None]  # α = 0.02, F = white: faint edge
+        >>> np.round(rgba_from_composites(Cs, b)[0].astype(float), 6).tolist()
+        [[[1.0, 1.0, 1.0, 0.02]]]
     """
     import einx
 
-    c, b = np.asarray(composites, dtype=np.float64), np.asarray(list(backgrounds), dtype=np.float64)
-    c_mean, b_dev = c.mean(0), b - b.mean()
-    beta = einx.multiply("K H W C, K -> K H W C", c - c_mean, b_dev).sum((0, 3)) / (3 * (b_dev ** 2).sum())
-    alpha = np.clip(1 - beta, 0, 1)
-    premul = c_mean - einx.multiply("H W, -> H W 1", 1 - alpha, b.mean())
-    fit = premul + einx.multiply("H W, K -> K H W 1", 1 - alpha, b)
+    c = np.asarray(composites, dtype=np.float64)
+    b = np.asarray(list(backgrounds), dtype=np.float64)
+    b = einx.rearrange("K -> K C", b, C=3) if b.ndim == 1 else b  # (K, 3)  # (r, g, b)
+    b_dev = b - b.mean(0)
+    if (b_dev ** 2).sum() == 0:
+        raise ValueError(f"rgba_from_composites needs at least two different backgrounds, got {b.tolist()}")
+    k = len(b)
+    # Every step only needs these per-pixel sums over k, so an iteration costs a few (H, W, 3) operations
+    c_mean = c.mean(0)  # (H, W, 3)
+    offset = einx.subtract("K H W C, K C -> K H W C", c, b)  # C_k − b_k
+    c_minus_b = offset.sum(0)  # (H, W, 3): Σ_k (C_k − b_k)
+    cross = einx.dot("K H W C, K C -> H W", offset, b)  # Σ_k,c (C_kc − b_kc)·b_kc
+    alpha = np.clip(1 - einx.dot("K H W C, K C -> H W", c - c_mean, b_dev) / (b_dev ** 2).sum(), 0, 1)
+    for _ in range(iterations):
+        # α floored only inside this step: at α = 0 the best F is still a direction, so α can leave 0 next step
+        color = np.clip((c_mean - (1 - alpha)[..., None] * b.mean(0)) / np.maximum(alpha, ALPHA_ILS_FLOOR)[..., None], 0, 1)
+        numerator = (color * c_minus_b).sum(-1) - cross  # Σ_k,c (C_kc − b_kc)·(F_c − b_kc)
+        denominator = k * (color ** 2).sum(-1) - 2 * color @ b.sum(0) + (b ** 2).sum()  # Σ_k,c (F_c − b_kc)²
+        alpha = np.clip(np.divide(numerator, denominator, out=alpha.copy(), where=denominator > 0), 0, 1)
+    color = np.clip((c_mean - (1 - alpha)[..., None] * b.mean(0)) / np.maximum(alpha, ALPHA_ILS_FLOOR)[..., None], 0, 1)
+    color = np.where(alpha[..., None] > 0, color, 0)
+    fit = einx.multiply("H W, H W C -> 1 H W C", alpha, color) + einx.multiply("H W, K C -> K H W C", 1 - alpha, b)
     uncertainty = np.sqrt(((c - fit) ** 2).mean(axis=(0, 3)))
-    color = np.clip(np.divide(premul, alpha[..., None], out=np.zeros_like(premul), where=alpha[..., None] > 0), 0, 1)
     return np.concatenate([color, alpha[..., None]], -1).astype(np.float32), uncertainty.astype(np.float32)
 
 
