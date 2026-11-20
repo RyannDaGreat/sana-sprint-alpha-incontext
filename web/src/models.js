@@ -253,22 +253,20 @@ export function cacheState(flags) {
   return n === flags.length ? 'full' : 'partial';
 }
 
-const keyQueue = new Map(); // cache key → promise of the last cache operation on it
-
 /**
- * Command. Runs `op` alone on a cache key: one after another in this page (versions share Gemma and DC-AE files: a
- * read must never overlap the write of the same file) and, through a Web Lock, across tabs (an old and a new build
- * open after the service worker's update both use OPFS: a read of a file another tab rewrote fails with
- * NotReadableError, m00863). A failed op is reported to its own caller only; the queue goes on.
+ * Command. Runs `op` under the Web Lock of one cache key, in this page and across tabs (an old and a new build are open
+ * at once around the service worker's update: a read of a file another tab rewrote fails with NotReadableError,
+ * m00863). Reads and cache-hit checks take it shared, so they never wait on each other (a page that stalls mid-load
+ * kept an exclusive lock on a file it only read and the next page hung on it, silently, m00871/m00872); only writing a
+ * download is exclusive. Held and pending locks show in the load watchdog's message (navigator.locks.query).
  *
  * @param {string} key - cache key
+ * @param {'shared'|'exclusive'} mode
  * @param {() => Promise<any>} op
  * @returns {Promise<any>} op's result
  */
-function onKey(key, op) {
-  const run = (keyQueue.get(key) ?? Promise.resolve()).catch(() => {}).then(() => navigator.locks.request(`opfs:${key}`, op));
-  keyQueue.set(key, run);
-  return run;
+function onKey(key, mode, op) {
+  return navigator.locks.request(`opfs:${key}`, { mode }, op);
 }
 
 /**
@@ -282,9 +280,11 @@ function onKey(key, op) {
  * @param {(done: number, total: number, fromCache: boolean) => void} onProgress - fromCache true: already cached
  * @returns {Promise<void>}
  */
-export function downloadToCache(file, onProgress) {
-  return onKey(file.key, async () => {
-    const hit = await cachedFile(file.key);
+export async function downloadToCache(file, onProgress) {
+  const cached = await onKey(file.key, 'shared', async () => (await cachedFile(file.key))?.size === file.bytes);
+  if (cached) { onProgress(file.bytes, file.bytes, true); return; }
+  return onKey(file.key, 'exclusive', async () => {
+    const hit = await cachedFile(file.key);  // again under the exclusive lock: another tab may have finished it meanwhile
     if (hit && hit.size === file.bytes) { onProgress(file.bytes, file.bytes, true); return; }
     if (hit) {  // builds before 2026-11-17 left a 0-byte file when a download was interrupted
       console.warn(`cached ${file.url}: ${hit.size} bytes, manifest says ${file.bytes}; deleting and downloading again`);
@@ -322,7 +322,7 @@ export function downloadToCache(file, onProgress) {
  * @returns {Promise<Uint8Array>}
  */
 export function readCached(file) {
-  return onKey(file.key, async () => {
+  return onKey(file.key, 'shared', async () => {
     const read = async () => {
       const blob = await cachedFile(file.key);
       if (!blob) throw new Error(`${file.url}: not in the cache (downloadToCache first)`);
