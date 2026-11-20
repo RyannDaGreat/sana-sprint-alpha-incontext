@@ -462,6 +462,7 @@ button.link { border: 0; background: none; padding: 0; min-height: 0; }
 /* gallery (m00876): newest-first grid; the full view is a fixed overlay showing the lossless original at 1:1 */
 .gen-gallery { grid-column: 1 / -1; padding: var(--space-3) max(var(--space-3), env(safe-area-inset-right, 0px)) var(--space-3) max(var(--space-3), env(safe-area-inset-left, 0px)); overflow-y: auto; }
 .gen-gallery[hidden] { display: none; }
+.gen-gallery .empty { position: static; } /* m00911: the absolute .empty overlay covered the whole page, tabs included */
 .gallery-bar { justify-content: space-between; align-items: center; }
 .gal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--gal-cell), 1fr)); gap: var(--space-2); }
 .gal-cell { display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-1); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }

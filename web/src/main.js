@@ -311,14 +311,14 @@ async function reelPngs(reel) {
  * Command. Saves the finished generation (asynchronous, after the run; never on the compute path): each output
  * canvas as a lossless PNG, its sneak peek timeline (m00906), a thumbnail, the full UI state and a one-line summary.
  *
- * @param {string[]} ids - output canvases, e.g. ['out-gray', 'out-rgba']
+ * @param {{name: string, canvas: HTMLCanvasElement}[]} views - the output canvases, e.g. [{name: 'gray', canvas}]
  * @param {string} info - summary (version, prompt, seed, sampler)
  * @param {Promise<object|undefined>|null} reel - the generation's timeline reel once its final frame is in (null: no sneak peek)
  */
-async function saveToGallery(ids, info, reel) {
+async function saveToGallery(views, info, reel) {
   try {
-    const outputs = await Promise.all(ids.map(async (id) => ({ name: id.replace('out-', ''), blob: await new Promise((r) => $(id).toBlob(r, 'image/png')) })));
-    const src = $(ids[0]), k = GALLERY_THUMB_PX / Math.max(src.width, src.height);
+    const outputs = await Promise.all(views.map(async ({ name, canvas }) => ({ name, blob: await new Promise((r) => canvas.toBlob(r, 'image/png')) })));
+    const src = views[0].canvas, k = GALLERY_THUMB_PX / Math.max(src.width, src.height);
     const t = new OffscreenCanvas(Math.round(src.width * k), Math.round(src.height * k));
     t.getContext('2d').drawImage(src, 0, 0, t.width, t.height);
     const thumb = await t.convertToBlob({ type: 'image/png' }), r = await reel;
@@ -923,7 +923,7 @@ async function generate() {
   $('out-empty').hidden = true;
   $('dl-gray').disabled = $('dl-rgba').disabled = false;
   const reel = tl.rec.next ? timelineAdd($('out-gray'), 'final image', { w: width, h: height }).then((r) => { if (r) timelineErrors(r); return r; }) : null;  // the gray image (head 0)
-  saveToGallery(views.map(([id]) => id), `${$('prompt').value.slice(0, 80)} · seed ${seed} · ${equationText(state.pipeline.version.manifest, sampler, seed)}`, reel);
+  saveToGallery(views.map(([id]) => ({ name: id.replace('out-', ''), canvas: $(id) })), `${$('prompt').value.slice(0, 80)} · seed ${seed} · ${equationText(state.pipeline.version.manifest, sampler, seed)}`, reel);
   state.last = `${state.pipeline.version.id}_seed${$('seed').value}`;
   showTimings(timings);
   if (timeline?.final) showTimeline(timeline);
@@ -1075,6 +1075,12 @@ async function padRestart(i) {
   if (!res || !live()) return;
   slot.views = Object.fromEntries(outputViews(res, matte, width, height).map(([id, px, w]) => [id.replace('out-', ''), { px, w, h: height }]));
   paintSlot(slot);
+  const canvases = Object.entries(slot.views).map(([name, { px, w, h }]) => {  // m00911: pad generations go to the gallery too
+    const canvas = Object.assign(document.createElement('canvas'), { width: w, height: h });
+    canvas.getContext('2d').putImageData(new ImageData(px, w, h), 0, 0);
+    return { name, canvas };
+  });
+  saveToGallery(canvases, `pad slot ${i + 1} · ${slot.prompt.slice(0, 80)} · seed ${slot.seed} · ${equationText(state.pipeline.version.manifest, sampler, slot.seed)}`, null);
   slot.state.textContent = `done · seed ${slot.seed} · ${((performance.now() - slot.t0) / 1000).toFixed(1)} s`;
 }
 
