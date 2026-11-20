@@ -749,3 +749,123 @@ By the way, in addition to that highway thing, there should be some components i
 
 ## m00814 — 2026-11-20 ~1:45–2:03 AM (clock-corrected; exact minute unknown)
 Did you transcribe everything, by the way? Don't forget!
+
+## m00815 — 2026-11-20 ~2:05 AM
+Anyway, the end goal is to most accurately estimate Tweedie's formula, not to most accurately estimate the model outputs. TL;DR, that's the goal, and any deterministic features that don't vary from sample to sample, but do vary from layer to diffusion step, etc., are all fair game.
+
+## m00816 — 2026-11-20 ~2:06 AM
+I mean, really anything that makes it go down, as long as it's super fast, is fair game, to be honest. If you can find another solution trivially, then, like, we should do that. So I'm not constraining you too much.
+
+## m00817 — 2026-11-20 ~2:07 AM
+For example, at step 0, I would expect it — whatever we learn — to learn that it should fully output the first layer of the first diffusion step, because it has nothing else to go on, right? That's what I expect the output to be. But then the first layer of the second diffusion step, I don't know what it's going to do yet.
+
+## m00818 — 2026-11-20 ~2:35 AM
+Gimme the link to the journals of alpha + sneak peek. I wanna see the results.
+
+## m00819 — 2026-11-20 ~2:38 AM
+Does your regression do color decontamination as well?
+
+## m00820 — 2026-11-20 ~2:45 AM (pasted)
+Those flat plateaus make me really wonder how much redundancy there is. You see, every 44 blocks, towards the end, it kind of step-functions down again, and it makes me wonder: in those flat regions, is anything really happening? It looks pretty redundant. For the first few diffusion steps things look kind of interesting, but in the other ones it looks like there might be a lot of redundant stuff going on, maybe in the first half of the layers. Use your VLM to take a look at the graph. Do you know what I'm talking about? For scientific curiosity, add this to your to-do list after everything, and don't ask permission to continue afterwards. I want to know if it's possible to make this model faster by somehow taking advantage of it. Because if it's flat, I'm wondering: if we had residual connections of the intermediate activations between diffusion steps — for example, you take the activation of every transformer layer and store it in memory for the first diffusion step, and then for the second diffusion step you take those activations and use them as a residual for the next diffusion step, so you add those through some kind of ControlNet-like connector that is zero-initialized and then adds things to it — to make it faster. And then I wonder if we could train it to actually use only the later layers, or actually distill by skipping layers — skip-layer feature distillation — maybe in the middle steps we skip the first half, and towards the end we maybe even skip 80% of the layers. Do you get what I'm saying? Take a look at the graph, and give me an informative response, with a human readable notification and a response in the chat.
+
+## m00821 — 2026-11-20 ~2:50 AM
+I do then wonder if we could speed up our distilled model even faster using TeaCache or whatever. How feasible do you think it would be? Does it work for already-distilled few-step models?
+
+## m00822 — 2026-11-20 ~2:51 AM
+That graph that I see, that you displayed for me, I'd like that to be generated inside the UI, under a by-default-closed accordion tab, every time I run a generation of the web UI, in addition to the sneak peek. By the way, the sneak peek UI should be done by the time I wake up as well, please.
+
+## m00823 — 2026-11-20 ~2:55 AM
+More progress has been made on the actual decoder? (likely a question)
+
+## m00824 — 2026-11-20 ~3:00 AM
+Color decontamination being done jointly with alpha is mandatory. But I do wonder, by the way, if we can also — look, I see that there's like a ghost-like prediction for the alpha. A lot of the time there are transparent regions where there should obviously be no transparent regions. So if that doesn't get perfect over time, then after we finish training this model, the one we want to do after, we'll pre-process the alpha channel, encode those, and add that onto the lanes that it predicts, so that we predict on white, on black, on grey, and also directly the alpha, encoded as white and black.
+
+## m00825 — 2026-11-20 ~3:03 AM
+Is there any visualization page for these new methods? The one I see right now is badly out of date.
+
+## m00826 — 2026-11-20 ~3:08 AM
+By the way, an iteratively squares algorithm is probably the best way to do color decontamination plus alpha. I did this a while ago, and it was as opposed to gradient descent. It was the only one that could actually get perfect error when doing arbitrary numbers of different background colors. You need to do iteratively squares to make this work properly, so you can have another subagent work on implementing that and validating it against — making sure that it gives the same results as gradient descent. This is pretty mathematical, so you could probably just do it on CPU with just a few numbers, to be honest, and then scale it up later.
+
+## m00827 — 2026-11-20 ~3:09 AM
+Make sure to record this algorithm inside your journal.
+
+## m00828 — 2026-11-20 ~3:11 AM
+Holy mother of god, this "fastdec agent 1 least squares 32 to 3" looks so, so, so bad. Why are these the only two that are mentioned? I thought we had several agents working. Why do I only see two methods?
+
+## m00829 — 2026-11-20 ~3:13 AM
+I don't understand. If each one of these things only takes a matter of milliseconds, then why are these not all completed under 10 seconds?
+
+## m00830 — 2026-11-20 ~3:14 AM
+I trust that this will be part of the journal. It should be.
+
+## m00831 — 2026-11-20 ~3:16 AM
+Why don't you just render everything out first and then do all the tests later, so that I can see all the results immediately?
+
+## m00832 — 2026-11-20 ~3:20–3:47 AM (clock-corrected)
+I want to see all the results 5 minutes from now, please. Give me the new link when it's done and notify me.
+
+## m00833 — 2026-11-20 ~3:20–3:47 AM (clock-corrected)
+These results that I'm previewing in alpha splitter and sneak peek so far, I want to be clear: is this with or without the adapter turned on?
+
+## m00834 — 2026-11-20 ~3:20–3:47 AM (clock-corrected)
+The lambda value should be recorded inside your tests. I want to always test with lambda 1 and lambda 0, by the way, for your journal, because lambda 0 is how I normally use it, but lambda 1 is what you're actually training on.
+
+## m00835 — 2026-11-20 ~3:20–3:47 AM (clock-corrected) (pasted)
+A lot of these decodings, by the way, have this — the background, the gray background for least squares — doesn't make any sense to me, why that wouldn't be matching properly. So I think there's something off here, because the background is wrong, and the background is just flat gray, and that wouldn't be explained by least squares unless the least squares is seriously messed up somehow. Some of the others, like agent 5, which came so close to being under budget, it looks so close, but the background is messed up. I'm going to make the budget — we're going to make it 20% slower, actually; that will be our budget, so that we can increase the quality a bit more. But I want two methods: we'll filter into two different budgets, so there can be two different winners, one that's under 10% and one that's under 20%, so your different agents can eventually splinter off and try to attain these two different rules.
+
+## m00836 — 2026-11-20 ~3:20–3:47 AM (clock-corrected)
+By the way, the journal thing on github.com should be a progressive web app, so that people can still use it even if they close it and then reopen it.
+
+## m00837 — 2026-11-20 ~3:20–3:47 AM (clock-corrected)
+Right now "fastdec · agent_5 · runs · c48" looks like the winner, though I can't see the ms of others that look better yet.
+
+## m00838 — 2026-11-20 ~3:20–3:47 AM (clock-corrected)
+"Step 1 of 4 · transformer (one graph: no per-block progress) · 16.3 s" — what the hell, why does it not have per-block progress? And the text encoder didn't have any per-block progress either, what the hell.
+
+## m00839 — 2026-11-20 ~3:20–3:47 AM (clock-corrected)
+Now "fastdec_r1 · agent_5 · lite_C_fp16" looks like one of the best?
+
+## m00840 — 2026-11-20 ~3:20–3:47 AM (clock-corrected)
+By the way, let's go for four more rounds.
+
+## m00841 — 2026-11-20 ~3:20–3:47 AM (clock-corrected)
+In general, we're going to call this an evolutionary frenzy, this strategy. Do you think that's a good name? What do you think the general-purpose rules, reading my other AGENTS.md files, would be to concisely describe an evolutionary frenzy? Actually, we'll call it a genetic frenzy.
+
+## m00842 — 2026-11-20 ~3:50 AM
+OK, record genetic frenzy into the frenzy skill, and then push.
+
+## m00843 — 2026-11-20 ~3:52 AM
+We call it genetic frenzy because it's like a genetic algorithm, which is an evolutionary algorithm.
+
+## m00844 — 2026-11-20 ~3:54 AM
+That's why we call it that. Some things a user should specify when they ask for a genetic frenzy are the number of rounds, the fitness score — or rather how you measure it — and the method in which we explore. If these are obvious from the conversation, good. Otherwise, you should remind the user that they should specify them, else default to maybe five rounds, unless you have a good reason to override it, in which case you have authority to do that. But these are just rules of some generic defaults.
+
+## m00845 — 2026-11-20 ~3:56 AM
+So I like the way that you described it, in the style of my frenzy skill. So why don't you write it the way that you wrote it inside the chat? Show me what you wrote.
+
+## m00846 — 2026-11-20 ~3:58 AM
+By the way, generally don't block work. If the user doesn't tell you the answer to this question within one minute, then you should go ahead and do the genetic frenzy anyway.
+
+## m00847 — 2026-11-20 ~4:00 AM
+I want an option to only show columns that have checkmarks, and/or the original image. That way, I only compare ones that are actually good. I also want to be able to X out any column and hide it, and then have an unhide-all button. Please try to get this done in the next one minute.
+
+## m00848 — 2026-11-20 ~4:08 AM (pasted)
+Once this works, by the way, there's another interface that I'd like you to build, which is kind of innovative. Oh, by the way, the image that we draw and the prompt that we save should be persistent upon reloading, unless we click a reset-all button inside the interface. But yeah, I'd like a four-way pad, once we have the sneak peek running. It's a separate UI mode — maybe we can have a tab that lets you go between the two, because a lot of the interface is shared, but only some is different. Instead of doing one generation, you'd have one mask — the mask editing is the same — and up to four prompts with the same hyperparameters, like the same number of steps and everything, but you can have different seeds and different prompts, and it will diffuse all four at once, taking turns between the four. If a user clicks one, it will go 50% transparent on that preview, and the other three will keep running; and if I click three of them, three of them will be disabled. That way I can quickly figure out which ones I want and don't want. They would basically all be diffusing at the same time, and below each one it shows the prompt and the seed. Each time I click one, it will give priority to the others so that they go faster. And if I change the prompt or the seed midway, it will just start that one over, and it will be kind of real-time: we'll keep diffusing all of them. Does that make sense? And that also means — once we have this — the real-time option starts to make more sense for when I'm drawing, because you should be able to cancel a run partway through and just go back to the beginning and start over with the new condition, because the preview will be a lot better, so everything will feel more responsive. Those are the two changes that I want. Write them down, add them to your to-do list, and make sure you do them by the time you give me an announcement. Don't wait for me to do this; I want this interface. So have an agent plan it out, and then write this into your to-do list.
+
+## m00849 — 2026-11-20 ~4:16 AM
+Please upload the models periodically, every 1000 steps. I'd like to upload.
+
+## m00850 — 2026-11-20 ~4:25 AM
+The interface is a little bit funky — I like that, good attempt — but first of all, toolbars should be resizable. Look at my repository on GitHub called svelte-lib, and you'll see that I use Svelte primarily as my UI; you should probably do that too, and panes are resizable there. I do like the width of your pane dividers here, keep that — I think it's like one pixel, I like that — but the thing that I don't like is that I can't resize it, and that makes the actual output image far smaller than the trimask, with no way to change it. I can keep the defaults for now, except for one problem: the Generate button seems to be completely disabled, even though everything appears to have loaded. I don't know what's going on with that, but that's the problem.
+
+## m00851 — 2026-11-20 ~4:27 AM
+I also don't know why all the model cards just take so long to load each time I scroll up and down. Why is that not instant? Model cards should load instantly, right?
+
+## m00852 — 2026-11-20 ~4:29 AM
+Like, why is the Generate button grayed out? It says that every part of the model loaded, and I waited for like 3 minutes after that.
+
+## m00853 — 2026-11-20 ~4:33 AM
+Nothing was printed out in the console. It just didn't load; the button was just never made less gray. The console is literally completely empty. In fact, it's kind of weird that it's not printing anything, like not at all; it's completely silent in the web console.
+
+## m00854 — 2026-11-20 ~4:40 AM
+Okay, the Generate button works now.

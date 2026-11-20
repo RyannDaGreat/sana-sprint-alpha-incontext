@@ -472,3 +472,7 @@
 ## 2026-11-20 ~4:20 AM — persistence: a missing input id broke every save (FourPad fork)
 - First persistence test failed: `readInputs` read `.type` of `sneak-peek`, which main's page doesn't have, so every save threw ("Cannot read properties of null"); the status line showed it (not silent), the test caught it. Fix: ids not on the page are skipped. Lesson: shared id lists across branches need a missing-element rule.
 - Also: `pkill -f <pattern>` killed my own shell because the pattern appeared in the shell's command line; stop servers by the PID listening on the port instead.
+
+## 2026-11-20 ~4:10 AM — sneak peek web test: an unfair first timing and a duty-cycle bug (fork SneakPeek)
+- The first headless run measured +25% with the sneak peek on. Two causes: (1) only the first generation runs the text encoder (later ones hit the embedding cache), and the "on" run was first; (2) `blockPeek` charged the highway head's time to the duty cycle before `offer()`, so the offer always fell inside the new wait and was refused: no per-block preview was ever drawn (only the 4 step previews).
+- Fix: offer first, then charge; the test now runs a warm-up generation, then off, then on. Result: +2.3%, 80 previews.

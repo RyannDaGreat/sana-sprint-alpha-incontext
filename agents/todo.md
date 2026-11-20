@@ -13,6 +13,10 @@
 | 125 | FIBO2 step 7500 to the web (m00741, m00750): export + verify on 2 GPUs in parallel before training, then publish + live test with the compare on CPU during training | — | after the encode |
 | 126 | UI polish: icons for editor tools, aligned equal-width buttons, dilate/erode before-after icons with labels, font dropdown previews fonts; Sonnet sub-frenzy (3 auditors) then implement, push (m00747) ; model menu cache dots: yellow = partly, green = fully cached (m00748) ; blind Haiku slop test vs professional UIs, pass ≤ 65% (m00768) | not measured | Fork UIPolish running (worktree) |
 | 127 | Sneak peek (§18, m00755): Tweedie previews per step, tiny decoder (research sub-frenzy), per-block stop-gradient shortcut heads, async in the app, ≤ 10% slower ; readable notification once the plan is researched and confident (m00759) | not measured | Fork SneakPeek running |
+| 130 | Alpha + color decontamination by iterative (box-constrained) least squares, validated against gradient descent, any K background colors (m00826) | not measured | Fork AlphaILS running |
+| 131 | GitHub Pages site (journal + WebGPU app) as a progressive web app: installable, works offline after one visit (m00836) | not measured | Fork PWA running |
+| 135 | Splitter checkpoints to the web every 1000 steps (turbo + dev, γ, int8, per-block, highway graph; verify λ/γ 0 and 1; publish; live test) (m00849) | not measured | Fork SplitShip running |
+| 136 | Generate button disabled after load (live bug); resizable 1px panes (svelte-lib behavior); Svelte port plan (m00850) | not measured | Fork PaneFix running |
 | 50–52 | Trimask: table (337,934 rows, 19 methods, 0 violations, 4 resolutions), encode, training code | see git log | pushed |
 | 53 | control_tri_scratch: from scratch, multires | — | stopped 1:29 PM at step 15840 by user (m00695); last save 15500; 15000 live |
 | 54 | Checkpoint script agents/.scratchpad/tri_checkpoint.sh (merge, λ int4 web, verify, publish) | b09151d 742c2ac dec4e00 | pushed; step 3000 + 6000 live, notified 8:13/8:33 AM; 9000 queued (tmux tri_ckpt9) |
@@ -50,4 +54,26 @@
 8. Splitter evaluation: how good or bad (readable, amnesia)
 11. Fast decoder: a clearly better set of candidates worth looking at (beats fal Tiny AE color or fal-lite D speed with Tiny-AE look), with the link (m00788)
 10. Morning (~8 AM): fast-decoder report, every candidate sorted best → worst, ≥ 48 examples, link (m00786)
+12. Morning (~8 AM): sneak peek UI done in the app, with the per-generation preview-timeline graph in a closed accordion (m00822)
 9. Problems at once
+
+## 128 — Cross-step activation reuse / layer skipping (m00820) — after everything else; no permission needed to start
+- Measure redundancy: per-block cosine similarity / relative change of hidden states between consecutive steps (dev 20 steps, turbo 4), and the error of reusing step s−1's block output at step s (training-free caching, FORA/Δ-DiT style).
+- Trained version: store every block's activations at step s−1; at step s feed them through zero-init (ControlNet-like) connectors; schedule-dependent layer skipping (middle steps skip the first half, late steps skip ~80%), distilled to the full model's x̂0 (Learning-to-Cache style).
+- Report speedup vs quality (SSIM/LPIPS/ΔE + VLM) in a journal report; log in manifest §19.
+
+## 129 — Splitter v2: direct alpha lane (m00824) — after fibo2_split, only if the ghost alpha persists
+- Encode the alpha matte as a white-on-black image (FLUX.2 VAE, 1024/768/512/256) for every training row (new encode_fibo2 job, BlueJay).
+- 4 heads: gray, white, black, alpha; fuse with the least-squares fit (decontaminated color stays from the fit).
+
+## 132 — Persistent drawing + prompt, Reset-all (m00848)
+- The drawn mask, prompt and settings survive a reload (stored in the browser); a "Reset all" button clears them.
+
+## 133 — Four-way pad mode (m00848) — after the sneak peek UI lands
+- A tab switches between the normal mode and the four-way pad; the mask editor and hyperparameters are shared.
+- Up to 4 prompt/seed slots with the same steps/settings; all 4 diffuse at once, taking turns (round-robin), each with its sneak peek preview, prompt and seed shown below it.
+- Click a slot: it goes 50% transparent and pauses; the others get its share and run faster; click again to re-enable.
+- Editing a slot's prompt or seed restarts only that slot; editing the mask restarts all.
+
+## 134 — Real-time mode with cancel/restart (m00848)
+- While drawing, a running generation is cancelled partway and restarted with the new condition at once (sneak peek makes partial results useful).
