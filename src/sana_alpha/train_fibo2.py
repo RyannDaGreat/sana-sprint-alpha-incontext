@@ -71,7 +71,7 @@ def load_index(mode, versions, rank, world, seed):
     """
     import lance
 
-    done = {"adapter": "fibo2_colorbg_256", "control": "fibo2_gray_256", "splitter": "fibo2_black_256"}[mode]  # the last column its encoder writes
+    done = {"adapter": "fibo2_colorbg_256", "control": "fibo2_gray_256", "splitter": "fibo2_black_256", "matte": "fibo2_matte_256"}[mode]  # the last column its encoder writes
     ds = lance.dataset(str(LANCE), version=versions[0])
     rows = ds.to_table(columns=["page_id", "subject"], with_row_id=True,
                        filter=f"{done} IS NOT NULL AND split = 'train' AND NOT nsfw").to_pandas()
@@ -141,8 +141,9 @@ def read_batch(tables, index, mode, res, idx, rows):
               fibo2.SPLIT_BACKGROUNDS —; control and splitter also cond (B, 32, res/8, res/8) bf16
     """
     rowids = index["rowids"][idx.numpy()].tolist()
-    if mode == "splitter":
-        target = torch.stack([read_latent_blobs(tables[0], f"fibo2_{bg}_{res}", rowids) for bg in fibo2.SPLIT_BACKGROUNDS], dim=1)
+    if mode in ("splitter", "matte"):  # matte (§21): the 3 splitter targets + the alpha matte, head order of split_velocities
+        names = list(fibo2.SPLIT_BACKGROUNDS) + (["matte"] if mode == "matte" else [])
+        target = torch.stack([read_latent_blobs(tables[0], f"fibo2_{bg}_{res}", rowids) for bg in names], dim=1)
     else:
         target = read_latent_blobs(tables[0], f"{'fibo2_colorbg' if mode == 'adapter' else 'fibo2_gray'}_{res}", rowids)
     batch = dict(res=res, idx=idx, rows=rows, target=target)
@@ -240,22 +241,26 @@ def load_checkpoint(transformer, folder, gates):
             for i, g in enumerate(transformer.context_gates):
                 g.copy_(saved[f"context_gates.{i}"])
     head = fibo2.splitter_of(transformer)
-    if head is not None:
+    if head is not None and head.matte is not None:  # a matte run: the splitter's delta is frozen (from --splitter); the matte's resumes
+        head.matte.load_state_dict(load_file(folder / fibo2.MATTE_HEAD_FILE))
+    elif head is not None:
         head.delta.load_state_dict(load_file(folder / fibo2.SPLITTER_HEAD_FILE))
     return json.loads((folder / "meta.json").read_text())["step"]
 
 
-def train(mode, run, adapter=None, control=None, rank=64, batch_size=2, max_steps=20000, warmup=500, lr=1.0, weight_decay=0.01,
+def train(mode, run, adapter=None, control=None, splitter=None, rank=64, batch_size=2, max_steps=20000, warmup=500, lr=1.0, weight_decay=0.01,
           max_grad_norm=1.0, cond_drop=0.1, text_drop=0.1, save_every=500, preview_every=500, log_every=10, seed=0,
           multires=True, gates=False, init_from=None, fresh_optimizer=False, sneak_peek_highway=False, highway_lr=1e-4, highway_residual=False):
     """
     Command. Trains the adapter or control LoRA with DDP (torchrun) or on one GPU; writes models/fibo2/<run>/.
 
     Args:
-        mode (str): "adapter", "control" or "splitter"
+        mode (str): "adapter", "control", "splitter" or "matte"
         run (str): output folder name under models/fibo2/
         adapter (str | None): control and splitter: the adapter checkpoint folder (step_XXXXXX)
         control (str | None): splitter only: the control checkpoint folder it trains on (merged, frozen), e.g. models/fibo2/fibo2_tri/step_007500
+        splitter (str | None): matte only (§21): the splitter step folder it trains on (its control, LoRA and head delta
+            merged/frozen); trains a new LoRA + the matte head delta, with the loss on all 4 heads so the splitter's 3 stay as they were
         rank (int): LoRA rank (alpha = rank)
         batch_size (int): per GPU, at every resolution (as §13)
         max_steps, warmup (int): optimizer steps, linear warmup steps
@@ -282,7 +287,10 @@ def train(mode, run, adapter=None, control=None, rank=64, batch_size=2, max_step
     import prodigyopt
 
     assert mode in ("adapter", "control", "splitter") and (mode == "adapter") == (adapter is None), f"mode {mode!r} with adapter {adapter!r}"
-    assert (mode == "splitter") == (control is not None), f"mode {mode!r} with control {control!r}: the splitter needs its control checkpoint"
+    assert (mode == "matte") == (splitter is not None), f"mode {mode!r} with splitter {splitter!r}: the matte adapter needs its splitter checkpoint"
+    if mode == "matte":  # the splitter's own control checkpoint
+        control = json.loads((models.localize(splitter) / "meta.json").read_text())["control"]
+    assert (mode in ("splitter", "matte")) == (control is not None), f"mode {mode!r} with control {control!r}: the splitter needs its control checkpoint"
     assert not gates or mode == "control", "gates are for the control mode"
     rank_id, world, device = setup_distributed()
     torch.backends.cuda.matmul.allow_tf32 = True
@@ -307,11 +315,15 @@ def train(mode, run, adapter=None, control=None, rank=64, batch_size=2, max_step
     text = fibo2.load_text_encoder(device)
     null, null_mask = fibo2.encode_prompts(*text, [fibo2.NULL_PROMPT])
     transformer = fibo2.load_transformer(device, adapter)
-    if mode == "splitter":  # W_adapter + control, frozen (§17)
+    if mode in ("splitter", "matte"):  # W_adapter + control, frozen (§17)
         fibo2.merge_lora(transformer, load_file(models.localize(control) / "lora.safetensors"), scale=1.0)
+    if mode == "matte":  # + the splitter at γ = 1 (merged LoRA, head delta), frozen by add_lora below (§21)
+        fibo2.load_splitter(transformer, models.localize(splitter), gamma=1.0)
     fibo2.add_lora(transformer, rank)
     if mode == "splitter":  # after add_lora: peft marks every non-LoRA parameter frozen when it injects
         fibo2.attach_splitter(transformer)
+    if mode == "matte":
+        fibo2.splitter_of(transformer).add_matte()
     if gates:
         fibo2.attach_context_gates(transformer)
     start_step = 0
@@ -331,7 +343,7 @@ def train(mode, run, adapter=None, control=None, rank=64, batch_size=2, max_step
     gate_params = list(transformer.context_gates) if gates else []
     lora_params = [p for p in trainable if all(p is not g for g in gate_params)]
     log(f"trainable params {sum(p.numel() for p in trainable) / 1e6:.1f}M (LoRA rank {rank}{' + 46 context gates' if gates else ''}"
-        f"{' + splitter head delta' if mode == 'splitter' else ''})")
+        f"{' + splitter head delta' if mode == 'splitter' else ''}{' + matte head delta' if mode == 'matte' else ''})")
     model = DistributedDataParallel(transformer, device_ids=[device.index]) if world > 1 else transformer
     groups = [dict(params=lora_params, weight_decay=weight_decay)] + ([dict(params=gate_params, weight_decay=0.0)] if gates else [])
     optimizer = prodigyopt.Prodigy(groups, lr=lr, betas=(0.9, 0.999),
@@ -375,9 +387,10 @@ def train(mode, run, adapter=None, control=None, rank=64, batch_size=2, max_step
     step_res = lambda s: step_resolution(s, seed) if multires else 1024
     reader = ThreadPoolExecutor(1)
     pending = reader.submit(read_batch, tables, index, mode, step_res(start_step), *next(batches))
-    meta = dict(run=run, mode=mode, adapter=str(adapter), control=str(control), rank=rank, batch_size=batch_size, world=world, multires=multires, gates=gates,
+    meta = dict(run=run, mode=mode, adapter=str(adapter), control=str(control), splitter=str(splitter), rank=rank, batch_size=batch_size, world=world, multires=multires, gates=gates,
                 lance_versions=versions[0], objective="flow v=eps-x0, FIBO2-shifted logit-normal sigma"
-                + (", one head per background, shared eps" if mode == "splitter" else ""),
+                + (", one head per background, shared eps" if mode == "splitter" else "")
+                + (", 3 splitter heads + the matte head, shared eps" if mode == "matte" else ""),
                 init_from=str(init_from), start_step=start_step, fresh_optimizer=fresh_optimizer, dataset_change_steps=changes)
     drawn = torch.zeros(len(METHODS), dtype=torch.long)
     res_steps, res_secs = dict.fromkeys(RESOLUTION_PROBS, 0), dict.fromkeys(RESOLUTION_PROBS, 0.0)
@@ -388,8 +401,9 @@ def train(mode, run, adapter=None, control=None, rank=64, batch_size=2, max_step
         res, idx, rows = batch["res"], batch["idx"], batch["rows"]
         pending = reader.submit(read_batch, tables, index, mode, step_res(step + 1), *next(batches))  # read one step ahead
         target = batch["target"].to(device)
-        x0s = fibo2.normalize_latents(target.flatten(0, 1), *bn).unflatten(0, target.shape[:2]) if mode == "splitter" else None
-        x0 = x0s[:, 0] if mode == "splitter" else fibo2.normalize_latents(target, *bn)  # the gray: the trajectory x_t follows
+        split = mode in ("splitter", "matte")
+        x0s = fibo2.normalize_latents(target.flatten(0, 1), *bn).unflatten(0, target.shape[:2]) if split else None
+        x0 = x0s[:, 0] if split else fibo2.normalize_latents(target, *bn)  # the gray: the trajectory x_t follows
         b = len(x0)
         drop_text = (torch.rand(b, generator=gen) < text_drop).tolist()
         captions = [fibo2.NULL_PROMPT if d else fibo2.caption_prompt(index["captions"][j]) for d, j in zip(drop_text, idx.tolist())]
@@ -408,7 +422,7 @@ def train(mode, run, adapter=None, control=None, rank=64, batch_size=2, max_step
         with torch.autocast("cuda", torch.bfloat16):
             pred = model(hidden_states=xt.to(torch.bfloat16), timestep=sigmas, encoder_hidden_states=embeds,
                          encoder_attention_mask=mask, context_latents=context, return_dict=False)[0]
-        if mode == "splitter":  # every head against its own x0, one shared ε (§17); pred is head 0 again
+        if split:  # every head against its own x0, one shared ε (§17, §21); pred is head 0 again
             pred, x0, noise = fibo2.split_velocities(fibo2.splitter_of(transformer), *x0.shape[2:]), x0s, noise[:, None]
         loss = ((pred.float() - flow_velocity_target(x0, noise)) ** 2).mean()
         if tap is not None:
@@ -451,6 +465,9 @@ def train(mode, run, adapter=None, control=None, rank=64, batch_size=2, max_step
             if mode == "splitter":
                 save_file({k: v.detach().float().cpu() for k, v in fibo2.splitter_of(transformer).delta.state_dict().items()},
                           folder / fibo2.SPLITTER_HEAD_FILE)
+            if mode == "matte":
+                save_file({k: v.detach().float().cpu() for k, v in fibo2.splitter_of(transformer).matte.state_dict().items()},
+                          folder / fibo2.MATTE_HEAD_FILE)
             if gates:
                 save_file({f"context_gates.{i}": g.detach().float().cpu() for i, g in enumerate(gate_params)}, folder / "gates.safetensors")
             if highway is not None:

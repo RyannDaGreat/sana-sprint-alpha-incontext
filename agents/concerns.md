@@ -497,3 +497,9 @@
 - Fix: download and read are separate (downloadToCache streams to OPFS holding no bytes; readCached reads just in time); all downloads start at load, 6 at a time; the read-ahead of 4 parts' bytes became a download-only prefetch. Headless, fresh profile, live HF: up to 7 files downloading at once, 14.7 GB ready in 152 s (≈ 97 MB/s); from cache: 128/128 cached, ready in 54 s.
 - Lesson: when bounding memory, keep the network work eager; a check of a memory fix needs a fresh-download run, not only a from-cache run.
 - 11:55 AM follow-up (m00871/m00872): on WebGPU with everything cached, Generate stayed gray with no status or console output; rows stopped at text_encoder part 4 (the first part reading text_encoder.onnx.p1.data); a reload fixed it. Likely an exclusive cache lock held by the outgoing page across the service worker's reload (5f5ada8 took exclusive locks for reads too). Fix: shared locks for reads, exclusive only for writes, and a 20 s load watchdog that names the stuck step and the locks.
+
+## 2026-11-20 ~3 PM — matte adapter μ (Matte fork)
+- GPUs 6–7 were 60–70 GB full with other jobs, so the matte encode runs one worker per GPU at `--batch_divisor 4` (≈ 14–16 rows/s, not the ≈ 30 of a free pair).
+- `web_chunks.split(folder, k)` now splits all four roles; a test folder with only a transformer needs `split_role(folder, manifest, "transformer", k)`.
+- The app work sits on top of PeekScrub's unmerged `bindGreek` (branch matte-web from peekscrub 416b7d5), so μ uses the same any-value number box as λ/γ (m00893). The RGBA color is still decontaminated with the fit's own α, not the matte α: a known approximation, fine while they agree.
+

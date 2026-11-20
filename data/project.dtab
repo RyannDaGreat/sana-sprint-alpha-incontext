@@ -147,6 +147,9 @@ tables
 			 Written by encode_fibo2's job split (manifest §17, the splitter LoRA's targets; run_encode_fibo2.fish split): the same raw FLUX.2 VAE mode, of rgba on white and on black
 			fibo2_white_1024, fibo2_white_768, fibo2_white_512, fibo2_white_256, fibo2_black_1024, fibo2_black_768, fibo2_black_512, fibo2_black_256 blob
 
+			 Written by encode_fibo2's job matte (manifest §21, the matte adapter's target; run_encode_fibo2.fish matte): the same raw FLUX.2 VAE mode, of rgba's alpha as a gray image (3 equal channels)
+			fibo2_matte_1024, fibo2_matte_768, fibo2_matte_512, fibo2_matte_256 blob
+
 	eval_models
 		 One row per model to evaluate. To evaluate a new checkpoint, add a row here: run_proc_eval.fish initializes first
 		primary_key model_tag

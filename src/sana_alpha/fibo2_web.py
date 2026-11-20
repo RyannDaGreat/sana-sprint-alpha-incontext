@@ -153,7 +153,7 @@ class SplitterVelocityGraph(LambdaVelocityGraph):
         super().forward(latents, cond_latents, sigma, prompt_embeds, adapter_scale)
         # fibo2.split_velocities' "B (H W) (K C PH PW) -> B K C (H PH) (W PW)" in torch ops: einx cannot take the
         # exporter's symbolic H, W (it hashes its parameters)
-        b, (h, w), k, c = latents.shape[0], latents.shape[2:], head.heads, head.base.out_features // 4
+        b, (h, w), k, c = latents.shape[0], latents.shape[2:], head.heads + (head.matte is not None), head.base.out_features // 4
         v = head.last.reshape(b, h // 2, w // 2, k, c, 2, 2).permute(0, 3, 4, 1, 5, 2, 6)
         return v.reshape(b, k, c, h, w).float()
 
@@ -311,7 +311,25 @@ class fixed_gist:
         self.module.compute_gist_count = self.original
 
 
-def export_velocity(model, path, inputs, adapter_scale=False, gist=None, gamma=False):
+class MatteVelocityGraph(SplitterVelocityGraph):
+    """
+    SplitterVelocityGraph of a matte model (manifest §21) with μ as one more input: 4 velocities (gray, white, black,
+    matte). μ scales the matte adapter exactly: its LoRA (attach_lora_lambda with mu_scale) and its head delta
+    (SplitterHead.mu). Any real μ (m00893): nothing clamps it.
+    """
+
+    def __init__(self, transformer, scale, gamma_scale, mu_scale):
+        """Command (holds the modules). transformer: the splitter graph's, the head add_matte'd, the matte LoRA attached with mu_scale."""
+        super().__init__(transformer, scale, gamma_scale)
+        self.mu_scale = mu_scale
+
+    def forward(self, latents, cond_latents, sigma, prompt_embeds, adapter_scale, gamma, mu):
+        """Pure function (given fixed weights). As SplitterVelocityGraph; mu (1,) float32 μ -> (1,4,32,LH,LW) float32."""
+        self.mu_scale.value, fibo2.splitter_of(self.transformer).mu = mu, mu.to(self.transformer.dtype)
+        return super().forward(latents, cond_latents, sigma, prompt_embeds, adapter_scale, gamma)
+
+
+def export_velocity(model, path, inputs, adapter_scale=False, gist=None, gamma=False, mu=False):
     """
     Command. Traces a VelocityGraph (dynamo exporter, MatMulNBits translation for QuantLinear) and writes path
     (+ path.data). Dynamic: latent side LH, LW (even, 256–2048 px) and text length L; the gist count is fixed.
@@ -323,17 +341,18 @@ def export_velocity(model, path, inputs, adapter_scale=False, gist=None, gamma=F
         adapter_scale (bool): model takes λ
         gist (int | None): gist-token count of this graph (gist_counts); default the config's minimum
         gamma (bool): model takes the splitter's γ (SplitterVelocityGraph; needs adapter_scale)
+        mu (bool): model takes the matte adapter's μ (MatteVelocityGraph; needs gamma)
     """
     began = time.perf_counter()
     half = lambda n: torch.export.Dim(n, min=MIN_LATENT // 2, max=MAX_LATENT // 2)
     LH, LW, L = 2 * half("LH2"), 2 * half("LW2"), torch.export.Dim("L", min=4, max=4096)
     latent = {2: LH, 3: LW}
-    dynamic = [latent, latent, None, {2: L}] + [None] * (adapter_scale + gamma)
-    args = (*inputs, *[torch.tensor([0.5], device=inputs[0].device) for _ in range(adapter_scale + gamma)])  # distinct tensors: torch.export ties one tensor passed twice into one input
+    dynamic = [latent, latent, None, {2: L}] + [None] * (adapter_scale + gamma + mu)
+    args = (*inputs, *[torch.tensor([0.5], device=inputs[0].device) for _ in range(adapter_scale + gamma + mu)])  # distinct tensors: torch.export ties one tensor passed twice into one input
     gist = model.transformer.config.min_num_gist_tokens if gist is None else gist
     with torch.no_grad(), fixed_gist(gist):
         program = torch.onnx.export(model, args, dynamo=True, opset_version=OPSET, optimize=False,
-                                    input_names=INPUT_NAMES + ["adapter_scale"] * adapter_scale + ["gamma"] * gamma, output_names=["velocity"],
+                                    input_names=INPUT_NAMES + ["adapter_scale"] * adapter_scale + ["gamma"] * gamma + ["mu"] * mu, output_names=["velocity"],
                                     dynamic_shapes=dynamic,
                                     custom_translation_table={torch.ops.websana.matmul_nbits.default: wq.matmul_nbits_onnx})
     program.model.ir_version = IR_VERSION
@@ -519,23 +538,25 @@ def calibration_inputs(model, items, sigmas=(0.9, 0.4)):
     return out
 
 
-def graph_specs(splitter=False):
+def graph_specs(splitter=False, matte=False):
     """
     Pure function. Input/output names, shapes and dtypes of the FIBO2 graphs (strings are dynamic: LH = H/8, L tokens, T).
-    splitter (manifest §17): the transformer also takes gamma and returns one velocity per head.
+    splitter (manifest §17): the transformer also takes gamma and returns one velocity per head; matte (§21): also mu, 4 heads.
 
     Examples:
         >>> [n for n, _, _ in graph_specs()["transformer"]["inputs"]]
         ['latents', 'cond_latents', 'sigma', 'prompt_embeds', 'adapter_scale']
         >>> graph_specs(splitter=True)["transformer"]["outputs"]
         [('velocity', [1, 3, 32, 'LH', 'LW'], 'float32')]
+        >>> graph_specs(splitter=True, matte=True)["transformer"]["outputs"]
+        [('velocity', [1, 4, 32, 'LH', 'LW'], 'float32')]
     """
     latent, image = [1, 32, "LH", "LW"], [1, 3, "H", "W"]
-    heads = len(fibo2.SPLIT_BACKGROUNDS)
+    heads = len(fibo2.SPLIT_BACKGROUNDS) + matte
     return dict(
         transformer=dict(inputs=[("latents", latent, "float32"), ("cond_latents", latent, "float32"), ("sigma", [1], "float32"),
                                  ("prompt_embeds", [1, 6, "L", 7680], "float32"), ("adapter_scale", [1], "float32")]
-                                + [("gamma", [1], "float32")] * splitter,
+                                + [("gamma", [1], "float32")] * splitter + [("mu", [1], "float32")] * matte,
                          outputs=[("velocity", [1, heads] + latent[1:] if splitter else latent, "float32")]),
         vae_encoder=dict(inputs=[("image", image, "float32")], outputs=[("latent", latent, "float32")]),
         vae_decoder=dict(inputs=[("latent", latent, "float32")], outputs=[("image", image, "float32")]),
@@ -598,7 +619,8 @@ def export(checkpoint, version=None, bits=4, text_bits=None, all_linears=False, 
     from sana_alpha import models
     checkpoint = Path(checkpoint)
     meta = json.loads((models.localize(checkpoint) / "meta.json").read_text())
-    adapter, splitter = meta["adapter"], meta["mode"] == "splitter"
+    adapter, matte = meta["adapter"], meta["mode"] == "matte"
+    splitter = meta["mode"] in ("splitter", "matte")  # a matte checkpoint (§21) is a splitter plus the 4th head
     text_bits = bits if text_bits is None else text_bits
     rank_of = lambda b: wq.RANK if b == 4 else 0
     tag = f"int{bits}" if text_bits == bits else f"int{bits}te{text_bits}"
@@ -606,7 +628,7 @@ def export(checkpoint, version=None, bits=4, text_bits=None, all_linears=False, 
     folder = WEB_DIR / version
     folder.mkdir(parents=True, exist_ok=True)
     torch.manual_seed(0)  # randomized SVD: the same weights give the same files
-    model = fibo2.load_eval_model(str(checkpoint), "cuda", BASES[base]["dir"], gamma=0.0)  # a splitter at γ = 0: its LoRA is added below, exactly
+    model = fibo2.load_eval_model(str(checkpoint), "cuda", BASES[base]["dir"], gamma=0.0, mu=0.0)  # a splitter at γ = 0 (a matte at μ = 0): their LoRAs are added below, exactly
     calib = calibration_inputs(model, eval_items())
     print(f"calibration: {len(calib)} transformer inputs", flush=True)
     template, layers = text_encoder_parts(model)
@@ -636,10 +658,14 @@ def export(checkpoint, version=None, bits=4, text_bits=None, all_linears=False, 
         graph = LambdaVelocityGraph(transformer, scale)
         if splitter:
             gamma_scale = we.AdapterScale("cuda")
-            attach_lora_lambda(transformer, load_file(models.localize(checkpoint) / "lora.safetensors"), gamma_scale)
+            attach_lora_lambda(transformer, load_file(models.localize(meta["splitter"] if matte else checkpoint) / "lora.safetensors"), gamma_scale)
             graph = SplitterVelocityGraph(transformer, scale, gamma_scale)
+        if matte:
+            mu_scale = we.AdapterScale("cuda")
+            attach_lora_lambda(transformer, load_file(models.localize(checkpoint) / "lora.safetensors"), mu_scale)
+            graph = MatteVelocityGraph(transformer, scale, gamma_scale, mu_scale)
         export_velocity(graph.eval(), folder / "transformer.onnx", calib[0], adapter_scale=True,
-                        gist=transformer.config.min_num_gist_tokens, gamma=splitter)
+                        gist=transformer.config.min_num_gist_tokens, gamma=splitter, mu=matte)
         split_external_data(folder / "transformer.onnx")
         quantization["transformer"] = quant_record(report, bits, rank_of(bits), rows_per_item)
         record.write_text(json.dumps(quantization["transformer"]))
@@ -685,15 +711,19 @@ def quant_record(report, bits, rank, rows_per_item):
 def write_manifest(folder, version, checkpoint, meta, adapter, lora_rank, template, layers, quantization, base="dev"):
     """Command. Writes folder/manifest.json in the exporter format of the web-model-contract (manifest §12, §16), family "fibo2"."""
     files = sorted(p.name for p in folder.iterdir() if p.suffix in (".onnx", ".data") or p.name.startswith("tokenizer"))
-    splitter = meta["mode"] == "splitter"
+    splitter, matte = meta["mode"] in ("splitter", "matte"), meta["mode"] == "matte"
     control = f"{Path(meta['control']).parent.name} {Path(meta['control']).name}" if splitter else f"{meta['run']} step {meta['step']}"
     weights = f"{BASES[base]['symbol']} + λ·(W_adapter − W_fibo2) + (W_control − W_adapter) · {control}"
     manifest = dict(
         version=version, family="fibo2", base=base, source=checkpoint, cond="trimask", trained_sizes=TRAINED_SIZES,
-        weights=weights + (f" + γ·splitter · {meta['run']} step {meta['step']}" if splitter else ""),
+        weights=weights + (f" + γ·splitter · {meta['splitter'] if matte else meta['run'] + ' step ' + str(meta['step'])}" if splitter else "")
+        + (f" + μ·matte · {meta['run']} step {meta['step']}" if matte else ""),
         adapter=dict(source=adapter, rank=lora_rank, delta="exact: the adapter LoRA itself (up = B·α/r, down = A)"),
         **(dict(splitter=split_manifest(meta)) if splitter else {}),
-        files={f: (folder / f).stat().st_size for f in files}, graphs=graph_specs(splitter), quantization=quantization,
+        **(dict(matte=dict(head=len(fibo2.SPLIT_BACKGROUNDS), mu=1.0, source=meta.get("splitter"),
+                           image="vae_decoder(x0 of the last head): the alpha matte as gray (white = opaque); α = its mean over RGB, clipped to [0, 1]"))
+           if matte else {}),
+        files={f: (folder / f).stat().st_size for f in files}, graphs=graph_specs(splitter, matte), quantization=quantization,
         text_encoder=dict(model=f"{fibo2.FIBO2_DIR}/text_encoder (Qwen3-VL-4B language model, cut after layer {max(max(b) for b in layers)})",
                           template=template, caption_key=fibo2.CAPTION_KEY, null_prompt=fibo2.NULL_PROMPT, max_tokens=MAX_TEXT_TOKENS,
                           layers=layers, output="(1, 6, T, 7680): every token, no padding, no mask"),
@@ -744,7 +774,7 @@ def ort_sessions(folder, providers=("CUDAExecutionProvider",), chunks=False):
             for name in graph_specs()}
 
 
-def onnx_generate(sessions, tokenizer_ids, null_ids, trimask, noise, steps, guidance, adapter_scale=0.0, gamma=None):
+def onnx_generate(sessions, tokenizer_ids, null_ids, trimask, noise, steps, guidance, adapter_scale=0.0, gamma=None, mu=None):
     """
     Query (runs the sessions). The app's FIBO2 pipeline in numpy (web/src/pipeline.js mirrors it): text encoder for the
     prompt and the null prompt, vae_encoder on the trimask, the flow Euler sampler with CFG, vae_decoder.
@@ -756,6 +786,7 @@ def onnx_generate(sessions, tokenizer_ids, null_ids, trimask, noise, steps, guid
         noise (np.ndarray): (1, 32, S/8, S/8) float32 standard normal
         steps (int), guidance (float), adapter_scale (float): sampler settings and λ
         gamma (float | None): a splitter version's γ (manifest §17); None for other versions
+        mu (float | None): a matte version's μ (manifest §21; needs gamma); None for other versions
 
     Returns:
         np.ndarray: (S, S, 3) float32 RGB in [0, 1]; with gamma (K, S, S, 3), one per fibo2.SPLIT_BACKGROUNDS head
@@ -769,7 +800,7 @@ def onnx_generate(sessions, tokenizer_ids, null_ids, trimask, noise, steps, guid
     mu = fibo2.shift_mu(h * w // 4)
     sigmas = [float(fibo2.shift_sigmas(torch.tensor(u), mu)) for u in np.linspace(1.0, 1 / steps, steps)] + [0.0]
     x = noise.astype(np.float32)
-    split = {} if gamma is None else {"gamma": np.array([gamma], np.float32)}
+    split = ({} if gamma is None else {"gamma": np.array([gamma], np.float32)}) | ({} if mu is None else {"mu": np.array([mu], np.float32)})
     run = lambda e, s: sessions["transformer"].run(None, {"latents": x, "cond_latents": cond, "sigma": np.array([s], np.float32),
                                                           "prompt_embeds": e, "adapter_scale": np.array([adapter_scale], np.float32), **split})[0]
     for s, s_next in zip(sigmas[:-1], sigmas[1:]):
@@ -784,7 +815,7 @@ def onnx_generate(sessions, tokenizer_ids, null_ids, trimask, noise, steps, guid
     return decode(x) if gamma is None else np.stack([decode(x0[:, k]) for k in range(x0.shape[1])])
 
 
-def verify(version, items=4, steps=4, guidance=None, size=512, chunks=False, lam=0.0, gamma=None):
+def verify(version, items=4, steps=4, guidance=None, size=512, chunks=False, lam=0.0, gamma=None, mu=None):
     """
     Command (one GPU). Exported graphs (ORT CUDA EP) vs the shipped PyTorch model (fibo2.load_eval_model, bf16) on held-out
     eval items: text embeddings, condition latents and one velocity pass (relative error), then whole generations with the
@@ -810,10 +841,11 @@ def verify(version, items=4, steps=4, guidance=None, size=512, chunks=False, lam
     guidance = manifest["sampler"]["guidance"] if guidance is None else guidance
     out = we.VERIFY_DIR / version
     out.mkdir(parents=True, exist_ok=True)
-    suffix = "" if (not lam and gamma is None) else f"_lam{lam:g}" + ("" if gamma is None else f"_g{float(gamma):g}")  # the default run keeps its old file names
+    suffix = "" if (not lam and gamma is None) else f"_lam{lam:g}" + ("" if gamma is None else f"_g{float(gamma):g}") + ("" if mu is None else f"_mu{float(mu):g}")  # the default run keeps its old file names
     gamma = (manifest["splitter"]["gamma"] if gamma is None else float(gamma)) if "splitter" in manifest else None
-    split = {} if gamma is None else {"gamma": np.array([gamma], np.float32)}
-    model = fibo2.load_eval_model(manifest["source"], "cuda", BASES[manifest.get("base", "dev")]["dir"], gamma=1.0 if gamma is None else gamma)
+    mu = (manifest["matte"]["mu"] if mu is None else float(mu)) if "matte" in manifest else None  # a matte version (§21)
+    split = ({} if gamma is None else {"gamma": np.array([gamma], np.float32)}) | ({} if mu is None else {"mu": np.array([mu], np.float32)})
+    model = fibo2.load_eval_model(manifest["source"], "cuda", BASES[manifest.get("base", "dev")]["dir"], gamma=1.0 if gamma is None else gamma, mu=1.0 if mu is None else mu)
     if lam:  # the training model: + λ·adapter LoRA (W_adapter − W_dev), as the graph's exact λ branch
         from safetensors.torch import load_file
         from sana_alpha import models
@@ -850,7 +882,7 @@ def verify(version, items=4, steps=4, guidance=None, size=512, chunks=False, lam
         cond_o = sessions["vae_encoder"].run(None, {"image": image_in})[0]
         v_o = sessions["transformer"].run(None, {"latents": c["noise"] * 0.8 + 0.2 * cond_o, "cond_latents": cond_o, "sigma": np.array([0.8], np.float32),
                                                  "prompt_embeds": emb_o, "adapter_scale": np.array([lam], np.float32), **split})[0]
-        image_o = onnx_generate(sessions, c["ids"], null_ids, c["trimask"], c["noise"], steps, guidance, adapter_scale=lam, gamma=gamma)
+        image_o = onnx_generate(sessions, c["ids"], null_ids, c["trimask"], c["noise"], steps, guidance, adapter_scale=lam, gamma=gamma, mu=mu)
         r = dict(caption=c["caption"], text_rel=rel(emb_o, c["emb_t"]), cond_rel=rel(cond_o, c["cond_t"]), velocity_rel=rel(v_o, c["v_t"]),
                  image_psnr=psnr(image_o, c["image_t"]), nonfinite=int((~np.isfinite(image_o)).sum()), lam=lam, gamma=gamma,
                  **({} if gamma is None else dict(heads_max_diff=float(np.abs(image_o - image_o[:1]).max()))))

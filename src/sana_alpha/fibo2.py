@@ -331,6 +331,7 @@ def set_context_tokens(transformer, cond):
 
 SPLIT_BACKGROUNDS = {"gray": 0.5, "white": 1.0, "black": 0.0}  # splitter heads in output order (§17), the background each target is composited on (split_alpha.composite_on_gray's gray_level); head 0 is the model's original output
 SPLITTER_HEAD_FILE = "splitter_head.safetensors"  # In a splitter step folder: SplitterHead.delta (weight, bias), float32
+MATTE_HEAD_FILE = "matte_head.safetensors"  # In a matte step folder (§21): SplitterHead.matte (weight, bias), float32
 
 
 class SplitterHead(torch.nn.Module):
@@ -349,6 +350,18 @@ class SplitterHead(torch.nn.Module):
         self.delta = torch.nn.Linear(base.in_features, heads * base.out_features, device=base.weight.device, dtype=torch.float32)
         torch.nn.init.zeros_(self.delta.weight)
         torch.nn.init.zeros_(self.delta.bias)
+        self.matte, self.mu = None, 1.0  # the matte adapter (§21): add_matte
+
+    def add_matte(self):
+        """
+        Command (adds the trainable float32 Linear(dim, 128) self.matte, zeros). A 4th head, the alpha matte (§21):
+        the gray head + μ·Δ_matte, so it starts as a copy of the gray head and μ = 0 leaves the splitter's 3 heads and
+        outputs unchanged (the matte head then equals the gray head). Returns self.
+        """
+        self.matte = torch.nn.Linear(self.base.in_features, self.base.out_features, device=self.base.weight.device, dtype=torch.float32)
+        torch.nn.init.zeros_(self.matte.weight)
+        torch.nn.init.zeros_(self.matte.bias)
+        return self
 
     def forward(self, x):
         """Command (sets self.last). (B, N, dim) -> head 0 (B, N, 128); self.last = all heads (B, N, K·128)."""
@@ -359,6 +372,9 @@ class SplitterHead(torch.nn.Module):
         # "B N C, B N (K C) -> B N (K C)": base tiled K times. Not einx: the web export traces N symbolically, and einx
         # bakes the traced N into a reshape (fibo2_web.SplitterVelocityGraph failed at a second latent size)
         self.last = base.repeat(1, 1, self.heads) + self.gamma * delta
+        if self.matte is not None:  # head 4 = the gray head + μ·Δ_matte (§21)
+            matte = self.last[..., :base.shape[-1]] + self.mu * F.linear(x, self.matte.weight.to(x.dtype), self.matte.bias.to(x.dtype))
+            self.last = torch.cat([self.last, matte], dim=-1)
         return self.last[..., :base.shape[-1]]
 
 
@@ -386,7 +402,7 @@ def split_velocities(head, height, width):
         height, width (int): LH, LW of the latents
 
     Returns:
-        torch.Tensor: (B, K, 32, LH, LW), head order SPLIT_BACKGROUNDS
+        torch.Tensor: (B, K, 32, LH, LW), head order SPLIT_BACKGROUNDS (+ the matte head last when added, K = 4)
 
     Examples:
         >>> head = SplitterHead(torch.nn.Linear(4, 8))  # 8 = 2·2 patch × 2 channels, K = 3
@@ -398,7 +414,8 @@ def split_velocities(head, height, width):
     """
     import einx
 
-    return einx.rearrange("B (H W) (K C PH PW) -> B K C (H PH) (W PW)", head.last, H=height // 2, K=head.heads, PH=2, PW=2)
+    return einx.rearrange("B (H W) (K C PH PW) -> B K C (H PH) (W PW)", head.last, H=height // 2,
+                          K=head.heads + (head.matte is not None), PH=2, PW=2)
 
 
 ALPHA_ILS_FLOOR = 1e-9  # rgba_from_composites' F step divides by max(α, this): at α = 0 the objective ignores F, but its direction lets α leave 0
@@ -499,7 +516,24 @@ def load_splitter(transformer, folder, gamma):
     return head
 
 
-def load_eval_model(checkpoint, device, base=FIBO2_DIR, gamma=1.0):
+def load_matte(transformer, folder, mu):
+    """
+    Command (changes transformer weights in place). A matte step folder (§21) at strength μ, on a model that already has
+    its splitter (load_splitter): the matte LoRA merged with scale μ, and the head's matte delta with head.mu = μ.
+    μ = 0 leaves the splitter model's outputs unchanged (its 4th head is then a copy of the gray head). Any real μ works
+    (m00893: negative and > 1 too).
+
+    Returns:
+        SplitterHead
+    """
+    merge_lora(transformer, load_file(folder / "lora.safetensors"), scale=mu)
+    head = splitter_of(transformer).add_matte()
+    head.matte.load_state_dict(load_file(folder / MATTE_HEAD_FILE))
+    head.mu = mu
+    return head
+
+
+def load_eval_model(checkpoint, device, base=FIBO2_DIR, gamma=1.0, mu=1.0):
     """
     Query (reads weights, allocates GPU memory). The shipped model of one control checkpoint (§14 step 3: FIBO2 + the
     control LoRA alone, the adapter removed) with the text encoder, the VAE, its BatchNorm stats and the null prompt.
@@ -511,7 +545,8 @@ def load_eval_model(checkpoint, device, base=FIBO2_DIR, gamma=1.0):
         checkpoint (str): a train_fibo2 control step folder, e.g. models/fibo2/fibo2_tri/step_002000
         device (torch.device)
         base (str): FIBO2_DIR or TURBO_DIR
-        gamma (float): splitter checkpoints only: the splitter strength γ (load_splitter)
+        gamma (float): splitter and matte checkpoints: the splitter strength γ (load_splitter)
+        mu (float): matte checkpoints only: the matte strength μ (load_matte)
 
     Returns:
         dict: transformer, text (encoder, processor), vae, bn, null (embeds, mask)
@@ -519,11 +554,13 @@ def load_eval_model(checkpoint, device, base=FIBO2_DIR, gamma=1.0):
     from diffusers import AutoencoderKLFlux2
 
     meta = json.loads((models.localize(checkpoint) / "meta.json").read_text())
-    assert meta["mode"] in ("control", "splitter") and not meta["gates"], f"{checkpoint}: only control or splitter checkpoints without gates are evaluated"
+    assert meta["mode"] in ("control", "splitter", "matte") and not meta["gates"], f"{checkpoint}: only control, splitter or matte checkpoints without gates are evaluated"
     transformer = load_transformer(device, base=base)
-    if meta["mode"] == "splitter":  # W_base + control + γ·splitter (§17): the splitter was trained on the control checkpoint it names
+    if meta["mode"] in ("splitter", "matte"):  # W_base + control + γ·splitter (§17) [+ μ·matte (§21)]: each names the checkpoint it was trained on
         merge_lora(transformer, load_file(models.localize(meta["control"]) / "lora.safetensors"), scale=1.0)
-        load_splitter(transformer, models.localize(checkpoint), gamma)
+        load_splitter(transformer, models.localize(meta["splitter"] if meta["mode"] == "matte" else checkpoint), gamma)
+        if meta["mode"] == "matte":
+            load_matte(transformer, models.localize(checkpoint), mu)
     else:
         merge_lora(transformer, load_file(models.localize(checkpoint) / "lora.safetensors"), scale=1.0)
     if (models.localize(checkpoint) / "student.safetensors").exists():  # a distill_fibo2.transfer folder: + the 4-step student LoRA

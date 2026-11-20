@@ -10,10 +10,11 @@ fibo2.normalize_latents applies it at training time. 1024: 1 MB, 768: 576 KB, 51
                            fibo2_colorbg_{1024,768,512,256}  rgba on its encode_colorbg color (the adapter target, as adapter_v2)
                            fibo2_white_{1024,768,512,256}    rgba on white, job "split" (a splitter LoRA target, manifest §17)
                            fibo2_black_{1024,768,512,256}    rgba on black, job "split" (a splitter LoRA target, manifest §17)
+                           fibo2_matte_{1024,768,512,256}    rgba's alpha as a gray image, job "matte" (the matte adapter's target, §21)
     trimask_augmentations  fibo2_trimask_{1024,768,512,256}  the trimask, copied to 3 channels (the control condition)
 Images are area-downsampled from 1024 in uint8, as in encode_multires.
 
-    encode_fibo2.py WORKER WORKERS [--jobs magick,trimask|split]    (from data/; the GPU is $CUDA_VISIBLE_DEVICES)
+    encode_fibo2.py WORKER WORKERS [--jobs magick,trimask|split|matte]    (from data/; the GPU is $CUDA_VISIBLE_DEVICES)
 """
 
 import os
@@ -58,13 +59,15 @@ def source_images(row, job):
 
     Args:
         row (dict): page_id and the job's blob_info columns
-        job (str): "magick", "trimask" or "split"
+        job (str): "magick", "trimask", "split" or "matte"
 
     Returns:
         dict: {output prefix: uint8 (H, W) or (H, W, 3)}
     """
     if job == "trimask":
         return {"fibo2_trimask": read_png(row["trimask"], gray=True)}
+    if job == "matte":  # The alpha itself, white = opaque (encoded like the trimask: one gray channel copied to 3)
+        return {"fibo2_matte": read_rgba(row["rgba"])[..., 3]}
     if job == "split":  # The same composite as split_alpha's rgb_on_gray, on white and on black
         rgba = read_rgba(row["rgba"])
         return {"fibo2_white": composite_on_gray(rgba, 1.0), "fibo2_black": composite_on_gray(rgba, 0.0)}
@@ -109,7 +112,8 @@ def main(worker, workers, batch_divisor=1, jobs="magick,trimask", limit=None):
     every_job = {  # job: (table, key columns, sql key text, blob columns, done column)
         "magick": ("magick_samples", ["page_id"], "page_id", ["rgb_on_gray", "rgba"], "fibo2_colorbg_256"),
         "trimask": ("trimask_augmentations", ["page_id", "method", "variant"], "concat(page_id, method)", ["trimask"], "fibo2_trimask_256"),
-        "split": ("magick_samples", ["page_id"], "page_id", ["rgba", "fibo2_colorbg_256"], "fibo2_black_256"),  # colorbg: only rows the
+        "split": ("magick_samples", ["page_id"], "page_id", ["rgba", "fibo2_colorbg_256"], "fibo2_black_256"),
+        "matte": ("magick_samples", ["page_id"], "page_id", ["rgba", "fibo2_colorbg_256"], "fibo2_matte_256"),  # the training rows, as split  # colorbg: only rows the
         # magick job encoded, i.e. the training rows (3 rows store an RGB PNG as rgba and were never encoded)
     }
     names = jobs.split(",") if isinstance(jobs, str) else list(jobs)  # Fire parses "a,b" as a tuple
