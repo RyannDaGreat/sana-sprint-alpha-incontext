@@ -5,7 +5,6 @@ import '@fontsource-variable/jost';   // a built-in choice of the text tool (fon
 import './style.css';
 import { MatteEditor } from './matte.js';
 import { initPanes } from './panes.js';
-import { attachPanZoom } from './panzoom.js';
 import { fillFontSelect, ensureFont } from './fonts.js';
 import { MaskGallery } from './gallery.js';
 import { buildTrimaskUi, DEFAULT_GUI } from './trimask_ui.js';
@@ -950,7 +949,6 @@ function buildPad(saved) {
       if (slot.key) pad.sched.setPaused(slot.key, slot.off);
       scheduleSave();
     });
-    attachPanZoom(el.querySelector('.square'));  // after the click toggle: a pan drag swallows its click
     return slot;
   });
 }
@@ -1284,6 +1282,4 @@ async function init() {
 }
 
 initPanes(document.querySelector('.workbench'));
-attachPanZoom($('out-gray').parentElement);  // the output views (RGB / RGBA / splitter views) share one view
-attachPanZoom(document.querySelector('.gal-view-img'));  // the gallery full view (m00889)
 init().catch(fail);
