@@ -18,6 +18,7 @@
   --peek-shown: #2563eb;    /* preview timeline: the shown (blended) preview */
   --peek-step: #d4d4d8;     /* preview timeline: step boundaries */
   --peek-plot-h: 220px;
+  --tl-plot-h: 96px;      /* the Timeline tab's error curve: short, so the output image keeps the room */
   --peek-heat-w: 180px;
   --matte-frame: rgba(0, 0, 0, 0.12);
   --checker-a: #cfcfcf;
@@ -430,6 +431,7 @@ button.link { border: 0; background: none; padding: 0; min-height: 0; }
 .peek-plot .step { stroke: var(--peek-step); }
 .peek-plot .marker { stroke: var(--fg); stroke-width: 2; }
 .tl-plot { cursor: pointer; }
+.tl-plot svg { height: var(--tl-plot-h); }
 .timeline-controls { align-items: center; gap: var(--space-2); }
 .timeline-controls input[type=range] { flex: 1; }
 .peek-plot text { fill: var(--muted); font-size: var(--size-meta); }
