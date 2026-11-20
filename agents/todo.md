@@ -7,12 +7,12 @@
 | 48 | Final matte model: control_v2 step 6000 (Sprint 1-step IoU 0.95, 2-step 0.97) | — | live as web default |
 | 120 | Splitter data: BlueJay white/black composite encode (§17) | +30 (processor), +3 dtab | `51d04d1`, `c4287b1`, `b8cedff` (skip 3 RGB-only rows), not pushed; full encode running since 11:25 PM |
 | 121 | Splitter LoRA training + sampling + RGBA solve (§17) | not measured | Fork SplitTrain running |
-| 122 | Splitter training from step 7500, fresh optimizer, 5,000 steps, all 8 GPUs (m00749, m00750) | — | starts after the step-7500 GPU export (≈ 30 min after the encode) |
+| 122 | Splitter training from step 7500, fresh optimizer, 5,000 steps, GPUs 0–5 (m00760: GPUs 6–7 for the fast decoder; none idle) | — | after the step-7500 export |
 | 123 | Splitter in the browser: export, γ slider, 4 views, turbo | not measured | Fork SplitWeb running (started ~11:32 PM) |
 | 124 | Two progress bars: per step and per model part (m00738) | not measured | Fork ProgressBars running |
 | 125 | FIBO2 step 7500 to the web (m00741, m00750): export + verify on 2 GPUs in parallel before training, then publish + live test with the compare on CPU during training | — | after the encode |
-| 126 | UI polish: icons for editor tools, aligned equal-width buttons, dilate/erode before-after icons with labels, font dropdown previews fonts; Sonnet sub-frenzy (3 auditors) then implement, push (m00747) ; model menu cache dots: yellow = partly, green = fully cached (m00748) | not measured | Fork UIPolish running (worktree) |
-| 127 | Sneak peek (§18, m00755): Tweedie previews per step, tiny decoder (research sub-frenzy), per-block stop-gradient shortcut heads, async in the app, ≤ 10% slower | not measured | Fork SneakPeek running |
+| 126 | UI polish: icons for editor tools, aligned equal-width buttons, dilate/erode before-after icons with labels, font dropdown previews fonts; Sonnet sub-frenzy (3 auditors) then implement, push (m00747) ; model menu cache dots: yellow = partly, green = fully cached (m00748) ; blind Haiku slop test vs professional UIs, pass ≤ 65% (m00768) | not measured | Fork UIPolish running (worktree) |
+| 127 | Sneak peek (§18, m00755): Tweedie previews per step, tiny decoder (research sub-frenzy), per-block stop-gradient shortcut heads, async in the app, ≤ 10% slower ; readable notification once the plan is researched and confident (m00759) | not measured | Fork SneakPeek running |
 | 50–52 | Trimask: table (337,934 rows, 19 methods, 0 violations, 4 resolutions), encode, training code | see git log | pushed |
 | 53 | control_tri_scratch: from scratch, multires | — | stopped 1:29 PM at step 15840 by user (m00695); last save 15500; 15000 live |
 | 54 | Checkpoint script agents/.scratchpad/tri_checkpoint.sh (merge, λ int4 web, verify, publish) | b09151d 742c2ac dec4e00 | pushed; step 3000 + 6000 live, notified 8:13/8:33 AM; 9000 queued (tmux tri_ckpt9) |
@@ -38,3 +38,14 @@
 - [ ] After training: galleries on all GPUs (GALLERY=1), journal page
 - [ ] Mask consolidation pass, publish, push, notify (m00686)
 - Deadline 2:15 PM ET 2026-11-18 (m00644)
+
+## Notification points (m00725, m00728, m00731, m00732, m00741, m00745, m00759, m00764, m00765) — every message starts "Sana:"
+1. Encode finished + step-7500 export started
+2. Splitter training started (after the first real steps)
+3. Step-7500 exports finished (verified, published, live-tested, link)
+4. Everything pushed, ready to play with
+5. Sneak peek plan researched and confident (readable, amnesia)
+6. Fast-decoder training started (sneak peek) + ETA; then a measured-ETA follow-up
+7. Sneak peek highway attached to training (training restart) + ETA; then a follow-up
+8. Splitter evaluation: how good or bad (readable, amnesia)
+9. Problems at once

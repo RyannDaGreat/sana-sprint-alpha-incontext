@@ -575,3 +575,63 @@ I was also thinking about having a nice preview formulation, which will be calle
 
 ## m00756 — 2026-11-20 ~12:09 AM
 And don't forget to transcribe me.
+
+## m00757 — 2026-11-20 ~12:12 AM
+I know for other models there have been modifications of the VAE decoder that made them way faster, but I don't know how much smaller and how much faster they did. If they're not this dramatic speedup that we're seeing, then they might not be good enough. But anyway, the decoder — I messed up. There's a separate part. The sneak peek — we'll call it the sneak peek highway — is what predicts the last block of the transformer, because it kind of skips all the other transformer blocks and kind of distills itself into what the last transformer block outputted. Meanwhile, the fast decoder will be used to actually visualize that into pixels for us.
+
+## m00758 — 2026-11-20 ~12:14 AM
+You're also going to want to work on the front-end code for this. Once the back-end code is ready for sneak peek — I'd like to know — when we do the training run, I'd like to include it. Make sure that it's well informed and researchy, so that the first time we get it, it will work. Be very confident that this will work before you implement it, and especially before we train it. Also, the UI, when I first see the UI, should have this running off the gate. We should have a switch that allows for sneak peek, but by default it will be turned on.
+
+## m00759 — 2026-11-20 ~12:12 AM
+Once you have a researched plan for the sneak peek frenzy, with citations or not, and you're very confident you have a plan for it, give me a human readable notification, assuming that I have amnesia.
+
+## m00760 — 2026-11-20 ~12:14 AM (pasted)
+Whatever plan it is should be able to — once you create your decoder, which can be tested separately — create something with a high LPIPS score. Your goal is to make it as fast and lightweight as possible for the decoder, which will help with or without the sneak peek highway, because of Tweedie's formula; but to maximize the one with the highest LPIPS score — or SSIM is actually even better than LPIPS; maybe we'll use that for the RGB predictions, and L2 of course. You can create a journal report for your research on this, and it should have images to prove the differences between different approaches. You can have a Sonnet sub-frenzy create these different approaches and test them rapidly. If you need one spare GPU to do these tests, or two spare GPUs to do these tests to develop this algorithm — probably only one spare GPU is needed, so that we can train on seven GPUs, because eventually we'll be stopping that training to start it again to add the highway, right? So if you need to figure out the best way to create a decoder, or if you need to train something to create that faster decoder, then you can reserve two GPUs for it and leave the other six. But the point is that at no point should any GPUs be idle. They should be working hard, or at least you should be planning for that. That's why I was stingy with letting not all eight go to training, but you get what I'm asking for.
+
+## m00761 — 2026-11-20 ~12:16 AM
+Your decision, in other words, should not be sitting on the couch pondering; it should be doing tests, iterating, to find the best possible way to do this.
+
+## m00762 — 2026-11-20 ~12:17 AM
+And again, all eval work is being done on BlueJay, correct? That way, in the future, we can easily create massive visualizations from literally anything.
+
+## m00763 — 2026-11-20 ~12:18 AM
+No, I don't want stupid things in BlueJay, only things that I actually care to look at.
+
+## m00764 — 2026-11-20 ~12:19 AM
+Show me the fork table, and then I'm going to leave you alone for a while. Notify me when things are supposed to be notified to me. Actually, give me a list of notification points, too.
+
+## m00765 — 2026-11-20 ~12:20 AM
+You should also notify me when Sneak Peek training starts, and give me another ETA with a notification after that as well. And when training starts I need a notification too.
+
+## m00766 — 2026-11-20 ~12:22 AM
+The part where the fork table explicitly says what was not asked inside the status is brilliant, and I'd like you to add a one-line amendment into my user AGENTS.md file. Pull first to make sure it's up to date, and then add that, then push. Well, actually, maybe not the AGENTS.md file — wherever fork mode stuff is talked about.
+
+## m00767 — 2026-11-20 ~12:24 AM
+By the way, I'd like to emphasize one more line: NOT ASKED is something that should be used sparingly. Basically the same requirement — do you remember the requirements I gave for NOT ASKED? Generally, you shouldn't do things I don't ask for, because it makes things confusing. But where it's needed to comply, that's where NOT ASKED stuff happens, or where you're preventing foot guns, that kind of thing. Although it's not a hard rule; it really depends on the context. If I'm just vibing along, sometimes NOT ASKED is okay, but if I'm being more strict, NOT ASKED becomes a bigger problem, and it's your job to infer when it is and is not okay.
+
+## m00768 — 2026-11-20 ~12:26 AM
+Well, I'm actually okay with UI polish making things generally prettier. The main goal is to make it look more professional and less slop. And the ultimate test of this is to have an agent unable to reliably tell, between screenshots, between professional interfaces and our interface — whether a Haiku agent is able to tell which one is slop and which one is not. Professional UIs versus our UI, put them side by side. And if the Haiku agent is unlikely — a 50% chance, or approximately able to guess, like under 60 or 70 percent able to guess which one is slop and which one is not — then it's good.
+
+## m00769 — 2026-11-20 ~12:38 AM
+Clean up unused tmux sessions.
+
+## m00770 — 2026-11-20 ~12:52 AM
+Why is the sneak peek not on the fork table?
+
+## m00771 — 2026-11-20 ~12:54 AM
+We're supposed to be doing a lot of research and development for the sneak peek, right?
+
+## m00772 — 2026-11-20 ~12:56 AM
+Okay, well, I think it's about time you start babysitting your agents, then.
+
+## m00773 — 2026-11-20 ~12:57 AM
+Stay in bulldog autopilot babysitting fork mode.
+
+## m00774 — 2026-11-20 ~1:02 AM
+By the way, another thing that might help is that for the sneak peek learning we might make it residual, so that it can take in the input of the previous sneak peek as well. That might make things better; add some nonlinearities by doing that, and it would be effectively free.
+
+## m00775 — 2026-11-20 ~1:05 AM
+I'm really talking about the sneak peek highway for that one. The sneak peek highway can have residuals between the different transformer layers. I don't know if it will help or not, but I have a hard time imagining it would make it worse.
+
+## m00776 — 2026-11-20 ~1:12 AM
+Record the result of all your tests in the manifest, so that later on I can do paper stuff on it.
