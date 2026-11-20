@@ -24,6 +24,7 @@ const { Segmenter, SEG_FILE } = await import('./segment.js');
 const REALTIME_DEBOUNCE_MS = 120;   // wait this long after the last edit before a real-time run
 const STEP_CHOICES = { sana: [1, 2, 3, 4], fibo2: [1, 2, 4, 8, 12, 20, 30, 50] };  // Sprint: few-step; FIBO2: a flow model (training previews: 20)
 const PROGRESS_REDRAW_MS = 100;     // throttle for progress-bar text updates
+const PROGRESS_TICK_MS = 1000;      // rows being read or turned into a session count their seconds (m00881)
 const SEED_RANGE = 2 ** 31;
 
 const $ = (id) => document.getElementById(id);
@@ -742,6 +743,7 @@ function rowKey(f) { return `${f.role}/${f.name}/${f.url}`; }
 
 function progressRows(files, box = $('files')) {
   box.innerHTML = '';
+  clearInterval(box.ticker);  // a previous load's ticker
   const t0 = performance.now();
   const rows = new Map();
   for (const f of files) {
@@ -751,27 +753,41 @@ function progressRows(files, box = $('files')) {
     row.querySelector('.name').textContent = f.name;
     box.append(row);
     const k = rowKey(f);  // two files with the same bytes share a content-addressed URL: never key rows by URL alone (rows stuck at 'waiting')
-    rows.set(k, [...(rows.get(k) ?? []), { row, drawn: 0 }]);
+    rows.set(k, [...(rows.get(k) ?? []), { row, drawn: 0, base: null, busy: null }]);
   }
-  return (f, done, total, fromCache) => { for (const r of rows.get(rowKey(f)) ?? []) update(r, done, total, fromCache); };
-  function update(r, done, total, fromCache) {
-    if (fromCache === null) {  // the file's bytes are in hand (Pipeline.load): a row no progress call reached must not stay 'waiting' (m00861)
-      r.row.querySelector('.bar > div').style.width = '100%';  // its session can use it: the last state of every row (never a bare 'queued')
-      const info = r.row.querySelector('.info');
-      if (!info.textContent.endsWith(' · loaded')) info.textContent = `${r.touched ? info.textContent : formatBytes(total)} · loaded`;
+  // rows in use right now say so and count seconds (m00881: 'no indication if any are LOADING'); one tick per second
+  const all = [...rows.values()].flat();
+  const show = (r) => { r.row.querySelector('.info').textContent = `${r.base ?? formatBytes(r.total ?? 0)} · ${r.busy.label}… ${((performance.now() - r.busy.since) / 1000).toFixed(0)} s`; };
+  box.ticker = setInterval(() => { for (const r of all) if (r.busy) show(r); }, PROGRESS_TICK_MS);
+  return (f, done, total, state) => { for (const r of rows.get(rowKey(f)) ?? []) update(r, done, total, state); };
+  /**
+   * Command. One row's state: false = downloading (done of total), true = cached, 'reading' = being read from the
+   * cache now, 'creating' = its session is being created now, null = in a session ('· loaded').
+   */
+  function update(r, done, total, state) {
+    r.total = total;
+    if (state === 'reading' || state === 'creating') {
+      r.row.querySelector('.bar > div').style.width = '100%';
+      r.busy = { label: state === 'reading' ? 'reading' : 'creating session', since: performance.now() };
+      show(r);
       return;
     }
-    r.touched = true;
+    if (state === null) {  // its bytes are in a session (Pipeline.load): the last state of every row (never a bare 'queued')
+      r.busy = null;
+      r.row.querySelector('.bar > div').style.width = '100%';
+      r.row.querySelector('.info').textContent = `${r.base ?? formatBytes(total)} · loaded`;
+      return;
+    }
     const now = performance.now();
     if (done < total && now - r.drawn < PROGRESS_REDRAW_MS) return;
     r.drawn = now;
     r.row.querySelector('.bar > div').style.width = `${(100 * done) / total}%`;
-    r.row.classList.toggle('cached', fromCache);
-    if (fromCache) { r.row.querySelector('.info').textContent = `${formatBytes(total)} · cached`; return; }
+    r.row.classList.toggle('cached', state);
+    if (state) { r.base = `${formatBytes(total)} · cached`; r.row.querySelector('.info').textContent = r.base; return; }
     const seconds = (now - t0) / 1000;
     const { mbps, eta } = rate(done, total, seconds);
-    r.row.querySelector('.info').textContent = done === total
-      ? `${formatBytes(total)} · downloaded in ${seconds.toFixed(1)} s · ${mbps.toFixed(1)} MB/s`
+    if (done === total) r.base = `${formatBytes(total)} · downloaded in ${seconds.toFixed(1)} s · ${mbps.toFixed(1)} MB/s`;
+    r.row.querySelector('.info').textContent = done === total ? r.base
       : `${formatBytes(done)} / ${formatBytes(total)} · ${mbps.toFixed(1)} MB/s · ETA ${formatEta(eta)}`;
   }
 }
@@ -802,7 +818,8 @@ async function loadNow(v) {
   status(`Loading ${v.id}…`);
   const t0 = performance.now();
   const prepare = (k, n, role) => status(`Preparing ${v.id}: ${role.replace('_', ' ')} · part ${k + 1} of ${n} (${((performance.now() - t0) / 1000).toFixed(0)} s)`);
-  state.pipeline = await Pipeline.load(v, ep, progressRows(versionFiles(v)), prepare, (msg) => status(msg, true));
+  const step = (what, seconds) => status(`Preparing ${v.id}: ${what} · ${seconds.toFixed(0)} s (${((performance.now() - t0) / 1000).toFixed(0)} s in all)`);
+  state.pipeline = await Pipeline.load(v, ep, progressRows(versionFiles(v)), prepare, (msg) => status(msg, true), step);
   const url = new URL(location.href);
   url.searchParams.set('version', v.id);
   history.replaceState(null, '', url);

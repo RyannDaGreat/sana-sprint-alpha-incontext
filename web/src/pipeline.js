@@ -17,7 +17,7 @@ const VAE_FACTOR = { sana: 32, fibo2: 8 };
 const GEMMA_PAD_ID = 0;
 const DOWNLOAD_PARALLEL = 6;  // files downloading at once (the old build fetched every file at once; 6 keeps rows readable and the network busy)
 const STALL_MS = 20000;  // a load phase without progress this long is reported with its exact step (silence never again, m00871)
-const STALL_CHECK_MS = 5000;
+const STALL_CHECK_MS = 1000;  // the load ticker: the status line shows the current step and its seconds every tick (m00881)
 const PREFETCH_PARTS = 4;  // graph parts whose downloads are pulled ahead of session creation (downloads only: bytes are read just in time)
 // FIBO2's sessions need more than wasm32's 4 GB, so they run on the Memory64 build (web/scripts/build_ort_memory64.sh,
 // served from public/ort-memory64/); SANA keeps npm's build. ORT initializes its wasm once per page: one runtime per page.
@@ -258,22 +258,24 @@ export class Pipeline {
    * @param {(file: object, done: number, total: number, fromCache: boolean) => void} onProgressRow
    * @param {(made: number, total: number, role: string) => void} [onPrepare] - session creation progress
    * @param {(message: string) => void} [onStall] - a phase made no progress for STALL_MS: the exact step, and the cache locks
+   * @param {(step: string, stepSeconds: number) => void} [onStep] - every tick: the current step and how long it has run
    * @returns {Promise<Pipeline>}
    */
-  static async load(version, ep, onProgressRow, onPrepare = () => {}, onStall = () => {}) {
+  static async load(version, ep, onProgressRow, onPrepare = () => {}, onStall = () => {}, onStep = () => {}) {
     const watch = { step: 'starting', at: performance.now(), reading: new Set() };  // the load watchdog's view: current step, last progress, unfinished cache reads
-    const mark = (step) => { watch.step = step; watch.at = performance.now(); };
+    const mark = (step) => { watch.step = step; watch.at = watch.since = performance.now(); console.info(`load: ${step}`); onStep(step, 0); };
     const onProgress = (...a) => { watch.at = performance.now(); onProgressRow(...a); };
+    let warned = 0;  // the last stall report: one per STALL_MS, not one per tick
     const timer = setInterval(async () => {
-      const idle = performance.now() - watch.at;
-      if (idle < STALL_MS) return;
+      const now = performance.now(), idle = now - watch.at;
+      if (idle < STALL_MS) { onStep(watch.step, (now - (watch.since ?? now)) / 1000); return; }  // stalled: the stall message replaces the step line
       const locks = await navigator.locks.query();
       const opfs = (list) => list.filter((l) => l.name.startsWith('opfs:')).map((l) => `${l.mode} ${l.name.slice(5, 17)}…`);
       const reads = [...watch.reading];
       const msg = `Load stalled ${(idle / 1000).toFixed(0)} s at: ${watch.step}`
         + (reads.length ? ` · still reading ${reads.slice(0, 3).join(', ')}${reads.length > 3 ? ` (+${reads.length - 3})` : ''}` : '') + ` · locks held ${opfs(locks.held).length}, pending ${opfs(locks.pending).length}`
         + (locks.pending.length ? ' (another tab of this app may hold a model file: close it)' : '');
-      console.warn(msg, { held: opfs(locks.held), pending: opfs(locks.pending) });
+      if (now - warned >= STALL_MS) { warned = now; console.warn(msg, { held: opfs(locks.held), pending: opfs(locks.pending) }); }  // once per STALL_MS
       onStall(msg);
     }, STALL_CHECK_MS);
     try { return await Pipeline.loadWatched(version, ep, onProgress, onPrepare, mark, watch.reading); } finally { clearInterval(timer); }
@@ -304,7 +306,7 @@ export class Pipeline {
     }
     const kick = () => { while (started < entries.length && started - finished < DOWNLOAD_PARALLEL) entries[started++].start(); };
     kick();
-    const get = (e) => (e.promise ??= (e.start(), e.cached).then(() => { reading.add(e.name); return readCached(e).finally(() => reading.delete(e.name)); })  // a file needed first jumps the download queue
+    const get = (e) => (e.promise ??= (e.start(), e.cached).then(() => { reading.add(e.name); onProgress(e, 0, e.bytes, 'reading'); return readCached(e).finally(() => reading.delete(e.name)); })  // a file needed first jumps the download queue
       .then((data) => { onProgress(e, e.bytes, e.bytes, null); return data; }));  // null: its bytes are in hand ('loaded')
     const drop = (e) => { e.promise = null; };  // the bytes can be collected; a later get() reads the cache again
     const byRole = {};
@@ -335,9 +337,11 @@ export class Pipeline {
     for (const [k, q] of plan.entries()) {
       prefetch(k);
       onPrepare(made, nGraphs, q.role);
-      mark(`waiting for the files of ${q.role} part ${q.i + 1} (${[q.g, ...q.own].map((e) => e.name).join(', ')})`);
+      const part = `${q.role.replace('_', ' ')} part ${q.i + 1} (session ${made + 1} of ${nGraphs})`;
+      mark(`${part}: reading ${[q.g, ...q.own].map((e) => e.name).join(', ')}`);
       const [graph, ...weights] = await Promise.all([q.g, ...q.own].map(get));
-      mark(`creating the ${q.role} part ${q.i + 1} session`);
+      mark(`${part}: creating the session`);
+      for (const e of [q.g, ...q.own]) onProgress(e, e.bytes, e.bytes, 'creating');
       await new Promise((r) => setTimeout(r, 0));  // one task per part so the status can paint (session creation blocks the page)
       (sessions[q.role] ??= []).push(await ort.InferenceSession.create(graph, {
         executionProviders: [ep],
@@ -345,6 +349,7 @@ export class Pipeline {
         ...(q.onGpu ? { preferredOutputLocation: Object.fromEntries(q.g.gpu_outputs.map((n) => [n, 'gpu-buffer'])) } : {}),
       }));
       drop(q.g);
+      for (const e of [q.g, ...q.own]) onProgress(e, e.bytes, e.bytes, null);  // back to '· loaded'
       for (const e of q.own) { users.set(e, users.get(e) - 1); if (users.get(e) === 0) drop(e); }
       made += 1;
       if (q.last) { p.chains[q.role] = sessions[q.role]; p.types[q.role] = Object.assign({}, ...sessions[q.role].map(inputTypes)); }
