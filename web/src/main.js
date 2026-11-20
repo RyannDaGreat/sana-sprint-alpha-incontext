@@ -269,7 +269,7 @@ for (const t of document.querySelectorAll('#single-head .tab')) {  // the output
     document.querySelectorAll('#single-head .tab').forEach((x) => x.classList.toggle('on', x === t));
     for (const view of ['gray', 'rgba', 'alpha', 'uncertainty', 'timeline']) $(`out-${view}`).hidden = t.dataset.view !== view;
     $('timeline-controls').hidden = t.dataset.view !== 'timeline';
-    $('tl-plot').hidden = t.dataset.view !== 'timeline' || !timeline.errors;
+    $('tl-plot').hidden = t.dataset.view !== 'timeline' || !tape.errors;
     if (t.dataset.view === 'timeline') showFrame(Number($('tl-slider').value));
   });
 }
@@ -389,12 +389,12 @@ document.addEventListener('keydown', (e) => {
 const TIMELINE_CAP_BYTES = 300 * 2 ** 20;  // keeps the tab's memory bounded; the oldest previews go first beyond it
 const TIMELINE_FPS = 12;
 const ERROR_PX = 64;  // frames and the final image are compared at this size (a mean error needs no more pixels)
-const timeline = { frames: [], bytes: 0, dropped: 0, run: 0, next: 0, pending: 0, timer: 0, errors: null };
+const tape = { frames: [], bytes: 0, dropped: 0, run: 0, next: 0, pending: 0, timer: 0, errors: null };  // not 'timeline': generate() destructures the pipeline's timeline
 
 /** Command. Empties the timeline (a new generation starts); bumps the run so late frames of the old run are ignored. */
 function timelineReset() {
-  for (const f of timeline.frames) f.bitmap.close();
-  Object.assign(timeline, { frames: [], bytes: 0, dropped: 0, run: timeline.run + 1, next: 0, pending: 0, errors: null });
+  for (const f of tape.frames) f.bitmap.close();
+  Object.assign(tape, { frames: [], bytes: 0, dropped: 0, run: tape.run + 1, next: 0, pending: 0, errors: null });
   timelinePlay(false);
   updateTimeline();
 }
@@ -409,19 +409,19 @@ function timelineReset() {
  * @returns {Promise<void>}
  */
 function timelineAdd(source, label, { w, h }) {
-  const run = timeline.run, slot = timeline.next++;
-  timeline.pending += 1;
+  const run = tape.run, slot = tape.next++;
+  tape.pending += 1;
   return createImageBitmap(source, 0, 0, w, h).then((bitmap) => {
-    timeline.pending -= 1;
-    if (run !== timeline.run) { bitmap.close(); return; }
-    timeline.frames.push({ bitmap, label, slot });
-    timeline.frames.sort((x, y) => x.slot - y.slot);
-    timeline.bytes += 4 * w * h;
-    while (timeline.bytes > TIMELINE_CAP_BYTES && timeline.frames.length > 1) {
-      const old = timeline.frames.shift();
-      timeline.bytes -= 4 * old.bitmap.width * old.bitmap.height;
+    tape.pending -= 1;
+    if (run !== tape.run) { bitmap.close(); return; }
+    tape.frames.push({ bitmap, label, slot });
+    tape.frames.sort((x, y) => x.slot - y.slot);
+    tape.bytes += 4 * w * h;
+    while (tape.bytes > TIMELINE_CAP_BYTES && tape.frames.length > 1) {
+      const old = tape.frames.shift();
+      tape.bytes -= 4 * old.bitmap.width * old.bitmap.height;
       old.bitmap.close();
-      timeline.dropped += 1;
+      tape.dropped += 1;
     }
     updateTimeline();
   }).catch(fail);
@@ -455,23 +455,23 @@ function pixelError(a, ref) {
 
 /** Command. After the final frame is in, each frame's pixel error vs the final image, drawn as a clickable curve under the scrubber. */
 function timelineErrors() {
-  const n = timeline.frames.length;
+  const n = tape.frames.length;
   if (n < 2) return;
-  const ref = smallPixels(timeline.frames[n - 1].bitmap);
-  timeline.errors = timeline.frames.map((f) => pixelError(smallPixels(f.bitmap), ref));
+  const ref = smallPixels(tape.frames[n - 1].bitmap);
+  tape.errors = tape.frames.map((f) => pixelError(smallPixels(f.bitmap), ref));
   drawErrors();
 }
 
 /** Command. Draws the error curve (log scale, steps marked) with the current frame's marker; a click jumps the scrubber. */
 function drawErrors() {
-  const e = timeline.errors, box = $('tl-plot');
+  const e = tape.errors, box = $('tl-plot');
   box.hidden = !e || $('out-timeline').hidden;
   if (!e) return;
   const W = 640, H = 140, pad = 34, ys = e.filter((v) => v > 0);
   const lo = Math.log10(Math.min(...ys, 1e-4)), hi = Math.log10(Math.max(...ys, 1));
   const X = (i) => pad + ((W - pad - 6) * i) / Math.max(1, e.length - 1);
   const Y = (v) => 6 + ((H - 6 - pad) * (hi - Math.min(hi, Math.max(lo, Math.log10(Math.max(v, 1e-12)))))) / (hi - lo || 1);
-  const steps = timeline.frames.map((f, i) => (/end of step/.test(f.label) ? `<line class="step" x1="${X(i)}" x2="${X(i)}" y1="6" y2="${H - pad}"/>` : '')).join('');
+  const steps = tape.frames.map((f, i) => (/end of step/.test(f.label) ? `<line class="step" x1="${X(i)}" x2="${X(i)}" y1="6" y2="${H - pad}"/>` : '')).join('');
   const at = Number($('tl-slider').value);
   box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="100%"><title>each preview's pixel error vs the final image (log); click to jump</title>${steps}
     <text x="2" y="${Y(10 ** hi) + 4}">${(10 ** hi).toExponential(0)}</text><text x="2" y="${Y(10 ** lo) + 4}">${(10 ** lo).toExponential(0)}</text>
@@ -488,7 +488,7 @@ function drawErrors() {
 
 /** Command. Syncs the slider with the frames (a slider at the end follows new frames); shows the tab once there is a frame. */
 function updateTimeline() {
-  const n = timeline.frames.length, s = $('tl-slider'), atEnd = Number(s.value) >= Number(s.max);
+  const n = tape.frames.length, s = $('tl-slider'), atEnd = Number(s.value) >= Number(s.max);
   $('tab-timeline').hidden = n === 0;
   s.max = Math.max(0, n - 1);
   if (atEnd) s.value = s.max;
@@ -497,24 +497,24 @@ function updateTimeline() {
 
 /** Command. Draws frame i on #out-timeline at 1:1 (the canvas takes the frame's size) and labels it. */
 function showFrame(i) {
-  const f = timeline.frames[i], n = timeline.frames.length;
+  const f = tape.frames[i], n = tape.frames.length;
   if (!f) { $('tl-label').textContent = 'No previews yet: generate with Sneak peek on.'; return; }
   const c = $('out-timeline');
   if (c.width !== f.bitmap.width || c.height !== f.bitmap.height) Object.assign(c, { width: f.bitmap.width, height: f.bitmap.height });
   c.getContext('2d').drawImage(f.bitmap, 0, 0);
-  $('tl-label').textContent = `${i + 1} / ${n} · ${f.label}` + (timeline.dropped ? ` · ${timeline.dropped} oldest dropped (memory cap)` : '');
-  if (timeline.errors) drawErrors();
+  $('tl-label').textContent = `${i + 1} / ${n} · ${f.label}` + (tape.dropped ? ` · ${tape.dropped} oldest dropped (memory cap)` : '');
+  if (tape.errors) drawErrors();
 }
 
 /** Command. Starts or stops playing the frames from the slider's position; stops at the last frame. */
-function timelinePlay(on = !timeline.timer) {
-  clearInterval(timeline.timer);
-  timeline.timer = 0;
+function timelinePlay(on = !tape.timer) {
+  clearInterval(tape.timer);
+  tape.timer = 0;
   $('tl-play').textContent = on ? 'Pause' : 'Play';
   if (!on) return;
   const s = $('tl-slider');
   if (Number(s.value) >= Number(s.max)) s.value = 0;
-  timeline.timer = setInterval(() => {
+  tape.timer = setInterval(() => {
     if (Number(s.value) >= Number(s.max)) { timelinePlay(false); return; }
     s.value = Number(s.value) + 1;
     showFrame(Number(s.value));
@@ -819,7 +819,7 @@ async function generate() {
   }
   $('out-empty').hidden = true;
   $('dl-gray').disabled = $('dl-rgba').disabled = false;
-  if (timeline.next) timelineAdd($('out-gray'), 'final image', { w: width, h: height }).then(timelineErrors);  // the gray image (head 0)
+  if (tape.next) timelineAdd($('out-gray'), 'final image', { w: width, h: height }).then(timelineErrors);  // the gray image (head 0)
   saveToGallery(views.map(([id]) => id), `${$('prompt').value.slice(0, 80)} · seed ${seed} · ${equationText(state.pipeline.version.manifest, sampler, seed)}`);
   state.last = `${state.pipeline.version.id}_seed${$('seed').value}`;
   showTimings(timings);
