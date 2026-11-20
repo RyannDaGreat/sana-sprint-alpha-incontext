@@ -1,6 +1,7 @@
 // UI wiring: theme, matte tools, model picker with cached downloads, generation, real-time mode.
 
-import '@fontsource-variable/jost';
+import '@fontsource-variable/inter'; // the UI font
+import '@fontsource-variable/jost';   // a built-in choice of the text tool (fonts.js)
 import './style.css';
 import { MatteEditor } from './matte.js';
 import { fillFontSelect, ensureFont } from './fonts.js';
