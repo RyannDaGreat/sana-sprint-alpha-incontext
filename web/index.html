@@ -163,6 +163,8 @@
         <button id="new-seed">New seed</button>
         <label class="switch"><input id="realtime" type="checkbox"><span>Real-time</span></label>
         <label class="switch" title="Sneak peek: quick previews while it generates, after every step and (with a highway) inside each step, from the fast decoder; at most 10% of the time"><input id="sneak-peek" type="checkbox" checked><span>Sneak peek</span></label>
+        <label class="switch" title="Show a preview after every layer: no 10% time cap and no skipping (slower)"><input id="every-layer" type="checkbox"><span>Every layer</span></label>
+        <label title="Preview decoder: small = fastest, big = sharper and truer colors">Preview decoder <select id="peek-decoder"><option value="small">small</option><option value="big">big</option></select></label>
         <button id="generate" class="primary" disabled>Generate</button>
       </div>
       <div class="row sampler">

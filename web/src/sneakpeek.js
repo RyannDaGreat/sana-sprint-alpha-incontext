@@ -110,9 +110,10 @@ export class SneakPeek {
    * @param {(x0: Float32Array, dims: number[]) => Record<string, ort.Tensor>} feed - the session's inputs (dtype per graph)
    * @param {string} output - the image output's name
    * @param {(image: {data: Float32Array, dims: number[]}, label: string) => void} onPreview
+   * @param {boolean} [everyLayer] - 'Every layer' (m00880): no duty-cycle cap, so every offered preview is decoded
    */
-  constructor(session, feed, output, onPreview) {
-    Object.assign(this, { session, feed, output, onPreview, busy: false, pending: null, enabled: true, shown: 0, dropped: 0,
+  constructor(session, feed, output, onPreview, everyLayer = false) {
+    Object.assign(this, { session, feed, output, onPreview, everyLayer, busy: false, pending: null, enabled: true, shown: 0, dropped: 0,
                           nextAt: 0, spentMs: 0, t0: performance.now() });
   }
 
@@ -123,7 +124,7 @@ export class SneakPeek {
    *
    * @returns {boolean}
    */
-  ready() { return this.enabled && !this.busy && !this.pending && performance.now() >= this.nextAt; }
+  ready() { return this.enabled && !this.busy && !this.pending && (this.everyLayer || performance.now() >= this.nextAt); }
 
   /** Command. Counts ms the caller spent for a preview (the highway head) against the duty cycle. */
   charge(ms) { this.spentMs += ms; this.nextAt = Math.max(this.nextAt, performance.now() + (ms * (1 - DUTY)) / DUTY); }
@@ -143,7 +144,7 @@ export class SneakPeek {
    * @returns {boolean} whether it was queued
    */
   offer(x0, dims, label, always = false) {
-    if (!this.enabled || (!always && performance.now() < this.nextAt)) return false;  // the step's own estimate (always) skips the duty wait
+    if (!this.enabled || (!always && !this.everyLayer && performance.now() < this.nextAt)) return false;  // the step's own estimate (always) skips the duty wait
     if (this.pending) this.dropped++;
     this.pending = { x0, dims, label };
     return true;

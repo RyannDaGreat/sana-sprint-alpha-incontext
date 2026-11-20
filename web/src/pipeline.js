@@ -354,13 +354,15 @@ export class Pipeline {
       made += 1;
       if (q.last) { p.chains[q.role] = sessions[q.role]; p.types[q.role] = Object.assign({}, ...sessions[q.role].map(inputTypes)); }
     }
-    p.fastDecoder = null;  // sneak peek (manifest §18): optional; float32 latent (1, 32, LH, LW) → float32 image (1, 3, h, w) in [0, 1]
-    if (byRole.fast_decoder) {
-      const fd = byRole.fast_decoder[0];
-      mark('creating the fast decoder session');
-      p.fastDecoder = { session: await ort.InferenceSession.create(await get(fd), { executionProviders: [ep] }),
-                        names: { latent: 'latent', image: 'image', ...version.manifest.files.fast_decoder.names } };
-    }
+    // sneak peek (manifest §18): optional fast decoders, float32 latent (1, 32, LH, LW) → float32 image (1, 3, h, w) in [0, 1].
+    // 'big' = fast_decoder (the ≤ 20% winner), 'small' = fast_decoder_small (the ≤ 10% winner, m00880); each session is
+    // created on first use (useDecoder), so a choice never costs the other's load
+    p.decoderFiles = Object.fromEntries([['big', 'fast_decoder'], ['small', 'fast_decoder_small']].filter(([, r]) => byRole[r])
+      .map(([k, r]) => [k, { file: byRole[r][0], names: { latent: 'latent', image: 'image', ...version.manifest.files[r].names } }]));
+    p.decoders = {};
+    p.fastDecoder = null;
+    const first = p.decoderFiles.small ? 'small' : p.decoderFiles.big ? 'big' : null;
+    if (first) { mark('creating the fast decoder session'); await p.useDecoder(first); }
     p.highway = null;  // sneak peek highway (§18): optional; one graph for every block's head, on a chunk part's main stream
     if (byRole.highway) {
       if (!version.manifest.highway?.stream) throw new Error(`${version.id}: a highway file but no manifest.highway (stream names, c, start)`);
@@ -410,7 +412,7 @@ export class Pipeline {
    * this kept each loaded FIBO2 (≈ 14 GB) alive: memory piled up until WebGPU readbacks failed (2026-11-20).
    */
   async release() {
-    const all = [...Object.values(this.chains).flat(), this.fastDecoder?.session, this.highway?.session].filter(Boolean);
+    const all = [...Object.values(this.chains).flat(), ...Object.values(this.decoders ?? {}).map((d) => d.session), this.highway?.session].filter(Boolean);
     for (const s of all) await s.release();
     this.chains = {};
     this.broken = 'released';
@@ -515,7 +517,26 @@ export class Pipeline {
    * @returns {Promise<{image: Float32Array, images: Float32Array[]|null, timings: Record<string, number|string>}>} image
    *   (1, 3, H, W) in [−1, 1] (head 0 for a splitter); images: a splitter's K heads (1, 3, H, W) in [0, 1], else null
    */
-  async generateFibo2({ prompt, matte, matteRev, seed, steps, guidance, width, height, adapterScale, gamma, onPreview, gate }, onProgress) {
+  /**
+   * Command (creates a session on first use). Makes 'big' or 'small' the sneak peek decoder; an absent one falls back to
+   * the one that exists (a version may ship only one, m00880).
+   *
+   * @param {'big'|'small'} which
+   * @returns {Promise<string|null>} the decoder now in use
+   */
+  async useDecoder(which) {
+    const k = this.decoderFiles[which] ? which : Object.keys(this.decoderFiles)[0];
+    if (!k) return null;
+    if (!this.decoders[k]) {
+      const { file, names } = this.decoderFiles[k];
+      await downloadToCache(file, () => {});
+      this.decoders[k] = { session: await ort.InferenceSession.create(await readCached(file), { executionProviders: [this.ep] }), names };
+    }
+    this.fastDecoder = this.decoders[k];
+    return k;
+  }
+
+  async generateFibo2({ prompt, matte, matteRev, seed, steps, guidance, width, height, adapterScale, gamma, onPreview, gate, everyLayer = false }, onProgress) {
     const timings = {};
     const t0 = performance.now();
     const m = this.version.manifest, f = VAE_FACTOR.fibo2, cfg = guidance > 1;
@@ -536,7 +557,7 @@ export class Pipeline {
     const promptT = t('prompt_embeds', emb.data, emb.dims), nullT = nullEmb && t('prompt_embeds', nullEmb.data, nullEmb.dims);
     let x = gaussianNoise(dims.reduce((a, b) => a * b), seed), heads = null;
     const fd = this.fastDecoder, hw = this.highway, peek = fd && onPreview && new SneakPeek(fd.session,
-      (z, d) => ({ [fd.names.latent]: new ort.Tensor('float32', z, d) }), fd.names.image, onPreview);
+      (z, d) => ({ [fd.names.latent]: new ort.Tensor('float32', z, d) }), fd.names.image, onPreview, everyLayer);
     const between = peek ? () => peek.drain() : undefined;  // previews decode between this job's parts (one ORT run at a time)
     const timeline = peek ? { steps, blocks: hw?.blocks ?? 0, points: [], weights: hw?.weights ?? null } : null;  // the accordion's plot data
     let prevX0 = null, lastExpected = Infinity;  // the previous step's full-model x̂0; the expected error of the last shown preview
@@ -550,7 +571,7 @@ export class Pipeline {
       const [b, name] = hit, t1 = performance.now();
       // remedy (c) of §18: never show a preview that is expected (held-out table) to be worse than the last one shown
       const expected = hw.expected ? tableAt(hw.expected, k, steps, b) : -Infinity;
-      if (expected >= lastExpected) return;
+      if (!everyLayer && expected >= lastExpected) return;  // 'Every layer' (m00880) shows them all
       const out = await hw.session.run({ stream: values[name], c: values[hw.c], latents: new ort.Tensor('float32', x, dims),
                                          block: new ort.Tensor('int64', BigInt64Array.from([BigInt(b)]), []),
                                          start: new ort.Tensor('int64', BigInt64Array.from([BigInt(hw.start)]), []) });

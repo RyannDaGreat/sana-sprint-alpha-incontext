@@ -67,7 +67,7 @@ function toggleTheme() {
 
 let levelsFrame = 0; // pending readout frame (declared first: the editor's constructor already reports a change)
 // persistence state (manifest §20), declared before the editor for the same reason
-const PERSIST_IDS = ['prompt', 'seed', 'steps', 'guidance', 's-max', 's-mid', 'size', 'lambda', 'gamma', 'realtime', 'sneak-peek'];
+const PERSIST_IDS = ['prompt', 'seed', 'steps', 'guidance', 's-max', 's-mid', 'size', 'lambda', 'gamma', 'realtime', 'sneak-peek', 'every-layer', 'peek-decoder'];
 const SAVE_DEBOUNCE_MS = 400;  // after the last edit
 const persist = { ready: false, timer: 0, warned: false };  // ready: only after the saved state was restored (else the starter disc overwrites it)
 
@@ -605,6 +605,11 @@ function applyFamily(family, defaults) {
  */
 function syncSamplerUi() {
   const fibo2 = familyOf(state.pipeline?.version ?? state.selected) === 'fibo2';
+  const dec = state.pipeline?.decoderFiles ?? {};  // the sneak peek options only where a version ships them (m00880)
+  $('every-layer').closest('label').hidden = !state.pipeline?.highway;
+  $('peek-decoder').closest('label').hidden = Object.keys(dec).length === 0;
+  for (const o of $('peek-decoder').options) o.disabled = !dec[o.value];
+  if (dec[$('peek-decoder').value] === undefined && Object.keys(dec).length) $('peek-decoder').value = Object.keys(dec)[0];
   $('s-max').disabled = fibo2;
   $('s-mid').disabled = fibo2 || $('steps').value !== '2';
   $('guidance-v').textContent = $('guidance').value;
@@ -791,10 +796,12 @@ async function generate() {
   const matte = matteAtSize(width, height);
   $('gen-steps').innerHTML = $('gen-model').innerHTML = '';
   timelineReset();
+  if ($('sneak-peek').checked && state.pipeline.decoderFiles) await state.pipeline.useDecoder($('peek-decoder').value).catch(fail);  // loads the chosen one once
   if ($('sneak-peek').checked && state.pipeline.fastDecoder) Object.assign($('out-gray'), { width, height });  // previews paint here
   const result = await state.pipeline.generate({
     prompt: $('prompt').value, matte: mattePixelsToTensor(matte, width * height), matteRev: editor.rev, seed, ...sampler,
     onPreview: $('sneak-peek').checked ? showPeek : null,
+    everyLayer: $('every-layer').checked,
     gate: $('realtime').checked ? single.sched.gateFor(single.key) : undefined,  // the turn gate only where a cancel can come (real time); a plain run is ungated (WebGPU readback failures, m00860)
   }, showProgress).catch((e) => { if (e.name !== 'AbortError') fail(e); return null; }).finally(() => { state.busy = false; });
   if (!result) {  // cancelled (a newer edit is pending) or failed
