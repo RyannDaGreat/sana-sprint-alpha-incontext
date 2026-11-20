@@ -15,6 +15,7 @@ import { SneakPeek, tweedieX0, blendX0, poolLatent, highwayWeight, tableAt } fro
 const LATENT_CHANNELS = 32;          // both VAEs: (B, LC, LH, LW); LH = H / 32 (DC-AE, SANA) or H / 8 (FLUX.2, FIBO2)
 const VAE_FACTOR = { sana: 32, fibo2: 8 };
 const GEMMA_PAD_ID = 0;
+const PREFETCH_PARTS = 4;  // graph parts whose files are read ahead of session creation (bounds the bytes held in JS while loading)
 // FIBO2's sessions need more than wasm32's 4 GB, so they run on the Memory64 build (web/scripts/build_ort_memory64.sh,
 // served from public/ort-memory64/); SANA keeps npm's build. ORT initializes its wasm once per page: one runtime per page.
 const MEMORY64_PATH = 'ort-memory64/';
@@ -264,50 +265,61 @@ export class Pipeline {
       if (ep === 'wasm') ort.env.wasm.numThreads = 1;
     }
     runtime = runtimeOf(version);
-    const files = versionFiles(version);
-    const bytes = await Promise.all(files.map((f) => fetchCached(f, (d, t, c) => onProgress(f, d, t, c))
-      .then((data) => { onProgress(f, f.bytes, f.bytes, null); return data; })));  // null: done, whichever way (no row stays 'waiting')
+    // Files are read just before the session that needs them and dropped after its last session: reading all of a FIBO2
+    // version (≈ 15 GB) into JS first, then copying it into ORT, peaked near twice the model in one tab ("Array buffer
+    // allocation failed", then NotReadableError and failed WebGPU readbacks on a 36 GB machine, 2026-11-20).
+    const entries = versionFiles(version).map((f) => ({ ...f, promise: null }));
+    const get = (e) => (e.promise ??= fetchCached(e, (d, t, c) => onProgress(e, d, t, c))
+      .then((data) => { onProgress(e, e.bytes, e.bytes, null); return data; }));  // null: done, whichever way (no row stays 'waiting')
+    const drop = (e) => { e.promise = null; };  // the bytes can be collected; a later get() reads the cache again
     const byRole = {};
-    files.forEach((f, i) => ((byRole[f.role] ??= []).push({ ...f, data: bytes[i] })));
-    const json = (role) => JSON.parse(new TextDecoder().decode(byRole[role][0].data));
+    for (const e of entries) (byRole[e.role] ??= []).push(e);
+    const json = async (role) => JSON.parse(new TextDecoder().decode(await get(byRole[role][0])));
     const p = new Pipeline();
     p.version = version;
     p.ep = ep;
-    p.tokenizer = new Tokenizer(json('tokenizer'), json('tokenizer_config'));
+    p.tokenizer = new Tokenizer(await json('tokenizer'), await json('tokenizer_config'));
     p.types = {};
     p.chains = {};  // role → its sessions in run order: one, or the parts of a split graph (web_chunks.split)
     const graphsOf = (role) => byRole[`${role}_chunks`] ?? [byRole[role][0]];
     const nGraphs = Object.keys(DEFAULT_NAMES).reduce((n, role) => n + graphsOf(role).length, 0);
-    let made = 0;  // session creation after the downloads is its own phase (~90-115 per-part sessions): reported, m00852
-    for (const role of Object.keys(DEFAULT_NAMES)) {
+    // every session in creation order with the weight files it reads; a weight file is dropped after its last session
+    const plan = Object.keys(DEFAULT_NAMES).flatMap((role) => {
       const chunked = byRole[`${role}_chunks`];
       const [graphs, external] = chunked ? [chunked, byRole[role] ?? []] : [[byRole[role][0]], byRole[role].slice(1)];
-      const sessions = [];
-      for (const [i, g] of graphs.entries()) {
-        const onGpu = chunked && ep === 'webgpu' && i < graphs.length - 1;  // intermediate float tensors stay on the GPU
-        const own = chunked ? external.filter((e) => g.external.includes(e.name)) : external;  // a part reads only its weight files
-        onPrepare(made, nGraphs, role);
-        await new Promise((r) => setTimeout(r, 0));  // one task per part so the status can paint (session creation blocks the page; ≈ 0.5 s over 113 parts vs ≈ 30 s of creation)
-        sessions.push(await ort.InferenceSession.create(g.data, {
-          executionProviders: [ep],
-          externalData: own.map((e) => ({ path: e.name, data: e.data })),
-          ...(onGpu ? { preferredOutputLocation: Object.fromEntries(g.gpu_outputs.map((n) => [n, 'gpu-buffer'])) } : {}),
-        }));
-        made += 1;
-      }
-      p.chains[role] = sessions;
-      p.types[role] = Object.assign({}, ...sessions.map(inputTypes));
+      return graphs.map((g, i) => ({ role, g, i, last: i === graphs.length - 1, onGpu: chunked && ep === 'webgpu' && i < graphs.length - 1,
+                                     own: chunked ? external.filter((e) => g.external.includes(e.name)) : external }));  // a part reads only its weight files
+    });
+    const users = new Map();
+    for (const q of plan) for (const e of q.own) users.set(e, (users.get(e) ?? 0) + 1);
+    const prefetch = (k) => { for (const q of plan.slice(k, k + PREFETCH_PARTS)) [q.g, ...q.own].forEach(get); };  // downloads stay ahead of creation
+    let made = 0;  // session creation is its own phase (~90-115 per-part sessions): reported, m00852
+    const sessions = {};
+    for (const [k, q] of plan.entries()) {
+      prefetch(k);
+      onPrepare(made, nGraphs, q.role);
+      const [graph, ...weights] = await Promise.all([q.g, ...q.own].map(get));
+      await new Promise((r) => setTimeout(r, 0));  // one task per part so the status can paint (session creation blocks the page)
+      (sessions[q.role] ??= []).push(await ort.InferenceSession.create(graph, {
+        executionProviders: [ep],
+        externalData: q.own.map((e, j) => ({ path: e.name, data: weights[j] })),
+        ...(q.onGpu ? { preferredOutputLocation: Object.fromEntries(q.g.gpu_outputs.map((n) => [n, 'gpu-buffer'])) } : {}),
+      }));
+      drop(q.g);
+      for (const e of q.own) { users.set(e, users.get(e) - 1); if (users.get(e) === 0) drop(e); }
+      made += 1;
+      if (q.last) { p.chains[q.role] = sessions[q.role]; p.types[q.role] = Object.assign({}, ...sessions[q.role].map(inputTypes)); }
     }
     p.fastDecoder = null;  // sneak peek (manifest §18): optional; float32 latent (1, 32, LH, LW) → float32 image (1, 3, h, w) in [0, 1]
     if (byRole.fast_decoder) {
       const fd = byRole.fast_decoder[0];
-      p.fastDecoder = { session: await ort.InferenceSession.create(fd.data, { executionProviders: [ep] }),
+      p.fastDecoder = { session: await ort.InferenceSession.create(await get(fd), { executionProviders: [ep] }),
                         names: { latent: 'latent', image: 'image', ...version.manifest.files.fast_decoder.names } };
     }
     p.highway = null;  // sneak peek highway (§18): optional; one graph for every block's head, on a chunk part's main stream
     if (byRole.highway) {
       if (!version.manifest.highway?.stream) throw new Error(`${version.id}: a highway file but no manifest.highway (stream names, c, start)`);
-      p.highway = { session: await ort.InferenceSession.create(byRole.highway[0].data, { executionProviders: [ep] }), ...version.manifest.highway };
+      p.highway = { session: await ort.InferenceSession.create(await get(byRole.highway[0]), { executionProviders: [ep] }), ...version.manifest.highway };
     }
     const tf = version.manifest.files.text_encoder;
     p.encoderId = `${new URL(tf.path, version.url).href}:${tf.bytes}`;
