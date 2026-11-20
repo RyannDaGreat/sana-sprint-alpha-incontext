@@ -58,7 +58,7 @@ PUSH_BATCH_BYTES = 400e6  # GitHub rejects pushes over 2 GB, and a 2.4 GB push g
 NEW_COUNT = 3  # index entries marked "new" (m00719: the user could not tell which journals are the latest)
 INDEX_ENTRY = re.compile(r'^<li><a href="([^"]+)">')
 STAMP_STYLE = "margin:0.5em 1em;font:13px system-ui,sans-serif;opacity:0.75"
-SUBDIRS = ("compare", "lib")  # journal/ folders of text files (HTML, JS, CSS, JSON), copied with their image paths rewritten (manifest §15)
+SUBDIRS = ("compare", "lib", "alpha_ils", "sneakpeek")  # journal/ folders of text files (HTML, JS, CSS, JSON), copied with their image paths rewritten (manifest §15)
 EVAL_FULL_DIR = "assets/eval/full/"
 EVAL_JS_REFERENCE = "${EVAL_FULL_DIR}${dir}/${id}.png"  # the one dynamic image path, in eval_grid.js
 FOOTER = ('<footer style="margin:3em 0 1em;font-size:0.85em;opacity:0.7">Published images are the original PNG files '
@@ -118,6 +118,82 @@ def rewrite_eval_grid_js(text, urls):
               "  return url;\n"
               "}\n")
     return text.replace(EVAL_JS_REFERENCE, "${evalUrl(dir, id)}") + helper
+
+
+PWA_DIR = "pwa"  # journal/pwa/: the service worker template, its registration script, the web app manifest (manifest §12 "PWA", m00836)
+PWA_ICON_SIZES = (192, 512)  # the sizes Chrome's install check asks for
+PWA_ICON_BACKGROUND, PWA_ICON_SHAPE = (24, 24, 27), (244, 244, 245)  # the app's --fg and --bg tokens: a white blob on near-black, like a matte
+SHELL_SKIP = ("webgpu/masks/",)  # app files cached on use, not precached (196 MB of mask packs)
+
+
+def add_pwa(html, prefix):
+    """
+    Pure function. Links the web app manifest and the service-worker registration from a page; prefix is the path from
+    the page's folder to the site root ("" at the root, "../" one folder down).
+
+    Examples:
+        >>> add_pwa("<head><title>t</title></head>", "../")
+        '<head><title>t</title><link rel="manifest" href="../pwa/manifest.webmanifest"><script src="../pwa/register.js" defer></script></head>'
+    """
+    assert html.count("</head>") == 1, "expected exactly one </head>"
+    tags = f'<link rel="manifest" href="{prefix}{PWA_DIR}/manifest.webmanifest"><script src="{prefix}{PWA_DIR}/register.js" defer></script>'
+    return html.replace("</head>", tags + "</head>")
+
+
+def pwa_icon(size, maskable=False):
+    """
+    Pure function. The app icon: a soft white blob (an object matte) on the app's near-black, as an RGB image.
+    Maskable icons keep the shape inside the 80% safe zone.
+
+    Args:
+        size (int): edge in pixels, e.g. 192
+        maskable (bool): shrink the shape for Android's adaptive-icon mask
+
+    Returns:
+        PIL.Image.Image: (size, size) RGB
+
+    Examples:
+        >>> pwa_icon(192).size, pwa_icon(192).getpixel((0, 0)), pwa_icon(192).getpixel((96, 96))
+        ((192, 192), (24, 24, 27), (244, 244, 245))
+    """
+    from PIL import Image, ImageDraw
+    image = Image.new("RGB", (size, size), PWA_ICON_BACKGROUND)
+    r = size * (0.28 if maskable else 0.34)
+    c = size / 2
+    ImageDraw.Draw(image).ellipse((c - r, c - r * 1.1, c + r, c + r * 0.9), fill=PWA_ICON_SHAPE)
+    return image
+
+
+def shell_files(site):
+    """
+    Query. The app shell the service worker precaches: the journal index, its scripts and styles, and every file of the
+    built app except the mask packs, as site-root-relative paths.
+    """
+    files = ["", "index.html", f"{PWA_DIR}/manifest.webmanifest", f"{PWA_DIR}/register.js"]
+    files += sorted(p.name for p in site.glob("*.js")) + sorted(p.name for p in site.glob("*.css"))
+    files += ["webgpu/"] + sorted(p.relative_to(site).as_posix() for p in (site / "webgpu").rglob("*")
+                                  if p.is_file() and not p.relative_to(site).as_posix().startswith(SHELL_SKIP))
+    return files
+
+
+def write_pwa(site):
+    """
+    Command. Writes the web app manifest, icons and registration script to site/pwa/ and the service worker to site/sw.js,
+    its VERSION = hash of the precached files (each publish rolls out a fresh cache) and PRECACHE = shell_files.
+    """
+    (site / PWA_DIR).mkdir(exist_ok=True)
+    for name in ("manifest.webmanifest", "register.js"):
+        shutil.copyfile(JOURNAL / PWA_DIR / name, site / PWA_DIR / name)
+    for size in PWA_ICON_SIZES:
+        pwa_icon(size).save(site / PWA_DIR / f"icon-{size}.png")
+    pwa_icon(max(PWA_ICON_SIZES), maskable=True).save(site / PWA_DIR / f"icon-{max(PWA_ICON_SIZES)}-maskable.png")
+    shell = shell_files(site)
+    digest = hashlib.sha256()
+    for path in shell:
+        if path and not path.endswith("/"):
+            digest.update(path.encode()); digest.update((site / path).read_bytes())
+    sw = (JOURNAL / PWA_DIR / "sw.js").read_text().replace("'__VERSION__'", json.dumps(digest.hexdigest()[:DIGEST_CHARS]))
+    (site / "sw.js").write_text(sw.replace("__PRECACHE__", json.dumps(shell)))
 
 
 def add_footer(html):
@@ -299,13 +375,13 @@ def build_site(urls, build_web=False):
             shutil.rmtree(entry) if entry.is_dir() else entry.unlink()
 
     times = {href: last_commit_time(page_sources(href)) for href in
-             [p.name for p in JOURNAL.glob("*.html")] + [f"compare/{p.name}" for p in (JOURNAL / "compare").glob("*.html")] + ["webgpu/"]}
+             [p.name for p in JOURNAL.glob("*.html")] + [p.relative_to(JOURNAL).as_posix() for d in SUBDIRS for p in (JOURNAL / d).rglob("*.html")] + ["webgpu/"]}
     for source in JOURNAL.glob("*"):
         text = source.read_text() if source.suffix in (".html", ".js", ".css") else None
         if source.name == "index.html":
-            (SITE / source.name).write_text(add_footer(order_index(rewrite_asset_refs(text, urls), times)))
+            (SITE / source.name).write_text(add_pwa(add_footer(order_index(rewrite_asset_refs(text, urls), times)), ""))
         elif source.suffix == ".html":
-            (SITE / source.name).write_text(add_footer(add_updated(rewrite_asset_refs(text, urls), times[source.name])))
+            (SITE / source.name).write_text(add_pwa(add_footer(add_updated(rewrite_asset_refs(text, urls), times[source.name])), ""))
         elif source.name == "eval_grid.js":
             (SITE / source.name).write_text(rewrite_eval_grid_js(rewrite_asset_refs(text, urls), urls))
         elif text is not None:
@@ -313,13 +389,18 @@ def build_site(urls, build_web=False):
     for source in (p for d in SUBDIRS for p in (JOURNAL / d).rglob("*") if p.is_file()):  # the compare reports
         destination = SITE / source.relative_to(JOURNAL)
         destination.parent.mkdir(parents=True, exist_ok=True)
+        if source.suffix not in (".html", ".js", ".css", ".json"):  # a report's own figures (e.g. alpha_ils/*.png): copied byte for byte
+            shutil.copyfile(source, destination)
+            continue
         text = rewrite_asset_refs(source.read_text(), urls)
         page = source.relative_to(JOURNAL).as_posix()
-        destination.write_text(add_footer(add_updated(text, times[page])) if source.suffix == ".html" else text)
+        prefix = "../" * (len(source.relative_to(JOURNAL).parts) - 1)
+        destination.write_text(add_pwa(add_footer(add_updated(text, times[page])), prefix) if source.suffix == ".html" else text)
     shutil.copytree(JOURNAL / "webgpu", SITE / "webgpu")
     (SITE / "models/web").mkdir(parents=True)
     (SITE / "models/web/index.json").write_text(json.dumps(MODELS_PLACEHOLDER, indent=1))
     (SITE / ".nojekyll").touch()
+    write_pwa(SITE)
     for source in (p for p in (JOURNAL / "assets").rglob("*") if p.is_file() and p.suffix != ".png"):
         destination = SITE / source.relative_to(JOURNAL)
         destination.parent.mkdir(parents=True, exist_ok=True)
