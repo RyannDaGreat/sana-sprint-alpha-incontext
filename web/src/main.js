@@ -5,6 +5,7 @@ import '@fontsource-variable/jost';   // a built-in choice of the text tool (fon
 import './style.css';
 import { MatteEditor } from './matte.js';
 import { initPanes } from './panes.js';
+import { attachPanZoom } from './panzoom.js';
 import { fillFontSelect, ensureFont } from './fonts.js';
 import { MaskGallery } from './gallery.js';
 import { buildTrimaskUi, DEFAULT_GUI } from './trimask_ui.js';
@@ -908,12 +909,13 @@ function buildPad(saved) {
     const edited = () => { slot.prompt = prompt.value; slot.seed = Number(seed.value); scheduleSave();
       clearTimeout(slot.timer); if (pad.started) slot.timer = setTimeout(() => padRestart(i), PAD_EDIT_DEBOUNCE_MS); };
     prompt.addEventListener('input', edited); seed.addEventListener('input', edited);
-    el.querySelector('button').addEventListener('click', () => { seed.value = Math.floor(Math.random() * SEED_RANGE); edited(); });
+    el.querySelector('.slot-row button').addEventListener('click', () => { seed.value = Math.floor(Math.random() * SEED_RANGE); edited(); });
     el.querySelector('.square').addEventListener('click', () => {  // switch off / on: dims to 50% and pauses; the others get its turns
       slot.off = !slot.off; el.classList.toggle('off', slot.off);
       if (slot.key) pad.sched.setPaused(slot.key, slot.off);
       scheduleSave();
     });
+    attachPanZoom(el.querySelector('.square'));  // after the click toggle: a pan drag swallows its click
     return slot;
   });
 }
@@ -1235,4 +1237,5 @@ async function init() {
 }
 
 initPanes(document.querySelector('.workbench'));
+attachPanZoom($('out-gray').parentElement);  // the output views (RGB / RGBA / splitter views) share one view
 init().catch(fail);

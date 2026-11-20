@@ -55,6 +55,10 @@
   --space-4: 24px;
   --hairline: 1px;
   --pane-hit: 9px;          /* draggable width of a 1px pane divider */
+  --pz-btn: 26px;           /* pan/zoom overlay buttons (panzoom.js) */
+  --pz-bar-bg: rgba(24, 24, 27, 0.72);
+  --pz-bar-fg: #ffffff;
+  --pz-map-bg: rgba(0, 0, 0, 0.6);  /* SvelteLib MiniMap's default background */
   --radius: 6px;
   --slot-off-opacity: 0.5;   /* a switched-off pad slot (m00848: 50% transparent) */
   --slot-state-opacity: 0.85;
@@ -466,3 +470,12 @@ button.link { border: 0; background: none; padding: 0; min-height: 0; }
 .gal-view-bar #gal-info { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gal-view-img { flex: 1; overflow: auto; padding: var(--space-3); }
 .gal-view-img img { max-width: none; image-rendering: auto; }
+/* Pan/zoom + minimap (panzoom.js, a port of SvelteLib's PanZoom + MiniMap) */
+.pz { touch-action: none; outline: none; }
+.pz .pz-bar { position: absolute; left: var(--space-2); bottom: var(--space-2); display: flex; gap: var(--hairline); opacity: 0;
+  transition: opacity 0.15s; z-index: 2; border-radius: var(--radius); overflow: hidden; }
+.pz:hover .pz-bar, .pz:focus-within .pz-bar { opacity: 1; }
+.pz .pz-bar button { min-height: var(--pz-btn); min-width: var(--pz-btn); padding: 0 var(--space-2); border: 0; border-radius: 0;
+  background: var(--pz-bar-bg); color: var(--pz-bar-fg); font: inherit; font-size: var(--size-meta); cursor: pointer; }
+.square canvas.pz-map, .pz .pz-map { position: absolute; inset: auto var(--space-2) var(--space-2) auto; width: auto; height: auto;
+  background: var(--pz-map-bg); border-radius: var(--radius); box-shadow: var(--shadow-pop); z-index: 2; cursor: crosshair; }
