@@ -1,25 +1,29 @@
 """
-Publishes the journal (all pages, every image at full 1024x1024 resolution) and the WebGPU app.
+Publishes the journal (all pages, every image at full 1024x1024 resolution) and the WebGPU app to GitHub.
 
-    HF_TOKEN=... PYTHONPATH=src uv run python -m sana_alpha.publish_pages              # upload images, build, push gh-pages
-    PYTHONPATH=src uv run python -m sana_alpha.publish_pages --push=False              # build and commit only
-    HF_TOKEN=... PYTHONPATH=src uv run python -m sana_alpha.publish_pages --build_web  # also run the app's `npm run build` first
+    PYTHONPATH=src uv run python -m sana_alpha.publish_pages                # build, commit, push both branches
+    PYTHONPATH=src uv run python -m sana_alpha.publish_pages --push=False   # build and commit only
+    PYTHONPATH=src uv run python -m sana_alpha.publish_pages --build_web    # also run the app's `npm run build` first
 
 Live site: https://ryanndagreat.github.io/sana-sprint-alpha-incontext/
 
-Hosting (manifest §12 "Hosting", m00727): GitHub refused pushes once the repo passed its size quota, so the images
-live in the one public Hugging Face repo HF_REPO, and GitHub keeps only code and the Pages site.
+Two orphan branches, each checked out as a git worktree under agents/.scratchpad/ so main's working tree is never touched:
 
-- `journal-assets/` in HF_REPO: every journal PNG, byte for byte (original resolution, lossless), named by its SHA-256
+- `journal-assets`: every journal PNG, byte for byte (original resolution, lossless), named by its SHA-256
   (`ab/abcdef0123456789.png`). Identical images (shared mattes, references, stock-model columns, eval/full versus
-  gallery copies) are stored once, and a republish only uploads images whose hash is new. Append-only. Staged in the
-  local mirror HF_DIR (the same layout as HF_REPO) and uploaded with hf_upload; the token comes from HF_TOKEN only.
-- `gh-pages` (git worktree under agents/.scratchpad/, so main's tree is never touched): the HTML, JS, small non-PNG
-  assets and the WebGPU app (GitHub Pages' 1 GB site limit applies). Pages reference images by absolute URL
-  (ASSET_BASE, Hugging Face's resolve URLs).
+  gallery copies) are stored once, and a republish only uploads images whose hash is new. Append-only: old files are
+  never deleted, so links in older pages keep working. No site-size budget here (GitHub: <100 MB per file); each push
+  is capped well under GitHub's 2 GB per-push limit by pushing in batches.
+- `gh-pages`: the HTML, JS, small non-PNG assets and the WebGPU app (GitHub Pages' 1 GB site limit applies). Pages
+  reference images by absolute URL into `journal-assets` (ASSET_BASE; raw.githubusercontent.com serves
+  `image/png` with `access-control-allow-origin: *`).
 
-Why the original PNGs: the user wants every image at original resolution and lossless (m00705). Models are not
-published here: publish_models.py uploads them to the same HF repo; models/web/index.json here is a placeholder.
+Why the original PNGs: the user wants every image at original resolution and lossless (m00705). Before 2026-11-19
+this published WebP q95; those files stay on the branch (append-only) but nothing references them. Models are not
+published here: publish_models.py uploads them to the one Hugging Face repo HF_REPO (hf_upload), which the app reads
+on Pages; models/web/index.json here is a placeholder. Why Hugging Face for models (manifest §12 "Hosting", m00727):
+GitHub refused every push once the repo passed its size quota with the 88.65 GB `models` branch; the journal images
+stay here because the Hub allows only 20,000 files per repo and the journal has ~46k PNGs.
 """
 
 import hashlib
@@ -39,15 +43,18 @@ import fire
 ROOT = Path(__file__).resolve().parents[2]
 JOURNAL = ROOT / "journal"
 SITE = ROOT / "agents/.scratchpad/gh-pages"
+ASSETS_DIR = ROOT / "agents/.scratchpad/journal-assets"
 SITE_BRANCH = "gh-pages"
-HF_REPO = "OneOverZero/sana-sprint-alpha-incontext"  # the one Hugging Face repo for models and images (m00727)
-HF_DIR = ROOT / "agents/.scratchpad/hf-repo"  # local mirror of HF_REPO: blobs/, web/ (publish_models), journal-assets/
-ASSETS_DIR = HF_DIR / "journal-assets"
-ASSET_BASE = f"https://huggingface.co/{HF_REPO}/resolve/main/journal-assets/"
+ASSETS_BRANCH = "journal-assets"
+REPO = "RyannDaGreat/sana-sprint-alpha-incontext"
+HF_REPO = "OneOverZero/sana-sprint-alpha-incontext"  # the one Hugging Face repo, for the models (m00727)
+HF_DIR = ROOT / "agents/.scratchpad/hf-repo"  # local mirror of HF_REPO: blobs/, web/ (publish_models)
+ASSET_BASE = f"https://raw.githubusercontent.com/{REPO}/{ASSETS_BRANCH}/"
 DIGEST_CHARS = 16  # 64 bits of SHA-256: no collisions at this scale
 SHARD_CHARS = 2  # first hex chars as a folder, so no folder holds thousands of files
 HASH_PROCESSES = 8  # the training jobs need the CPUs
 PAGES_LIMIT_BYTES = 900e6  # GitHub Pages allows 1 GB per site; keep headroom
+PUSH_BATCH_BYTES = 400e6  # GitHub rejects pushes over 2 GB, and a 2.4 GB push got HTTP 500 (publish_models): push in batches of this size
 NEW_COUNT = 3  # index entries marked "new" (m00719: the user could not tell which journals are the latest)
 INDEX_ENTRY = re.compile(r'^<li><a href="([^"]+)">')
 STAMP_STYLE = "margin:0.5em 1em;font:13px system-ui,sans-serif;opacity:0.75"
@@ -55,14 +62,14 @@ SUBDIRS = ("compare", "lib")  # journal/ folders of text files (HTML, JS, CSS, J
 EVAL_FULL_DIR = "assets/eval/full/"
 EVAL_JS_REFERENCE = "${EVAL_FULL_DIR}${dir}/${id}.png"  # the one dynamic image path, in eval_grid.js
 FOOTER = ('<footer style="margin:3em 0 1em;font-size:0.85em;opacity:0.7">Published images are the original PNG files '
-          f"(original resolution, lossless), hosted on Hugging Face ({HF_REPO}).</footer>\n")
+          "(original resolution, lossless), hosted on the repo's journal-assets branch.</footer>\n")
 MODELS_PLACEHOLDER = {"versions": [], "note": f"On Pages the app reads models from the Hugging Face repo {HF_REPO} "
                                                 "(web/); see src/sana_alpha/publish_models.py."}
 
 
 def asset_name(digest):
     """
-    Pure function. Maps a PNG's SHA-256 hex digest to its path inside journal-assets/.
+    Pure function. Maps a PNG's SHA-256 hex digest to its path inside the journal-assets branch.
 
     Examples:
         >>> asset_name("ab" + "cd" * 31)
@@ -103,7 +110,7 @@ def rewrite_eval_grid_js(text, urls):
     assert text.count(EVAL_JS_REFERENCE) == 2, "eval_grid.js changed: update EVAL_JS_REFERENCE handling"
     eval_urls = {path.removeprefix(EVAL_FULL_DIR).removesuffix(".png"): url
                  for path, url in urls.items() if path.startswith(EVAL_FULL_DIR)}
-    helper = ("\n\n// Generated by publish_pages.py: the original PNGs, hosted on Hugging Face (journal-assets/).\n"
+    helper = ("\n\n// Generated by publish_pages.py: the original PNGs, hosted on the journal-assets branch.\n"
               f"const EVAL_URLS = {json.dumps(eval_urls, indent=0)};\n"
               "function evalUrl(dir, id) {\n"
               "  const url = EVAL_URLS[`${dir}/${id}`];\n"
@@ -226,6 +233,20 @@ def push_branch(path, branch):
     assert result.returncode == 0, f"git push {branch} failed"
 
 
+def hf_upload():
+    """
+    Command (network). Uploads the local model mirror HF_DIR to HF_REPO with huggingface_hub (2.x) upload_folder: with
+    hf_xet it streams, commits large folders in several batches, resumes when rerun, and skips files already
+    committed, so a republish sends only new content-hashed parts. The token comes only from the HF_TOKEN environment
+    variable (m00727: never stored in the dump). HF_DIR/.gitattributes routes blobs/** to large-file (Xet) storage:
+    without it the Hub refuses the small parts as plain-git binaries.
+    """
+    from huggingface_hub import HfApi
+    assert os.environ.get("HF_TOKEN"), "set HF_TOKEN to upload to Hugging Face"
+    HfApi().upload_folder(repo_id=HF_REPO, repo_type="model", folder_path=HF_DIR,
+                          commit_message=f"Publish model versions (main {git('rev-parse', '--short', 'HEAD').strip()})")
+
+
 def commit_all(path, message):
     """Command. Stages everything in the worktree at `path` and commits; returns whether anything was committed."""
     git("add", "-A", cwd=path)
@@ -243,31 +264,24 @@ def hash_all(pngs):
     return {p.relative_to(JOURNAL).as_posix(): digest for p, digest in zip(pngs, digests)}
 
 
-def hf_upload():
+def sync_assets(digests, sources, do_push):
     """
-    Command (network). Uploads the local mirror HF_DIR to HF_REPO with huggingface_hub (2.x) upload_folder: with
-    hf_xet it streams, commits large folders in several batches, resumes when rerun, and skips files already
-    committed, so a republish sends only new content-hashed files. The token comes only from the HF_TOKEN environment
-    variable (m00727: never stored in the dump).
-    """
-    from huggingface_hub import HfApi
-    assert os.environ.get("HF_TOKEN"), "set HF_TOKEN to upload to Hugging Face"
-    main_commit = git("rev-parse", "--short", "HEAD").strip()
-    HfApi().upload_folder(repo_id=HF_REPO, repo_type="model", folder_path=HF_DIR,
-                          commit_message=f"Publish models and journal images (main {main_commit})")
-
-
-def sync_assets(digests, sources):
-    """
-    Command. Copies the PNG of every digest not yet in the local mirror's journal-assets/. Never deletes. Returns the
-    number of files added.
+    Command. Copies the PNG of every digest not yet in the journal-assets worktree, committing (and pushing) in
+    batches of PUSH_BATCH_BYTES. Never deletes. Returns the number of files added.
     """
     new = sorted(d for d in set(digests.values()) if not (ASSETS_DIR / asset_name(d)).exists())
     print(f"journal-assets: {len(set(digests.values()))} unique images, {len(new)} new", flush=True)
-    for digest in new:
+    batch_bytes = 0
+    for index, digest in enumerate(new):
         destination = ASSETS_DIR / asset_name(digest)
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(sources[digest], destination)
+        batch_bytes += destination.stat().st_size
+        if batch_bytes >= PUSH_BATCH_BYTES or index == len(new) - 1:
+            commit_all(ASSETS_DIR, f"[C] Add {batch_bytes / 1e6:.0f} MB of journal images (up to #{index + 1}/{len(new)})")
+            if do_push:
+                push_branch(ASSETS_DIR, ASSETS_BRANCH)
+            batch_bytes = 0
     return len(new)
 
 
@@ -318,14 +332,15 @@ def build_site(urls, build_web=False):
 
 
 def publish(push=True, build_web=False):
-    """Command. Uploads new images to Hugging Face, then builds and pushes gh-pages (images first: no broken links)."""
+    """Command. Pushes new images to journal-assets, then builds and pushes gh-pages (assets first: no broken links)."""
+    open_worktree(ASSETS_DIR, ASSETS_BRANCH)
     open_worktree(SITE, SITE_BRANCH)
     pngs = sorted(p for p in (JOURNAL / "assets").rglob("*.png") if p.is_file())
     digests = hash_all(pngs)
     sources = {digest: JOURNAL / path for path, digest in digests.items()}
-    sync_assets(digests, sources)
+    sync_assets(digests, sources, push)
     if push:
-        hf_upload()  # also sends files left un-uploaded by an earlier --push=False or failed run
+        push_branch(ASSETS_DIR, ASSETS_BRANCH)  # also sends commits left unpushed by an earlier --push=False or failed run
     urls = {path: ASSET_BASE + asset_name(digest) for path, digest in digests.items()}
     build_site(urls, build_web)
     main_commit = git("rev-parse", "--short", "HEAD").strip()
