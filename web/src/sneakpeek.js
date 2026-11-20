@@ -5,6 +5,20 @@
 // A duty cycle keeps previews (highway heads + fast decoder) to DUTY of the wall time.
 
 const DUTY = 0.1;  // m00755: previews may cost at most 10% of the generation
+const sessionTail = new WeakMap();  // session → the promise of its last queued run: the four-way pad's slots share one fast decoder (§20)
+
+/**
+ * Command. Runs `session` on `feeds` after every run already queued on it (one ONNX Runtime session runs one call at a time).
+ *
+ * @param {ort.InferenceSession} session
+ * @param {Record<string, ort.Tensor>} feeds
+ * @returns {Promise<Record<string, ort.Tensor>>}
+ */
+export function serialRun(session, feeds) {
+  const run = (sessionTail.get(session) ?? Promise.resolve()).then(() => session.run(feeds));
+  sessionTail.set(session, run.catch(() => {}));  // the next caller waits for this run, whatever its outcome; this caller still sees the error
+  return run;
+}
 
 /**
  * Pure function. The rectified-flow clean-latent estimate x̂0 = x − σ·v (Tweedie's formula for x_t = (1 − σ)·x0 + σ·ε,
@@ -142,7 +156,7 @@ export class SneakPeek {
       const { x0, dims, label } = this.pending;
       this.pending = null;
       const t1 = performance.now();
-      const image = (await this.session.run(this.feed(x0, dims)))[this.output];
+      const image = (await serialRun(this.session, this.feed(x0, dims)))[this.output];
       const data = await image.getData();
       this.charge(performance.now() - t1);
       this.onPreview({ data, dims: image.dims }, label);

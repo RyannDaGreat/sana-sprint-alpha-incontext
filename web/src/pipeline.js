@@ -338,18 +338,28 @@ export class Pipeline {
    * @param {(c: number) => void} startPart
    * @param {(c: number, values: Record<string, ort.Tensor>) => Promise<void>} [afterPart] - after part c's outputs exist
    *   (the sneak peek reads a part's main stream there; it returns at once unless it takes a preview)
+   * @param {() => Promise<() => void>} [gate] - awaited before every part (manifest §20): resolves with a release function
+   *   once this job may run one part (the four-way pad's turn-taking), or throws an AbortError to cancel the job between parts
    * @returns {Promise<Record<string, ort.Tensor>>} {output_name: tensor}
    */
-  async run(role, feeds, timings, label, startPart, afterPart) {
+  async run(role, feeds, timings, label, startPart, afterPart, gate) {
     const t0 = performance.now(), values = { ...feeds }, made = [];
-    for (const [c, s] of this.chains[role].entries()) {
-      if (this.gpu) this.gpu.queue.onSubmittedWorkDone().then(() => startPart(c));
-      else { startPart(c); await yieldTask(); }
-      const out = await s.run(Object.fromEntries(s.inputNames.map((n) => [n, values[n]])));
-      for (const [name, tensor] of Object.entries(out)) { values[name] = tensor; made.push(tensor); }
-      if (afterPart) await afterPart(c, values);
-    }
     const name = this.name(role, 'output');
+    try {
+      for (const [c, s] of this.chains[role].entries()) {
+        const release = gate ? await gate() : null;
+        try {
+          if (this.gpu) this.gpu.queue.onSubmittedWorkDone().then(() => startPart(c));
+          else { startPart(c); await yieldTask(); }
+          const out = await s.run(Object.fromEntries(s.inputNames.map((n) => [n, values[n]])));
+          for (const [k, tensor] of Object.entries(out)) { values[k] = tensor; made.push(tensor); }
+          if (afterPart) await afterPart(c, values);
+        } finally { release?.(); }
+      }
+    } catch (e) {  // a cancelled (or failed) job frees every GPU buffer it made, the output too, then rethrows
+      for (const t of made) if (t.location === 'gpu-buffer') t.dispose();
+      throw e;
+    }
     for (const t of made) if (t !== values[name] && t.location === 'gpu-buffer') t.dispose();
     timings[label] = performance.now() - t0;
     return { [name]: values[name] };
@@ -369,7 +379,7 @@ export class Pipeline {
    * @param {(c: number) => void} startPart - progress, called before each text-encoder part
    * @returns {Promise<{data: Float32Array, dims: number[]}>}
    */
-  async embedFibo2(prompt, timings, startPart) {
+  async embedFibo2(prompt, timings, startPart, gate) {
     const key = embeddingKey(this.encoderId, prompt);
     if (this.memory.has(key)) { timings.text_encoder = 'cached (memory)'; return this.memory.get(key); }
     const stored = await getEmbedding(key);
@@ -383,7 +393,7 @@ export class Pipeline {
     const out = await this.run('text_encoder', {
       [n('input_ids')]: makeTensor(types[n('input_ids')], ids, [1, ids.length]),
       [n('attention_mask')]: makeTensor(types[n('attention_mask')], ids.map(() => 1), [1, ids.length]),
-    }, timings, 'text_encoder', startPart);
+    }, timings, 'text_encoder', startPart, undefined, gate);
     const hidden = out[n('output')];
     const value = { data: asFloat32(hidden), dims: hidden.dims };
     this.memory.set(key, value);
@@ -404,7 +414,7 @@ export class Pipeline {
    * @returns {Promise<{image: Float32Array, images: Float32Array[]|null, timings: Record<string, number|string>}>} image
    *   (1, 3, H, W) in [−1, 1] (head 0 for a splitter); images: a splitter's K heads (1, 3, H, W) in [0, 1], else null
    */
-  async generateFibo2({ prompt, matte, matteRev, seed, steps, guidance, width, height, adapterScale, gamma, onPreview }, onProgress) {
+  async generateFibo2({ prompt, matte, matteRev, seed, steps, guidance, width, height, adapterScale, gamma, onPreview, gate }, onProgress) {
     const timings = {};
     const t0 = performance.now();
     const m = this.version.manifest, f = VAE_FACTOR.fibo2, cfg = guidance > 1;
@@ -414,9 +424,9 @@ export class Pipeline {
                     this.stagePlan('vae_encoder', 'matte', 'Trimask encoder (VAE)', 'block')];
     const after = (this.splitter?.heads ?? [null]).map((h) => this.stagePlan('vae_decoder', 'decoder', h ? `Image decoder (${h})` : 'Image decoder', 'block'));
     const progress = this.progress(steps, cfg ? 2 : 1, before, after, onProgress);
-    const emb = await this.embedFibo2(fibo2Prompt(prompt, m.text_encoder.caption_key), timings, (c) => progress.start(progress.stagePart(0, c)));
-    const nullEmb = cfg ? await this.embedFibo2(m.text_encoder.null_prompt, {}, (c) => progress.start(progress.stagePart(1, c))) : null;
-    const cond = await this.encodeMatte(matte, matteRev, width, height, timings, (c) => progress.start(progress.stagePart(before.length - 1, c)));
+    const emb = await this.embedFibo2(fibo2Prompt(prompt, m.text_encoder.caption_key), timings, (c) => progress.start(progress.stagePart(0, c)), gate);
+    const nullEmb = cfg ? await this.embedFibo2(m.text_encoder.null_prompt, {}, (c) => progress.start(progress.stagePart(1, c)), gate) : null;
+    const cond = await this.encodeMatte(matte, matteRev, width, height, timings, (c) => progress.start(progress.stagePart(before.length - 1, c)), gate);
     const types = this.types.transformer, n = (k) => this.name('transformer', k);
     const t = (k, values, d) => makeTensor(types[n(k)], values, d);
     const sigmas = fibo2Sigmas(steps, fibo2Mu((dims[2] * dims[3]) / 4, m.sampler.shift_seq, m.sampler.shift_mu));
@@ -454,7 +464,7 @@ export class Pipeline {
     for (let k = 0; k < steps; k++) {
       const pass = async (e, label, j) => asFloat32((await this.run('transformer', {
         ...fixed, [n('latents')]: t('latents', x, dims), [n('sigma')]: t('sigma', [sigmas[k]], [1]), [n('prompt_embeds')]: e,
-      }, timings, label, (c) => progress.start(progress.passPart(k + 1, j, c)), hw && peek && j === 1 ? blockPeek(k) : undefined))[n('output')]);
+      }, timings, label, (c) => progress.start(progress.passPart(k + 1, j, c)), hw && peek && j === 1 ? blockPeek(k) : undefined, gate))[n('output')]);
       let v = await pass(promptT, `transformer ${k + 1}`, 1);
       if (nullT) {
         const vNull = await pass(nullT, `transformer ${k + 1} (null)`, 2);
@@ -472,7 +482,7 @@ export class Pipeline {
     }
     const nLat = this.name('vae_decoder', 'latent');
     const decode = async (z, label, j) => asFloat32((await this.run('vae_decoder', { [nLat]: makeTensor(this.types.vae_decoder[nLat], z, dims) },
-      timings, label, (c) => progress.start(progress.afterPart(j, c))))[this.name('vae_decoder', 'output')]);
+      timings, label, (c) => progress.start(progress.afterPart(j, c)), undefined, gate))[this.name('vae_decoder', 'output')]);
     const images = [];
     for (const [j, z] of (heads ?? [x]).entries()) images.push(await decode(z, heads ? `vae_decoder ${this.splitter.heads[j]}` : 'vae_decoder', j));
     progress.finish();
@@ -500,7 +510,7 @@ export class Pipeline {
    * @param {Record<string, number|string>} timings - receives text_encoder ms or 'cached'
    * @returns {Promise<{data: Float32Array, dims: number[], mask: number[]}>}
    */
-  async embed(prompt, timings, startPart) {
+  async embed(prompt, timings, startPart, gate) {
     const key = embeddingKey(this.encoderId, prompt);
     if (this.memory.has(key)) { timings.text_encoder = 'cached (memory)'; return this.memory.get(key); }
     const stored = await getEmbedding(key);
@@ -516,7 +526,7 @@ export class Pipeline {
     const out = await this.run('text_encoder', {
       [nIds]: makeTensor(types[nIds], ids, [1, ids.length]),
       [nMask]: makeTensor(types[nMask], mask, [1, mask.length]),
-    }, timings, 'text_encoder', startPart);
+    }, timings, 'text_encoder', startPart, undefined, gate);
     const hidden = out[this.name('text_encoder', 'output')];
     const d = hidden.dims[2];
     const sel = selectIndex(ids.length, maxLen);
@@ -537,12 +547,12 @@ export class Pipeline {
    * @param {(c: number) => void} startPart - progress, called before each VAE-encoder part
    * @returns {Promise<Float32Array>} (1, 32, H/32, W/32), × scaling_factor
    */
-  async encodeMatte(matte, rev, width, height, timings, startPart) {
+  async encodeMatte(matte, rev, width, height, timings, startPart, gate) {
     rev = `${rev}:${width}x${height}`;
     if (this.matte.rev === rev) { timings.vae_encoder = 'cached (same matte)'; return this.matte.latent; }
     const nImg = this.name('vae_encoder', 'image');
     const out = await this.run('vae_encoder', { [nImg]: makeTensor(this.types.vae_encoder[nImg], matte, [1, 3, height, width]) },
-      timings, 'vae_encoder', startPart);
+      timings, 'vae_encoder', startPart, undefined, gate);
     const m = this.version.manifest, sf = m.latent_scaling_in_graph ? 1 : m.scaling_factor;
     const latent = asFloat32(out[this.name('vae_encoder', 'output')]).map((v) => v * sf);
     this.matte = { rev, latent };
@@ -562,15 +572,15 @@ export class Pipeline {
    */
   async generate(job, onProgress = () => {}) {
     if (this.family === 'fibo2') return this.generateFibo2(job, onProgress);
-    const { prompt, matte, matteRev, seed, timesteps, guidance, width, height, adapterScale } = job;
+    const { prompt, matte, matteRev, seed, timesteps, guidance, width, height, adapterScale, gate } = job;
     const timings = {};
     const t0 = performance.now();
     const dims = [1, LATENT_CHANNELS, height / VAE_FACTOR.sana, width / VAE_FACTOR.sana];
     const steps = timesteps.length - 1;
     const progress = this.progress(steps, 1, [this.stagePlan('text_encoder', 'text', 'Text encoder (Gemma)', 'layer'),
       this.stagePlan('vae_encoder', 'matte', 'Matte encoder (VAE)', 'block')], [this.stagePlan('vae_decoder', 'decoder', 'Image decoder', 'block')], onProgress);
-    const emb = await this.embed(prompt, timings, (c) => progress.start(progress.stagePart(0, c)));
-    const matteLatent = await this.encodeMatte(matte, matteRev, width, height, timings, (c) => progress.start(progress.stagePart(1, c)));
+    const emb = await this.embed(prompt, timings, (c) => progress.start(progress.stagePart(0, c)), gate);
+    const matteLatent = await this.encodeMatte(matte, matteRev, width, height, timings, (c) => progress.start(progress.stagePart(1, c)), gate);
     const m = this.version.manifest, types = this.types.transformer;
     const n = (k) => this.name('transformer', k);
     const t = (k, values, dims) => makeTensor(types[n(k)], values, dims);
@@ -587,7 +597,7 @@ export class Pipeline {
       const label = `transformer ${k + 1}`;
       const out = await this.run('transformer', {
         ...fixed, [n('noise')]: t('noise', latents, dims), [n('timestep')]: t('timestep', [timesteps[k]], [1]),
-      }, timings, label, (c) => progress.start(progress.passPart(k + 1, 1, c)));
+      }, timings, label, (c) => progress.start(progress.passPart(k + 1, 1, c)), undefined, gate);
       denoised = asFloat32(out[n('output')]);
       const s = timesteps[k + 1];
       if (s > 0) {
@@ -598,7 +608,7 @@ export class Pipeline {
     const latent = denoised.map((v) => v / (m.latent_scaling_in_graph ? 1 : m.scaling_factor));
     const nLat = this.name('vae_decoder', 'latent');
     const dec = await this.run('vae_decoder', { [nLat]: makeTensor(this.types.vae_decoder[nLat], latent, dims) },
-      timings, 'vae_decoder', (c) => progress.start(progress.afterPart(0, c)));
+      timings, 'vae_decoder', (c) => progress.start(progress.afterPart(0, c)), undefined, gate);
     progress.finish();
     timings.total = performance.now() - t0;
     const image = asFloat32(dec[this.name('vae_decoder', 'output')]);
