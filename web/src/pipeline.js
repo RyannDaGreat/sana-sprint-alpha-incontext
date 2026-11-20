@@ -16,7 +16,7 @@ const LATENT_CHANNELS = 32;          // both VAEs: (B, LC, LH, LW); LH = H / 32 
 const VAE_FACTOR = { sana: 32, fibo2: 8 };
 const GEMMA_PAD_ID = 0;
 const DOWNLOAD_PARALLEL = 6;  // files downloading at once (the old build fetched every file at once; 6 keeps rows readable and the network busy)
-const PREFETCH_PARTS = 4;  // graph parts whose files are read ahead of session creation (bounds the bytes held in JS while loading)
+const PREFETCH_PARTS = 4;  // graph parts whose downloads are pulled ahead of session creation (downloads only: bytes are read just in time)
 // FIBO2's sessions need more than wasm32's 4 GB, so they run on the Memory64 build (web/scripts/build_ort_memory64.sh,
 // served from public/ort-memory64/); SANA keeps npm's build. ORT initializes its wasm once per page: one runtime per page.
 const MEMORY64_PATH = 'ort-memory64/';
@@ -303,7 +303,9 @@ export class Pipeline {
     });
     const users = new Map();
     for (const q of plan) for (const e of q.own) users.set(e, (users.get(e) ?? 0) + 1);
-    const prefetch = (k) => { for (const q of plan.slice(k, k + PREFETCH_PARTS)) [q.g, ...q.own].forEach(get); };  // downloads stay ahead of creation
+    // the next parts' downloads jump the queue; their bytes are NOT read ahead: JS holds the current part's files only (an
+    // external-data file shared by consecutive parts stays until its last part; each is ≤ 1.9 GB, split_external_data)
+    const prefetch = (k) => { for (const q of plan.slice(k, k + PREFETCH_PARTS)) for (const e of [q.g, ...q.own]) e.start(); };
     let made = 0;  // session creation is its own phase (~90-115 per-part sessions): reported, m00852
     const sessions = {};
     for (const [k, q] of plan.entries()) {
