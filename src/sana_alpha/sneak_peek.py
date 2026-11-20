@@ -234,3 +234,109 @@ def tweedie_x0(xt, velocity, sigma):
         True
     """
     return xt - sigma.view(-1, 1, 1, 1) * velocity
+
+
+class HighwayGraph(torch.nn.Module):
+    """
+    The sneak peek highway as one ONNX graph for the browser: any block's head, chosen by an input, on a chunk graph's
+    main-stream tensor. Weights of all heads stacked (fp32); the final layer's frozen norm + timestep modulation inside.
+    Inputs: stream (1, S, dim) float16, the main stream after block `block` (gist, image, context tokens), c (1, D) the timestep
+    conditioning (adaln_noisy, float16), latents (1, 32, LH, LW) float32 x_t, block () int64, start () int64 = the first image token.
+    Output: velocity (1, 32, LH, LW) float32, the head's estimate of the model's velocity (x̂0 = x_t − σ·v in the app).
+    """
+
+    def __init__(self, highway, final_state):
+        """Command (copies weights). final_state: the base model's final_layer.{adaLN_modulation.1.*} tensors."""
+        super().__init__()
+        stack = lambda mods, attr: torch.stack([getattr(m, attr).detach().half().cpu() for m in mods])  # stored fp16 (half the download)
+        self.register_buffer("w", stack(highway.heads, "weight"))  # (K, 128, dim)
+        self.dim = int(self.w.shape[-1])  # a Python int: the exporter needs layer_norm's shape constant
+        self.register_buffer("b", stack(highway.heads, "bias"))  # (K, 128)
+        self.film = highway.time_film
+        if self.film:
+            self.register_buffer("fw", stack(highway.film, "weight"))  # (K, 256, D)
+            self.register_buffer("fb", stack(highway.film, "bias"))
+        self.skip = highway.xt_skip
+        if self.skip:
+            self.register_buffer("sw", stack(highway.skip, "weight"))  # (K, 128, 128)
+            self.register_buffer("sb", stack(highway.skip, "bias"))
+        assert not highway.residual, "the residual highway needs the previous peek as an input: not exported"
+        self.register_buffer("mw", final_state["final_layer.adaLN_modulation.1.weight"].half())
+        self.register_buffer("mb", final_state["final_layer.adaLN_modulation.1.bias"].half())
+
+    def forward(self, stream, c, latents, block, start):
+        """Pure function (given fixed weights). See the class docstring for shapes."""
+        import torch.nn.functional as F
+        _, _, lh, lw = latents.shape
+        n = (lh // 2) * (lw // 2)
+        tokens = stream[0, start:start + n].float()  # (N, dim)
+        c = c.float()
+        f = lambda t: t.float()  # weights stored fp16, computed fp32 (only the chosen block's are cast)
+        scale = 1.0 + F.linear(F.silu(c), f(self.mw), f(self.mb))  # (1, dim)
+        x = F.layer_norm(tokens, (self.dim,), eps=1e-6) * scale
+        p = F.linear(x, f(self.w[block]), f(self.b[block]))  # (N, 128)
+        if self.film:
+            sc, sh = F.linear(c, f(self.fw[block]), f(self.fb[block])).chunk(2, dim=-1)
+            p = p * (1.0 + sc) + sh
+        if self.skip:
+            xt = fibo2.patchify(latents.float()).flatten(2).transpose(1, 2)[0]  # (N, 128)
+            p = p + F.linear(xt, f(self.sw[block]), f(self.sb[block]))
+        return fibo2.unpatchify(p.transpose(0, 1).reshape(1, -1, lh // 2, lw // 2))
+
+
+def final_layer_state(base_dir):
+    """Query. The base model's final_layer.* tensors, read from its safetensors shards (no model load)."""
+    import json
+    from pathlib import Path
+    from safetensors import safe_open
+    root = Path(base_dir) / "transformer"
+    shards = json.loads((root / "diffusion_pytorch_model.safetensors.index.json").read_text())["weight_map"]
+    out = {}
+    for name, shard in shards.items():
+        if name.startswith("final_layer."):
+            with safe_open(root / shard, "pt") as f:
+                out[name] = f.get_tensor(name)
+    return out
+
+
+def export_highway(checkpoint, base_dir, out, n_blocks=44, dim=3584, c_dim=256):
+    """
+    Command. Writes the HighwayGraph of a step folder's HIGHWAY_FILE (on the given base's final layer) to `out` (ONNX,
+    opset 17, dynamic S, LH, LW) and checks it against the PyTorch module on a random input.
+
+    Args:
+        checkpoint (str): a train_fibo2 step folder with HIGHWAY_FILE, e.g. models/fibo2/hw_smoke2/step_000015
+        base_dir (str): fibo2.FIBO2_DIR or fibo2.TURBO_DIR (the version's base: its final layer modulation)
+        out (str): e.g. models/web/<version>/highway.onnx
+    """
+    from pathlib import Path
+    from types import SimpleNamespace
+    final = final_layer_state(base_dir)
+    lin = torch.nn.Linear(dim, final["final_layer.linear.weight"].shape[0])
+    stub = SimpleNamespace(layers=[None] * n_blocks, final_layer=SimpleNamespace(linear=lin, adaLN_modulation=[None, torch.nn.Linear(c_dim, dim)]))
+    fibo2_splitter_of = fibo2.splitter_of
+    fibo2.splitter_of = lambda t: None  # the stub has no splitter
+    try:
+        highway = SneakPeekHighway(stub)
+    finally:
+        fibo2.splitter_of = fibo2_splitter_of
+    assert load_highway(highway, Path(checkpoint)), f"{checkpoint} has no {HIGHWAY_FILE}"
+    graph = HighwayGraph(highway, final).eval()
+    s, lh = 256 + 64 + 300, 16
+    # stream and c in float16, as the int8/fp16 chunk graphs pass them; latents float32 as the app holds x_t
+    args = (torch.randn(1, s, dim).half(), torch.randn(1, c_dim).half(), torch.randn(1, 32, lh, lh), torch.tensor(5), torch.tensor(256))
+    torch.onnx.export(graph, args, out, opset_version=17, dynamo=False, input_names=["stream", "c", "latents", "block", "start"],
+                      output_names=["velocity"], dynamic_axes={"stream": {1: "S"}, "latents": {2: "LH", 3: "LW"}, "velocity": {2: "LH", 3: "LW"}})
+    import numpy as np, onnxruntime as ort
+    a2 = (torch.randn(1, s + 40, dim).half(), torch.randn(1, c_dim).half(), torch.randn(1, 32, 12, 20), torch.tensor(43), torch.tensor(256))
+    ref = graph(*a2).detach().numpy()
+    got = ort.InferenceSession(out, providers=["CPUExecutionProvider"]).run(None, {n: v.numpy() for n, v in zip(["stream", "c", "latents", "block", "start"], a2)})[0]
+    err = float(np.abs(got - ref).max() / (np.abs(ref).max() + 1e-12))
+    print(f"highway graph {out}: max relative error vs PyTorch {err:.2e}")
+    assert err < 1e-4, err
+    return err
+
+
+if __name__ == "__main__":
+    import fire
+    fire.Fire(dict(export=export_highway))
