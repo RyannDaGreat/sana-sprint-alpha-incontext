@@ -352,12 +352,13 @@ class SplitterHead(torch.nn.Module):
 
     def forward(self, x):
         """Command (sets self.last). (B, N, dim) -> head 0 (B, N, 128); self.last = all heads (B, N, K·128)."""
-        import einx
         import torch.nn.functional as F
 
         base = self.base(x)
         delta = F.linear(x, self.delta.weight.to(x.dtype), self.delta.bias.to(x.dtype))
-        self.last = einx.add("B N C, B N (K C) -> B N (K C)", base, self.gamma * delta, K=self.heads)
+        # "B N C, B N (K C) -> B N (K C)": base tiled K times. Not einx: the web export traces N symbolically, and einx
+        # bakes the traced N into a reshape (fibo2_web.SplitterVelocityGraph failed at a second latent size)
+        self.last = base.repeat(1, 1, self.heads) + self.gamma * delta
         return self.last[..., :base.shape[-1]]
 
 
