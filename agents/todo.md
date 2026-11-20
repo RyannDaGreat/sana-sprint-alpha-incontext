@@ -105,3 +105,5 @@
 - [x] Model card says Loading… with the live status line at once
 - [x] Every pane ≥ 5 px (m00902)
 - [ ] User: try Gallery on the live site; if it freezes again, the console now says where
+## 161 — Gallery items keep their sneak peek timeline (m00906)
+- Lossless PNG frames saved with the item; a timeline tab in the full view (scrubber, Play, error curve); per-generation reels. Verified headlessly with a stored item and a reload (galtl_probe.js); not yet with a real generation (no WebGPU on the node).
