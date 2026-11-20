@@ -162,6 +162,9 @@ export class SneakPeek {
       this.charge(performance.now() - t1);
       this.onPreview({ data, dims: image.dims }, label);
       this.shown++;
+      // 'Every layer' (m00910): wait for the next frame, so each block's preview is really painted before the next part
+      // runs; without it several previews land in one frame and the view skips blocks
+      if (this.everyLayer) await new Promise(requestAnimationFrame);
     }
     this.busy = false;
   }

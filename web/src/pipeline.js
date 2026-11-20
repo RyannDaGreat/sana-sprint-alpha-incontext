@@ -566,14 +566,21 @@ export class Pipeline {
     const between = peek ? () => peek.drain() : undefined;  // previews decode between this job's parts (one ORT run at a time)
     const timeline = peek ? { steps, blocks: hw?.blocks ?? 0, points: [], weights: hw?.weights ?? null } : null;  // the accordion's plot data
     let prevX0 = null, lastExpected = Infinity;  // the previous step's full-model x̂0; the expected error of the last shown preview
-    const blockOfPart = hw ? Object.fromEntries(Object.entries(hw.stream).map(([name, b]) => [this.partProducing(name), [b, name]])) : {};
+    const blockOfPart = {};  // part → every [block, stream name] it ends (a part may end more than one block)
+    for (const [name, b] of Object.entries(hw?.stream ?? {})) (blockOfPart[this.partProducing(name)] ??= []).push([b, name]);
     // Per-block previews (§18): after a part that ends main block b, if the preview queue is free, the highway head b estimates
     // the velocity from that block's stream; x̂0 = x − σ·v̂, blended with the previous step's x̂0 (w from the manifest
     // table), then the fast decoder. Only the conditional pass is used (a CFG preview would need both passes' heads).
     const blockPeek = (k) => async (c, values) => {
-      const hit = blockOfPart[c];
-      if (!hit || !peek.ready()) return;
-      const [b, name] = hit, t1 = performance.now();
+      // 'Every layer' previews every block this part ends, each decoded and painted before the next; otherwise only its last
+      for (const hit of everyLayer ? blockOfPart[c] ?? [] : (blockOfPart[c] ?? []).slice(-1)) {
+        await onePeek(k, values, hit);
+        if (everyLayer) await peek.drain();
+      }
+    };
+    const onePeek = async (k, values, [b, name]) => {
+      if (!peek.ready()) return;
+      const t1 = performance.now();
       // remedy (c) of §18: never show a preview that is expected (held-out table) to be worse than the last one shown
       const expected = hw.expected ? tableAt(hw.expected, k, steps, b) : -Infinity;
       if (!everyLayer && expected >= lastExpected) return;  // 'Every layer' (m00880) shows them all
@@ -587,6 +594,7 @@ export class Pipeline {
       const queued = peek.offer(shown, dims, `step ${k + 1}/${steps} · block ${b + 1}/${hw.blocks} (${shown === raw ? 'raw' : 'blended'})`);
       peek.charge(performance.now() - t1);  // after the offer: the head's time delays the NEXT preview, not this one
       if (!queued) return;
+      if (everyLayer) console.log(`sneak peek: step ${k + 1}/${steps} · block ${b + 1}/${hw.blocks}`);
       if (hw.expected) lastExpected = expected;
       timeline.points.push({ step: k, block: b, w, raw: poolLatent(raw, dims), shown: poolLatent(shown, dims) });
     };
