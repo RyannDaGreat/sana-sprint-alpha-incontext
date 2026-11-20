@@ -1,5 +1,5 @@
-// Resizable workbench panes (m00850): the 1px dividers between the tool sidebar | canvas | inspector columns, and
-// between the output and prompt panels, are draggable. Behaves like SvelteLib's SplitPane (github.com/RyannDaGreat/SvelteLib,
+// Resizable workbench panes (m00850): the 1px dividers between the tool sidebar | output over trimask | settings columns, and
+// between the output and the trimask below it (m00900), are draggable. Behaves like SvelteLib's SplitPane (github.com/RyannDaGreat/SvelteLib,
 // src/lib/SplitPane.svelte): a thin visible line, a wider invisible hit area, accent colour while hovered or dragged.
 // Keyboard: arrow keys move a focused divider; double-click resets it. Sizes persist per viewer (localStorage).
 
