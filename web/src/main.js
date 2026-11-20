@@ -515,7 +515,8 @@ async function generate() {
   if ($('sneak-peek').checked && state.pipeline.fastDecoder) Object.assign($('out-gray'), { width, height });  // previews paint here
   const result = await state.pipeline.generate({
     prompt: $('prompt').value, matte: mattePixelsToTensor(matte, width * height), matteRev: editor.rev, seed, ...sampler,
-    onPreview: $('sneak-peek').checked ? showPeek : null, gate: single.sched.gateFor(single.key),
+    onPreview: $('sneak-peek').checked ? showPeek : null,
+    gate: $('realtime').checked ? single.sched.gateFor(single.key) : undefined,  // the turn gate only where a cancel can come (real time); a plain run is ungated (WebGPU readback failures, m00860)
   }, showProgress).catch((e) => { if (e.name !== 'AbortError') fail(e); return null; }).finally(() => { state.busy = false; });
   if (!result) {  // cancelled (a newer edit is pending) or failed
     if (state.pending) { state.pending = false; generate(); }
@@ -728,6 +729,17 @@ async function renderVersions() {
 }
 
 /** Command. Creates one progress row per file in `box` and returns its updater. */
+/**
+ * Pure function. A progress row's key: role, file name and URL (content-addressed URLs alone collide for identical files).
+ *
+ * @param {{role: string, name: string, url: string}} f
+ * @returns {string}
+ *
+ * @example rowKey({ role: 'transformer_chunks', name: 'transformer.part3.onnx', url: 'https://x/blobs/ab/abcd.000' })
+ * // 'transformer_chunks/transformer.part3.onnx/https://x/blobs/ab/abcd.000'
+ */
+function rowKey(f) { return `${f.role}/${f.name}/${f.url}`; }
+
 function progressRows(files, box = $('files')) {
   box.innerHTML = '';
   const t0 = performance.now();
@@ -738,10 +750,16 @@ function progressRows(files, box = $('files')) {
     row.innerHTML = '<span class="name"></span><div class="bar"><div></div></div><span class="info meta">waiting</span>';
     row.querySelector('.name').textContent = f.name;
     box.append(row);
-    rows.set(f.url, { row, drawn: 0 });
+    const k = rowKey(f);  // two files with the same bytes share a content-addressed URL: never key rows by URL alone (rows stuck at 'waiting')
+    rows.set(k, [...(rows.get(k) ?? []), { row, drawn: 0 }]);
   }
-  return (f, done, total, fromCache) => {
-    const r = rows.get(f.url);
+  return (f, done, total, fromCache) => { for (const r of rows.get(rowKey(f)) ?? []) update(r, done, total, fromCache); };
+  function update(r, done, total, fromCache) {
+    if (fromCache === null) {  // the file's bytes are in hand (Pipeline.load): a row no progress call reached must not stay 'waiting' (m00861)
+      if (!r.touched) { r.row.querySelector('.bar > div').style.width = '100%'; r.row.querySelector('.info').textContent = `${formatBytes(total)} · loaded`; }
+      return;
+    }
+    r.touched = true;
     const now = performance.now();
     if (done < total && now - r.drawn < PROGRESS_REDRAW_MS) return;
     r.drawn = now;
@@ -753,7 +771,7 @@ function progressRows(files, box = $('files')) {
     r.row.querySelector('.info').textContent = done === total
       ? `${formatBytes(total)} · downloaded in ${seconds.toFixed(1)} s · ${mbps.toFixed(1)} MB/s`
       : `${formatBytes(done)} / ${formatBytes(total)} · ${mbps.toFixed(1)} MB/s · ETA ${formatEta(eta)}`;
-  };
+  }
 }
 
 /** Command. Downloads (or reads from cache) and initializes a version. */
@@ -764,6 +782,14 @@ async function loadVersion(v) {
     location.assign(url);
     return;
   }
+  if (state.loading) { status(`Still loading ${state.loading}; wait for it before loading another version.`, true); return; }
+  state.loading = v.id;  // one load at a time: two overlapping loads create sessions concurrently in one ORT runtime
+  try { await loadNow(v); } finally { state.loading = null; }
+}
+
+/** Command. loadVersion's body, run while state.loading holds the version id. */
+async function loadNow(v) {
+  if (state.pipeline) { status(`Releasing ${state.pipeline.version.id}…`); await state.pipeline.release(); }  // its sessions held GPU memory
   state.selected = v;
   state.pipeline = null;
   applyCond(v);
