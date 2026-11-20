@@ -503,3 +503,6 @@
 - `web_chunks.split(folder, k)` now splits all four roles; a test folder with only a transformer needs `split_role(folder, manifest, "transformer", k)`.
 - The app work sits on top of PeekScrub's unmerged `bindGreek` (branch matte-web from peekscrub 416b7d5), so μ uses the same any-value number box as λ/γ (m00893). The RGBA color is still decontaminated with the fit's own α, not the matte α: a known approximation, fine while they agree.
 
+## 2026-11-20 ~1 PM — Timeline, Gallery, sneak peek options (fork PeekScrub)
+- web/src/gallery.js already existed (the mask gallery, MaskGallery): the first draft overwrote it and the build failed on the missing export; the generations store went to web/src/history.js instead.
+- The output-view tab handler toggles `on` across every `.tab` (mode tabs included); left as it was.
