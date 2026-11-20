@@ -914,7 +914,7 @@ def verify(version, transformers="transformer.onnx", eval_dir="resources/eval"):
     Args:
         version (str): folder in models/web/
         transformers (str | tuple): comma-separated transformer .onnx files to test (fp16, int8, int4 variants);
-            "chunks" = the version's transformer.chunk*.onnx chain (web_chunks.split)
+            "chunks" = the version's transformer.part*.onnx chain (web_chunks.split)
         eval_dir (str): eval set folder (29 held-out items)
     """
     from PIL import Image

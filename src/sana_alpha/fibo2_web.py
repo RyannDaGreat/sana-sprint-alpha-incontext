@@ -726,14 +726,15 @@ def split_manifest(meta):
 
 def ort_sessions(folder, providers=("CUDAExecutionProvider",), chunks=False):
     """
-    Query (reads the graphs). One onnxruntime session per graph of an exported FIBO2 version; with chunks, the
-    transformer is its chained transformer.chunk*.onnx graphs (web_chunks.split).
+    Query (reads the graphs). One onnxruntime session per graph of an exported FIBO2 version; with chunks, every split
+    graph is its chained <role>.part*.onnx graphs (web_chunks.split).
     """
     import onnxruntime as ort
     from sana_alpha import web_chunks
     options = ort.SessionOptions()
     make = lambda path: ort.InferenceSession(str(path), options, providers=list(providers))
-    return {name: web_chunks.ChainedSession(folder, make) if chunks and name == "transformer" else make(folder / f"{name}.onnx")
+    split = json.loads((Path(folder) / "manifest.json").read_text()).get("chunked", {}) if chunks else {}
+    return {name: web_chunks.ChainedSession(Path(folder), make, name) if name in split else make(Path(folder) / f"{name}.onnx")
             for name in graph_specs()}
 
 
