@@ -377,7 +377,7 @@ button.link { border: 0; background: none; padding: 0; min-height: 0; }
   .pane-left::after, .pane-right::after { top: 0; bottom: 0; left: calc(50% - var(--hairline) / 2); width: var(--hairline); }
   .pane-left { left: calc(var(--pane-left, var(--side-w)) - var(--pane-hit) / 2); }
   .pane-right { right: calc(var(--pane-right, var(--side-w)) - var(--pane-hit) / 2); }
-  .pane-out { right: 0; width: var(--pane-right, var(--side-w)); height: var(--pane-hit); top: calc(var(--pane-out, 50%) - var(--pane-hit) / 2); cursor: row-resize; }
+  .pane-out { right: 0; width: calc(var(--pane-right, var(--side-w)) - var(--pane-hit) / 2); height: var(--pane-hit); top: calc(var(--pane-out, 50%) - var(--pane-hit) / 2); cursor: row-resize; }
   .pane-out::after { left: 0; right: 0; top: calc(50% - var(--hairline) / 2); height: var(--hairline); }
   .output-panel { display: flex; flex-direction: column; }
   .output-panel .square { flex: 1 1 0; min-height: 0; aspect-ratio: 1; max-width: 100%; margin: 0 auto; }

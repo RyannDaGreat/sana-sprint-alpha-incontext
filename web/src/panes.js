@@ -8,6 +8,7 @@ const KEY_STEP_PX = 16;  // one arrow-key press
 const MIN_SIDE_PX = 220;  // narrowest tool sidebar / inspector that still fits its controls
 const MIN_CANVAS_PX = 320;  // narrowest mask canvas
 const MIN_ROW_PX = 160;  // shortest output or prompt panel
+const DOUBLE_PRESS_MS = 400;  // two presses this close reset a divider (dblclick does not fire once pointerdown is cancelled)
 
 /**
  * Pure function. Clamps x into [lo, hi]; when the range is empty (hi < lo), returns lo.
@@ -100,10 +101,15 @@ export function initPanes(bench) {
       return which === 'out' ? e.clientY - r.top : e.clientX - r.left;
     };
     const set = (pos) => { sizes = dragSizes(sizes, which, pos, bench.clientWidth, bench.clientHeight); apply(); };
+    const reset = () => { sizes = { ...sizes, [which]: defaults()[which] }; apply(); saveSizes(sizes); };
+    let lastPress = 0;
     handle.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      if (e.timeStamp - lastPress < DOUBLE_PRESS_MS) { lastPress = 0; reset(); return; }
+      lastPress = e.timeStamp;
       handle.setPointerCapture(e.pointerId);
       handle.classList.add('dragging');
-      const move = (ev) => set(posOf(ev));
+      const move = (ev) => { lastPress = 0; set(posOf(ev)); };  // a drag is not half of a double press
       const up = () => {
         handle.removeEventListener('pointermove', move);
         handle.classList.remove('dragging');
@@ -111,12 +117,6 @@ export function initPanes(bench) {
       };
       handle.addEventListener('pointermove', move);
       handle.addEventListener('pointerup', up, { once: true });
-      e.preventDefault();
-    });
-    handle.addEventListener('dblclick', () => {
-      const d = defaults();
-      sizes = { ...sizes, [which]: d[which] };
-      apply(); saveSizes(sizes);
     });
     handle.addEventListener('keydown', (e) => {
       const sign = { ArrowLeft: -1, ArrowUp: -1, ArrowRight: 1, ArrowDown: 1 }[e.key];
