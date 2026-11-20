@@ -16,6 +16,8 @@ const LATENT_CHANNELS = 32;          // both VAEs: (B, LC, LH, LW); LH = H / 32 
 const VAE_FACTOR = { sana: 32, fibo2: 8 };
 const GEMMA_PAD_ID = 0;
 const DOWNLOAD_PARALLEL = 6;  // files downloading at once (the old build fetched every file at once; 6 keeps rows readable and the network busy)
+const STALL_MS = 20000;  // a load phase without progress this long is reported with its exact step (silence never again, m00871)
+const STALL_CHECK_MS = 5000;
 const PREFETCH_PARTS = 4;  // graph parts whose downloads are pulled ahead of session creation (downloads only: bytes are read just in time)
 // FIBO2's sessions need more than wasm32's 4 GB, so they run on the Memory64 build (web/scripts/build_ort_memory64.sh,
 // served from public/ort-memory64/); SANA keeps npm's build. ORT initializes its wasm once per page: one runtime per page.
@@ -253,10 +255,32 @@ export class Pipeline {
    *
    * @param {{id: string, url: string, manifest: object}} version
    * @param {'webgpu'|'wasm'} ep
-   * @param {(file: object, done: number, total: number, fromCache: boolean) => void} onProgress
+   * @param {(file: object, done: number, total: number, fromCache: boolean) => void} onProgressRow
+   * @param {(made: number, total: number, role: string) => void} [onPrepare] - session creation progress
+   * @param {(message: string) => void} [onStall] - a phase made no progress for STALL_MS: the exact step, and the cache locks
    * @returns {Promise<Pipeline>}
    */
-  static async load(version, ep, onProgress, onPrepare = () => {}) {
+  static async load(version, ep, onProgressRow, onPrepare = () => {}, onStall = () => {}) {
+    const watch = { step: 'starting', at: performance.now(), reading: new Set() };  // the load watchdog's view: current step, last progress, unfinished cache reads
+    const mark = (step) => { watch.step = step; watch.at = performance.now(); };
+    const onProgress = (...a) => { watch.at = performance.now(); onProgressRow(...a); };
+    const timer = setInterval(async () => {
+      const idle = performance.now() - watch.at;
+      if (idle < STALL_MS) return;
+      const locks = await navigator.locks.query();
+      const opfs = (list) => list.filter((l) => l.name.startsWith('opfs:')).map((l) => `${l.mode} ${l.name.slice(5, 17)}…`);
+      const reads = [...watch.reading];
+      const msg = `Load stalled ${(idle / 1000).toFixed(0)} s at: ${watch.step}`
+        + (reads.length ? ` · still reading ${reads.slice(0, 3).join(', ')}${reads.length > 3 ? ` (+${reads.length - 3})` : ''}` : '') + ` · locks held ${opfs(locks.held).length}, pending ${opfs(locks.pending).length}`
+        + (locks.pending.length ? ' (another tab of this app may hold a model file: close it)' : '');
+      console.warn(msg, { held: opfs(locks.held), pending: opfs(locks.pending) });
+      onStall(msg);
+    }, STALL_CHECK_MS);
+    try { return await Pipeline.loadWatched(version, ep, onProgress, onPrepare, mark, watch.reading); } finally { clearInterval(timer); }
+  }
+
+  /** Command. Pipeline.load's body; `mark(step)` names the step it is on for the watchdog. */
+  static async loadWatched(version, ep, onProgress, onPrepare, mark, reading) {
     if (!canLoadHere(version)) throw new Error(`${version.id} needs the ${runtimeOf(version)} runtime; this page started ${runtime}: reload`);
     if (runtime === null && runtimeOf(version) === 'memory64') {
       ort.env.wasm.wasmPaths = new URL(MEMORY64_PATH, document.baseURI).href;
@@ -280,7 +304,7 @@ export class Pipeline {
     }
     const kick = () => { while (started < entries.length && started - finished < DOWNLOAD_PARALLEL) entries[started++].start(); };
     kick();
-    const get = (e) => (e.promise ??= (e.start(), e.cached).then(() => readCached(e))  // a file needed first jumps the download queue
+    const get = (e) => (e.promise ??= (e.start(), e.cached).then(() => { reading.add(e.name); return readCached(e).finally(() => reading.delete(e.name)); })  // a file needed first jumps the download queue
       .then((data) => { onProgress(e, e.bytes, e.bytes, null); return data; }));  // null: its bytes are in hand ('loaded')
     const drop = (e) => { e.promise = null; };  // the bytes can be collected; a later get() reads the cache again
     const byRole = {};
@@ -311,7 +335,9 @@ export class Pipeline {
     for (const [k, q] of plan.entries()) {
       prefetch(k);
       onPrepare(made, nGraphs, q.role);
+      mark(`waiting for the files of ${q.role} part ${q.i + 1} (${[q.g, ...q.own].map((e) => e.name).join(', ')})`);
       const [graph, ...weights] = await Promise.all([q.g, ...q.own].map(get));
+      mark(`creating the ${q.role} part ${q.i + 1} session`);
       await new Promise((r) => setTimeout(r, 0));  // one task per part so the status can paint (session creation blocks the page)
       (sessions[q.role] ??= []).push(await ort.InferenceSession.create(graph, {
         executionProviders: [ep],
@@ -326,12 +352,14 @@ export class Pipeline {
     p.fastDecoder = null;  // sneak peek (manifest §18): optional; float32 latent (1, 32, LH, LW) → float32 image (1, 3, h, w) in [0, 1]
     if (byRole.fast_decoder) {
       const fd = byRole.fast_decoder[0];
+      mark('creating the fast decoder session');
       p.fastDecoder = { session: await ort.InferenceSession.create(await get(fd), { executionProviders: [ep] }),
                         names: { latent: 'latent', image: 'image', ...version.manifest.files.fast_decoder.names } };
     }
     p.highway = null;  // sneak peek highway (§18): optional; one graph for every block's head, on a chunk part's main stream
     if (byRole.highway) {
       if (!version.manifest.highway?.stream) throw new Error(`${version.id}: a highway file but no manifest.highway (stream names, c, start)`);
+      mark('creating the highway session');
       p.highway = { session: await ort.InferenceSession.create(await get(byRole.highway[0]), { executionProviders: [ep] }), ...version.manifest.highway };
     }
     const tf = version.manifest.files.text_encoder;

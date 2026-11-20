@@ -802,7 +802,7 @@ async function loadNow(v) {
   status(`Loading ${v.id}…`);
   const t0 = performance.now();
   const prepare = (k, n, role) => status(`Preparing ${v.id}: ${role.replace('_', ' ')} · part ${k + 1} of ${n} (${((performance.now() - t0) / 1000).toFixed(0)} s)`);
-  state.pipeline = await Pipeline.load(v, ep, progressRows(versionFiles(v)), prepare);
+  state.pipeline = await Pipeline.load(v, ep, progressRows(versionFiles(v)), prepare, (msg) => status(msg, true));
   const url = new URL(location.href);
   url.searchParams.set('version', v.id);
   history.replaceState(null, '', url);
