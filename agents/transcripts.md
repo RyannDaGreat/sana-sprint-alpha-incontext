@@ -1019,3 +1019,9 @@ I also don't see why you artificially limit the width of my divider panes. Don't
 
 ## m00903 — 2026-11-20 ~5:35 PM
 And yeah, once the new highway pilot thing has numbers, notify me. You can notify me up to five different times. You can choose your notification points wisely to keep me informed throughout this process. Try to plan it so they're spaced evenly and have very big semantic meaning. Each should be focused: to the point, human readable, not meandering.
+
+## m00904 — 2026-11-20 ~6:00 PM
+I clicked Start in the four-way pad and only two of the four start. One of them still says "starting". Annoying. In fact, they're already on step three and the others still say "starting". Are you able to reproduce this? Have a Sonnet agent try?
+
+## m00905 — 2026-11-20 ~6:20 PM
+I enabled Every layer. Are you sure it's actually giving me a preview on every layer? Because it doesn't update every time it goes through another block.
