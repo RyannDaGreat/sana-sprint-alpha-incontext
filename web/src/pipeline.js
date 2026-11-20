@@ -9,6 +9,7 @@ import { versionFiles, fetchCached } from './models.js';
 import { gemmaInputs, selectIndex, COMPLEX_HUMAN_INSTRUCTION } from './prompt.js';
 import { embeddingKey, getEmbedding, putEmbedding } from './embcache.js';
 import { gaussianNoise, progressCounter } from './util.js';
+import { splitX0 } from './splitter.js';
 
 const LATENT_CHANNELS = 32;          // both VAEs: (B, LC, LH, LW); LH = H / 32 (DC-AE, SANA) or H / 8 (FLUX.2, FIBO2)
 const VAE_FACTOR = { sana: 32, fibo2: 8 };
@@ -49,7 +50,7 @@ const FIBO2_NAMES = {
   text_encoder: { input_ids: 'input_ids', attention_mask: 'attention_mask', output: 'prompt_embeds' },
   vae_encoder: { image: 'image', output: 'latent' },
   transformer: { latents: 'latents', cond_latents: 'cond_latents', sigma: 'sigma', prompt_embeds: 'prompt_embeds',
-    adapter_scale: 'adapter_scale', output: 'velocity' },
+    adapter_scale: 'adapter_scale', gamma: 'gamma', output: 'velocity' },
   vae_decoder: { latent: 'latent', output: 'image' },
 };
 
@@ -284,6 +285,8 @@ export class Pipeline {
     p.matte = { rev: -1, latent: null };
     p.family = version.manifest.family ?? 'sana';
     p.hasLambda = p.name('transformer', 'adapter_scale') in p.types.transformer;  // runtime-λ graph (manifest "adapter")
+    p.splitter = version.manifest.splitter ?? null;  // a splitter version (manifest §17): one velocity per background head, runtime γ
+    if (p.splitter && !(p.name('transformer', 'gamma') in p.types.transformer)) throw new Error(`${version.id}: splitter manifest but no gamma input`);
     return p;
   }
 
@@ -353,13 +356,17 @@ export class Pipeline {
   /**
    * Command. One FIBO2 generation (fibo2.sample): noise x ~ N(0, 1), then for each σ_k → σ_{k+1}:
    * v = transformer(x, σ_k, prompt), with CFG v = v_null + guidance·(v − v_null) against the null prompt, x += (σ_{k+1} − σ_k)·v.
+   * A splitter version (manifest §17) returns K velocities; x follows head 0 (gray), and at the last step every head's
+   * clean latent is splitX0's x0_k, each decoded by vae_decoder.
    *
    * @param {{prompt: string, matte: Float32Array, matteRev: number, seed: number, steps: number, guidance: number,
-   *   width: number, height: number, adapterScale: number}} job - matte (1, 3, H, W) in [−1, 1]; width, height: multiples of 16
+   *   width: number, height: number, adapterScale: number, gamma: number}} job - matte (1, 3, H, W) in [−1, 1]; width,
+   *   height: multiples of 16; gamma: the splitter strength γ (splitter versions only)
    * @param {Function} onProgress - see progressCounter
-   * @returns {Promise<{image: Float32Array, timings: Record<string, number|string>}>} image (1, 3, H, W) in [−1, 1]
+   * @returns {Promise<{image: Float32Array, images: Float32Array[]|null, timings: Record<string, number|string>}>} image
+   *   (1, 3, H, W) in [−1, 1] (head 0 for a splitter); images: a splitter's K heads (1, 3, H, W) in [0, 1], else null
    */
-  async generateFibo2({ prompt, matte, matteRev, seed, steps, guidance, width, height, adapterScale }, onProgress) {
+  async generateFibo2({ prompt, matte, matteRev, seed, steps, guidance, width, height, adapterScale, gamma }, onProgress) {
     const timings = {};
     const t0 = performance.now();
     const m = this.version.manifest, f = VAE_FACTOR.fibo2, cfg = guidance > 1;
@@ -375,9 +382,10 @@ export class Pipeline {
     const types = this.types.transformer, n = (k) => this.name('transformer', k);
     const t = (k, values, d) => makeTensor(types[n(k)], values, d);
     const sigmas = fibo2Sigmas(steps, fibo2Mu((dims[2] * dims[3]) / 4, m.sampler.shift_seq, m.sampler.shift_mu));
-    const fixed = { [n('cond_latents')]: t('cond_latents', cond, dims), ...(this.hasLambda ? { [n('adapter_scale')]: t('adapter_scale', [adapterScale], [1]) } : {}) };
+    const fixed = { [n('cond_latents')]: t('cond_latents', cond, dims), ...(this.hasLambda ? { [n('adapter_scale')]: t('adapter_scale', [adapterScale], [1]) } : {}),
+                    ...(this.splitter ? { [n('gamma')]: t('gamma', [gamma], [1]) } : {}) };
     const promptT = t('prompt_embeds', emb.data, emb.dims), nullT = nullEmb && t('prompt_embeds', nullEmb.data, nullEmb.dims);
-    let x = gaussianNoise(dims.reduce((a, b) => a * b), seed);
+    let x = gaussianNoise(dims.reduce((a, b) => a * b), seed), heads = null;
     for (let k = 0; k < steps; k++) {
       const pass = async (e, label) => asFloat32((await this.runTransformer({
         ...fixed, [n('latents')]: t('latents', x, dims), [n('sigma')]: t('sigma', [sigmas[k]], [1]), [n('prompt_embeds')]: e,
@@ -387,14 +395,18 @@ export class Pipeline {
         const vNull = await pass(nullT, `transformer ${k + 1} (null)`);
         v = v.map((c, i) => vNull[i] + guidance * (c - vNull[i]));
       }
+      if (this.splitter && k === steps - 1) heads = splitX0(x, v, sigmas[k], this.splitter.heads.length);  // v: head-major (1, K, 32, LH, LW)
       const ds = sigmas[k + 1] - sigmas[k];
-      x = x.map((xi, i) => xi + ds * v[i]);
+      x = x.map((xi, i) => xi + ds * v[i]);  // head 0's velocity: the first 32·LH·LW values
     }
     const nLat = this.name('vae_decoder', 'latent');
-    const dec = await timed(timings, 'vae_decoder', this.sessions.vae_decoder, { [nLat]: makeTensor(this.types.vae_decoder[nLat], x, dims) });
+    const decode = async (z, label) => asFloat32((await timed(timings, label, this.sessions.vae_decoder,
+      { [nLat]: makeTensor(this.types.vae_decoder[nLat], z, dims) }))[this.name('vae_decoder', 'output')]);
+    const images = [];
+    for (const [j, z] of (heads ?? [x]).entries()) images.push(await decode(z, heads ? `vae_decoder ${this.splitter.heads[j]}` : 'vae_decoder'));
     await tick('image decoder', 0, 'decoder');
     timings.total = performance.now() - t0;
-    return { image: asFloat32(dec[this.name('vae_decoder', 'output')]).map((v) => 2 * v - 1), timings };
+    return { image: images[0].map((v) => 2 * v - 1), images: heads ? images : null, timings };
   }
 
   /**

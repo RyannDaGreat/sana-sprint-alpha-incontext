@@ -18,6 +18,9 @@
 //                                                     without CFG (turbo: the guidance control is disabled), FIBO2's resolution shift)
 //   "text_encoder": {template, caption_key, null_prompt, max_tokens} (fibo2: prompt template, JSON caption key,
 //                                                     null prompt for CFG, longest prompt the transformer graph takes)
+//   "splitter": {heads, backgrounds, gamma, ...} | null (fibo2, manifest §17: the transformer takes gamma (γ) and returns
+//                                                     one velocity per head (1, K, 32, LH, LW); heads name the backgrounds,
+//                                                     backgrounds their values (gray 0.5, white 1, black 0); weights contain "γ")
 //   "files": {                                        (paths are relative to the version folder)
 //     "tokenizer": {path, bytes}, "tokenizer_config": {path, bytes},
 //     "text_encoder" | "vae_encoder" | "transformer" | "vae_decoder": {
@@ -119,6 +122,7 @@ export function normalizeManifest(raw) {
     family: raw.family ?? 'sana', sampler: raw.sampler, text_encoder: raw.text_encoder,
     scaling_factor: raw.vae.scaling_factor, timestep: raw.sampler.timestep, guidance: raw.sampler.guidance,
     weights: raw.weights, precision: precisionLabel(raw.quantization, raw.family), adapter: raw.adapter ?? null, cond: raw.cond,
+    splitter: raw.splitter ?? null,
     trained_sizes: raw.trained_sizes ?? [1024],  // exports before trained_sizes all come from 1024-only runs
     dynamic_size: typeof raw.graphs.transformer.inputs[0][1][2] === 'string',  // [1, 32, "LH", "LW"]: any size
     max_sequence_length: 300, latent_scaling_in_graph: true, decoder_output_range: '0,1',

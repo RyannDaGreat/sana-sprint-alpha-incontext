@@ -9,6 +9,7 @@ import { buildTrimaskUi, DEFAULT_GUI } from './trimask_ui.js';
 import { levelFractions, rgbaToMask } from './trimask_ops.js';
 import { loadVersions, versionFiles, cachedFlags, cacheBytes, clearCache } from './models.js';
 import { countEmbeddings, clearEmbeddings } from './embcache.js';
+import { rgbaFromComposites, splitterPixels } from './splitter.js';
 import { formatBytes, formatEta, rate, mattePixelsToTensor, decodeToPixels, fitRect, cropRect, SIZE, progressLine } from './util.js';
 // pipeline.js (with ONNX Runtime) is a separate chunk: ORT's WASM worker re-imports its own
 // module URL, which must not be this file (it touches the DOM).
@@ -198,8 +199,7 @@ $('show-photo').addEventListener('change', () => $('matte-square').classList.tog
 for (const t of document.querySelectorAll('.tab')) {
   t.addEventListener('click', () => {
     document.querySelectorAll('.tab').forEach((x) => x.classList.toggle('on', x === t));
-    $('out-gray').hidden = t.dataset.view !== 'gray';
-    $('out-rgba').hidden = t.dataset.view !== 'rgba';
+    for (const view of ['gray', 'rgba', 'alpha', 'uncertainty']) $(`out-${view}`).hidden = t.dataset.view !== view;
   });
 }
 
@@ -225,7 +225,7 @@ function samplerSettings() {
   const sMid = steps === 2 ? Number($('s-mid').value) : null;
   const [width, height] = $('size').value.split('x').map(Number);
   return { steps, guidance: Number($('guidance').value), timesteps: sprintTimesteps(steps, Number($('s-max').value), sMid), width, height,
-    adapterScale: Number($('lambda').value) };
+    adapterScale: Number($('lambda').value), gamma: Number($('gamma').value) };
 }
 
 /**
@@ -252,9 +252,10 @@ function matteAtSize(width, height) {
  *   {steps: 2, guidance: 4.5, timesteps: [1.5708, 1.3, 0], width: 1024, height: 1024}, 0)
  * // 'W_sprint + (W_control − W_adapter) + gates · control_v2 step 1500 · transformer fp16 · Gemma fp16 · Sprint sampler, 2 steps at s = 1.5708, 1.3 · guidance 4.5 (embedded) · 1024 × 1024 · seed 0'
  */
-function equationText(manifest, { steps, guidance, timesteps, width, height, adapterScale }, seed) {
+function equationText(manifest, { steps, guidance, timesteps, width, height, adapterScale, gamma }, seed) {
   const weights = manifest.weights ?? 'weight equation missing from manifest.json';
-  const head = `${manifest.adapter ? weights.replace('λ', adapterScale) : weights} · ${manifest.precision} · `;
+  const scaled = (manifest.adapter ? weights.replace('λ', adapterScale) : weights).replace('γ', manifest.splitter ? gamma : 'γ');
+  const head = `${scaled} · ${manifest.precision} · `;
   const tail = `${width} × ${height} · seed ${seed}`;
   if (manifest.family === 'fibo2') {
     const sig = fibo2Sigmas(steps, fibo2Mu((width * height) / 256, manifest.sampler.shift_seq, manifest.sampler.shift_mu));
@@ -290,6 +291,12 @@ function syncSamplerUi() {
   $('guidance-v').textContent = $('guidance').value;
   $('lambda-v').textContent = $('lambda').value;
   $('lambda').disabled = !state.pipeline?.hasLambda;
+  const splitter = state.pipeline?.splitter;  // manifest §17: γ and the Alpha / Uncertainty views
+  $('gamma-v').textContent = $('gamma').value;
+  $('gamma').disabled = !splitter;
+  $('tab-alpha').hidden = $('tab-uncertainty').hidden = !splitter;
+  $('tab-gray').textContent = splitter ? `RGB (${splitter.heads.join(' · ')})` : 'RGB on gray';
+  if (!splitter && ['alpha', 'uncertainty'].includes(document.querySelector('.tab.on')?.dataset.view)) $('tab-gray').click();
   const manifest = (state.pipeline?.version ?? state.selected)?.manifest, dynamic = manifest?.dynamic_size ?? true;
   const noCfg = fibo2 && manifest?.sampler?.cfg === false;  // a distilled few-step model (FIBO2 turbo) samples without CFG
   $('guidance').disabled = noCfg;
@@ -340,7 +347,7 @@ async function generate() {
   const sampler = samplerSettings(), seed = Number($('seed').value), { width, height } = sampler;
   const matte = matteAtSize(width, height);
   $('gen-steps').innerHTML = '';
-  const { image, timings } = await state.pipeline.generate({
+  const { image, images, timings } = await state.pipeline.generate({
     prompt: $('prompt').value, matte: mattePixelsToTensor(matte, width * height), matteRev: editor.rev, seed, ...sampler,
   }, showProgress).catch(fail).finally(() => { state.busy = false; });
   const steps = $('gen-steps').children.length;
@@ -348,9 +355,13 @@ async function generate() {
     + (state.pipeline.passUnits() > 1 ? ` · ${state.pipeline.passUnits()} block groups per transformer pass` : '');
   $('equation').textContent = equationText(state.pipeline.version.manifest, sampler, seed);
   const { onGray, cutout } = decodeToPixels(image, matte, width * height);
-  for (const [id, pixels] of [['out-gray', onGray], ['out-rgba', cutout]]) {
-    Object.assign($(id), { width, height });
-    $(id).getContext('2d').putImageData(new ImageData(pixels, width, height), 0, 0);
+  const split = images && splitterPixels(images, rgbaFromComposites(images, state.pipeline.splitter.backgrounds, width * height), width, height);
+  const views = split ? [['out-gray', split.strip, images.length * width], ['out-rgba', split.rgba, width], ['out-alpha', split.alpha, width],
+                         ['out-uncertainty', split.uncertainty, width]]
+    : [['out-gray', onGray, width], ['out-rgba', cutout, width]];  // without a splitter, RGBA takes its alpha from the input mask
+  for (const [id, pixels, w] of views) {
+    Object.assign($(id), { width: w, height });
+    $(id).getContext('2d').putImageData(new ImageData(pixels, w, height), 0, 0);
   }
   $('out-empty').hidden = true;
   $('dl-gray').disabled = $('dl-rgba').disabled = false;
@@ -371,7 +382,7 @@ function scheduleRealtime() {
 $('generate').addEventListener('click', generate);
 $('prompt').addEventListener('input', scheduleRealtime);
 $('seed').addEventListener('input', scheduleRealtime);
-for (const id of ['steps', 'guidance', 's-max', 's-mid', 'size', 'lambda']) $(id).addEventListener('input', () => { syncSamplerUi(); scheduleRealtime(); });
+for (const id of ['steps', 'guidance', 's-max', 's-mid', 'size', 'lambda', 'gamma']) $(id).addEventListener('input', () => { syncSamplerUi(); scheduleRealtime(); });
 $('realtime').addEventListener('change', scheduleRealtime);
 $('new-seed').addEventListener('click', () => { $('seed').value = Math.floor(Math.random() * SEED_RANGE); scheduleRealtime(); });
 $('prompt').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) generate(); });

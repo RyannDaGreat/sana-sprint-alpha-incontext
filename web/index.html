@@ -37,13 +37,17 @@
     <section class="panel output-panel">
       <h2>Output
         <span class="tabs">
-          <button class="tab on" data-view="gray">RGB on gray</button>
+          <button class="tab on" data-view="gray" id="tab-gray">RGB on gray</button>
           <button class="tab" data-view="rgba">RGBA</button>
+          <button class="tab" data-view="alpha" id="tab-alpha" hidden title="The alpha matte the splitter predicts from the trimask (white = opaque)">Alpha</button>
+          <button class="tab" data-view="uncertainty" id="tab-uncertainty" hidden title="How much the gray, white and black images disagree with one RGBA (black = they agree)">Uncertainty</button>
         </span>
       </h2>
       <div class="square">
         <canvas id="out-gray" width="1024" height="1024"></canvas>
         <canvas id="out-rgba" class="checker" width="1024" height="1024" hidden></canvas>
+        <canvas id="out-alpha" width="1024" height="1024" hidden></canvas>
+        <canvas id="out-uncertainty" width="1024" height="1024" hidden></canvas>
         <p id="out-empty" class="empty">No image yet.</p>
       </div>
       <p id="equation" class="meta equation"></p>
@@ -125,6 +129,7 @@
         </label>
         <label class="field"><span id="guidance-label">Guidance (embedded)</span> <input id="guidance" type="range" min="0" max="10" step="0.1" value="4.5"><span id="guidance-v" class="meta">4.5</span></label>
         <label class="field" id="lambda-field" title="λ = fraction of the adapter delta (W_adapter − W_teacher) kept, applied at run time as a low-rank (SVD) branch. 0 = full subtraction (the final model), 1 = the control model as trained. Only versions ending in -lambda have it.">λ (adapter) <input id="lambda" type="range" min="0" max="1" step="0.05" value="0"><span id="lambda-v" class="meta">0</span></label>
+        <label class="field" id="gamma-field" title="γ = how much the splitter splits (manifest §17): 0 = the model without it (gray, white and black images identical, so no alpha), 1 = the splitter as trained. Only splitter versions have it.">γ (splitter) <input id="gamma" type="range" min="0" max="1" step="0.05" value="1"><span id="gamma-v" class="meta">1</span></label>
         <label class="field" title="&quot;trained&quot; marks the sizes the loaded model was trained at (matte models: 1024 only; trimask models: 1024, 768, 512, 256). Other sizes work (SANA has no positional embedding) but are extrapolation: for a 1024-only model 768² looks close, 512² is oversaturated with texture artifacts. Non-square sizes use the centered crop of the matte shown by the frame.">Size
           <select id="size">
             <option value="1024x1024" selected>1024 × 1024</option>
