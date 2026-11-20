@@ -1122,21 +1122,24 @@ async function renderVersions() {
     const total = files.reduce((a, f) => a + f.bytes, 0);
     const nCached = flags.filter(Boolean).length;
     const card = document.createElement('div');
-    card.className = `version${state.selected === v ? ' selected' : ''}`;
+    const loading = state.loading === v.id;  // m00900: the card being loaded says so at once, with the live status line
+    card.className = `version${state.selected === v ? ' selected' : ''}${loading ? ' loading' : ''}`;
     const cached = cacheState(flags);
     card.innerHTML = `
       <span class="version-head"><i class="cache-dot" data-state="${cached}" role="img"></i><span class="version-name"></span></span>
       <span class="label"></span>
       <span class="meta desc"></span>
       <span class="meta">${COND_TEXT[condOf(v)][0]} model · ${formatBytes(total)} · ${nCached === files.length ? 'cached' : `${nCached}/${files.length} files cached`}</span>
-      <div class="row"><button>${state.pipeline?.version === v ? 'Loaded' : 'Load'}</button></div>`;
+      <div class="row"><button>${loading ? 'Loading…' : state.pipeline?.version === v ? 'Loaded' : 'Load'}</button></div>
+      <span class="meta load-line"></span>`;
     const dot = card.querySelector('.cache-dot');
     dot.title = dot.ariaLabel = { none: 'Not cached', partial: `Partly cached: ${nCached} of ${files.length} files`, full: 'Fully cached' }[cached];
     card.querySelector('.version-name').textContent = v.id;
     card.querySelector('.label').textContent = v.manifest.label ?? '';
     card.querySelector('.desc').textContent = v.manifest.description ?? '';
     const btn = card.querySelector('button');
-    btn.disabled = state.pipeline?.version === v || v.manifest.missing.length > 0;
+    btn.disabled = loading || state.pipeline?.version === v || v.manifest.missing.length > 0;
+    if (state.selected === v) card.querySelector('.load-line').textContent = $('status').textContent;  // the Models tab shows the status too
     if (v.manifest.missing.length) btn.textContent = `Not ready: no ${v.manifest.missing.join(', ')}`;
     btn.addEventListener('click', () => loadVersion(v).catch(fail));
     return card;
@@ -1217,13 +1220,15 @@ async function loadVersion(v) {
   }
   if (state.loading) { status(`Still loading ${state.loading}; wait for it before loading another version.`, true); return; }
   state.loading = v.id;  // one load at a time: two overlapping loads create sessions concurrently in one ORT runtime
-  try { await loadNow(v); } finally { state.loading = null; }
+  state.selected = v;  // its card is highlighted and says Loading… at once (m00900)
+  status(`Loading ${v.id}…`);
+  await renderVersions();
+  try { await loadNow(v); } finally { state.loading = null; await renderVersions(); }
 }
 
 /** Command. loadVersion's body, run while state.loading holds the version id. */
 async function loadNow(v) {
   if (state.pipeline) { status(`Releasing ${state.pipeline.version.id}…`); await state.pipeline.release(); }  // its sessions held GPU memory
-  state.selected = v;
   state.pipeline = null;
   applyCond(v);
   $('generate').disabled = true;
@@ -1242,7 +1247,6 @@ async function loadNow(v) {
   applyFamily(familyOf(v), familyOf(v) === 'fibo2' ? v.manifest.sampler : null);
   syncSamplerUi();
   status(`${v.id} ready in ${((performance.now() - t0) / 1000).toFixed(1)} s (${ep}). Press Generate.`);
-  await renderVersions();
   await refreshCacheInfo();
   scheduleRealtime();
 }
