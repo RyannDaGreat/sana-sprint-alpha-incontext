@@ -80,8 +80,8 @@
   --size-preview: 1.25rem;  /* font names in the font picker */
   --popup-max-h: 22rem;
   --popup-min-w: 11em;
-  --op-w: 116px;           /* filter button cell width: every button in a group is this wide or a share of the row */
-  --glyph-w: 52px;          /* before → after glyph on filter buttons */
+  --op-w: 132px;           /* equal-width cell of every button grid (filters, paint, scope, image actions) */
+  --glyph-w: 108px;         /* before → after glyph on filter buttons */
   --leading-tight: 1.2;
   --v-white: #ffffff;       /* matte values drawn in glyphs, same in both themes */
   --v-gray: #808080;
@@ -293,6 +293,9 @@ button.link { border: 0; background: none; padding: 0; color: var(--muted); font
 .group { flex-wrap: nowrap; align-items: start; }
 .ops { flex: 1; display: grid; grid-template-columns: repeat(auto-fill, var(--op-w)); gap: var(--space-1); }
 .ops > .meta { align-self: center; }
+/* One-line, centered buttons in the same equal-width cells: paint values, scope, image actions. */
+.actions { display: grid; grid-template-columns: repeat(auto-fill, var(--op-w)); gap: var(--space-1); }
+.ops > button:not(.op), .actions > * { justify-content: center; text-align: center; white-space: nowrap; padding-inline: var(--space-1); }
 .op { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-1); text-align: left;
   padding: var(--space-1) var(--space-2); font-size: var(--size-meta); line-height: var(--leading-tight); }
 .op span { text-wrap: balance; }
@@ -336,6 +339,9 @@ button.link { border: 0; background: none; padding: 0; color: var(--muted); font
   .version { grid-column: span 12; }
   .file { grid-template-columns: 1fr; row-gap: var(--space-1); }
   h2 .meta { flex-basis: 100%; }
+  :root { --op-w: 112px; --glyph-w: 88px; } /* three cells per row on a 400px phone */
+  .group { flex-wrap: wrap; }
+  .group-title { flex-basis: 100%; }
 }
 
 @media (pointer: coarse) {

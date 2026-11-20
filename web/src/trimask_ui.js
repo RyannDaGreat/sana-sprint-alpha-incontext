@@ -98,7 +98,7 @@ function glyph(id, p) {
 function palette(box, editor, names) {
   const row = html(`<div class="row group palette"><span class="field group-title">${names.title}</span><div class="ops"></div></div>`);
   for (const [i, l] of LEVELS.entries()) {
-    const b = html(`<button class="swatch${l.v === editor.level ? ' on' : ''}" data-level="${l.v}"><i style="--swatch: rgb(${255 * l.v}, ${255 * l.v}, ${255 * l.v})"></i>${names.levels[i]}</button>`);
+    const b = html(`<button class="swatch${l.v === editor.level ? ' on' : ''}" data-level="${l.v}" title="${names.tips?.[i] ?? ""}"><i style="--swatch: rgb(${255 * l.v}, ${255 * l.v}, ${255 * l.v})"></i>${names.levels[i]}</button>`);
     b.addEventListener('click', () => {
       row.querySelectorAll('.swatch').forEach((x) => x.classList.toggle('on', x === b));
       editor.setLevel(l.v);
@@ -166,7 +166,7 @@ function designA(box, editor) {
 /** Command. The "Where" row: filters act on the whole matte or only inside a lasso selection. */
 function scopeRow(box, editor) {
   const scope = html(`<div class="row group"><span class="field group-title">Where</span><div class="ops"><span class="meta scope">Whole matte</span>
-    <button class="lasso-tool" title="Pick the Lasso tool: drag around a region and the filters below change only inside it">Lasso a region</button>
+    <button class="lasso-tool" title="Pick the Lasso tool: drag around a region and the filters below change only inside it">Lasso</button>
     <button class="lasso-clear" title="Drop the lasso: filters change the whole matte again">Whole matte</button></div></div>`);
   const sync = () => { scope.querySelector('.scope').textContent = editor.selection ? 'Inside the lasso' : 'Whole matte'; };
   scope.querySelector('.lasso-tool').addEventListener('click', () => document.querySelector('[data-tool="lasso"]').click());
@@ -196,7 +196,7 @@ function designC(box, editor) {
  * "Harden → 3 levels", and C's lasso scope.
  */
 function designD(box, editor) {
-  palette(box, editor, { title: 'Paint', levels: ['White · object', 'Gray · unknown', 'Black · background'] });
+  palette(box, editor, { title: 'Paint', levels: ['Object', 'Unknown', 'Background'], tips: ['White = object: sure to be part of the foreground', 'Gray = unknown: partly transparent or not sure', 'Black = background: sure to be empty'] });
   box.append(html('<h3 class="sub-h">Filters <span class="meta">one click applies · Undo reverts</span></h3>'));
   scopeRow(box, editor);
   const remap = (label, to, tip) => [label, 'remap', { to }, `${tip} Fuzzy values in between are remapped proportionally.`];
