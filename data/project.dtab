@@ -144,6 +144,9 @@ tables
 			 fibo2_<x>_<S>: (32, S/8, S/8) bfloat16, key "latent", the raw FLUX.2 VAE mode (not BatchNorm-normalized). gray = rgb_on_gray, colorbg = on bg_color
 			fibo2_gray_1024, fibo2_gray_768, fibo2_gray_512, fibo2_gray_256, fibo2_colorbg_1024, fibo2_colorbg_768, fibo2_colorbg_512, fibo2_colorbg_256 blob
 
+			 Written by encode_fibo2's job split (manifest §17, the splitter LoRA's targets; run_encode_fibo2.fish split): the same raw FLUX.2 VAE mode, of rgba on white and on black
+			fibo2_white_1024, fibo2_white_768, fibo2_white_512, fibo2_white_256, fibo2_black_1024, fibo2_black_768, fibo2_black_512, fibo2_black_256 blob
+
 	eval_models
 		 One row per model to evaluate. To evaluate a new checkpoint, add a row here: run_proc_eval.fish initializes first
 		primary_key model_tag
