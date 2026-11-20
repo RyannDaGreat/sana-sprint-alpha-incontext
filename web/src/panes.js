@@ -5,9 +5,7 @@
 
 const STORE_KEY = 'workbench-panes';
 const KEY_STEP_PX = 16;  // one arrow-key press
-const MIN_SIDE_PX = 220;  // narrowest tool sidebar / inspector that still fits its controls
-const MIN_CANVAS_PX = 320;  // narrowest mask canvas
-const MIN_ROW_PX = 160;  // shortest output or prompt panel
+const MIN_PANE_PX = 5;  // every pane can shrink to almost nothing: the user decides its size (m00902)
 const DOUBLE_PRESS_MS = 400;  // two presses this close reset a divider (dblclick does not fire once pointerdown is cancelled)
 
 /**
@@ -38,14 +36,15 @@ export function clamp(x, lo, hi) {
  * @returns {{left: number, right: number, out: number}}
  *
  * @example dragSizes({left: 360, right: 360, out: 400}, 'left', 300, 1440, 850) // {left: 300, right: 360, out: 400}
+ * @example dragSizes({left: 360, right: 360, out: 400}, 'left', 0, 1440, 850) // {left: 5, right: 360, out: 400}
  * @example dragSizes({left: 360, right: 360, out: 400}, 'right', 800, 1440, 850) // {left: 360, right: 640, out: 400}
- * @example dragSizes({left: 360, right: 360, out: 400}, 'right', 500, 1440, 850) // {left: 360, right: 760, out: 400} (canvas keeps 320)
- * @example dragSizes({left: 360, right: 360, out: 400}, 'out', 700, 1440, 850) // {left: 360, right: 360, out: 690}
+ * @example dragSizes({left: 360, right: 360, out: 400}, 'right', 100, 1440, 850) // {left: 360, right: 1075, out: 400} (the middle keeps 5)
+ * @example dragSizes({left: 360, right: 360, out: 400}, 'out', 849, 1440, 850) // {left: 360, right: 360, out: 845}
  */
 export function dragSizes(sizes, which, pos, w, h) {
-  if (which === 'left') return { ...sizes, left: clamp(pos, MIN_SIDE_PX, w - sizes.right - MIN_CANVAS_PX) };
-  if (which === 'right') return { ...sizes, right: clamp(w - pos, MIN_SIDE_PX, w - sizes.left - MIN_CANVAS_PX) };
-  return { ...sizes, out: clamp(pos, MIN_ROW_PX, h - MIN_ROW_PX) };
+  if (which === 'left') return { ...sizes, left: clamp(pos, MIN_PANE_PX, w - sizes.right - MIN_PANE_PX) };
+  if (which === 'right') return { ...sizes, right: clamp(w - pos, MIN_PANE_PX, w - sizes.left - MIN_PANE_PX) };
+  return { ...sizes, out: clamp(pos, MIN_PANE_PX, h - MIN_PANE_PX) };
 }
 
 /**
