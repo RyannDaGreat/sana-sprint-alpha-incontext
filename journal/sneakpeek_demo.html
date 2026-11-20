@@ -14,6 +14,8 @@ button.on{border-color:var(--accent);color:var(--accent)} input[type=range]{widt
 .label{font-variant-numeric:tabular-nums} svg{width:min(100%,720px);height:auto}
 .strip{display:flex;gap:4px;width:max-content} .strip figure{margin:0}
 </style>
+</head>
+<body>
 <h1>Sneak peek: how the live preview evolves</h1>
 <p>FIBO2 splitter, training step 2,000 (with its trained sneak peek highway), on the turbo base: 4 steps, 1024², no CFG, the shipped mode.
 Each frame is one preview the web app can show: after each of the 44 transformer blocks of every step, the highway's estimate of the final
@@ -83,3 +85,4 @@ for (const item of ITEMS) {
   draw();
 }
 </script>
+</body>
