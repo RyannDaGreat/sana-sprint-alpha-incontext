@@ -378,9 +378,9 @@ export class Pipeline {
     p.gpu = ep === 'webgpu' ? await ort.env.webgpu.device : null;  // the GPUDevice ORT runs on: progress follows its queue (run)
     p.splitter = version.manifest.splitter ?? null;  // a splitter version (manifest §17): one velocity per background head, runtime γ
     if (p.splitter && !(p.name('transformer', 'gamma') in p.types.transformer)) throw new Error(`${version.id}: splitter manifest but no gamma input`);
-    p.matte = version.manifest.matte ?? null;  // a matte version (manifest §21): one more head, the alpha matte, runtime μ
-    if (p.matte && !(p.name('transformer', 'mu') in p.types.transformer)) throw new Error(`${version.id}: matte manifest but no mu input`);
-    p.heads = p.splitter ? [...p.splitter.heads, ...(p.matte ? ['matte'] : [])] : null;  // the decoded heads, in velocity order
+    p.matteHead = version.manifest.matte ?? null;  // a matte version (manifest §21): one more head, the alpha matte, runtime μ
+    if (p.matteHead && !(p.name('transformer', 'mu') in p.types.transformer)) throw new Error(`${version.id}: matte manifest but no mu input`);
+    p.heads = p.splitter ? [...p.splitter.heads, ...(p.matteHead ? ['matte'] : [])] : null;  // the decoded heads, in velocity order
     return p;
   }
 
@@ -558,7 +558,7 @@ export class Pipeline {
     const sigmas = fibo2Sigmas(steps, fibo2Mu((dims[2] * dims[3]) / 4, m.sampler.shift_seq, m.sampler.shift_mu));
     const fixed = { [n('cond_latents')]: t('cond_latents', cond, dims), ...(this.hasLambda ? { [n('adapter_scale')]: t('adapter_scale', [adapterScale], [1]) } : {}),
                     ...(this.splitter ? { [n('gamma')]: t('gamma', [gamma], [1]) } : {}),
-                    ...(this.matte ? { [n('mu')]: t('mu', [mu], [1]) } : {}) };
+                    ...(this.matteHead ? { [n('mu')]: t('mu', [mu], [1]) } : {}) };
     const promptT = t('prompt_embeds', emb.data, emb.dims), nullT = nullEmb && t('prompt_embeds', nullEmb.data, nullEmb.dims);
     let x = gaussianNoise(dims.reduce((a, b) => a * b), seed), heads = null;
     const fd = this.fastDecoder, hw = this.highway, peek = fd && onPreview && new SneakPeek(fd.session,

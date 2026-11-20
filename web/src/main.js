@@ -619,7 +619,7 @@ function syncSamplerUi() {
   $('lambda').disabled = $('lambda-v').disabled = !state.pipeline?.hasLambda;
   const splitter = state.pipeline?.splitter;  // manifest §17: γ and the Alpha / Uncertainty views
   $('gamma').disabled = $('gamma-v').disabled = !splitter;
-  $('mu').disabled = $('mu-v').disabled = !state.pipeline?.matte;  // manifest §21
+  $('mu').disabled = $('mu-v').disabled = !state.pipeline?.matteHead;  // manifest §21
   $('tab-alpha').hidden = $('tab-uncertainty').hidden = !splitter;
   $('tab-gray').textContent = splitter ? `RGB (${splitter.heads.join(' · ')})` : 'RGB on gray';
   if (!splitter && ['alpha', 'uncertainty'].includes(document.querySelector('.tab.on')?.dataset.view)) $('tab-gray').click();
@@ -848,7 +848,7 @@ async function generate() {
  * color and α; a matte version (manifest §21) takes α from its matte head instead (the gray image's mean over RGB,
  * clipped to [0, 1]) and keeps the fit's color and uncertainty.
  *
- * @param {Float32Array[]} images - K heads, each (3, H, W) in [0, 1]; the matte head last when pipeline.matte
+ * @param {Float32Array[]} images - K heads, each (3, H, W) in [0, 1]; the matte head last when pipeline.matteHead
  * @param {{splitter: {backgrounds: number[]}, matte: object|null}} pipeline
  * @param {number} hw - H·W
  * @returns {{color: Float32Array, alpha: Float32Array, uncertainty: Float32Array}}
@@ -859,7 +859,7 @@ async function generate() {
 function splitFit(images, pipeline, hw) {
   const k = pipeline.splitter.backgrounds.length;
   const fit = rgbaFromComposites(images.slice(0, k), pipeline.splitter.backgrounds, hw);
-  if (!pipeline.matte) return fit;
+  if (!pipeline.matteHead) return fit;
   const m = images[k], alpha = new Float32Array(hw);
   for (let i = 0; i < hw; i++) alpha[i] = Math.min(1, Math.max(0, (m[i] + m[hw + i] + m[2 * hw + i]) / 3));
   return { ...fit, alpha };
