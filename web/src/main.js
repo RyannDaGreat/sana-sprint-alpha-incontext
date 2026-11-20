@@ -11,6 +11,7 @@ import { buildTrimaskUi, DEFAULT_GUI } from './trimask_ui.js';
 import { levelFractions, rgbaToMask } from './trimask_ops.js';
 import { loadVersions, versionFiles, cachedFlags, cacheState, cacheBytes, clearCache } from './models.js';
 import { countEmbeddings, clearEmbeddings } from './embcache.js';
+import { saveUiState, loadUiState, clearUiState, readInputs, writeInputs } from './persist.js';
 import { rgbaFromComposites, splitterPixels } from './splitter.js';
 import { formatBytes, formatEta, rate, mattePixelsToTensor, decodeToPixels, fitRect, cropRect, SIZE, progressLine } from './util.js';
 // pipeline.js (with ONNX Runtime) is a separate chunk: ORT's WASM worker re-imports its own
@@ -61,7 +62,12 @@ function toggleTheme() {
 // ---------- matte editor ----------
 
 let levelsFrame = 0; // pending readout frame (declared first: the editor's constructor already reports a change)
-const editor = new MatteEditor($('matte'), $('overlay'), () => { scheduleRealtime(); scheduleLevels(); });
+// persistence state (manifest §20), declared before the editor for the same reason
+const PERSIST_IDS = ['prompt', 'seed', 'steps', 'guidance', 's-max', 's-mid', 'size', 'lambda', 'gamma', 'realtime', 'sneak-peek'];
+const SAVE_DEBOUNCE_MS = 400;  // after the last edit
+const persist = { ready: false, timer: 0, warned: false };  // ready: only after the saved state was restored (else the starter disc overwrites it)
+
+const editor = new MatteEditor($('matte'), $('overlay'), () => { scheduleRealtime(); scheduleLevels(); scheduleSave(); });
 /** Command. Next frame, shows how much of the matte is white / gray / black (readout under the title). */
 function scheduleLevels() {
   cancelAnimationFrame(levelsFrame);
@@ -70,6 +76,47 @@ function scheduleLevels() {
     $('levels').textContent = `now: white ${pct(f.white)} · gray ${pct(f.gray)} · black ${pct(f.black)}`;
   });
 }
+
+// ---------- persistence (manifest §20, m00848): matte, prompt, seed and settings survive a reload until "Reset all" ----------
+
+
+/** Command. Debounced save of the editor and the inputs to IndexedDB; a storage failure is shown once, never hidden. */
+function scheduleSave() {
+  if (!persist.ready) return;
+  clearTimeout(persist.timer);
+  persist.timer = setTimeout(async () => {
+    try {
+      await saveUiState({ raster: await editor.raster.convertToBlob({ type: 'image/png' }), objects: structuredClone(editor.objects),
+                          invert: editor.invert, inputs: readInputs($, PERSIST_IDS) });
+    } catch (e) {
+      if (!persist.warned) status(`Could not save your matte and prompt in this browser (${e.message}); they will not survive a reload.`, true);
+      persist.warned = true;
+    }
+  }, SAVE_DEBOUNCE_MS);
+}
+
+/** Command. Restores the saved matte and inputs, if any; returns whether something was restored. */
+async function restoreUiState() {
+  let saved;
+  try { saved = await loadUiState(); } catch (e) { status(`Could not read your saved matte and prompt (${e.message}).`, true); }
+  persist.ready = true;
+  if (!saved) return false;
+  editor.rctx.drawImage(await createImageBitmap(saved.raster), 0, 0);
+  editor.rasterRev++;
+  editor.objects = saved.objects; editor.invert = saved.invert; editor.selected = null;
+  editor.changed();
+  editor.resetHistory();
+  writeInputs($, saved.inputs);
+  return true;
+}
+
+$('reset-all').addEventListener('click', async () => {
+  persist.ready = false;  // no save may land after the delete
+  clearTimeout(persist.timer);
+  await clearUiState().catch((e) => status(`Could not clear the saved state (${e.message}).`, true));
+  location.reload();
+});
+for (const id of PERSIST_IDS) for (const ev of ['input', 'change']) $(id)?.addEventListener(ev, scheduleSave);
 
 /** Command. Draws the starter matte: a white disc, so Generate works right away. */
 function starterMatte() {
@@ -560,6 +607,7 @@ $('theme').addEventListener('click', toggleTheme);
 async function init() {
   if (!window.isSecureContext) status('This page is not a secure context (use https or localhost): WebGPU and the model cache are unavailable.', true);
   starterMatte();
+  if (await restoreUiState()) status('Restored your last matte, prompt and settings ("Reset all" starts over).');
   syncSamplerUi();
   state.versions = await loadVersions(modelsBase);
   const wanted = params.get('version');
