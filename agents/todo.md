@@ -5,6 +5,9 @@
 |---|---|---|---|
 | 1–44 | Day 1: curation, adapter v1/v2, control v1/v2, galleries, journal on Pages, WebGPU demo + controls + masks | see git log | pushed / live |
 | 48 | Final matte model: control_v2 step 6000 (Sprint 1-step IoU 0.95, 2-step 0.97) | — | live as web default |
+| 120 | Splitter LoRA data: BlueJay white/black composite encode (§17, m00730, m00731) | not measured | Fork SplitData running |
+| 121 | Splitter LoRA training + sampling + RGBA solve (§17) | not measured | Fork SplitTrain running |
+| 122 | Splitter: stop fibo2_tri, encode on 8 GPUs, train from newest ckpt, fresh optimizer; notify start/ETA/done/train start; eval + readable notification (m00732) | — | waits on 120, 121 |
 | 50–52 | Trimask: table (337,934 rows, 19 methods, 0 violations, 4 resolutions), encode, training code | see git log | pushed |
 | 53 | control_tri_scratch: from scratch, multires | — | stopped 1:29 PM at step 15840 by user (m00695); last save 15500; 15000 live |
 | 54 | Checkpoint script agents/.scratchpad/tri_checkpoint.sh (merge, λ int4 web, verify, publish) | b09151d 742c2ac dec4e00 | pushed; step 3000 + 6000 live, notified 8:13/8:33 AM; 9000 queued (tmux tri_ckpt9) |
@@ -23,6 +26,7 @@
 | 71 | Web UI generation progress bar: steps + evenly spaced layer chunks (m00715), push when done | — | fork Progress running |
 | 72 | Trimask methods `original` + `threshold` via BlueJay; training mix 30% solid outlines / 70% trimasks (m00718, m00720, m00721 — "masters single outlines"), restart FIBO2 training | — | fork TrimaskPlus running; manifest §13 + concerns updated |
 | 73 | Reports: every image reachable (all-methods default view, counts on hub); journal index newest first with dates (m00719) | — | fork FullRes running |
+| 74 | GitHub over size quota -> big files to ONE Hugging Face repo (OneOverZero), shrink GitHub, push everything, publish, live test; notify when ready to play (m00727, m00728) | — | fork HFMove running |
 
 ## Open
 - [ ] Checkpoints 9000, 12000, 15000, 18000, 20000: push + manual notify each

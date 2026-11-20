@@ -500,3 +500,18 @@ After we reach an export step 6000, I'd like to start processing a new experimen
 
 ## m00731 — 2026-11-19 ~11:10 PM
 So once we reach the next checkpoint — well actually, you should probably start coding this. Don't cancel training until you're actually ready with the new pipeline. We're probably going to need some more BlueJay processors to make this happen, right? But once you have these BlueJay processors, it's time to cancel the current training run and then blast all the new samples. Give me an ETA for it. Tell me when it starts. Tell me in like an hour, once you have an ETA. And then notify me again once it's complete. Notify me once you start training FIBO. And we'll start training from the previous checkpoint, but discard the optimizer, right? Because if the optimizer has a decreasing learning rate, it's going to make things slow.
+
+## m00732 — 2026-11-19 ~11:20 PM
+Once you have an evaluation of what this will look like and how good or bad it is, give me a human readable notification, and assume that I have amnesia and don't remember anything I said, and that somebody else is going to read it.
+
+## m00733 — 2026-11-19 ~11:25 PM
+Yes, we use the same noise everywhere, because the only change is at the very, very end of the network. This is why it's possible to mix and match the different LoRAs. The architecture changes only at the very end, and it represents a delta, right? If some previous model beforehand, for example, chose to do the final layer's linear differently, then that difference would be inherited by the splitter, right? Because the splitter just stores a delta, and that delta would again be applied to all three of these output channels at once. Because it's supposed to be a triplicate of the previous model, added to this one. Do you get what I'm saying?
+
+## m00734 — 2026-11-19 ~11:27 PM
+Right, it stores three deltas. It's effectively relative to the gray head, but that's only because it's a delta and we add these to each other. That's how we can still do arithmetic between the LoRAs.
+
+## m00735 — 2026-11-19 ~11:15 PM
+How close are we to the checkpoint that we'll need? And keep these all in your fork table, to start implementing and testing what you need to get ready for that. And then, what ETA is it, and when can we start processing the data, and how far along is the Hugging Face thing? I saw you created a new repository, so I assume you're going to be busy?
+
+## m00736 — 2026-11-19 ~11:17 PM
+And don't forget to update all the manifests with my transcriptions and instructions and whatnot, and keep the git repository clean by updating periodically.
