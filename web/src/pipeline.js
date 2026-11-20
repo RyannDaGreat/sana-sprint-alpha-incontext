@@ -581,7 +581,8 @@ export class Pipeline {
                                          block: new ort.Tensor('int64', BigInt64Array.from([BigInt(b)]), []),
                                          start: new ort.Tensor('int64', BigInt64Array.from([BigInt(hw.start)]), []) });
       const raw = tweedieX0(x, asFloat32(out.velocity), sigmas[k]);
-      const w = highwayWeight(hw.weights, k, steps, b);
+      // 'Every layer' shows each block's own estimate: the calibrated w is 0 for most blocks of steps 2-4, which repeats the previous step's x̂0 (m00905)
+      const w = everyLayer ? 1 : highwayWeight(hw.weights, k, steps, b);
       const shown = prevX0 && w < 1 ? blendX0(raw, prevX0, w) : raw;
       const queued = peek.offer(shown, dims, `step ${k + 1}/${steps} · block ${b + 1}/${hw.blocks} (${shown === raw ? 'raw' : 'blended'})`);
       peek.charge(performance.now() - t1);  // after the offer: the head's time delays the NEXT preview, not this one
