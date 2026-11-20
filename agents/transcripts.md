@@ -702,50 +702,50 @@ For now on, we'll keep the plan.
 ## m00798 — 2026-11-20 ~1:39 AM
 Lol, nobody's using GPU 6 at all.
 
-## m00799 — 2026-11-20 ~1:50 AM
+## m00799 — 2026-11-20 ~1:45–2:03 AM (clock-corrected; exact minute unknown)
 Have they made any progress? Do we have a better decoder?
 
-## m00800 — 2026-11-20 ~1:55 AM
+## m00800 — 2026-11-20 ~1:45–2:03 AM (clock-corrected; exact minute unknown)
 Very cool. Do we have a visual for it yet?
 
-## m00801 — 2026-11-20 ~1:58 AM (pasted)
+## m00801 — 2026-11-20 ~1:45–2:03 AM (clock-corrected; exact minute unknown) (pasted)
 There's one other method that I want you to try, which is similar to diffusion distillation — DMD — you know, like how DMD works: in diffusion, let's say we had a hundred diffusion steps, we would train a four-step model to match the predictions of the teacher model at 0, 25, 50 and 75, if we were doing a four-step distillation of 100. Well, I'm wondering if we can do the same thing for the convolutional outputs, or whatever intermediate layers are inside the decoder: whether we can have a distillation method that mimics the activations of the original decoder, which we'll call the teacher, added with some other spice and bells and whistles that your agents can go through. Is this a known technique? Is there research on this? Whether or not there is, I'd like to try some and see if it's better or not. I'm kind of bullish on this, but who knows? I might be wrong.
 
-## m00802 — 2026-11-20 ~2:01 AM
+## m00802 — 2026-11-20 ~1:45–2:03 AM (clock-corrected; exact minute unknown)
 Also, the columns should say the number of milliseconds it took to run, including the original.
 
-## m00803 — 2026-11-20 ~2:03 AM
+## m00803 — 2026-11-20 ~1:45–2:03 AM (clock-corrected; exact minute unknown)
 Alright, well then I'd like to have some agents — you can add maybe 5 additional Sonnet agents to test different versions of feature distillation.
 
-## m00804 — 2026-11-20 ~2:05 AM
+## m00804 — 2026-11-20 ~1:45–2:03 AM (clock-corrected; exact minute unknown)
 Let them have babies with each other. After each round, they can talk and come up with plans, kind of like a genetic algorithm. But the plans should be divergent. Every new round should have competing methods, but they can intermingle and talk. Or maybe random sets of them will intermingle and talk with each other, to evolve a better strategy.
 
-## m00805 — 2026-11-20 ~2:08 AM
+## m00805 — 2026-11-20 ~1:45–2:03 AM (clock-corrected; exact minute unknown)
 GPU 572 ms per 1024² — how? I remember it took multiple seconds?
 
-## m00806 — 2026-11-20 ~2:09 AM
+## m00806 — 2026-11-20 ~1:45–2:03 AM (clock-corrected; exact minute unknown)
 And make sure that whatever GPU is doing the benchmarking is not overcrowded with other tests.
 
-## m00807 — 2026-11-20 ~2:11 AM
+## m00807 — 2026-11-20 ~1:45–2:03 AM (clock-corrected; exact minute unknown)
 Got it. Well, you may do any of the ones in the current visualization. Okay. What's the number of milliseconds required to stay within that 10% bound I asked for? Report that on the top, and tell me here.
 
-## m00808 — 2026-11-20 ~2:12 AM
+## m00808 — 2026-11-20 ~1:45–2:03 AM (clock-corrected; exact minute unknown)
 Assuming we did it on every sneak peek thing, right? Because we're going to be doing many sneak peeks.
 
-## m00809 — 2026-11-20 ~2:13 AM
+## m00809 — 2026-11-20 ~1:45–2:03 AM (clock-corrected; exact minute unknown)
 Remember how that has to take into account the number of layers in the model or whatever.
 
-## m00810 — 2026-11-20 ~2:14 AM
+## m00810 — 2026-11-20 ~1:45–2:03 AM (clock-corrected; exact minute unknown)
 Well, then what's the number? Spit it out.
 
-## m00811 — 2026-11-20 ~2:16 AM
+## m00811 — 2026-11-20 ~1:45–2:03 AM (clock-corrected; exact minute unknown)
 Also, why does it claim to be showing me 1024x1024 images when it's clearly not that high resolution? Is it dumbing it down again? In its original instructions it was explicitly told to never, ever, ever, ever dumb down images that are used for visualization. I always want full resolution and full quality.
 
-## m00812 — 2026-11-20 ~2:20 AM
+## m00812 — 2026-11-20 ~1:45–2:03 AM (clock-corrected; exact minute unknown)
 Also, I don't know why the fast decoder thing deleted the old results. I mean, we should really be sorting them in terms of rounds or something. Maybe you can color-code each column depending on the round. Round -1 is the one we started with, before we started doing these.
 
-## m00813 — 2026-11-20 ~2:23 AM (pasted)
+## m00813 — 2026-11-20 ~1:45–2:03 AM (clock-corrected; exact minute unknown) (pasted)
 By the way, in addition to that highway thing, there should be some components in there that tell us the diffusion step, along with the layer information or whatever, or whatever other obvious repeatable parameters there are, to most accurately estimate not just the prediction — the highway is responsible for doing the prediction — but, more importantly than just the prediction, we need predicting of the model output: we need to predict the final noise as accurately as possible. That's the most important thing. But actually, more than that, we need to predict it weighted across whatever the Tweedie formula is, right? So that it goes monotonically better when I'm looking at the preview. If it jumps — because at diffusion step 2 it puts more weight on diffusion step 2 when doing Tweedie's formula, but we're looking at the first layer, which is less accurate — we may actually see a jump in inaccuracy throughout the visualization process, and then it no longer looks like it's getting progressively better; it would look like it's spiking downwards over and over, like down, down, down, down. So when we do this inside your research reports, if you ever notice this is a problem, please take remedy for this, and report it inside everything, and keep it in your journal and whatnot.
 
-## m00814 — 2026-11-20 ~2:25 AM
+## m00814 — 2026-11-20 ~1:45–2:03 AM (clock-corrected; exact minute unknown)
 Did you transcribe everything, by the way? Don't forget!
