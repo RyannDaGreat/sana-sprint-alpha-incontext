@@ -17,3 +17,4 @@ web/public/ort-memory64/
 web/.cert/
 journal/webgpu/
 web/public/masks/categories.json
+/agents/logs
