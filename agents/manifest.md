@@ -243,6 +243,8 @@ Goal: the one-step matte model runs in a browser on WebGPU, on a 16–32 GB MacB
 
 Editor extras (m00643): undo/redo for every matte edit, a threshold tool (with softness ramp), ~28 on-demand Google Fonts for text, and a full-screen mask gallery (`web/public/masks/<category>/`, MAGICK held-out mattes + collected silhouettes with source/license). Details: `web/PLAN.md`.
 
+UI polish (m00747, m00748): tools and undo/redo are square icon buttons (inline SVG, the label stays as `.sr` text); filter buttons sit in an equal-width grid with a before/after glyph (`trimask_ui.js` `glyph`; a remap shows black|gray|white stripes before and after); the text font is a custom listbox (`fonts.js` `enhanceFontSelect`) where each option is drawn in its own font (a preview stylesheet per font with `&text=` its name, loaded when it scrolls into view) and the hidden `#text-font` select stays the source of truth; the toolbox is collapsible `<details class="section">` groups; each model card has a cache dot (`models.js` `cacheState`: hollow = none, yellow = some, green = all files in OPFS; tooltip and aria-label) while the red name still marks the selected model.
+
 Photo → matte (m00632): upload a regular photo, segment the foreground in the browser (BEN2, MIT, fp16 219 MB from the HF hub, OPFS-cached; WebGPU with shader-f16 else WASM), and the soft alpha becomes the editable matte; the photo can be shown dimmed under it. Details and why not BiRefNet: `web/PLAN.md`.
 
 Model contract (SEMANTIC BINDING: web-model-contract), one folder per version under `models/web/<version>/` (gitignored, served by the app's server) with `manifest.json`:
