@@ -266,7 +266,10 @@ const keyQueue = new Map(); // cache key → promise of the last fetchCached on 
  */
 export function fetchCached(file, onProgress) {
   // the previous call's error is reported to that call's own caller; here it only orders the queue
-  const run = (keyQueue.get(file.key) ?? Promise.resolve()).catch(() => {}).then(() => fetchCachedNow(file, onProgress));
+  // the Web Lock serializes the same key across tabs too (an old and a new build open after the service worker's
+  // update both read and write OPFS: a read of a file another tab rewrote fails with NotReadableError, m00863)
+  const run = (keyQueue.get(file.key) ?? Promise.resolve()).catch(() => {})
+    .then(() => navigator.locks.request(`opfs:${file.key}`, () => fetchCachedNow(file, onProgress)));
   keyQueue.set(file.key, run);
   return run;
 }
@@ -284,9 +287,16 @@ async function fetchCachedNow(file, onProgress) {
   }
   if (hit) {
     const data = new Uint8Array(file.bytes);
-    for (let at = 0; at < file.bytes; at += CACHE_READ_CHUNK_BYTES) {  // Chrome throws NotReadableError reading a >2 GB Blob at once
-      data.set(new Uint8Array(await hit.slice(at, at + CACHE_READ_CHUNK_BYTES).arrayBuffer()), at);
-      onProgress(Math.min(at + CACHE_READ_CHUNK_BYTES, file.bytes), file.bytes, true);
+    const read = async (blob) => {
+      for (let at = 0; at < file.bytes; at += CACHE_READ_CHUNK_BYTES) {  // Chrome throws NotReadableError reading a >2 GB Blob at once
+        data.set(new Uint8Array(await blob.slice(at, at + CACHE_READ_CHUNK_BYTES).arrayBuffer()), at);
+        onProgress(Math.min(at + CACHE_READ_CHUNK_BYTES, file.bytes), file.bytes, true);
+      }
+    };
+    try { await read(hit); } catch (e) {
+      if (e.name !== 'NotReadableError') throw e;  // a File snapshot goes stale when the file changes after it was taken:
+      console.warn(`cached ${file.url}: the cache file changed while reading (${e.message}); reading it again`);
+      await read(await cachedFile(file.key));  // re-acquire once; a second failure surfaces
     }
     return data;
   }
