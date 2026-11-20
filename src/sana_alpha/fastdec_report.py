@@ -82,7 +82,14 @@ def build(rows_all=SHOW_ALL):
     order = {r: i for i, (r, _, _) in enumerate(ROUNDS)}
     cands.sort(key=lambda c: (order[c["round"]], rank(c)))
     budget_ms = {k: v * full_ms / BROWSER_FULL_MS for k, v in BUDGET_BROWSER_MS.items()} if full_ms else {}
-    leaders = {k: sorted((c for c in cands if c["ms"] and c["ms"] + HEAD_MS <= b), key=rank)[:LEADERS] for k, b in budget_ms.items()}
+    def distinct(cs):  # an fp16 re-export is the same network: one leader entry (the faster timing)
+        seen, out = set(), []
+        for c in cs:
+            base = c["name"][:-5] if c["name"].endswith("_fp16") else c["name"]
+            if base not in seen:
+                seen.add(base); out.append(c)
+        return out
+    leaders = {k: distinct(sorted((c for c in cands if c["ms"] and c["ms"] + HEAD_MS <= b), key=rank))[:LEADERS] for k, b in budget_ms.items()}
     shown_all = {c["name"] for v in leaders.values() for c in v}
     # images: hard links (no copies); every candidate rows 0..HARD_ROWS-1, leaders all rows
     def link(src, dst):
