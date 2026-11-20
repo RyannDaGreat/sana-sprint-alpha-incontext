@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Alpha by Iterative Least Squares</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root {
+  --bg: #fdfdfb; --fg: #1d1d1f; --muted: #66666b; --rule: #dcdcd6; --accent: #2f5d8a; --chip: #eef2f6; --callout: #f3f6f9;
+  --new: #2f7d4f; --old: #b5473a; --gd: #7a5ea8;
+  --gutter: 16px; --measure: 820px; --gap: 12px; --gap-lg: 24px; --gap-xl: 48px; --radius: 4px; --hairline: 1px; --line: 2px;
+  --pad-cell: 6px 10px; --pad-callout: 12px 18px; --border-accent: 4px; --dot: 4px;
+  --font-body: 17px; --font-small: 14px; --font-tiny: 12px; --font-h1: 34px; --font-h2: 23px; --lh: 1.6; --lh-tight: 1.2;
+  --chart-h: 300px; --img: 1024px; --handle: 3px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #18191b; --fg: #e8e8e6; --muted: #a0a0a5; --rule: #3a3b3e; --accent: #8ab4dc; --chip: #26292d; --callout: #1f2226; --new: #6cc08b; --old: #e0857a; --gd: #b39ddb; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --bg: #18191b; --fg: #e8e8e6; --muted: #a0a0a5; --rule: #3a3b3e; --accent: #8ab4dc; --chip: #26292d; --callout: #1f2226; --new: #6cc08b; --old: #e0857a; --gd: #b39ddb; color-scheme: dark; }
+body { background: var(--bg); color: var(--fg); font: var(--font-body)/var(--lh) Georgia, "Times New Roman", serif; margin: 0; }
+main { max-width: var(--measure); margin: 0 auto; padding: 0 max(var(--gutter), env(safe-area-inset-left, 0px)); }
+h1 { font-size: var(--font-h1); line-height: var(--lh-tight); margin-top: var(--gap-xl); text-wrap: balance; }
+summary h2 { display: inline; font-size: var(--font-h2); }
+details { margin: var(--gap-lg) 0; }
+summary { cursor: pointer; }
+a { color: var(--accent); }
+.byline { color: var(--muted); font-size: var(--font-small); border-bottom: var(--hairline) solid var(--rule); padding-bottom: var(--gap); }
+.nav { font: var(--font-small) system-ui, sans-serif; margin-top: var(--gap-lg); }
+.callout { background: var(--callout); border-left: var(--border-accent) solid var(--accent); padding: var(--pad-callout); margin: var(--gap-lg) 0; border-radius: var(--radius); }
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; font: var(--font-small) system-ui, sans-serif; width: 100%; }
+th, td { border-bottom: var(--hairline) solid var(--rule); padding: var(--pad-cell); text-align: right; white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+th { cursor: pointer; user-select: none; }
+th[aria-sort="ascending"]::after { content: " ▲"; } th[aria-sort="descending"]::after { content: " ▼"; }
+.controls { display: flex; flex-wrap: wrap; gap: var(--gap); align-items: center; font: var(--font-small) system-ui, sans-serif; margin: var(--gap) 0; }
+.controls button { font: inherit; padding: var(--pad-cell); border: var(--hairline) solid var(--rule); background: var(--bg); color: var(--fg); border-radius: var(--radius); cursor: pointer; }
+.controls button[aria-pressed="true"] { background: var(--chip); border-color: var(--accent); }
+svg.chart { width: 100%; height: var(--chart-h); display: block; }
+svg.chart .axis { stroke: var(--rule); stroke-width: var(--hairline); }
+svg.chart text { fill: var(--muted); font: var(--font-tiny) system-ui, sans-serif; }
+svg.chart .series { fill: none; stroke-width: var(--line); }
+.tip { font: var(--font-small) system-ui, sans-serif; color: var(--muted); min-height: 1.4em; }
+.compare { position: relative; width: var(--img); max-width: none; }
+.compare img { display: block; width: var(--img); height: var(--img); }
+.compare .top { position: absolute; inset: 0; overflow: hidden; }
+.compare .handle { position: absolute; top: 0; bottom: 0; width: var(--handle); background: var(--accent); pointer-events: none; }
+.legend span { margin-right: var(--gap); font: var(--font-small) system-ui, sans-serif; }
+.legend i { display: inline-block; width: var(--gap); height: var(--hairline); border-top: var(--line) solid currentColor; vertical-align: middle; margin-right: 4px; }
+dl dt { font-weight: bold; } dl dd { margin: 0 0 var(--gap) var(--gap-lg); }
+</style>
+<link rel="manifest" href="../pwa/manifest.webmanifest"><script src="../pwa/register.js" defer></script></head>
+<body><p class="updated-stamp" style="margin:0.5em 1em;font:13px system-ui,sans-serif;opacity:0.75">Last updated Nov 20, 2026, 3:15 AM ET</p>
+<main>
+<p class="nav"><a href="../index.html">← Journal</a></p>
+<h1>Alpha and decontaminated color by iterative least squares</h1>
+<p class="byline">2026-11-20 · splitter model (manifest §17) · user request m00826 · code: <code>fibo2.rgba_from_composites</code>, <code>web/src/splitter.js rgbaFromComposites</code></p>
+
+<div class="callout">
+<b>Result.</b> The splitter model paints one object on K known backgrounds. Recovering transparency α and the object's true color F from those K images is a small constrained least-squares problem per pixel. The old one-shot linear fit followed by clipping is not its optimum: on our real step-500 splitter outputs it is worse on <span id="real-worse"></span> of pixels. Iterative least squares (alternating exact solves for F and α) reaches the same optimum as projected gradient descent and multi-start L-BFGS-B to ≤ 1e-13 in 16 iterations, for 2, 3 and 9 background colors, and recovers exact composites to float32 precision.
+</div>
+
+<details open><summary><h2>The problem</h2></summary>
+<p><b>Input:</b> K images of the same object, each composited on a known solid background color $b_k \in [0,1]^3$ (here gray 0.5, white, black; the method takes any K ≥ 2 distinct colors). <b>Output:</b> per pixel, opacity $\alpha \in [0,1]$ and straight (not premultiplied) foreground color $F \in [0,1]^3$, plus an uncertainty map. <b>Domain:</b> solid, exactly known backgrounds; the K images must show the same object (the splitter's heads are trained to).</p>
+<p>Each image follows the compositing equation, so per pixel we solve</p>
+<p class="eq">$$\min_{\alpha\in[0,1],\;F\in[0,1]^3}\;\sum_{k=1}^{K}\sum_{c\in\{r,g,b\}}\bigl(C_{kc}-\alpha F_c-(1-\alpha)\,b_{kc}\bigr)^2$$</p>
+<p>Color decontamination comes for free: the backgrounds are known, so their share $(1-\alpha)b_k$ is removed exactly, and $F$ holds no gray, white or black spill. The uncertainty is the RMS residual of the fit: 0 when the K images agree with a single RGBA.</p>
+</details>
+
+<details open><summary><h2>The old one-shot fit and why it is not enough</h2></summary>
+<p>Substituting $u = 1-\alpha$ and $P = \alpha F$ makes the residual linear, $C_{kc} - P_c - u\,b_{kc}$, so the unconstrained optimum has a closed form:</p>
+<p class="eq">$$1-\alpha=\frac{\sum_{k,c}(C_{kc}-\bar C_c)(b_{kc}-\bar b_c)}{\sum_{k,c}(b_{kc}-\bar b_c)^2},\qquad P_c=\bar C_c-(1-\alpha)\,\bar b_c$$</p>
+<p>The previous code clipped α to [0, 1] and then $F = P/\alpha$ to [0, 1]. When either clip activates (opaque or fully clear pixels, saturated colors, noisy heads), the clipped point is feasible but not the constrained optimum, because α and F were not re-solved against each other.</p>
+</details>
+
+<details open><summary><h2>Iterative least squares</h2></summary>
+<p>Starting from the clipped one-shot fit, alternate two blocks. Each block is a 1-D convex quadratic per channel, so its box-constrained optimum is the unconstrained solution clipped:</p>
+<p class="eq">$$F_c \leftarrow \operatorname{clip}\!\Bigl(\frac{\bar C_c-(1-\alpha)\,\bar b_c}{\max(\alpha,\varepsilon)},0,1\Bigr)\qquad \alpha \leftarrow \operatorname{clip}\!\Bigl(\frac{\sum_{k,c}(C_{kc}-b_{kc})(F_c-b_{kc})}{\sum_{k,c}(F_c-b_{kc})^2},0,1\Bigr)$$</p>
+<p>Both updates need only per-pixel sums that are computed once ($\bar C$, $\sum_k(C_k-b_k)$, $\sum_{k,c}(C_{kc}-b_{kc})b_{kc}$), so one iteration costs a few operations per pixel and channel. The floor $\varepsilon = 10^{-9}$ is used only inside the F step: at α = 0 the objective ignores F, but F's direction lets α leave 0 on the next step. Without it, a pixel that starts at α = 0 can stall there; the first validation run found one such pixel (objective 1.2e-4 above L-BFGS-B). F is reported as 0 where α = 0.</p>
+<p>The objective never increases (each block step is an exact block minimum), and in the validation below every pixel reached the global optimum found by multi-start L-BFGS-B. Zero iterations reproduce the old one-shot fit exactly.</p>
+</details>
+
+<details open><summary><h2>Validation against gradient descent</h2></summary>
+<p>Synthetic pixels: 4,000 per setting, α uniform with 10% exactly 1, 10% exactly 0 and 5% in (0, 0.02); F uniform with 5% saturated to 0/1 corners; composites clipped to [0, 1] after Gaussian noise. References, all float64: projected Adam on (α, F) (6,000 steps, every pixel) and L-BFGS-B with box bounds from 8 random starts (every 10th pixel, 400 pixels). The gap is ILS objective − reference objective (positive = ILS worse).</p>
+<div class="controls" id="chart-controls"></div>
+<svg class="chart" id="conv" role="img" aria-label="Largest objective gap to L-BFGS-B by number of iterations"></svg>
+<p class="legend" id="conv-legend"></p>
+<p class="tip" id="conv-tip">Hover a point for its value.</p>
+<div class="scroll"><table id="val"><thead><tr>
+<th>Setting</th><th>K</th><th>noise σ</th><th>max gap vs L-BFGS-B (32 it)</th><th>max gap vs Adam</th><th>iterations to ≤ 1e-12</th><th>old fit worse on</th><th>old fit max gap</th><th>exact |Δα|</th>
+</tr></thead><tbody></tbody></table></div>
+<p>Exact composites (noise 0) are recovered to |Δα|, |ΔF| ≤ 3e-8, the float32 rounding of the returned arrays. Gaps of ~1e-14 are float32 output rounding of the objective.</p>
+</details>
+
+<details open><summary><h2>On real splitter outputs</h2></summary>
+<p>The 4 items of the step-500 splitter training preview (generated gray, white and black heads, 1024², <code>models/fibo2/fibo2_split/previews/step_000500.png</code>). The objective is the same per-pixel sum of squared residuals.</p>
+<div class="scroll"><table id="real"><thead><tr>
+<th>Item</th><th>mean objective, ILS</th><th>mean objective, old</th><th>pixels where old is worse</th><th>max gap</th><th>mean |Δα|</th><th>max |Δα|</th><th>ms (Python, 32 it)</th>
+</tr></thead><tbody></tbody></table></div>
+<p>Drag across the image to compare the old alpha (left of the line) with the ILS alpha (right). Lossless 1024² PNGs at 1:1; scroll sideways on small screens. The third view shows |Δα| × 20.</p>
+<div class="controls" id="item-controls"></div>
+<div class="controls" id="view-controls"></div>
+<div class="scroll"><div class="compare" id="compare"><img id="img-base" alt="old alpha"><div class="top" id="top"><img id="img-top" alt="ILS alpha"></div><div class="handle" id="handle"></div></div></div>
+</details>
+
+<details open><summary><h2>Speed</h2></summary>
+<ul>
+<li>Python (numpy float64, 1024², K = 3, 32 iterations): ≈ 4.7–6.3 s on this node under heavy shared CPU load (load average 83–125 on 96 cores); the one-shot fit takes ≈ 0.2–0.25 s. Used once per generated image in evaluation, not per preview.</li>
+<li>Browser code (<code>rgbaFromComposites</code>, Node 24, one thread, 1024², K = 3): 0 iterations 250 ms, 32 iterations 388 ms; each pixel stops once a step moves α by less than 1e-7. It matches the Python fit to |Δα| ≤ 6e-8, |ΔF| ≤ 1.4e-6 on 4,096 noisy pixels with K = 3 gray levels and K = 9 RGB colors.</li>
+</ul>
+</details>
+
+<details><summary><h2>Glossary</h2></summary>
+<dl>
+<dt>Splitter</dt><dd>The FIBO2 variant (manifest §17) that paints the same object three times, on gray, white and black, so alpha can be computed.</dd>
+<dt>α (alpha)</dt><dd>Opacity per pixel: 1 = solid object, 0 = fully clear.</dd>
+<dt>F</dt><dd>The object's own color at a pixel, straight (not multiplied by α).</dd>
+<dt>Color decontamination</dt><dd>Removing the background's color that bleeds into semi-transparent edge pixels, so F is the object's true color.</dd>
+<dt>ILS</dt><dd>Iterative least squares: here, alternating exact least-squares solves for F (α fixed) and α (F fixed), each clipped to its box.</dd>
+<dt>Box-constrained</dt><dd>Each unknown must stay in its own interval, here [0, 1].</dd>
+<dt>L-BFGS-B</dt><dd>A quasi-Newton optimizer for smooth problems with box bounds; used here with 8 random starts as the reference optimum.</dd>
+<dt>Projected Adam</dt><dd>Gradient descent with the Adam update, clipping α and F into [0, 1] after every step.</dd>
+</dl>
+</details>
+
+<details><summary><h2>Sources cited</h2></summary>
+<ol>
+<li>[Smith &amp; Blinn 1996] A. R. Smith, J. F. Blinn, "Blue Screen Matting", SIGGRAPH 1996 — alpha from the same object over two or more known backings ("triangulation matting"). <a href="https://dl.acm.org/doi/10.1145/237170.237263">ACM DL</a></li>
+<li>[Porter &amp; Duff 1984] T. Porter, T. Duff, "Compositing Digital Images", SIGGRAPH 1984 — the compositing equation C = αF + (1 − α)B. <a href="https://dl.acm.org/doi/10.1145/964965.808606">ACM DL</a></li>
+<li>[Byrd et al. 1995] R. H. Byrd, P. Lu, J. Nocedal, C. Zhu, "A Limited Memory Algorithm for Bound Constrained Optimization" — L-BFGS-B, via SciPy. <a href="https://doi.org/10.1137/0916069">SIAM</a></li>
+<li>[Kingma &amp; Ba 2015] D. P. Kingma, J. Ba, "Adam: A Method for Stochastic Optimization", ICLR 2015. <a href="https://arxiv.org/abs/1412.6980">arXiv</a></li>
+<li>[This project] All numbers: <code>agents/.scratchpad/alphails_validation_v2.json</code>, <code>journal/alpha_ils/data.json</code>, manifest §19.</li>
+</ol>
+</details>
+</main>
+<script>
+document.addEventListener('DOMContentLoaded', () => renderMathInElement(document.body, { delimiters: [{ left: '$$', right: '$$', display: true }, { left: '$', right: '$', display: false }] }));
+const NS = 'http://www.w3.org/2000/svg';
+const fmt = (v) => (Math.abs(v) < 1e-3 && v !== 0 ? v.toExponential(1) : (+v).toFixed(4));
+/** Pure function. Sortable table cell: numeric data-sort key, formatted text. @example cell(0.5, '50%') // '<td data-sort="0.5">50%</td>' */
+const cell = (sort, text) => `<td data-sort="${sort}">${text}</td>`;
+/** Command. Makes every table sortable by clicking a header (numeric data-sort first, text otherwise). */
+function sortable(table) {
+  table.querySelectorAll('th').forEach((th, i) => th.addEventListener('click', () => {
+    const dir = th.getAttribute('aria-sort') === 'ascending' ? -1 : 1;
+    table.querySelectorAll('th').forEach((t) => t.removeAttribute('aria-sort'));
+    th.setAttribute('aria-sort', dir === 1 ? 'ascending' : 'descending');
+    const key = (tr) => { const td = tr.children[i]; const v = td.dataset.sort; return v !== undefined && !isNaN(+v) ? +v : td.textContent; };
+    const rows = [...table.tBodies[0].rows].sort((a, b) => (key(a) > key(b) ? dir : key(a) < key(b) ? -dir : 0));
+    rows.forEach((r) => table.tBodies[0].append(r));
+  }));
+}
+/** Command. Draws the convergence chart: max gap vs L-BFGS-B (log scale, floored at 1e-16) by iterations, one line per setting. */
+function drawChart(svg, series, tip) {
+  svg.innerHTML = '';
+  const W = svg.clientWidth || 800, H = svg.clientHeight || 300, m = { l: 56, r: 12, t: 12, b: 36 };
+  const its = Object.keys(series[0].sweep).map(Number), lo = -16, hi = -2;
+  const x = (i) => m.l + (Math.log2(i) / Math.log2(its[its.length - 1])) * (W - m.l - m.r);
+  const y = (v) => m.t + ((hi - Math.log10(Math.max(v, 1e-16))) / (hi - lo)) * (H - m.t - m.b);
+  const add = (tag, attrs, parent = svg) => { const e = document.createElementNS(NS, tag); Object.entries(attrs).forEach(([k, v]) => e.setAttribute(k, v)); parent.append(e); return e; };
+  add('line', { x1: m.l, x2: W - m.r, y1: H - m.b, y2: H - m.b, class: 'axis' }); add('line', { x1: m.l, x2: m.l, y1: m.t, y2: H - m.b, class: 'axis' });
+  its.forEach((i) => add('text', { x: x(i), y: H - m.b + 16, 'text-anchor': 'middle' }).textContent = i);
+  add('text', { x: (W + m.l) / 2, y: H - 4, 'text-anchor': 'middle' }).textContent = 'iterations';
+  for (let e = lo; e <= hi; e += 2) add('text', { x: m.l - 6, y: y(10 ** e) + 4, 'text-anchor': 'end' }).textContent = `1e${e}`;
+  const colors = ['var(--old)', 'var(--accent)', 'var(--new)', 'var(--gd)', 'var(--muted)', 'var(--fg)', 'var(--old)', 'var(--accent)', 'var(--new)'];
+  series.forEach((s, j) => {
+    const pts = its.map((i) => [x(i), y(s.sweep[i].max_gap_vs_lbfgsb), i, s.sweep[i].max_gap_vs_lbfgsb]);
+    add('polyline', { points: pts.map((p) => p.slice(0, 2).join(',')).join(' '), class: 'series', stroke: colors[j], 'stroke-dasharray': s.noise === 0 ? '4 3' : '' });
+    pts.forEach((p) => { const c = add('circle', { cx: p[0], cy: p[1], r: 4, fill: colors[j] }); c.addEventListener('mouseenter', () => { tip.textContent = `${s.label}: after ${p[2]} iterations, the largest objective gap to L-BFGS-B is ${p[3].toExponential(2)}`; }); });
+  });
+  document.getElementById('conv-legend').innerHTML = series.map((s, j) => `<span style="color:${colors[j]}"><i></i>${s.label}</span>`).join('');
+}
+fetch('data.json').then((r) => r.json()).then((d) => {
+  const rows = Object.entries(d.validation).map(([k, v]) => ({ ...v, label: `K=${v.K}, ${k.startsWith('rgbcmy') ? 'RGBCMY + gray/white/black' : k.startsWith('wk') ? 'white/black' : 'gray/white/black'}, σ=${v.noise}` }));
+  const iterationsNeeded = (v) => Object.entries(v.sweep).find(([, s]) => s.max_gap_vs_lbfgsb <= 1e-12)?.[0] ?? '>64';
+  document.querySelector('#val tbody').innerHTML = rows.map((v) => `<tr><td>${v.label}</td>${cell(v.K, v.K)}${cell(v.noise, v.noise)}${cell(v.sweep[32].max_gap_vs_lbfgsb, fmt(v.sweep[32].max_gap_vs_lbfgsb))}${cell(v.max_gap_vs_adam, fmt(v.max_gap_vs_adam))}${cell(+iterationsNeeded(v) || 99, iterationsNeeded(v))}${cell(v.old_worse_frac, (100 * v.old_worse_frac).toFixed(0) + '%')}${cell(v.old_gap_max, fmt(v.old_gap_max))}${cell(v.alpha_err_max ?? -1, v.alpha_err_max === undefined ? '—' : fmt(v.alpha_err_max))}</tr>`).join('');
+  sortable(document.getElementById('val'));
+  const svg = document.getElementById('conv'), tip = document.getElementById('conv-tip');
+  const groups = { 'All settings': rows, 'Noisy only': rows.filter((v) => v.noise > 0), 'K = 3 (shipped)': rows.filter((v) => v.K === 3) };
+  const ctl = document.getElementById('chart-controls');
+  Object.keys(groups).forEach((g, i) => { const b = document.createElement('button'); b.textContent = g; b.setAttribute('aria-pressed', i === 0); b.onclick = () => { ctl.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', x === b)); drawChart(svg, groups[g], tip); }; ctl.append(b); });
+  drawChart(svg, rows, tip);
+  document.querySelector('#real tbody').innerHTML = d.real.map((r) => `<tr><td>${r.item}</td>${cell(r.mean_obj_ils, r.mean_obj_ils.toExponential(3))}${cell(r.mean_obj_old, r.mean_obj_old.toExponential(3))}${cell(r.pct_pixels_old_worse, r.pct_pixels_old_worse.toFixed(1) + '%')}${cell(r.max_gap, r.max_gap.toExponential(2))}${cell(r.mean_abs_dalpha, r.mean_abs_dalpha.toFixed(4))}${cell(r.max_abs_dalpha, r.max_abs_dalpha.toFixed(3))}${cell(r.ms_python, r.ms_python)}</tr>`).join('');
+  sortable(document.getElementById('real'));
+  const worse = d.real.map((r) => r.pct_pixels_old_worse);
+  document.getElementById('real-worse').textContent = `${Math.min(...worse).toFixed(0)}–${Math.max(...worse).toFixed(0)}%`;
+});
+// Image comparison: old (base) vs ILS (top, clipped at the divider); views: old|ILS, trimask|ILS, |Δα|×20
+let item = 0, view = 0;
+const VIEWS = [['alpha_old', 'alpha_ils', 'old alpha | ILS alpha'], ['trimask', 'alpha_ils', 'trimask | ILS alpha'], ['alpha_diff20', 'alpha_diff20', '|Δα| × 20']];
+/** Command. Loads the selected item and view into the comparison widget. */
+function showImages() { const [a, b] = VIEWS[view]; document.getElementById('img-base').src = `item${item}_${a}.png`; document.getElementById('img-top').src = `item${item}_${b}.png`; }
+const ic = document.getElementById('item-controls'), vc = document.getElementById('view-controls');
+[0, 1, 2, 3].forEach((i) => { const b = document.createElement('button'); b.textContent = `Item ${i}`; b.setAttribute('aria-pressed', i === 0); b.onclick = () => { item = i; ic.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', x === b)); showImages(); }; ic.append(b); });
+VIEWS.forEach((v, i) => { const b = document.createElement('button'); b.textContent = v[2]; b.setAttribute('aria-pressed', i === 0); b.onclick = () => { view = i; vc.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', x === b)); showImages(); }; vc.append(b); });
+const cmp = document.getElementById('compare'), topLayer = document.getElementById('top'), handle = document.getElementById('handle');
+/** Command. Moves the divider to x pixels from the left edge of the widget. */
+function setDivider(x) { topLayer.style.clipPath = `inset(0 0 0 ${x}px)`; handle.style.left = `${x}px`; }
+cmp.addEventListener('pointermove', (e) => setDivider(e.clientX - cmp.getBoundingClientRect().left));
+setDivider(512); showImages();
+</script>
+<footer style="margin:3em 0 1em;font-size:0.85em;opacity:0.7">Published images are the original PNG files (original resolution, lossless), hosted on the repo's journal-assets branch.</footer>
+</body>
+</html>
