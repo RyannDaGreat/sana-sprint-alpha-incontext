@@ -275,9 +275,9 @@ $('show-photo').addEventListener('change', () => $('matte-square').classList.tog
 
 // ---------- output ----------
 
-for (const t of document.querySelectorAll('#single-head .tab')) {  // the output views only (the mode and pad tabs have their own)
+for (const t of document.querySelectorAll('#single-tabs .tab')) {  // the output views only (the mode and pad tabs have their own)
   t.addEventListener('click', () => {
-    document.querySelectorAll('#single-head .tab').forEach((x) => x.classList.toggle('on', x === t));
+    document.querySelectorAll('#single-tabs .tab').forEach((x) => x.classList.toggle('on', x === t));
     for (const view of ['gray', 'rgba', 'alpha', 'uncertainty', 'timeline']) $(`out-${view}`).hidden = t.dataset.view !== view;
     $('timeline-controls').hidden = t.dataset.view !== 'timeline';
     $('tl-plot').hidden = t.dataset.view !== 'timeline' || !tape.errors;
@@ -1007,23 +1007,30 @@ for (const b of document.querySelectorAll('#pad-tabs .tab')) b.addEventListener(
   pad.slots.forEach(paintSlot);
 });
 
-/** Command. Switches between the single output and the four-way pad (the editor and settings are shared). */
+/**
+ * Command. Switches the page: 'single' or 'pad' (the Editor tab, with the output's Four-way pad switch off or on; the
+ * editor and settings are shared), 'gallery' or 'models' (top-level pages that replace the workbench, m00888, m00900).
+ */
 function setMode(mode) {
-  for (const b of $('mode-tabs').querySelectorAll('.tab')) b.classList.toggle('on', b.dataset.mode === mode);
-  const gallery = mode === 'gallery';  // top-level (m00888): the gallery replaces the whole workbench; the editor state stays as it was
-  document.querySelector('.workbench').hidden = gallery;
-  $('out-gallery').hidden = !gallery;
-  if (gallery) { renderGallery(); return; }
-  const isPad = mode === 'pad';
+  console.log(`mode: ${mode}`);
+  const isPad = mode === 'pad', page = isPad ? 'single' : mode;
+  for (const b of $('mode-tabs').querySelectorAll('.tab')) b.classList.toggle('on', b.dataset.mode === page);
+  document.querySelector('.workbench').hidden = page !== 'single';  // the editor state stays as it was
+  $('out-gallery').hidden = page !== 'gallery';
+  document.querySelector('.models-panel').hidden = page !== 'models';
+  if (page === 'gallery') renderGallery().catch(fail);
+  if (page !== 'single') return;
+  $('pad-mode').checked = isPad;
   $('pad').hidden = $('pad-help').hidden = $('pad-tabs').hidden = !isPad;
-  $('single-head').hidden = $('equation').hidden = isPad;
+  $('single-tabs').hidden = $('equation').hidden = isPad;
   document.querySelector('.output-panel > .square').hidden = isPad;
   if (isPad && !pad.slots.length) buildPad();
   if (!isPad) { for (const s of pad.slots) if (s.key) pad.sched.cancel(s.key); pad.started = false; }
   syncRunButtons();
   scheduleSave();
 }
-for (const b of $('mode-tabs').querySelectorAll('.tab')) b.addEventListener('click', () => setMode(b.dataset.mode));
+for (const b of $('mode-tabs').querySelectorAll('.tab')) b.addEventListener('click', () => setMode(b.dataset.mode === 'single' && $('pad-mode').checked ? 'pad' : b.dataset.mode));
+$('pad-mode').addEventListener('change', () => setMode($('pad-mode').checked ? 'pad' : 'single'));
 
 /**
  * Command. Pairs a Greek-letter slider with its number box (m00893): the box takes any value (also < 0 or > 1) and is
@@ -1261,7 +1268,7 @@ async function init() {
   state.versions = await loadVersions(modelsBase);
   const wanted = params.get('version');
   const pre = state.versions.find((v) => v.id === wanted);
-  if (wanted && !pre) status(`Unknown version "${wanted}"; pick one below.`, true);
+  if (wanted && !pre) status(`Unknown version "${wanted}"; pick one in the Models tab.`, true);
   state.selected = pre ?? state.versions[0];
   applyFamily(familyOf(state.selected), null);
   applyCond(state.selected);
