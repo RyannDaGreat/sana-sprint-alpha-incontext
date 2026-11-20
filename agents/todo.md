@@ -5,9 +5,14 @@
 |---|---|---|---|
 | 1–44 | Day 1: curation, adapter v1/v2, control v1/v2, galleries, journal on Pages, WebGPU demo + controls + masks | see git log | pushed / live |
 | 48 | Final matte model: control_v2 step 6000 (Sprint 1-step IoU 0.95, 2-step 0.97) | — | live as web default |
-| 120 | Splitter LoRA data: BlueJay white/black composite encode (§17, m00730, m00731) | not measured | Fork SplitData running |
+| 120 | Splitter data: BlueJay white/black composite encode (§17) | +30 (processor), +3 dtab | `51d04d1`, `c4287b1`, `b8cedff` (skip 3 RGB-only rows), not pushed; full encode running since 11:25 PM |
 | 121 | Splitter LoRA training + sampling + RGBA solve (§17) | not measured | Fork SplitTrain running |
-| 122 | Splitter: stop fibo2_tri, encode on 8 GPUs, train from newest ckpt, fresh optimizer; notify start/ETA/done/train start; eval + readable notification (m00732) | — | waits on 120, 121 |
+| 122 | Splitter training from step 7500, fresh optimizer, 5,000 steps, all 8 GPUs (m00749, m00750) | — | starts after the step-7500 GPU export (≈ 30 min after the encode) |
+| 123 | Splitter in the browser: export, γ slider, 4 views, turbo | not measured | Fork SplitWeb running (started ~11:32 PM) |
+| 124 | Two progress bars: per step and per model part (m00738) | not measured | Fork ProgressBars running |
+| 125 | FIBO2 step 7500 to the web (m00741, m00750): export + verify on 2 GPUs in parallel before training, then publish + live test with the compare on CPU during training | — | after the encode |
+| 126 | UI polish: icons for editor tools, aligned equal-width buttons, dilate/erode before-after icons with labels, font dropdown previews fonts; Sonnet sub-frenzy (3 auditors) then implement, push (m00747) ; model menu cache dots: yellow = partly, green = fully cached (m00748) | not measured | Fork UIPolish running (worktree) |
+| 127 | Sneak peek (§18, m00755): Tweedie previews per step, tiny decoder (research sub-frenzy), per-block stop-gradient shortcut heads, async in the app, ≤ 10% slower | not measured | Fork SneakPeek running |
 | 50–52 | Trimask: table (337,934 rows, 19 methods, 0 violations, 4 resolutions), encode, training code | see git log | pushed |
 | 53 | control_tri_scratch: from scratch, multires | — | stopped 1:29 PM at step 15840 by user (m00695); last save 15500; 15000 live |
 | 54 | Checkpoint script agents/.scratchpad/tri_checkpoint.sh (merge, λ int4 web, verify, publish) | b09151d 742c2ac dec4e00 | pushed; step 3000 + 6000 live, notified 8:13/8:33 AM; 9000 queued (tmux tri_ckpt9) |

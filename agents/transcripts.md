@@ -515,3 +515,63 @@ How close are we to the checkpoint that we'll need? And keep these all in your f
 
 ## m00736 — 2026-11-19 ~11:17 PM
 And don't forget to update all the manifests with my transcriptions and instructions and whatnot, and keep the git repository clean by updating periodically.
+
+## m00737 — 2026-11-19 ~11:20 PM
+To be clear, until we add the splitter it just generates on gray images.
+
+## m00738 — 2026-11-19 ~11:22 PM
+Generating… If you look back in message history, I explicitly asked for loading bars that would update on different layers of the transformer as well as on different steps. So we'd have two loading bars, one per step and one per portion of the model that we're in. Each layer and each transformer bit would count as a loading bar part, so that I could have a really responsive UI. Right now it just says "generating…". Please fix this. Have an agent, a fork agent, do this. Stay in fork mode.
+
+## m00739 — 2026-11-19 ~11:24 PM
+Show me the current work table, clean up any agents that have finished their tasks or any shells you aren't using.
+
+## m00740 — 2026-11-19 ~11:33 PM
+Stay in autopilot mode. 123 you should do it now if you can, why not?
+
+## m00741 — 2026-11-19 ~11:34 PM
+I trust that you will be pushing model 7500 to the web as well, right?
+
+## m00742 — 2026-11-19 ~11:36 PM
+Why does the export need any GPU? Can't we just send it to the web?
+
+## m00743 — 2026-11-19 ~11:38 PM
+Wait, do we really think that encode is going to finish in 35 minutes, even for, like, tripling the size of the dataset?
+
+## m00744 — 2026-11-19 ~11:45 PM
+You will notify me once the data processing finishes and you start exporting.
+
+## m00745 — 2026-11-19 ~11:47 PM
+Notify me again once exports finish.
+
+## m00746 — 2026-11-19 ~11:48 PM
+Don't forget to declare your name, S-A-N-A, each time you notify me.
+
+## m00747 — 2026-11-19 ~11:50 PM (pasted)
+It would also be nice if you can have some agent go and make the UI more aesthetically pleasing, perhaps a Sonnet agent. There's a lot of buttons that could probably be aligned with each other and use icons: eraser, brush, text, rectangle, ellipse, polygon, line, lasso, undo, redo, move — those could all be icons, right? Dilate, erode could be represented with arrows and trimaps possibly, but also of course have a label, because dilate and erode have very specific meanings; or maybe just a before-and-after circle showing what happens when you do dilate and erode, or something. It would make things easier, especially because right now the buttons are all misaligned, because they're all different widths because of the slight kerning differences between them. And for example the font dropdown doesn't even show the different fonts visually. There's a lot of room for improvement inside the GUI, and ideally a Sonnet agent should be able to figure these all out by itself if you tell it to. So perhaps you should have a sub-Sonnet frenzy, maybe a 1, 2, 3 Sonnet frenzy, that basically tries to suss out all the things that would make the interface better, and then do those things, and then push the differences.
+
+## m00748 — 2026-11-19 ~11:53 PM
+The model menu should also indicate which ones are already cached: which ones are fully cached, which ones are partially cached, with a yellow, then green. Yellow means partially cached, green means fully cached. Of course, there's a way to indicate it. Maybe that can be like a little circle on the button or something, so that it doesn't overwhelm you, and the colored text still indicates which one is currently loaded.
+
+## m00749 — 2026-11-19 ~11:55 PM
+Why are you only going to be training on GPUs 0-6? Is that so that you can do inference on the other two? That seems kind of wasteful. Shouldn't we be training on all 8? What's the reason for doing GPUs only 0-6?
+
+## m00750 — 2026-11-19 ~11:57 PM
+Perhaps you should just send things to the web before you start training, or even just do that all on CPU, perhaps.
+
+## m00751 — 2026-11-20 ~12:00 AM
+The only thing that I will warn you is that if you go above 600 gigabytes of system RAM, we will run into tons of major issues. If we run up to a terabyte of RAM, you will crash the node and lose all work. So be careful.
+
+## m00752 — 2026-11-19 ~11:58 PM
+Again, I trust that these progress bars will hook into different parts of the model as granularly as possible without any performance penalty. And make sure to record everything into the manifest.
+
+## m00753 — 2026-11-20 ~12:03 AM
+Well, the VAE and text encoder, even that has subcomponents, right? It doesn't just have to be transformer blocks; it could be convolutional blocks or whatever.
+
+## m00754 — 2026-11-20 ~12:05 AM
+Just make sure that whatever UI changes go on is asynchronous, so that it doesn't slow it down in the slightest.
+
+## m00755 — 2026-11-20 ~12:08 AM (pasted)
+I was also thinking about having a nice preview formulation, which will be called "sneak peek", is what we'll call it. Basically every transformer layer is diffusing noise, right? Well, if we use Tweedie's formula at every diffusion step, we can then, at the end of that transformer's run, take the predicted noise and use that to predict the final image. So, one, that would be the simple way to preview things, and that's pretty good, not bad. I think we can go a little bit further, though. So that's Tweedie's formula, which, by the way, we should turn previews on with by default, except for one problem: we'd have to decode them, right? And I don't want to waste time decoding every time we do it, because the decoder actually takes a significant amount of time. So what I'm curious to find is if you can do a sub-frenzy for research to figure out ways to speed up the decoder massively while sacrificing quality. I'm thinking like a 10 times speedup, or ideally even a 100 times speedup, with approximate quality. Then what we could do is, at each transformer layer, during training, we can also add some new parameters, which would be a linear projection. So once we have the teeny tiny decoder — we're going to make a super small decoder that's probably 10 or 100 times smaller than the actual decoder — simultaneously during training, we'll do a gradient stop between the model transformer layers, and for every transformer layer we'll have a mini decoder, a sneak peek decoder. And the reason we're going to do this is because at every transformer block we're going to give another preview, asynchronously of course. This is why these have to be so fast. They should not make the model any more than 10% slower. So you need to find a way to create a decoder, albeit of lower quality, that can keep up with this, if that makes sense. So it has to be of approximate quality. But the idea is that we would use Tweedie's formula in latent space, and then — okay, here's what it would do. Each one of these tiny decoders would predict — oh, sorry, it wouldn't be a decoder per transformer layer. It's just kind of like a prediction of what the last layer will give. So if I have like 10 transformer layers, each transformer layer will have a shortcut attachment with a gradient stop that tries to predict what the last transformer layer will output. Even if it's not very good, it could just be a simple linear, which is probably the way we'd want to do this, a simple linear prediction that somehow predicts what the last one will show. Or maybe a simple convolutional one, or something. Again, remember the timing constraint is the main thing here, and the VRAM constraint too, but VRAM probably won't be an issue if it's this small. You get why we're doing this? That way I can preview it very granularly. You should do tests to make sure that it actually looks right, but this is a feature that I'd like as well. Do you understand what I'm asking for? We'll call it the sneak peek feature, and we're going to need to write about it in the manifest, because if we ever do publish, this will be something we want to add.
+
+## m00756 — 2026-11-20 ~12:09 AM
+And don't forget to transcribe me.
