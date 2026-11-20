@@ -427,6 +427,10 @@ button.link { border: 0; background: none; padding: 0; min-height: 0; }
 .peek-plot .line-raw { stroke: var(--peek-raw); fill: none; }
 .peek-plot .line-shown { stroke: var(--peek-shown); fill: none; }
 .peek-plot .step { stroke: var(--peek-step); }
+.peek-plot .marker { stroke: var(--fg); stroke-width: 2; }
+.tl-plot { cursor: pointer; }
+.timeline-controls { align-items: center; gap: var(--space-2); }
+.timeline-controls input[type=range] { flex: 1; }
 .peek-plot text { fill: var(--muted); font-size: var(--size-meta); }
 .peek-plot .heat { width: var(--peek-heat-w); }
 

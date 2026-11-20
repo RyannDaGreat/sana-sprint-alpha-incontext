@@ -557,7 +557,7 @@ export class Pipeline {
       const raw = tweedieX0(x, asFloat32(out.velocity), sigmas[k]);
       const w = highwayWeight(hw.weights, k, steps, b);
       const shown = prevX0 && w < 1 ? blendX0(raw, prevX0, w) : raw;
-      const queued = peek.offer(shown, dims, `step ${k + 1} of ${steps} · block ${b + 1} of ${hw.blocks}`);
+      const queued = peek.offer(shown, dims, `step ${k + 1}/${steps} · block ${b + 1}/${hw.blocks} (${shown === raw ? 'raw' : 'blended'})`);
       peek.charge(performance.now() - t1);  // after the offer: the head's time delays the NEXT preview, not this one
       if (!queued) return;
       if (hw.expected) lastExpected = expected;
@@ -575,7 +575,7 @@ export class Pipeline {
       if (peek) {  // the step's own Tweedie estimate (full model): always offered, it is the best preview so far (§18)
         prevX0 = tweedieX0(x, v, sigmas[k]);
         if (hw?.expected_step_end) lastExpected = tableAt(Object.fromEntries(Object.entries(hw.expected_step_end).map(([n, e]) => [n, e.map((x) => [x])])), k, steps, 0);
-        peek.offer(prevX0, dims, `step ${k + 1} of ${steps}`, true);
+        peek.offer(prevX0, dims, `step ${k + 1}/${steps} · end of step`, true);
         timeline.points.push({ step: k, block: timeline.blocks, w: 1, raw: poolLatent(prevX0, dims), shown: poolLatent(prevX0, dims) });
       }
       if (this.splitter && k === steps - 1) heads = splitX0(x, v, sigmas[k], this.splitter.heads.length);  // v: head-major (1, K, 32, LH, LW)

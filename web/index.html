@@ -52,6 +52,7 @@
           <button class="tab" data-view="rgba">RGBA</button>
           <button class="tab" data-view="alpha" id="tab-alpha" hidden title="The alpha matte the splitter predicts from the trimask (white = opaque)">Alpha</button>
           <button class="tab" data-view="uncertainty" id="tab-uncertainty" hidden title="How much the gray, white and black images disagree with one RGBA (black = they agree)">Uncertainty</button>
+          <button class="tab" data-view="timeline" id="tab-timeline" hidden title="Every sneak peek preview of the last generation; scrub or play them">Timeline</button>
         </span>
       </h2>
       <div class="square">
@@ -59,8 +60,15 @@
         <canvas id="out-rgba" class="checker" width="1024" height="1024" hidden></canvas>
         <canvas id="out-alpha" width="1024" height="1024" hidden></canvas>
         <canvas id="out-uncertainty" width="1024" height="1024" hidden></canvas>
+        <canvas id="out-timeline" width="1024" height="1024" hidden></canvas>
         <p id="out-empty" class="empty">No image yet.</p>
       </div>
+      <div id="timeline-controls" class="row timeline-controls" hidden>
+        <button id="tl-play" title="Play the previews in order">Play</button>
+        <input type="range" id="tl-slider" min="0" max="0" value="0" aria-label="Preview">
+        <span id="tl-label" class="meta"></span>
+      </div>
+      <div id="tl-plot" class="peek-plot tl-plot" hidden></div>
       <div id="pad" class="pad" hidden></div>
       <p id="pad-help" class="meta" hidden>Click an image to switch it off (it dims and pauses; the others get its turns). Editing a prompt or seed restarts that one; editing the mask or the settings restarts all.</p>
       <p id="equation" class="meta equation"></p>

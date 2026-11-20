@@ -255,9 +255,151 @@ $('show-photo').addEventListener('change', () => $('matte-square').classList.tog
 for (const t of document.querySelectorAll('.tab')) {
   t.addEventListener('click', () => {
     document.querySelectorAll('.tab').forEach((x) => x.classList.toggle('on', x === t));
-    for (const view of ['gray', 'rgba', 'alpha', 'uncertainty']) $(`out-${view}`).hidden = t.dataset.view !== view;
+    for (const view of ['gray', 'rgba', 'alpha', 'uncertainty', 'timeline']) $(`out-${view}`).hidden = t.dataset.view !== view;
+    $('timeline-controls').hidden = t.dataset.view !== 'timeline';
+    $('tl-plot').hidden = t.dataset.view !== 'timeline' || !timeline.errors;
+    if (t.dataset.view === 'timeline') showFrame(Number($('tl-slider').value));
   });
 }
+
+// ---------- sneak peek timeline (m00875): every preview of the last generation, scrubbable after (and during) the run ----------
+
+const TIMELINE_CAP_BYTES = 300 * 2 ** 20;  // keeps the tab's memory bounded; the oldest previews go first beyond it
+const TIMELINE_FPS = 12;
+const ERROR_PX = 64;  // frames and the final image are compared at this size (a mean error needs no more pixels)
+const timeline = { frames: [], bytes: 0, dropped: 0, run: 0, next: 0, pending: 0, timer: 0, errors: null };
+
+/** Command. Empties the timeline (a new generation starts); bumps the run so late frames of the old run are ignored. */
+function timelineReset() {
+  for (const f of timeline.frames) f.bitmap.close();
+  Object.assign(timeline, { frames: [], bytes: 0, dropped: 0, run: timeline.run + 1, next: 0, pending: 0, errors: null });
+  timelinePlay(false);
+  updateTimeline();
+}
+
+/**
+ * Command. Adds one shown preview, as displayed at its own resolution (lossless: an ImageBitmap of the same pixels).
+ * Asynchronous and off the compute path: createImageBitmap resolves later; frames keep their arrival order.
+ *
+ * @param {ImageData|HTMLCanvasElement} source
+ * @param {string} label
+ * @param {{w: number, h: number}} size - source pixels (bitmap size)
+ * @returns {Promise<void>}
+ */
+function timelineAdd(source, label, { w, h }) {
+  const run = timeline.run, slot = timeline.next++;
+  timeline.pending += 1;
+  return createImageBitmap(source, 0, 0, w, h).then((bitmap) => {
+    timeline.pending -= 1;
+    if (run !== timeline.run) { bitmap.close(); return; }
+    timeline.frames.push({ bitmap, label, slot });
+    timeline.frames.sort((x, y) => x.slot - y.slot);
+    timeline.bytes += 4 * w * h;
+    while (timeline.bytes > TIMELINE_CAP_BYTES && timeline.frames.length > 1) {
+      const old = timeline.frames.shift();
+      timeline.bytes -= 4 * old.bitmap.width * old.bitmap.height;
+      old.bitmap.close();
+      timeline.dropped += 1;
+    }
+    updateTimeline();
+  }).catch(fail);
+}
+
+/**
+ * Query. A bitmap's pixels at ERROR_PX² (bilinear), for the error curve.
+ *
+ * @param {ImageBitmap} bitmap
+ * @returns {Uint8ClampedArray} (ERROR_PX, ERROR_PX, 4)
+ */
+function smallPixels(bitmap) {
+  const c = new OffscreenCanvas(ERROR_PX, ERROR_PX).getContext('2d');
+  c.drawImage(bitmap, 0, 0, ERROR_PX, ERROR_PX);
+  return c.getImageData(0, 0, ERROR_PX, ERROR_PX).data;
+}
+
+/**
+ * Pure function. Relative RGB error of an image against a reference: mean((a − ref)²) / mean((ref − 128)²), alpha ignored.
+ *
+ * @param {Uint8ClampedArray} a - RGBA bytes
+ * @param {Uint8ClampedArray} ref - RGBA bytes, same size
+ * @returns {number}
+ * @example pixelError(new Uint8ClampedArray([128, 128, 128, 255]), new Uint8ClampedArray([228, 128, 128, 255])) // 1
+ */
+function pixelError(a, ref) {
+  let num = 0, den = 0;
+  for (let i = 0; i < ref.length; i++) if (i % 4 !== 3) { num += (a[i] - ref[i]) ** 2; den += (ref[i] - 128) ** 2; }
+  return num / (den || 1);
+}
+
+/** Command. After the final frame is in, each frame's pixel error vs the final image, drawn as a clickable curve under the scrubber. */
+function timelineErrors() {
+  const n = timeline.frames.length;
+  if (n < 2) return;
+  const ref = smallPixels(timeline.frames[n - 1].bitmap);
+  timeline.errors = timeline.frames.map((f) => pixelError(smallPixels(f.bitmap), ref));
+  drawErrors();
+}
+
+/** Command. Draws the error curve (log scale, steps marked) with the current frame's marker; a click jumps the scrubber. */
+function drawErrors() {
+  const e = timeline.errors, box = $('tl-plot');
+  box.hidden = !e || $('out-timeline').hidden;
+  if (!e) return;
+  const W = 640, H = 140, pad = 34, ys = e.filter((v) => v > 0);
+  const lo = Math.log10(Math.min(...ys, 1e-4)), hi = Math.log10(Math.max(...ys, 1));
+  const X = (i) => pad + ((W - pad - 6) * i) / Math.max(1, e.length - 1);
+  const Y = (v) => 6 + ((H - 6 - pad) * (hi - Math.min(hi, Math.max(lo, Math.log10(Math.max(v, 1e-12)))))) / (hi - lo || 1);
+  const steps = timeline.frames.map((f, i) => (/end of step/.test(f.label) ? `<line class="step" x1="${X(i)}" x2="${X(i)}" y1="6" y2="${H - pad}"/>` : '')).join('');
+  const at = Number($('tl-slider').value);
+  box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="100%"><title>each preview's pixel error vs the final image (log); click to jump</title>${steps}
+    <text x="2" y="${Y(10 ** hi) + 4}">${(10 ** hi).toExponential(0)}</text><text x="2" y="${Y(10 ** lo) + 4}">${(10 ** lo).toExponential(0)}</text>
+    <path class="line-shown" d="${e.map((v, i) => `${i ? 'L' : 'M'}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join('')}"/>
+    <line class="marker" x1="${X(at)}" x2="${X(at)}" y1="6" y2="${H - pad}"/>
+    <text x="${pad}" y="${H - 8}">error vs the final image, every preview (steps marked)</text></svg>`;
+  box.onclick = (ev) => {
+    const r = box.querySelector('svg').getBoundingClientRect(), x = ((ev.clientX - r.left) / r.width) * W;
+    $('tl-slider').value = Math.round(((x - pad) / (W - pad - 6)) * (e.length - 1));
+    timelinePlay(false);
+    showFrame(Number($('tl-slider').value));
+  };
+}
+
+/** Command. Syncs the slider with the frames (a slider at the end follows new frames); shows the tab once there is a frame. */
+function updateTimeline() {
+  const n = timeline.frames.length, s = $('tl-slider'), atEnd = Number(s.value) >= Number(s.max);
+  $('tab-timeline').hidden = n === 0;
+  s.max = Math.max(0, n - 1);
+  if (atEnd) s.value = s.max;
+  if (!$('out-timeline').hidden) showFrame(Number(s.value));
+}
+
+/** Command. Draws frame i on #out-timeline at 1:1 (the canvas takes the frame's size) and labels it. */
+function showFrame(i) {
+  const f = timeline.frames[i], n = timeline.frames.length;
+  if (!f) { $('tl-label').textContent = 'No previews yet: generate with Sneak peek on.'; return; }
+  const c = $('out-timeline');
+  if (c.width !== f.bitmap.width || c.height !== f.bitmap.height) Object.assign(c, { width: f.bitmap.width, height: f.bitmap.height });
+  c.getContext('2d').drawImage(f.bitmap, 0, 0);
+  $('tl-label').textContent = `${i + 1} / ${n} · ${f.label}` + (timeline.dropped ? ` · ${timeline.dropped} oldest dropped (memory cap)` : '');
+  if (timeline.errors) drawErrors();
+}
+
+/** Command. Starts or stops playing the frames from the slider's position; stops at the last frame. */
+function timelinePlay(on = !timeline.timer) {
+  clearInterval(timeline.timer);
+  timeline.timer = 0;
+  $('tl-play').textContent = on ? 'Pause' : 'Play';
+  if (!on) return;
+  const s = $('tl-slider');
+  if (Number(s.value) >= Number(s.max)) s.value = 0;
+  timeline.timer = setInterval(() => {
+    if (Number(s.value) >= Number(s.max)) { timelinePlay(false); return; }
+    s.value = Number(s.value) + 1;
+    showFrame(Number(s.value));
+  }, 1000 / TIMELINE_FPS);
+}
+$('tl-slider').addEventListener('input', () => { timelinePlay(false); showFrame(Number($('tl-slider').value)); });
+$('tl-play').addEventListener('click', () => timelinePlay());
 
 /** Command. Downloads a canvas as PNG. */
 function download(canvas, name) {
@@ -419,6 +561,8 @@ const peekFrame = { latest: null, scheduled: false };  // sneak peek: at most on
  * @param {string} label
  */
 function showPeek(image, label) {
+  const [, , h, w] = image.dims;
+  timelineAdd(new ImageData(previewPixels(image), w, h), label, { w, h });
   peekFrame.latest = { image, label };
   if (peekFrame.scheduled) return;
   peekFrame.scheduled = true;
@@ -433,17 +577,29 @@ function showPeek(image, label) {
 }
 
 /**
- * Command (draws on `canvas`). Paints a fast-decoder preview (1, 3, h, w) in [0, 1], scaled to the canvas.
+ * Pure function. A fast-decoder preview (1, 3, h, w) in [0, 1] as RGBA bytes (h, w, 4).
  *
- * @param {HTMLCanvasElement} canvas
  * @param {{data: Float32Array, dims: number[]}} image
+ * @returns {Uint8ClampedArray}
+ * @example previewPixels({data: new Float32Array([1, 0, 0.5]), dims: [1, 3, 1, 1]}) // [255, 0, 128, 255]
  */
-function paintPreview(canvas, { data, dims: [, , h, w] }) {
+function previewPixels({ data, dims: [, , h, w] }) {
   const px = new Uint8ClampedArray(w * h * 4);
   for (let i = 0; i < w * h; i++) {
     for (let c = 0; c < 3; c++) px[4 * i + c] = 255 * data[c * w * h + i];
     px[4 * i + 3] = 255;
   }
+  return px;
+}
+
+/**
+ * Command (draws on `canvas`). Paints a fast-decoder preview (1, 3, h, w) in [0, 1], scaled to the canvas.
+ *
+ * @param {HTMLCanvasElement} canvas
+ * @param {{data: Float32Array, dims: number[]}} image
+ */
+function paintPreview(canvas, image) {
+  const [, , h, w] = image.dims, px = previewPixels(image);
   const small = new OffscreenCanvas(w, h);
   small.getContext('2d').putImageData(new ImageData(px, w, h), 0, 0);
   const ctx = canvas.getContext('2d');
@@ -513,6 +669,7 @@ async function generate() {
   status(`Generating ${width} × ${height}, ${sampler.steps} step${sampler.steps === 1 ? '' : 's'}: progress below.`);
   const matte = matteAtSize(width, height);
   $('gen-steps').innerHTML = $('gen-model').innerHTML = '';
+  timelineReset();
   if ($('sneak-peek').checked && state.pipeline.fastDecoder) Object.assign($('out-gray'), { width, height });  // previews paint here
   const result = await state.pipeline.generate({
     prompt: $('prompt').value, matte: mattePixelsToTensor(matte, width * height), matteRev: editor.rev, seed, ...sampler,
@@ -536,6 +693,7 @@ async function generate() {
   }
   $('out-empty').hidden = true;
   $('dl-gray').disabled = $('dl-rgba').disabled = false;
+  if (timeline.next) timelineAdd($('out-gray'), 'final image', { w: width, h: height }).then(timelineErrors);  // the gray image (head 0)
   state.last = `${state.pipeline.version.id}_seed${$('seed').value}`;
   showTimings(timings);
   if (timeline?.final) showTimeline(timeline);
