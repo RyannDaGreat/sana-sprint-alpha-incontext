@@ -17,6 +17,11 @@
 <body>
   <header class="top">
     <h1>Matte → Image</h1>
+    <span class="tabs" id="mode-tabs" title="Editor: one image. Four-way pad: up to four prompts and seeds on the same mask. Gallery: every past generation">
+      <button class="tab on" data-mode="single">Editor</button>
+      <button class="tab" data-mode="pad">Four-way pad</button>
+      <button class="tab" data-mode="gallery">Gallery</button>
+    </span>
     <p class="sub">SANA-Sprint, 1–4 steps, on your GPU in the browser. Draw a white silhouette, describe it, generate.</p>
     <div class="top-right">
       <span id="ep" class="meta"></span>
@@ -40,12 +45,6 @@
     </section>
 
     <section class="panel output-panel">
-      <div class="mode-row">
-        <span class="tabs" id="mode-tabs" title="Single: one image. Four-way pad: up to four prompts and seeds on the same mask, diffusing together">
-          <button class="tab on" data-mode="single">Single</button>
-          <button class="tab" data-mode="pad">Four-way pad</button>
-        </span>
-      </div>
       <h2 id="single-head">Output
         <span class="tabs">
           <button class="tab on" data-view="gray" id="tab-gray">RGB on gray</button>
@@ -53,7 +52,6 @@
           <button class="tab" data-view="alpha" id="tab-alpha" hidden title="The alpha matte the splitter predicts from the trimask (white = opaque)">Alpha</button>
           <button class="tab" data-view="uncertainty" id="tab-uncertainty" hidden title="How much the gray, white and black images disagree with one RGBA (black = they agree)">Uncertainty</button>
           <button class="tab" data-view="timeline" id="tab-timeline" hidden title="Every sneak peek preview of the last generation; scrub or play them">Timeline</button>
-          <button class="tab" data-view="gallery" title="Every past generation, stored in this browser">Gallery</button>
         </span>
       </h2>
       <div class="square">
@@ -70,11 +68,6 @@
         <span id="tl-label" class="meta"></span>
       </div>
       <div id="tl-plot" class="peek-plot tl-plot" hidden></div>
-      <div id="out-gallery" class="gallery" hidden>
-        <p class="row gallery-bar"><span id="gal-used" class="meta"></span><button id="gal-clear">Clear gallery</button></p>
-        <div id="gal-grid" class="gal-grid"></div>
-        <p id="gal-empty" class="empty">No generations yet: each finished generation is saved here.</p>
-      </div>
       <div id="gal-view" class="gal-view" hidden role="dialog" aria-label="Generation">
         <div class="gal-view-bar row">
           <span id="gal-info" class="meta"></span>
@@ -225,6 +218,11 @@
         <button id="clear-emb">Clear prompt cache</button>
         <span id="emb-count" class="meta"></span>
       </div>
+    </section>
+    <section id="out-gallery" class="gen-gallery" hidden aria-label="Gallery">
+      <p class="row gallery-bar"><span id="gal-used" class="meta"></span><button id="gal-clear">Clear gallery</button></p>
+      <div id="gal-grid" class="gal-grid"></div>
+      <p id="gal-empty" class="empty">No generations yet: each finished generation is saved here.</p>
     </section>
   </main>
 

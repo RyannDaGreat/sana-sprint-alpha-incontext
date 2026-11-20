@@ -270,9 +270,6 @@ for (const t of document.querySelectorAll('#single-head .tab')) {  // the output
     for (const view of ['gray', 'rgba', 'alpha', 'uncertainty', 'timeline']) $(`out-${view}`).hidden = t.dataset.view !== view;
     $('timeline-controls').hidden = t.dataset.view !== 'timeline';
     $('tl-plot').hidden = t.dataset.view !== 'timeline' || !timeline.errors;
-    $('out-gallery').hidden = t.dataset.view !== 'gallery';
-    document.querySelector('#single-head + .square').hidden = t.dataset.view === 'gallery';
-    if (t.dataset.view === 'gallery') renderGallery();
     if (t.dataset.view === 'timeline') showFrame(Number($('tl-slider').value));
   });
 }
@@ -296,7 +293,7 @@ async function saveToGallery(ids, info) {
     const t = new OffscreenCanvas(Math.round(src.width * k), Math.round(src.height * k));
     t.getContext('2d').drawImage(src, 0, 0, t.width, t.height);
     await addItem({ ts: Date.now(), version: state.pipeline.version.id, info, state: await uiSnapshot(), outputs, thumb: await t.convertToBlob({ type: 'image/png' }) });
-    if (!$('out-gallery').hidden) renderGallery();
+    if (!$('out-gallery').hidden) renderGallery();  // the gallery page is open
   } catch (e) { status(`Could not save this generation to the gallery (${e.message}).`, true); }
 }
 
@@ -353,6 +350,7 @@ $('gal-load').addEventListener('click', async () => {
   syncSamplerUi();
   scheduleSave();
   $('gal-view').hidden = true;
+  setMode(padMode() ? 'pad' : 'single');  // back to the editor with the loaded settings
   status(`Loaded the settings of ${new Date(gal.items[gal.open].ts).toLocaleString()} (made with ${gal.items[gal.open].version}; the loaded model is unchanged).`);
 });
 $('gal-download').addEventListener('click', () => {
@@ -947,6 +945,10 @@ for (const b of document.querySelectorAll('#pad-tabs .tab')) b.addEventListener(
 /** Command. Switches between the single output and the four-way pad (the editor and settings are shared). */
 function setMode(mode) {
   for (const b of $('mode-tabs').querySelectorAll('.tab')) b.classList.toggle('on', b.dataset.mode === mode);
+  const gallery = mode === 'gallery';  // top-level (m00888): the gallery replaces the whole workbench; the editor state stays as it was
+  document.querySelector('.workbench').hidden = gallery;
+  $('out-gallery').hidden = !gallery;
+  if (gallery) { renderGallery(); return; }
   const isPad = mode === 'pad';
   $('pad').hidden = $('pad-help').hidden = $('pad-tabs').hidden = !isPad;
   $('single-head').hidden = $('equation').hidden = isPad;
