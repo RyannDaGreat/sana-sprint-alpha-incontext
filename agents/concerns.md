@@ -408,3 +408,8 @@
 - The user asked (m00725) for notifications at data start, ETA, data finished, training started, next checkpoint. Start and ETA went out; finished (2:00 PM), training started (2:06 PM) and the next checkpoint (5500 at 3:45 PM) were reported by the fork but the main agent never sent them, because the reports arrived batched with many other task notifications. Sent as one catch-up at 10:05 PM.
 - Lesson: when a fork reports a milestone the user asked to be notified about, send the notification in the same turn, before anything else.
 - GitHub rejected every push from ~2 PM ("Repository is above its size quota"): models branch 88.65 GB + journal-assets ~23.5 GB. Nobody noticed GitHub's repo quota until then. User chose Hugging Face, one single repo (m00727).
+
+## 2026-11-20 — splitter data: white/black latents (fork SplitData)
+- Chose a third job (`split`) inside encode_fibo2 over a new processor: same rows, VAE and worker loop, so no duplicated code. The user's "more BlueJay processors" is met by the new job and its DTAB columns; say so if a separate processor file was wanted.
+- Smoke test on GPU 7 while it ran the eval loop: rows/s there (1.5 per worker, half batch) is not the 8-GPU rate; the ETA comes from encode_fibo2's measured full run (36.5 rows/s). The 1,024 smoke rows stay in the table (the full run skips them).
+- Gray re-encode differs from the stored latents by ≤ 1 bf16 step at 512/256 (different batch size = different kernels), bit-identical at 1024: the recipe matches.
