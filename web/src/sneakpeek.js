@@ -125,12 +125,14 @@ export class SneakPeek {
    * @param {number[]} dims - [1, 32, LH, LW]
    * @param {string} label - e.g. 'step 2 · block 30'
    * @param {boolean} [always] - the step's full-model estimate: queued even inside the duty-cycle wait
+   * @returns {boolean} whether it was queued
    */
   offer(x0, dims, label, always = false) {
-    if (!this.enabled || (!always && performance.now() < this.nextAt)) return;  // the step's own estimate (always) skips the duty wait
+    if (!this.enabled || (!always && performance.now() < this.nextAt)) return false;  // the step's own estimate (always) skips the duty wait
     if (this.pending) this.dropped++;
     this.pending = { x0, dims, label };
     if (!this.busy) this.drain().catch((e) => { this.busy = false; console.error('sneak peek: fast decoder failed', e); throw e; });
+    return true;
   }
 
   /** Command. Decodes queued estimates one at a time until the queue is empty. */

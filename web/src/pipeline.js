@@ -445,8 +445,9 @@ export class Pipeline {
       const raw = tweedieX0(x, asFloat32(out.velocity), sigmas[k]);
       const w = highwayWeight(hw.weights, k, steps, b);
       const shown = prevX0 && w < 1 ? blendX0(raw, prevX0, w) : raw;
-      peek.charge(performance.now() - t1);
-      peek.offer(shown, dims, `step ${k + 1} of ${steps} · block ${b + 1} of ${hw.blocks}`);
+      const queued = peek.offer(shown, dims, `step ${k + 1} of ${steps} · block ${b + 1} of ${hw.blocks}`);
+      peek.charge(performance.now() - t1);  // after the offer: the head's time delays the NEXT preview, not this one
+      if (!queued) return;
       if (hw.expected) lastExpected = expected;
       timeline.points.push({ step: k, block: b, w, raw: poolLatent(raw, dims), shown: poolLatent(shown, dims) });
     };

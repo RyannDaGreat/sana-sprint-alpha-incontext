@@ -459,7 +459,7 @@ function showTimeline(t) {
   const ys = pts.flatMap((p) => [p.raw, p.shown]).filter((v) => v > 0);
   const lo = Math.log10(Math.min(...ys, 1e-4)), hi = Math.log10(Math.max(...ys, 1));
   const X = (i) => pad + ((W - pad - 6) * i) / Math.max(1, pts.length - 1);
-  const Y = (v) => 6 + ((H - 6 - pad) * (hi - Math.log10(Math.max(v, 1e-6)))) / (hi - lo || 1);
+  const Y = (v) => 6 + ((H - 6 - pad) * (hi - Math.min(hi, Math.max(lo, Math.log10(Math.max(v, 1e-12)))))) / (hi - lo || 1);  // clamped to the plot
   const path = (key) => pts.map((p, i) => `${i ? 'L' : 'M'}${X(i).toFixed(1)},${Y(p[key]).toFixed(1)}`).join('');
   const steps = pts.map((p, i) => (p.block === t.blocks ? `<line class="step" x1="${X(i)}" x2="${X(i)}" y1="6" y2="${H - pad}"/>` : '')).join('');
   const ticks = [lo, hi].map((v) => `<text x="2" y="${Y(10 ** v) + 4}">${(10 ** v).toExponential(0)}</text>`).join('');
