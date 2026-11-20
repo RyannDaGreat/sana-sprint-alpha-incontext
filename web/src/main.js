@@ -66,7 +66,7 @@ function scheduleLevels() {
   cancelAnimationFrame(levelsFrame);
   levelsFrame = requestAnimationFrame(() => {
     const f = levelFractions(rgbaToMask(editor.pixels())), pct = (v) => `${(100 * v).toFixed(1)}%`;
-    $('levels').textContent = `· now: white ${pct(f.white)} · gray ${pct(f.gray)} · black ${pct(f.black)}`;
+    $('levels').textContent = `now: white ${pct(f.white)} · gray ${pct(f.gray)} · black ${pct(f.black)}`;
   });
 }
 

@@ -136,7 +136,7 @@ function immediateButtons(box, editor, groups, sizeLabel, note) {
     run(last.id, { ...last.params, size: v }, last.label);
   });
   for (const [title, ops] of groups) {
-    const row = html(`<div class="row group"><span class="field group-title">${title}</span><div class="ops"></div></div>`);
+    const row = html(`<div class="row group"><span class="field group-title">${title}</span><div class="ops tiles"></div></div>`);
     for (const [label, id, extra, tip] of ops) {
       const b = html(`<button class="op">${glyph(id, extra)}<span></span></button>`);
       b.lastChild.textContent = label;
@@ -167,7 +167,7 @@ function designA(box, editor) {
 function scopeRow(box, editor) {
   const scope = html(`<div class="row group"><span class="field group-title">Where</span><div class="ops"><span class="meta scope">Whole matte</span>
     <button class="lasso-tool" title="Pick the Lasso tool: drag around a region and the filters below change only inside it">Lasso</button>
-    <button class="lasso-clear" title="Drop the lasso: filters change the whole matte again">Whole matte</button></div></div>`);
+    <button class="lasso-clear" title="Drop the lasso: filters change the whole matte again">Select all</button></div></div>`);
   const sync = () => { scope.querySelector('.scope').textContent = editor.selection ? 'Inside the lasso' : 'Whole matte'; };
   scope.querySelector('.lasso-tool').addEventListener('click', () => document.querySelector('[data-tool="lasso"]').click());
   scope.querySelector('.lasso-clear').addEventListener('click', () => { editor.setSelection(null); sync(); });
