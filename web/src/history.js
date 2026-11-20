@@ -38,7 +38,7 @@ async function request(mode, make) {
 /**
  * Command. Stores one generation.
  *
- * @param {{ts: number, version: string, info: object, state: object, outputs: {name: string, blob: Blob}[], thumb: Blob}} item
+ * @param {{ts: number, version: string, info: object, state: object, outputs: {name: string, blob: Blob}[], timeline: {label: string, blob: Blob}[], thumb: Blob}} item
  * @returns {Promise<number>} its id
  */
 export const addItem = (item) => request('readwrite', (s) => s.add(item));
@@ -66,10 +66,11 @@ export const deleteItem = (id) => request('readwrite', (s) => s.delete(id));
 export const clearItems = () => request('readwrite', (s) => s.clear());
 
 /**
- * Pure function. Bytes an item takes (its PNGs and the matte raster).
+ * Pure function. Bytes an item takes (its PNGs, its timeline frames and the matte raster). Items saved before m00906 have no timeline.
  *
- * @param {{outputs: {blob: Blob}[], thumb: Blob, state: {raster: Blob}}} item
+ * @param {{outputs: {blob: Blob}[], timeline?: {blob: Blob}[], thumb: Blob, state: {raster: Blob}}} item
  * @returns {number}
  * @example itemBytes({outputs: [{blob: new Blob(['ab'])}], thumb: new Blob(['c']), state: {raster: new Blob(['d'])}}) // 4
+ * @example itemBytes({outputs: [{blob: new Blob(['ab'])}], timeline: [{blob: new Blob(['xyz'])}], thumb: new Blob(['c']), state: {raster: new Blob(['d'])}}) // 7
  */
-export const itemBytes = (item) => item.outputs.reduce((n, o) => n + o.blob.size, 0) + item.thumb.size + item.state.raster.size;
+export const itemBytes = (item) => [...item.outputs, ...(item.timeline ?? [])].reduce((n, o) => n + o.blob.size, 0) + item.thumb.size + item.state.raster.size;

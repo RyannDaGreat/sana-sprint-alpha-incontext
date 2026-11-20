@@ -279,7 +279,7 @@ for (const t of document.querySelectorAll('#single-tabs .tab')) {  // the output
     document.querySelectorAll('#single-tabs .tab').forEach((x) => x.classList.toggle('on', x === t));
     for (const view of ['gray', 'rgba', 'alpha', 'uncertainty', 'timeline']) $(`out-${view}`).hidden = t.dataset.view !== view;
     $('timeline-controls').hidden = t.dataset.view !== 'timeline';
-    $('tl-plot').hidden = t.dataset.view !== 'timeline' || !tape.errors;
+    $('tl-plot').hidden = t.dataset.view !== 'timeline' || !tl.view.errors;
     if (t.dataset.view === 'timeline') showFrame(Number($('tl-slider').value));
   });
 }
@@ -287,22 +287,45 @@ for (const t of document.querySelectorAll('#single-tabs .tab')) {  // the output
 // ---------- gallery (m00876, m00878: KISS): every finished generation, newest first, in its own IndexedDB store ----------
 
 const GALLERY_THUMB_PX = 192;  // grid thumbnails only; the full view shows the stored lossless original at 1:1
-const gal = { items: [], urls: [], open: -1, output: 0 };
+const gal = { items: [], urls: [], open: -1, output: 0, tlTicket: 0 };  // tlTicket: the newest gallery-timeline request (an older decode is dropped)
+
+/**
+ * Near-pure function (asynchronous PNG encoding; reads the bitmaps). A reel's frames as lossless PNGs at their own
+ * resolution, one at a time (one frame's canvas in memory at once; convertToBlob encodes off the main thread).
+ *
+ * @param {{frames: {bitmap: ImageBitmap, label: string}[]}} reel
+ * @returns {Promise<{label: string, blob: Blob}[]>}
+ * @example await reelPngs({frames: [{bitmap: a256x256Bitmap, label: 'step 1/4 · end of step'}]}) // [{label: 'step 1/4 · end of step', blob: Blob(image/png)}]
+ */
+async function reelPngs(reel) {
+  const out = [];
+  for (const { bitmap, label } of reel.frames) {
+    const c = new OffscreenCanvas(bitmap.width, bitmap.height);
+    c.getContext('2d').drawImage(bitmap, 0, 0);
+    out.push({ label, blob: await c.convertToBlob({ type: 'image/png' }) });
+  }
+  return out;
+}
 
 /**
  * Command. Saves the finished generation (asynchronous, after the run; never on the compute path): each output
- * canvas as a lossless PNG, a thumbnail, the full UI state and a one-line summary.
+ * canvas as a lossless PNG, its sneak peek timeline (m00906), a thumbnail, the full UI state and a one-line summary.
  *
  * @param {string[]} ids - output canvases, e.g. ['out-gray', 'out-rgba']
  * @param {string} info - summary (version, prompt, seed, sampler)
+ * @param {Promise<object|undefined>|null} reel - the generation's timeline reel once its final frame is in (null: no sneak peek)
  */
-async function saveToGallery(ids, info) {
+async function saveToGallery(ids, info, reel) {
   try {
     const outputs = await Promise.all(ids.map(async (id) => ({ name: id.replace('out-', ''), blob: await new Promise((r) => $(id).toBlob(r, 'image/png')) })));
     const src = $(ids[0]), k = GALLERY_THUMB_PX / Math.max(src.width, src.height);
     const t = new OffscreenCanvas(Math.round(src.width * k), Math.round(src.height * k));
     t.getContext('2d').drawImage(src, 0, 0, t.width, t.height);
-    await addItem({ ts: Date.now(), version: state.pipeline.version.id, info, state: await uiSnapshot(), outputs, thumb: await t.convertToBlob({ type: 'image/png' }) });
+    const thumb = await t.convertToBlob({ type: 'image/png' }), r = await reel;
+    if (reel && !r) throw new Error('its timeline frames could not be read');  // timelineAdd already reported why
+    const timeline = r ? await reelPngs(r) : [];
+    console.log(`gallery: saving ${outputs.length} outputs and ${timeline.length} timeline frames`);
+    await addItem({ ts: Date.now(), version: state.pipeline.version.id, info, state: await uiSnapshot(), outputs, timeline, thumb });
     if (!$('out-gallery').hidden) renderGallery().catch(fail);  // the gallery page is open
   } catch (e) { console.error(e); status(`Could not save this generation to the gallery (${e.message}).`, true); }
 }
@@ -344,24 +367,75 @@ function openItem(i) {
     b.addEventListener('click', () => showOutput(k));
     $('gal-outputs').append(b);
   });
+  if (it.timeline?.length) {  // m00906: its sneak peek timeline, after the outputs
+    const b = document.createElement('button');
+    b.className = 'tab';
+    b.textContent = `timeline (${it.timeline.length})`;
+    b.addEventListener('click', () => showOutput(it.outputs.length));
+    $('gal-outputs').append(b);
+  }
   showOutput(0);
   $('gal-view').hidden = false;
 }
 
-/** Command. Shows output k of the open item. */
+/** Command. Shows output k of the open item; k = its number of outputs shows its timeline. */
 function showOutput(k) {
   gal.output = k;
   [...$('gal-outputs').children].forEach((b, j) => b.classList.toggle('on', j === k));
+  const it = gal.items[gal.open], timeline = k === it.outputs.length;
+  $('gal-download').disabled = timeline;
+  galTimeline(timeline ? it.timeline : null).catch(fail);
+  if (timeline) return;
   if ($('gal-img').src) URL.revokeObjectURL($('gal-img').src);
-  $('gal-img').src = URL.createObjectURL(gal.items[gal.open].outputs[k].blob);
+  $('gal-img').src = URL.createObjectURL(it.outputs[k].blob);
 }
 
-$('gal-close').addEventListener('click', () => { $('gal-view').hidden = true; });
+const TL_HOME = ['out-timeline', 'timeline-controls', 'tl-plot'].map((id) => [$(id), $(id).parentNode, $(id).nextSibling]);  // their editor places
+
+/**
+ * Command. Shows a gallery item's saved timeline ([{label, blob}]) in the full view, with the Timeline tab's own canvas,
+ * scrubber, Play and error curve (moved into the view, not duplicated); null puts them back in the editor and shows the
+ * last generation's reel again.
+ *
+ * @param {{label: string, blob: Blob}[]|null} frames
+ */
+async function galTimeline(frames) {
+  const ticket = ++gal.tlTicket;
+  timelinePlay(false);
+  if (tl.view !== tl.rec) tl.view.frames.forEach((f) => f.bitmap.close());
+  tl.view = tl.rec;
+  $('gal-img').parentElement.hidden = !!frames;  // its scroll box, so the timeline gets the view's full height
+  $('gal-tl').hidden = !frames;
+  if (!frames) {
+    for (const [el, parent, next] of TL_HOME) parent.insertBefore(el, next);
+    document.querySelector('#single-tabs .tab.on').click();  // the editor's own view visibility
+    updateTimeline();
+    return;
+  }
+  const reel = newReel();
+  reel.frames = await Promise.all(frames.map(async ({ label, blob }, slot) => ({ label, slot, bitmap: await createImageBitmap(blob) })));
+  if (ticket !== gal.tlTicket) { reel.frames.forEach((f) => f.bitmap.close()); return; }  // another item or output was chosen meanwhile
+  console.log(`gallery: showing a saved timeline of ${frames.length} frames`);
+  for (const [el] of TL_HOME) $('gal-tl').append(el);
+  $('out-timeline').hidden = $('timeline-controls').hidden = false;
+  tl.view = reel;
+  $('tl-slider').value = 0;
+  updateTimeline();
+  timelineErrors(reel);
+}
+
+/** Command. Closes the gallery's full view (its timeline, if shown, goes back to the editor). */
+function closeGalView() {
+  $('gal-view').hidden = true;
+  galTimeline(null).catch(fail);
+}
+
+$('gal-close').addEventListener('click', closeGalView);
 $('gal-load').addEventListener('click', async () => {
   await applyUiState(gal.items[gal.open].state);
   syncSamplerUi();
   scheduleSave();
-  $('gal-view').hidden = true;
+  closeGalView();
   setMode(padMode() ? 'pad' : 'single');  // back to the editor with the loaded settings
   status(`Loaded the settings of ${new Date(gal.items[gal.open].ts).toLocaleString()} (made with ${gal.items[gal.open].version}; the loaded model is unchanged).`);
 });
@@ -374,7 +448,7 @@ $('gal-download').addEventListener('click', () => {
 });
 $('gal-delete').addEventListener('click', async () => {
   await deleteItem(gal.items[gal.open].id);
-  $('gal-view').hidden = true;
+  closeGalView();
   renderGallery().catch(fail);
 });
 $('gal-clear').addEventListener('click', async () => {
@@ -391,7 +465,7 @@ $('gal-clear').addEventListener('click', async () => {
 });
 document.addEventListener('keydown', (e) => {
   if ($('gal-view').hidden) return;
-  if (e.key === 'Escape') $('gal-view').hidden = true;
+  if (e.key === 'Escape') closeGalView();
   else if (e.key === 'ArrowRight' && gal.open < gal.items.length - 1) openItem(gal.open + 1);
   else if (e.key === 'ArrowLeft' && gal.open > 0) openItem(gal.open - 1);
 });
@@ -401,13 +475,28 @@ document.addEventListener('keydown', (e) => {
 const TIMELINE_CAP_BYTES = 300 * 2 ** 20;  // keeps the tab's memory bounded; the oldest previews go first beyond it
 const TIMELINE_FPS = 12;
 const ERROR_PX = 64;  // frames and the final image are compared at this size (a mean error needs no more pixels)
-const tape = { frames: [], bytes: 0, dropped: 0, run: 0, next: 0, pending: 0, timer: 0, errors: null };  // not 'timeline': generate() destructures the pipeline's timeline
 
-/** Command. Empties the timeline (a new generation starts); bumps the run so late frames of the old run are ignored. */
+/**
+ * Pure function. An empty reel: one generation's previews (frames by arrival slot), their bytes, how many the memory cap
+ * dropped, the next slot, and the error curve once the final frame is in.
+ *
+ * @returns {{frames: {bitmap: ImageBitmap, label: string, slot: number}[], bytes: number, dropped: number, next: number, errors: number[]|null}}
+ * @example newReel() // {frames: [], bytes: 0, dropped: 0, next: 0, errors: null}
+ */
+const newReel = () => ({ frames: [], bytes: 0, dropped: 0, next: 0, errors: null });
+const tl = { rec: newReel(), view: null, timer: 0 };  // rec: the generation being recorded; view: the reel on screen (rec, or a gallery item's, m00906)
+tl.view = tl.rec;
+
+/**
+ * Command. A new generation starts: a new reel records it. The old reel is kept for its pending frames and its gallery save
+ * (not closed: the save may still be encoding it; the garbage collector frees it).
+ */
 function timelineReset() {
-  for (const f of tape.frames) f.bitmap.close();
-  Object.assign(tape, { frames: [], bytes: 0, dropped: 0, run: tape.run + 1, next: 0, pending: 0, errors: null });
+  const shown = tl.view === tl.rec;
+  tl.rec = newReel();
+  if (!shown) { updateTimeline(); return; }  // a gallery item's timeline is on screen: leave it
   timelinePlay(false);
+  tl.view = tl.rec;
   updateTimeline();
 }
 
@@ -418,24 +507,22 @@ function timelineReset() {
  * @param {ImageData|HTMLCanvasElement} source
  * @param {string} label
  * @param {{w: number, h: number}} size - source pixels (bitmap size)
- * @returns {Promise<void>}
+ * @returns {Promise<object>} the frame's reel (see newReel)
  */
 function timelineAdd(source, label, { w, h }) {
-  const run = tape.run, slot = tape.next++;
-  tape.pending += 1;
+  const reel = tl.rec, slot = reel.next++;  // the reel of the generation that made this frame, even if a newer one has started
   return createImageBitmap(source, 0, 0, w, h).then((bitmap) => {
-    tape.pending -= 1;
-    if (run !== tape.run) { bitmap.close(); return; }
-    tape.frames.push({ bitmap, label, slot });
-    tape.frames.sort((x, y) => x.slot - y.slot);
-    tape.bytes += 4 * w * h;
-    while (tape.bytes > TIMELINE_CAP_BYTES && tape.frames.length > 1) {
-      const old = tape.frames.shift();
-      tape.bytes -= 4 * old.bitmap.width * old.bitmap.height;
+    reel.frames.push({ bitmap, label, slot });
+    reel.frames.sort((x, y) => x.slot - y.slot);
+    reel.bytes += 4 * w * h;
+    while (reel.bytes > TIMELINE_CAP_BYTES && reel.frames.length > 1) {
+      const old = reel.frames.shift();
+      reel.bytes -= 4 * old.bitmap.width * old.bitmap.height;
       old.bitmap.close();
-      tape.dropped += 1;
+      reel.dropped += 1;
     }
-    updateTimeline();
+    if (reel === tl.view) updateTimeline();
+    return reel;
   }).catch(fail);
 }
 
@@ -465,25 +552,25 @@ function pixelError(a, ref) {
   return num / (den || 1);
 }
 
-/** Command. After the final frame is in, each frame's pixel error vs the final image, drawn as a clickable curve under the scrubber. */
-function timelineErrors() {
-  const n = tape.frames.length;
+/** Command. After a reel's final frame is in, each frame's pixel error vs the final image (reel.errors), drawn as a clickable curve if the reel is on screen. */
+function timelineErrors(reel) {
+  const n = reel.frames.length;
   if (n < 2) return;
-  const ref = smallPixels(tape.frames[n - 1].bitmap);
-  tape.errors = tape.frames.map((f) => pixelError(smallPixels(f.bitmap), ref));
-  drawErrors();
+  const ref = smallPixels(reel.frames[n - 1].bitmap);
+  reel.errors = reel.frames.map((f) => pixelError(smallPixels(f.bitmap), ref));
+  if (reel === tl.view) drawErrors();
 }
 
 /** Command. Draws the error curve (log scale, steps marked) with the current frame's marker; a click jumps the scrubber. */
 function drawErrors() {
-  const e = tape.errors, box = $('tl-plot');
+  const e = tl.view.errors, box = $('tl-plot');
   box.hidden = !e || $('out-timeline').hidden;
   if (!e) return;
   const W = 640, H = 140, pad = 34, ys = e.filter((v) => v > 0);
   const lo = Math.log10(Math.min(...ys, 1e-4)), hi = Math.log10(Math.max(...ys, 1));
   const X = (i) => pad + ((W - pad - 6) * i) / Math.max(1, e.length - 1);
   const Y = (v) => 6 + ((H - 6 - pad) * (hi - Math.min(hi, Math.max(lo, Math.log10(Math.max(v, 1e-12)))))) / (hi - lo || 1);
-  const steps = tape.frames.map((f, i) => (/end of step/.test(f.label) ? `<line class="step" x1="${X(i)}" x2="${X(i)}" y1="6" y2="${H - pad}"/>` : '')).join('');
+  const steps = tl.view.frames.map((f, i) => (/end of step/.test(f.label) ? `<line class="step" x1="${X(i)}" x2="${X(i)}" y1="6" y2="${H - pad}"/>` : '')).join('');
   const at = Number($('tl-slider').value);
   box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="100%"><title>each preview's pixel error vs the final image (log); click to jump</title>${steps}
     <text x="2" y="${Y(10 ** hi) + 4}">${(10 ** hi).toExponential(0)}</text><text x="2" y="${Y(10 ** lo) + 4}">${(10 ** lo).toExponential(0)}</text>
@@ -500,8 +587,8 @@ function drawErrors() {
 
 /** Command. Syncs the slider with the frames (a slider at the end follows new frames); shows the tab once there is a frame. */
 function updateTimeline() {
-  const n = tape.frames.length, s = $('tl-slider'), atEnd = Number(s.value) >= Number(s.max);
-  $('tab-timeline').hidden = n === 0;
+  const n = tl.view.frames.length, s = $('tl-slider'), atEnd = Number(s.value) >= Number(s.max);
+  $('tab-timeline').hidden = tl.rec.frames.length === 0;  // the editor's tab: the last generation's reel
   s.max = Math.max(0, n - 1);
   if (atEnd) s.value = s.max;
   if (!$('out-timeline').hidden) showFrame(Number(s.value));
@@ -509,24 +596,24 @@ function updateTimeline() {
 
 /** Command. Draws frame i on #out-timeline at 1:1 (the canvas takes the frame's size) and labels it. */
 function showFrame(i) {
-  const f = tape.frames[i], n = tape.frames.length;
+  const f = tl.view.frames[i], n = tl.view.frames.length;
   if (!f) { $('tl-label').textContent = 'No previews yet: generate with Sneak peek on.'; return; }
   const c = $('out-timeline');
   if (c.width !== f.bitmap.width || c.height !== f.bitmap.height) Object.assign(c, { width: f.bitmap.width, height: f.bitmap.height });
   c.getContext('2d').drawImage(f.bitmap, 0, 0);
-  $('tl-label').textContent = `${i + 1} / ${n} · ${f.label}` + (tape.dropped ? ` · ${tape.dropped} oldest dropped (memory cap)` : '');
-  if (tape.errors) drawErrors();
+  $('tl-label').textContent = `${i + 1} / ${n} · ${f.label}` + (tl.view.dropped ? ` · ${tl.view.dropped} oldest dropped (memory cap)` : '');
+  if (tl.view.errors) drawErrors();
 }
 
 /** Command. Starts or stops playing the frames from the slider's position; stops at the last frame. */
-function timelinePlay(on = !tape.timer) {
-  clearInterval(tape.timer);
-  tape.timer = 0;
+function timelinePlay(on = !tl.timer) {
+  clearInterval(tl.timer);
+  tl.timer = 0;
   $('tl-play').textContent = on ? 'Pause' : 'Play';
   if (!on) return;
   const s = $('tl-slider');
   if (Number(s.value) >= Number(s.max)) s.value = 0;
-  tape.timer = setInterval(() => {
+  tl.timer = setInterval(() => {
     if (Number(s.value) >= Number(s.max)) { timelinePlay(false); return; }
     s.value = Number(s.value) + 1;
     showFrame(Number(s.value));
@@ -835,8 +922,8 @@ async function generate() {
   }
   $('out-empty').hidden = true;
   $('dl-gray').disabled = $('dl-rgba').disabled = false;
-  if (tape.next) timelineAdd($('out-gray'), 'final image', { w: width, h: height }).then(timelineErrors);  // the gray image (head 0)
-  saveToGallery(views.map(([id]) => id), `${$('prompt').value.slice(0, 80)} · seed ${seed} · ${equationText(state.pipeline.version.manifest, sampler, seed)}`);
+  const reel = tl.rec.next ? timelineAdd($('out-gray'), 'final image', { w: width, h: height }).then((r) => { if (r) timelineErrors(r); return r; }) : null;  // the gray image (head 0)
+  saveToGallery(views.map(([id]) => id), `${$('prompt').value.slice(0, 80)} · seed ${seed} · ${equationText(state.pipeline.version.manifest, sampler, seed)}`, reel);
   state.last = `${state.pipeline.version.id}_seed${$('seed').value}`;
   showTimings(timings);
   if (timeline?.final) showTimeline(timeline);
@@ -1015,6 +1102,7 @@ function setMode(mode) {
   for (const b of $('mode-tabs').querySelectorAll('.tab')) b.classList.toggle('on', b.dataset.mode === page);
   document.querySelector('.workbench').hidden = page !== 'single';  // the editor state stays as it was
   $('out-gallery').hidden = page !== 'gallery';
+  if (page !== 'gallery' && !$('gal-view').hidden) closeGalView();  // a shown gallery timeline goes back to the editor
   document.querySelector('.models-panel').hidden = page !== 'models';
   if (page === 'gallery') renderGallery().catch(fail);
   if (page !== 'single') return;
