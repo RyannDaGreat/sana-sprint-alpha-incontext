@@ -457,14 +457,46 @@ Also, did you push the latest checkpoints to GitHub or not?
 ## m00717 — 2026-11-19 12:58 PM
 Please push the latest checkpoint.
 
-## m00718 — 2026-11-19 ~1:00 PM
+## m00718 — 2026-11-19 ~1:05 PM
 I assume that we are training on a large proportion of ones where it is just the original mask, right? If not, we need that, and one of the masks should just be thresholded. In fact, we don't need to — actually yeah, BlueJay probably should do that. We just need the original mask and then the original mask thresholded as two extras. In fact, they should probably be weighted a little bit more than the others too, because doing a solid outline is a pretty common task.
 
-## m00719 — 2026-11-19 1:15 PM
+## m00719 — 2026-11-19 ~1:12 PM
 You said that 5000 images were generated. Where are all of them? And why are all the journals not ordered by most recently modified? I mean, I can't figure out which ones are the latest.
 
-## m00720 — 2026-11-19 ~1:25 PM
+## m00720 — 2026-11-19 ~1:18 PM
 Let's make it 25% of the time we have solid outlines and then the other 75% of the time — you know, like 25% of the time it's those things that we just did — and then actually 30% of the time is that, and then the other 60 — sorry, 70% of the time it's going to be with trimasks.
 
-## m00721 — 2026-11-19 ~1:25 PM
+## m00721 — 2026-11-19 ~1:18 PM
 It's very important that you record this in the manifest. Make sure to update the manifest and concerns or whatnot. The reason why it's important is because we need to make sure that it masters single outlines. It's a very common use case.
+
+## m00722 — 2026-11-19 ~1:22 PM
+(pasted timings: tokenize 0.9 ms, text encoder 5137.9 ms, vae encoder 3251.2 ms, transformer 1 47001.3 ms, transformer 2 38721.8 ms, vae decoder 4853.0 ms, total 99207.9 ms)
+These statistics can help inform your loading bar. Maybe we can put points after every layer or something, and the first time it goes through one it marks down the time it needs, so that the next time it uses that model, that loading bar... Or actually nah, that's too complicated. I don't know if the timing will help you.
+
+## m00723 — 2026-11-19 ~1:25 PM
+Make sure that you don't recycle the optimizer from the latest training step. We changed the dataset, so the optimizer state should be discarded.
+
+## m00724 — 2026-11-19 1:28 PM
+I assume that right now all of your GPUs are going towards processing the dataset as they should be, and then only after that you should do training.
+
+## m00725 — 2026-11-19 1:29 PM
+Notify me once the data processing has started, once the data processing has an ETA, once the data processing has finished, once training has started, and once we have the next checkpoint.
+
+## m00726 — 2026-11-19 ~1:55 PM
+Yeah, we need to process all the resolutions. 512 by 512 is actually particularly weak right now, so we want to make sure that 512 by 512 is fully processed before we do anything.
+
+## m00727 — 2026-11-19 ~10:05 PM
+(answer to "Where should the big files go?": Hugging Face for models)
+<path to a token file outside the dump, not copied here> I didn't know there was a size quota. Well, I think Hugging Face would probably be okay then. Do you have the credentials you need? I can give them to you. Please only use one single repository if you do anything with Hugging Face. I'll put this token in a file so you don't have to read it into your context, because we all know that's dangerous — you train on it. So as long as you are safe about it, I'm sure you can figure out the commands you need. Thank you. https://huggingface.co/OneOverZero
+
+## m00728 — 2026-11-19 ~10:06 PM
+Notify me once everything is pushed, ready, tested, and ready for me to play with.
+
+## m00729 — 2026-11-19 ~10:30 PM
+I trust that you'll be cleaning up the GitHub once it's ready, so that we can keep uploading to GitHub, right?
+
+## m00730 — 2026-11-19 ~11:00 PM (given as the /compact note, then pasted)
+After we reach an export step 6000, I'd like to start processing a new experiment on top of the other ones. Here's my idea: right now, they are not able to generate alpha, which is unfortunate. It would be nicer if they were able to generate alpha, but right now they cannot. They can only generate RGB. Simultaneously, the channel outputs for the final decoder, there's a linear layer, I assume there's, correct me if I'm wrong, but I believe that there is a linear layer at the very end that unprojects tokens, and that will unproject it to a certain number of channels before we run the VAE decoder. There's a certain number of channels. If I wanted to split that into two images, for example, or three images, where we composite it on white, composite it on gray, and composite it on black, we could derive the alpha from that. But to do that, we need to first have three outputs somehow. My proposal is that we're going to do some training scheme where, on top of what we have right now, we continue training, or perhaps we start from the beginning, I don't know. Well, actually no, we'll start from where we are now. That will be the first experiment. Make sure to record this. We'll take our current checkpoint, and if we're beyond 6000 actually, then we'll use that one. The point is that that final unprojection step, the output of the MLP, we triplicate it, we triple it. So if it had, for example, 100 channels in the output, now we'll have 300 channels, where channels 0 through 100 are the original outputs, channels 100 to 200 are duplicated and equal to 0 to 100, and so are 200 to 300. Therefore they're initialized to be the same thing. So initially they all create the object on gray background, as they do now. Right now we have two LoRAs: the control and the adapter. This will be called the splitter LoRA. It splits into three things, and possibly we'll add more, but that will add more data processing overhead, because we're going to have to do a bunch more VAE encoding, which will take a while, because we're going to have to encode everything on black and on white, in addition to the data. Then, once the splitter LoRA is trained, you'll have to run the VAE decoder three times to get your output, because we'll output three images, not one. And then in our UI — it's a slightly different kind of UI now, isn't it? We had the RGB / on alpha thing; maybe we'll have more options up there. That can be the difference for models like this. And just like all the others, I'd want the turbo mode too. And just like we have lambda as a parameter, we'd also want gamma as a parameter, which controls how much it splits, I guess. And of course, when we're training this, the token detokenizer thing — the MLP at the end, which takes tokens and turns them into latents — has to be trainable as well. Otherwise it will be impossible to distinguish those three from each other. And on top of all this, we could even do this on the front end: the equation for determining the RGBA image from these three on-black, on-white and on-gray images should be pretty straightforward. In theory you only need on black and on white, but in practice I think it will be better if we do on gray as well. And in the future, probably even better if we do on red, green, blue, cyan, magenta, yellow, so a total of nine outputs, but we're only going to do white, gray and black for now. And the gray could even serve as an uncertainty value, to a certain degree, to measure how correct it is. So the regular RGB output would just show all three images, horizontally concatenated perhaps. RGB on alpha would still be the same thing. We'd need two more options, I guess, because we're also giving it the alpha, which is a little bit different; but now since we're giving it a trimap, that's why it's going to have some value. So maybe we'd have another option to just see the alpha matte that it generates from the trimap. Yeah, I think this would be nice. Do you have any suggestions? Because I think this is probably good.
+
+## m00731 — 2026-11-19 ~11:10 PM
+So once we reach the next checkpoint — well actually, you should probably start coding this. Don't cancel training until you're actually ready with the new pipeline. We're probably going to need some more BlueJay processors to make this happen, right? But once you have these BlueJay processors, it's time to cancel the current training run and then blast all the new samples. Give me an ETA for it. Tell me when it starts. Tell me in like an hour, once you have an ETA. And then notify me again once it's complete. Notify me once you start training FIBO. And we'll start training from the previous checkpoint, but discard the optimizer, right? Because if the optimizer has a decreasing learning rate, it's going to make things slow.
