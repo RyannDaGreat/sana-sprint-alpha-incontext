@@ -7,7 +7,7 @@ import { fillFontSelect, ensureFont } from './fonts.js';
 import { MaskGallery } from './gallery.js';
 import { buildTrimaskUi, DEFAULT_GUI } from './trimask_ui.js';
 import { levelFractions, rgbaToMask } from './trimask_ops.js';
-import { loadVersions, versionFiles, cachedFlags, cacheBytes, clearCache } from './models.js';
+import { loadVersions, versionFiles, cachedFlags, cacheState, cacheBytes, clearCache } from './models.js';
 import { countEmbeddings, clearEmbeddings } from './embcache.js';
 import { rgbaFromComposites, splitterPixels } from './splitter.js';
 import { formatBytes, formatEta, rate, mattePixelsToTensor, decodeToPixels, fitRect, cropRect, SIZE, progressLine } from './util.js';
@@ -461,12 +461,15 @@ async function renderVersions() {
     const nCached = flags.filter(Boolean).length;
     const card = document.createElement('div');
     card.className = `version${state.selected === v ? ' selected' : ''}`;
+    const cached = cacheState(flags);
     card.innerHTML = `
-      <span class="version-name"></span>
+      <span class="version-head"><i class="cache-dot" data-state="${cached}" role="img"></i><span class="version-name"></span></span>
       <span class="label"></span>
       <span class="meta desc"></span>
       <span class="meta">${COND_TEXT[condOf(v)][0]} model · ${formatBytes(total)} · ${nCached === files.length ? 'cached' : `${nCached}/${files.length} files cached`}</span>
       <div class="row"><button>${state.pipeline?.version === v ? 'Loaded' : 'Load'}</button></div>`;
+    const dot = card.querySelector('.cache-dot');
+    dot.title = dot.ariaLabel = { none: 'Not cached', partial: `Partly cached: ${nCached} of ${files.length} files`, full: 'Fully cached' }[cached];
     card.querySelector('.version-name').textContent = v.id;
     card.querySelector('.label').textContent = v.manifest.label ?? '';
     card.querySelector('.desc').textContent = v.manifest.description ?? '';

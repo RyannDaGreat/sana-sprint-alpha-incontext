@@ -220,6 +220,22 @@ export async function cachedFlags(files) {
   return Promise.all(files.map(async (f) => (await cachedFile(f.key)) !== null));
 }
 
+/**
+ * Pure function. How much of a version is cached, from its per-file flags: drives the dot on a version card.
+ *
+ * @param {boolean[]} flags - one per file, from cachedFlags
+ * @returns {'none'|'partial'|'full'}
+ *
+ * @example cacheState([true, true, true]) // 'full'
+ * @example cacheState([true, false, true]) // 'partial'
+ * @example cacheState([false, false]) // 'none'
+ */
+export function cacheState(flags) {
+  const n = flags.filter(Boolean).length;
+  if (n === 0) return 'none';
+  return n === flags.length ? 'full' : 'partial';
+}
+
 const keyQueue = new Map(); // cache key → promise of the last fetchCached on it
 
 /**
