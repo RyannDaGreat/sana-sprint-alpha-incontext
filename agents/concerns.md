@@ -447,13 +447,17 @@
 - Fix: evaluation and every visualization at 1024² originals, 1:1 lossless PNG; headers say exactly what is shown. My 512² view.html server (port 47781) is stopped.
 - Lesson: before showing any image page, check the native size of the source data and that the page shows it 1:1.
 
+## 2026-11-20 ~3:00 AM — Sonnet `claude -p` sub-agents stopped mid-task (fork SneakPeek)
+- Round 1 of the fast-decoder frenzy (7 `claude -p` Sonnet processes) all ended without REPORT.md: each started training in the background, said "waiting for the monitor", and stopped. In `-p` mode nothing wakes a stopped session, so the work was orphaned (some trainers kept running, results were never evaluated or written).
+- Lesson: every `claude -p` prompt must say that background jobs never wake it, to wait in the foreground with blocking loops, and never to end the reply before the results files exist. Round 2's prompts do.
+- Also: agents' own GPU timings were taken on a GPU shared by up to 15 jobs (D: 89 ms vs 7.3 ms clean); every published timing is re-measured in a clean window (m00806). And evaluation was at 512² (downsampled), against the user's full-resolution rule (m00811): redone at 1024².
+
 ## 2026-11-20 — UI polish and the "slop" blind test (m00747, m00748, m00768)
 - Two passes of icon buttons, glyph grids, font picker, cache dots; then a full restyle as an editor (workbench layout, Inter, blue accent). Behavior checks (brush, eraser, undo, redo, dilate, erode, font pick, cache dots) pass after every step.
 - Blind test: Haiku sees ours beside a public editor UI and names the amateur one. Rounds 1 to 4 (30 trials each): ours named in 77, 77, 73, 87 %. Round 1 labels covered the top-left corner of a screenshot (clipped title); fixed from round 2 on with a header strip.
 - Lesson: the test is confounded. Haiku names the reference by its logo or product name and ours by its "Matte → Image" title ("matches this project's own app"). On phone trials the answer was "A" in 9 of 10 trials in round 4 whichever side was ours (position bias). Desktop was 20 of 20 in every round. Real fixes that Haiku's reasons pointed to: clipped select text and clipped "Background" swatch (fixed), dense microcopy (folded into notes), uniform outlined tiles (flat tiles), plain empty output panel (glyph).
 - Not done: Haiku also cites the generic rounded-card plus blue-accent look; changing that is a design decision, not a bug.
 - Mistake of mine: `pkill -f <pattern>` matched my own shell command line and killed the shell (exit 144) three times. Use `kill $(pgrep -f "[p]attern")`.
-
 ## 2026-11-20 — fair blind test (coordinator request after m00768)
 - Fair test: both screenshots get the app bar (56 px desktop, 80 px phone) covered by a flat bar of the page's own color, plus hand-placed covers over product names in carbon, photopea_app, pixlr_app, tldraw (`make_trials.py --fair`).
 - Leak found: Haiku agents started with the Agent tool inherit this repo's context and say things like "matches this project's recent web-app commits". Fair test via Agent tool, r4 images: 83 % named ours (30 trials; desktop 19 of 20). The same 30 trials with fresh `claude --model haiku -p` processes started from a neutral directory (`run_blind.py`): 63 % (desktop 12 of 20). Use the neutral-directory runner for any future round.
@@ -464,3 +468,7 @@
 - User: "the journal thing on github.com should be a progressive web app so that people can still use it even if they close it and then reopen it."
 - Found while testing: `publish_pages.build_site` only knew the `compare`/`lib` subfolders, so the new `journal/alpha_ils/` report (linked from the index) made every publish fail with KeyError in `order_index`, and its PNG figures would have been read as text. Fixed: SUBDIRS has `alpha_ils` and `sneakpeek`, the page-time table covers every SUBDIRS page, and non-text report files are copied byte for byte. Lesson: a new journal folder must be added to SUBDIRS in the same commit that links it.
 - GitHub Pages cannot send COOP/COEP, so before this the app was never cross-origin isolated (ONNX Runtime wasm ran single-threaded). The PWA's service worker now adds COOP same-origin + COEP credentialless to the app's pages (`webgpu/`), so `crossOriginIsolated` is true after the worker takes control (one automatic reload on first visit). Credentialless (not require-corp): cross-origin no-cors loads keep working; Hugging Face fetches are CORS anyway. Safari has no credentialless: there the app stays non-isolated, as before.
+
+## 2026-11-20 ~4:20 AM — persistence: a missing input id broke every save (FourPad fork)
+- First persistence test failed: `readInputs` read `.type` of `sneak-peek`, which main's page doesn't have, so every save threw ("Cannot read properties of null"); the status line showed it (not silent), the test caught it. Fix: ids not on the page are skipped. Lesson: shared id lists across branches need a missing-element rule.
+- Also: `pkill -f <pattern>` killed my own shell because the pattern appeared in the shell's command line; stop servers by the PID listening on the port instead.
