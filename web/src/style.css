@@ -55,6 +55,9 @@
   --hairline: 1px;
   --pane-hit: 9px;          /* draggable width of a 1px pane divider */
   --radius: 6px;
+  --slot-off-opacity: 0.5;   /* a switched-off pad slot (m00848: 50% transparent) */
+  --slot-state-opacity: 0.85;
+  --slot-seed-w: 7em;
   --radius-lg: 10px;
   --bar-height: 4px;        /* progress bars */
   --control-h: 32px;        /* minimum height of buttons and fields; touch screens use --touch */
@@ -426,3 +429,17 @@ button.link { border: 0; background: none; padding: 0; min-height: 0; }
 .peek-plot .step { stroke: var(--peek-step); }
 .peek-plot text { fill: var(--muted); font-size: var(--size-meta); }
 .peek-plot .heat { width: var(--peek-heat-w); }
+
+/* four-way pad (manifest §20) */
+.mode-row { display: flex; margin-bottom: var(--space-2); }
+.mode-row .tabs { margin-left: 0; }
+.pad { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+.slot { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.slot .square { cursor: pointer; }
+.slot canvas { width: 100%; height: 100%; display: block; }
+.slot.off .square { opacity: var(--slot-off-opacity); }
+.slot-state { position: absolute; left: var(--space-1); bottom: var(--space-1); margin: 0; padding: 0 var(--space-1); font-size: var(--size-meta);
+              background: var(--surface); color: var(--muted); border-radius: var(--radius); opacity: var(--slot-state-opacity); }
+.slot textarea { width: 100%; font-size: var(--size-meta); resize: vertical; }
+.slot-row { display: flex; gap: var(--space-2); align-items: center; font-size: var(--size-meta); }
+.slot-row input { width: var(--slot-seed-w); }

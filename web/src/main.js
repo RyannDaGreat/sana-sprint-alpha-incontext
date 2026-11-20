@@ -13,6 +13,7 @@ import { highwayWeight } from './sneakpeek.js';
 import { loadVersions, versionFiles, cachedFlags, cacheState, cacheBytes, clearCache } from './models.js';
 import { countEmbeddings, clearEmbeddings } from './embcache.js';
 import { saveUiState, loadUiState, clearUiState, readInputs, writeInputs } from './persist.js';
+import { TurnScheduler } from './scheduler.js';
 import { rgbaFromComposites, splitterPixels } from './splitter.js';
 import { formatBytes, formatEta, rate, mattePixelsToTensor, decodeToPixels, fitRect, cropRect, SIZE, progressLine } from './util.js';
 // pipeline.js (with ONNX Runtime) is a separate chunk: ORT's WASM worker re-imports its own
@@ -88,7 +89,8 @@ function scheduleSave() {
   persist.timer = setTimeout(async () => {
     try {
       await saveUiState({ raster: await editor.raster.convertToBlob({ type: 'image/png' }), objects: structuredClone(editor.objects),
-                          invert: editor.invert, inputs: readInputs($, PERSIST_IDS) });
+                          invert: editor.invert, inputs: readInputs($, PERSIST_IDS), mode: padMode() ? 'pad' : 'single',
+                          pad: pad.slots.map(({ prompt, seed, off }) => ({ prompt, seed, off })) });
     } catch (e) {
       if (!persist.warned) status(`Could not save your matte and prompt in this browser (${e.message}); they will not survive a reload.`, true);
       persist.warned = true;
@@ -108,6 +110,8 @@ async function restoreUiState() {
   editor.changed();
   editor.resetHistory();
   writeInputs($, saved.inputs);
+  if (saved.pad?.length) buildPad(saved.pad);
+  if (saved.mode === 'pad') setMode('pad');
   return true;
 }
 
@@ -420,20 +424,30 @@ function showPeek(image, label) {
   requestAnimationFrame(() => {
     peekFrame.scheduled = false;
     if (!state.busy) return;  // the final image is already shown
-    const { image: { data, dims: [, , h, w] }, label: text } = peekFrame.latest;
-    const px = new Uint8ClampedArray(w * h * 4);
-    for (let i = 0; i < w * h; i++) {
-      for (let c = 0; c < 3; c++) px[4 * i + c] = 255 * data[c * w * h + i];
-      px[4 * i + 3] = 255;
-    }
-    const small = new OffscreenCanvas(w, h);
-    small.getContext('2d').putImageData(new ImageData(px, w, h), 0, 0);
-    const out = $('out-gray'), ctx = out.getContext('2d');
-    ctx.imageSmoothingEnabled = true;
-    ctx.drawImage(small, 0, 0, out.width, out.height);
+    const { image, label: text } = peekFrame.latest;
+    paintPreview($('out-gray'), image);
     $('out-gray').title = `Sneak peek · ${text}`;
     $('out-empty').hidden = true;
   });
+}
+
+/**
+ * Command (draws on `canvas`). Paints a fast-decoder preview (1, 3, h, w) in [0, 1], scaled to the canvas.
+ *
+ * @param {HTMLCanvasElement} canvas
+ * @param {{data: Float32Array, dims: number[]}} image
+ */
+function paintPreview(canvas, { data, dims: [, , h, w] }) {
+  const px = new Uint8ClampedArray(w * h * 4);
+  for (let i = 0; i < w * h; i++) {
+    for (let c = 0; c < 3; c++) px[4 * i + c] = 255 * data[c * w * h + i];
+    px[4 * i + 3] = 255;
+  }
+  const small = new OffscreenCanvas(w, h);
+  small.getContext('2d').putImageData(new ImageData(px, w, h), 0, 0);
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(small, 0, 0, canvas.width, canvas.height);
 }
 
 /**
@@ -481,20 +495,33 @@ function showTimeline(t) {
   $('peek-timeline').hidden = false;
 }
 
-/** Command. Runs one generation from the current editor state; queues one more if busy. */
+const single = { sched: new TurnScheduler(), runs: 0, key: null };  // one job at a time; real-time edits cancel it (§20, item 134)
+
+/** Command. Runs one generation from the current editor state; if one is running, queues one more (and, in real time, cancels the running one). */
 async function generate() {
   if (!state.pipeline) return;
-  if (state.busy) { state.pending = true; return; }
+  if (padMode()) return padRunAll();
+  if (state.busy) {
+    state.pending = true;
+    if ($('realtime').checked) single.sched.cancel(single.key);  // drop the stale run between two graph parts; its buffers are freed
+    return;
+  }
   state.busy = true;
+  single.key = `run${++single.runs}`;
   const sampler = samplerSettings(), seed = Number($('seed').value), { width, height } = sampler;
   status(`Generating ${width} × ${height}, ${sampler.steps} step${sampler.steps === 1 ? '' : 's'}: progress below.`);
   const matte = matteAtSize(width, height);
   $('gen-steps').innerHTML = $('gen-model').innerHTML = '';
   if ($('sneak-peek').checked && state.pipeline.fastDecoder) Object.assign($('out-gray'), { width, height });  // previews paint here
-  const { image, images, timings, timeline } = await state.pipeline.generate({
+  const result = await state.pipeline.generate({
     prompt: $('prompt').value, matte: mattePixelsToTensor(matte, width * height), matteRev: editor.rev, seed, ...sampler,
-    onPreview: $('sneak-peek').checked ? showPeek : null,
-  }, showProgress).catch(fail).finally(() => { state.busy = false; });
+    onPreview: $('sneak-peek').checked ? showPeek : null, gate: single.sched.gateFor(single.key),
+  }, showProgress).catch((e) => { if (e.name !== 'AbortError') fail(e); return null; }).finally(() => { state.busy = false; });
+  if (!result) {  // cancelled (a newer edit is pending) or failed
+    if (state.pending) { state.pending = false; generate(); }
+    return;
+  }
+  const { image, images, timings, timeline } = result;
   $('equation').textContent = equationText(state.pipeline.version.manifest, sampler, seed);
   const { onGray, cutout } = decodeToPixels(image, matte, width * height);
   const split = images && splitterPixels(images, rgbaFromComposites(images, state.pipeline.splitter.backgrounds, width * height), width, height);
@@ -515,12 +542,100 @@ async function generate() {
   if (state.pending) { state.pending = false; generate(); }
 }
 
-/** Command. In real-time mode, schedules a debounced generation after an edit. */
+/** Command. In real-time mode (always in the four-way pad), schedules a debounced generation after an edit. */
 function scheduleRealtime() {
-  if (!$('realtime').checked || !state.pipeline) return;
+  if (!state.pipeline || !($('realtime').checked || (padMode() && pad.started))) return;
   clearTimeout(state.timer);
   state.timer = setTimeout(generate, REALTIME_DEBOUNCE_MS);
 }
+
+// ---------- four-way pad (manifest §20, m00848) ----------
+
+const PAD_SLOTS = 4;
+const PAD_EDIT_DEBOUNCE_MS = 300;  // a slot's prompt / seed edit restarts it after this pause
+const pad = { sched: new TurnScheduler(), slots: [], started: false };
+
+/** Query. Whether the four-way pad tab is the active mode. */
+function padMode() { return !$('pad').hidden; }
+
+/**
+ * Command. Builds the pad's slot cards (once): image, prompt, seed. Slot 0 starts with the main prompt; seeds 0..3.
+ *
+ * @param {{prompt: string, seed: number, off: boolean}[]} [saved] - restored slots (persistence)
+ */
+function buildPad(saved) {
+  $('pad').innerHTML = '';
+  pad.slots = Array.from({ length: PAD_SLOTS }, (_, i) => {
+    const s = saved?.[i] ?? { prompt: $('prompt').value, seed: i, off: false };
+    const el = document.createElement('div');
+    el.className = `slot${s.off ? ' off' : ''}`;
+    el.innerHTML = `<div class="square"><canvas width="1024" height="1024"></canvas><p class="slot-state">idle</p></div>
+      <textarea rows="2" aria-label="Prompt ${i + 1}"></textarea>
+      <div class="slot-row"><label>Seed <input type="number" min="0"></label><button class="link">New seed</button></div>`;
+    $('pad').append(el);
+    const slot = { ...s, el, canvas: el.querySelector('canvas'), state: el.querySelector('.slot-state'), key: null, gen: 0, timer: 0, t0: 0 };
+    const [prompt, seed] = [el.querySelector('textarea'), el.querySelector('input')];
+    prompt.value = slot.prompt; seed.value = slot.seed;
+    const edited = () => { slot.prompt = prompt.value; slot.seed = Number(seed.value); scheduleSave();
+      clearTimeout(slot.timer); if (pad.started) slot.timer = setTimeout(() => padRestart(i), PAD_EDIT_DEBOUNCE_MS); };
+    prompt.addEventListener('input', edited); seed.addEventListener('input', edited);
+    el.querySelector('button').addEventListener('click', () => { seed.value = Math.floor(Math.random() * SEED_RANGE); edited(); });
+    el.querySelector('.square').addEventListener('click', () => {  // switch off / on: dims to 50% and pauses; the others get its turns
+      slot.off = !slot.off; el.classList.toggle('off', slot.off);
+      if (slot.key) pad.sched.setPaused(slot.key, slot.off);
+      scheduleSave();
+    });
+    return slot;
+  });
+}
+
+/** Command. Restarts every slot with the current mask and settings (Generate, or a mask / settings edit in the pad). */
+function padRunAll() {
+  pad.started = true;
+  pad.slots.forEach((_, i) => padRestart(i));
+}
+
+/**
+ * Command. Cancels slot i's running job (its next graph part throws, freeing its buffers) and starts it over.
+ *
+ * @param {number} i
+ */
+async function padRestart(i) {
+  const slot = pad.slots[i];
+  if (slot.key) pad.sched.cancel(slot.key);
+  if (!slot.prompt.trim()) { slot.state.textContent = 'empty: no prompt'; slot.key = null; return; }
+  const key = slot.key = `slot${i}:${++slot.gen}`;
+  const sampler = samplerSettings(), { width, height } = sampler, matte = matteAtSize(width, height);
+  Object.assign(slot.canvas, { width, height });
+  slot.t0 = performance.now();
+  slot.state.textContent = 'starting';
+  const live = () => slot.key === key;  // a restarted slot ignores its old job's late callbacks
+  const res = await state.pipeline.generate({
+    prompt: slot.prompt, matte: mattePixelsToTensor(matte, width * height), matteRev: editor.rev, seed: slot.seed, ...sampler,
+    onPreview: $('sneak-peek')?.checked ? (image) => { if (live()) paintPreview(slot.canvas, image); } : null,
+    gate: pad.sched.gateFor(key, slot.off),
+  }, (p) => { if (live()) slot.state.textContent = progressLine(p); }).catch((e) => {
+    if (e.name !== 'AbortError' && live()) { slot.state.textContent = `error: ${e.message}`; console.error(e); }
+    return null;
+  });
+  if (!res || !live()) return;
+  const { onGray } = decodeToPixels(res.image, matte, width * height);
+  slot.canvas.getContext('2d').putImageData(new ImageData(onGray, width, height), 0, 0);
+  slot.state.textContent = `done · seed ${slot.seed} · ${((performance.now() - slot.t0) / 1000).toFixed(1)} s`;
+}
+
+/** Command. Switches between the single output and the four-way pad (the editor and settings are shared). */
+function setMode(mode) {
+  for (const b of $('mode-tabs').querySelectorAll('.tab')) b.classList.toggle('on', b.dataset.mode === mode);
+  const isPad = mode === 'pad';
+  $('pad').hidden = $('pad-help').hidden = !isPad;
+  $('single-head').hidden = $('equation').hidden = isPad;
+  document.querySelector('.output-panel > .square').hidden = isPad;
+  if (isPad && !pad.slots.length) buildPad();
+  if (!isPad) { for (const s of pad.slots) if (s.key) pad.sched.cancel(s.key); pad.started = false; }
+  scheduleSave();
+}
+for (const b of $('mode-tabs').querySelectorAll('.tab')) b.addEventListener('click', () => setMode(b.dataset.mode));
 
 $('generate').addEventListener('click', generate);
 $('prompt').addEventListener('input', scheduleRealtime);

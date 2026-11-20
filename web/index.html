@@ -40,7 +40,13 @@
     </section>
 
     <section class="panel output-panel">
-      <h2>Output
+      <div class="mode-row">
+        <span class="tabs" id="mode-tabs" title="Single: one image. Four-way pad: up to four prompts and seeds on the same mask, diffusing together">
+          <button class="tab on" data-mode="single">Single</button>
+          <button class="tab" data-mode="pad">Four-way pad</button>
+        </span>
+      </div>
+      <h2 id="single-head">Output
         <span class="tabs">
           <button class="tab on" data-view="gray" id="tab-gray">RGB on gray</button>
           <button class="tab" data-view="rgba">RGBA</button>
@@ -55,6 +61,8 @@
         <canvas id="out-uncertainty" width="1024" height="1024" hidden></canvas>
         <p id="out-empty" class="empty">No image yet.</p>
       </div>
+      <div id="pad" class="pad" hidden></div>
+      <p id="pad-help" class="meta" hidden>Click an image to switch it off (it dims and pauses; the others get its turns). Editing a prompt or seed restarts that one; editing the mask or the settings restarts all.</p>
       <p id="equation" class="meta equation"></p>
     </section>
 
