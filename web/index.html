@@ -68,15 +68,6 @@
         <span id="tl-label" class="meta"></span>
       </div>
       <div id="tl-plot" class="peek-plot tl-plot" hidden></div>
-      <div id="gal-view" class="gal-view" hidden role="dialog" aria-label="Generation">
-        <div class="gal-view-bar row">
-          <span id="gal-info" class="meta"></span>
-          <span id="gal-outputs" class="tabs"></span>
-          <button id="gal-load" title="Restores the mask, prompt, seed and settings; never switches the model">Load settings</button><span id="gal-model-note" class="meta" hidden></span><button id="gal-download">Download</button><button id="gal-delete">Delete</button>
-          <button id="gal-close" title="Close (Esc)">×</button>
-        </div>
-        <div class="gal-view-img"><img id="gal-img" alt=""></div>
-      </div>
       <span id="pad-tabs" class="tabs pad-tabs" hidden>
         <button class="tab on" data-padview="gray">RGB</button><button class="tab" data-padview="rgba">RGBA</button>
         <button class="tab" data-padview="alpha" hidden>Alpha</button><button class="tab" data-padview="uncertainty" hidden>Uncertainty</button>
@@ -210,6 +201,20 @@
 
     </div>
 
+    <section id="out-gallery" class="gen-gallery" hidden aria-label="Gallery">
+      <p class="row gallery-bar"><span id="gal-used" class="meta"></span><button id="gal-clear">Clear gallery</button></p>
+      <div id="gal-grid" class="gal-grid"></div>
+      <p id="gal-empty" class="empty">No generations yet: each finished generation is saved here.</p>
+      <div id="gal-view" class="gal-view" hidden role="dialog" aria-label="Generation">
+        <div class="gal-view-bar row">
+          <span id="gal-info" class="meta"></span>
+          <span id="gal-outputs" class="tabs"></span>
+          <button id="gal-load" title="Restores the mask, prompt, seed and settings; never switches the model">Load settings</button><span id="gal-model-note" class="meta" hidden></span><button id="gal-download">Download</button><button id="gal-delete">Delete</button>
+          <button id="gal-close" title="Close (Esc)">×</button>
+        </div>
+        <div class="gal-view-img"><img id="gal-img" alt=""></div>
+      </div>
+    </section>
     <section class="panel models-panel">
       <h2>Models <span class="meta" id="cache-size"></span></h2>
       <div id="versions" class="versions"></div>
@@ -219,11 +224,6 @@
         <button id="clear-emb">Clear prompt cache</button>
         <span id="emb-count" class="meta"></span>
       </div>
-    </section>
-    <section id="out-gallery" class="gen-gallery" hidden aria-label="Gallery">
-      <p class="row gallery-bar"><span id="gal-used" class="meta"></span><button id="gal-clear">Clear gallery</button></p>
-      <div id="gal-grid" class="gal-grid"></div>
-      <p id="gal-empty" class="empty">No generations yet: each finished generation is saved here.</p>
     </section>
   </main>
 
