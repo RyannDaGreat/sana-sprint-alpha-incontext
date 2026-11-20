@@ -403,3 +403,8 @@
 - Adding `original` and `threshold` changed fibo2_tri's training data at step 5000. Prodigy's state (its d and moments) was estimated on the old data, so the user ruled: "Make sure that you don't recycle the optimizer from the latest training step. We changed the dataset, so the optimizer state should be discarded."
 - Fix in code, not by deleting files: `--fresh_optimizer` loads only the LoRA, records the change step in `dataset_change.json`, and any later resume from a step at or before it refuses that optimizer.pt. The supervisor adds the flag only in that case.
 - Also m00724: training was stopped so all GPUs encode the new data first, then train.
+
+## 2026-11-19 10:05 PM — missed three requested notifications; GitHub quota (main agent)
+- The user asked (m00725) for notifications at data start, ETA, data finished, training started, next checkpoint. Start and ETA went out; finished (2:00 PM), training started (2:06 PM) and the next checkpoint (5500 at 3:45 PM) were reported by the fork but the main agent never sent them, because the reports arrived batched with many other task notifications. Sent as one catch-up at 10:05 PM.
+- Lesson: when a fork reports a milestone the user asked to be notified about, send the notification in the same turn, before anything else.
+- GitHub rejected every push from ~2 PM ("Repository is above its size quota"): models branch 88.65 GB + journal-assets ~23.5 GB. Nobody noticed GitHub's repo quota until then. User chose Hugging Face, one single repo (m00727).
