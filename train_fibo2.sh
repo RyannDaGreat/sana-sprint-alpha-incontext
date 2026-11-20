@@ -3,6 +3,7 @@
 # Usage: ./train_fibo2.sh adapter <run> [--flag value ...]
 #        ./train_fibo2.sh control <run> --adapter models/fibo2/<adapter run>/step_XXXXXX [--flag value ...]
 #        ./train_fibo2.sh splitter <run> --adapter ... --control models/fibo2/<control run>/step_XXXXXX [--flag value ...]   (manifest §17)
+#        ./train_fibo2.sh matte <run> --adapter ... --splitter models/fibo2/<splitter run>/step_XXXXXX [--highway_joint True --highway_weight W] [--flag value ...]   (manifest §21)
 # NGPU=1 CUDA_VISIBLE_DEVICES=0 ./train_fibo2.sh ... runs on a subset (smoke tests).
 # Output: models/fibo2/<run>/ (LoRA checkpoints every 500 steps, previews/); log: agents/.scratchpad/logs/train_fibo2_<run>.log
 set -euo pipefail

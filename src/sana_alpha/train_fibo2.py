@@ -250,7 +250,8 @@ def load_checkpoint(transformer, folder, gates):
 
 def train(mode, run, adapter=None, control=None, splitter=None, rank=64, batch_size=2, max_steps=20000, warmup=500, lr=1.0, weight_decay=0.01,
           max_grad_norm=1.0, cond_drop=0.1, text_drop=0.1, save_every=500, preview_every=500, log_every=10, seed=0,
-          multires=True, gates=False, init_from=None, fresh_optimizer=False, sneak_peek_highway=False, highway_lr=1e-4, highway_residual=False):
+          multires=True, gates=False, init_from=None, fresh_optimizer=False, sneak_peek_highway=False, highway_lr=1e-4, highway_residual=False,
+          highway_joint=False, highway_weight=0.1):
     """
     Command. Trains the adapter or control LoRA with DDP (torchrun) or on one GPU; writes models/fibo2/<run>/.
 
@@ -282,16 +283,23 @@ def train(mode, run, adapter=None, control=None, splitter=None, rank=64, batch_s
             else every head starts as a copy of the final linear
         highway_residual (bool): the residual highway (m00774, sneak_peek.SneakPeekHighway): each block also reads the
             previous block's peek; a plain highway checkpoint resumes into it unchanged
+        highway_joint (bool): matte only (§21, m00896): the highway without its stop-gradient. The highway starts from the
+            splitter checkpoint's heads (unless init_from has its own) and keeps training as above, and the model's trainable
+            weights (the matte LoRA and head delta) also get w_hw · d(mean over blocks of the highway loss): the loss is
+            flow loss + highway_weight · highway x̂0 loss (σ²-weighted). Implies sneak_peek_highway
+        highway_weight (float): w_hw, the highway term's weight in the model's loss (highway_joint only; 0 = the plain highway)
     """
     import lance
     import prodigyopt
 
-    assert mode in ("adapter", "control", "splitter") and (mode == "adapter") == (adapter is None), f"mode {mode!r} with adapter {adapter!r}"
+    assert mode in ("adapter", "control", "splitter", "matte") and (mode == "adapter") == (adapter is None), f"mode {mode!r} with adapter {adapter!r}"
     assert (mode == "matte") == (splitter is not None), f"mode {mode!r} with splitter {splitter!r}: the matte adapter needs its splitter checkpoint"
     if mode == "matte":  # the splitter's own control checkpoint
         control = json.loads((models.localize(splitter) / "meta.json").read_text())["control"]
     assert (mode in ("splitter", "matte")) == (control is not None), f"mode {mode!r} with control {control!r}: the splitter needs its control checkpoint"
     assert not gates or mode == "control", "gates are for the control mode"
+    assert not highway_joint or mode == "matte", "highway_joint is part of the matte adapter (§21)"
+    sneak_peek_highway = sneak_peek_highway or highway_joint
     rank_id, world, device = setup_distributed()
     torch.backends.cuda.matmul.allow_tf32 = True
     main = rank_id == 0
@@ -335,11 +343,15 @@ def train(mode, run, adapter=None, control=None, splitter=None, rank=64, batch_s
     trainable = [p for p in transformer.parameters() if p.requires_grad]
     highway = tap = None
     if sneak_peek_highway:  # outside the model and its optimizer: stop-gradient, own AdamW (§18)
-        highway, tap = sneak_peek.SneakPeekHighway(transformer, highway_residual), sneak_peek.HighwayTap(transformer)
+        highway, tap = sneak_peek.SneakPeekHighway(transformer, highway_residual), sneak_peek.HighwayTap(transformer, joint=highway_joint)
         resumed = bool(init_from) and sneak_peek.load_highway(highway, Path(init_from))
+        if highway_joint and not resumed:  # the splitter's trained highway keeps training (m00896)
+            assert sneak_peek.load_highway(highway, models.localize(splitter)), f"{splitter}: no {sneak_peek.HIGHWAY_FILE} for highway_joint"
+            resumed = f"from {splitter}"
         highway_opt = torch.optim.AdamW(highway.parameters(), lr=highway_lr, weight_decay=0.0)
         log(f"sneak peek highway: {len(highway.heads)} heads, {sum(p.numel() for p in highway.parameters()) / 1e6:.1f}M params, "
-            + ("resumed" if resumed else "each a copy of the final linear"))
+            + (f"resumed {resumed}" if isinstance(resumed, str) else "resumed" if resumed else "each a copy of the final linear")
+            + (f", joint (no stop-gradient), w_hw {highway_weight}" if highway_joint else ""))
     gate_params = list(transformer.context_gates) if gates else []
     lora_params = [p for p in trainable if all(p is not g for g in gate_params)]
     log(f"trainable params {sum(p.numel() for p in trainable) / 1e6:.1f}M (LoRA rank {rank}{' + 46 context gates' if gates else ''}"
@@ -391,6 +403,7 @@ def train(mode, run, adapter=None, control=None, splitter=None, rank=64, batch_s
                 lance_versions=versions[0], objective="flow v=eps-x0, FIBO2-shifted logit-normal sigma"
                 + (", one head per background, shared eps" if mode == "splitter" else "")
                 + (", 3 splitter heads + the matte head, shared eps" if mode == "matte" else ""),
+                highway_joint=highway_joint, highway_weight=highway_weight if highway_joint else None,
                 init_from=str(init_from), start_step=start_step, fresh_optimizer=fresh_optimizer, dataset_change_steps=changes)
     drawn = torch.zeros(len(METHODS), dtype=torch.long)
     res_steps, res_secs = dict.fromkeys(RESOLUTION_PROBS, 0), dict.fromkeys(RESOLUTION_PROBS, 0.0)
@@ -427,9 +440,15 @@ def train(mode, run, adapter=None, control=None, splitter=None, rank=64, batch_s
         loss = ((pred.float() - flow_velocity_target(x0, noise)) ** 2).mean()
         if tap is not None:
             tap.capturing = False  # the backward recomputes checkpointed blocks: keep only this forward's outputs
-        loss.backward()
+        if highway_joint:  # the highway first (on detached leaves), then one model backward with its token gradients (§21)
+            highway_rel, token_grads = sneak_peek.highway_backward(highway, tap, sigmas, token_grads=True)
+            sneak_peek.joint_backward(loss, tap, token_grads, highway_weight)
+            del token_grads
+        else:
+            loss.backward()
         if highway is not None:  # after the model's backward: its gradients are already final
-            highway_rel = sneak_peek.highway_backward(highway, tap, sigmas)  # σ²-weighted: the preview's x̂0 error (m00813)
+            if not highway_joint:
+                highway_rel = sneak_peek.highway_backward(highway, tap, sigmas)  # σ²-weighted: the preview's x̂0 error (m00813)
             sneak_peek.all_reduce_grads(highway, world)
             highway_opt.step()
             highway_opt.zero_grad(set_to_none=True)

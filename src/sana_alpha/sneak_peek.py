@@ -7,6 +7,8 @@ Sneak peek (manifest §18, m00755, m00757): live previews during a FIBO2 generat
   Linear(dim, 128), initialized as a copy of the final linear (the "logit lens" start: head 43 starts exact, and a
   tuned-lens style fit corrects the earlier ones). Trained with MSE to the final layer's output, detached, so the
   model itself never changes (the highway has its own optimizer and its inputs are detached).
+- Joint training (manifest §21, m00896): with HighwayTap(joint=True) and highway_backward(token_grads=True), the
+  stop-gradient is removed: the highway loss also flows back into the model's trainable weights (the matte LoRA).
 - Tweedie in latent space: x̂0 = x_t − σ·v̂ (rectified flow, train_objective), then the fast decoder makes pixels.
 """
 
@@ -77,17 +79,19 @@ class SneakPeekHighway(torch.nn.Module):
     def modulated(self, tokens, c):
         """
         Pure function (of the frozen final layer). The final layer's input transform: LayerNorm(tokens)·(1 + adaLN(c)).
+        Differentiable in tokens (joint training needs d loss / d tokens); never in the final layer's weights or c.
 
         Args:
             tokens (torch.Tensor): (B, N, dim) image tokens of one block
             c (torch.Tensor): (B, D) the timestep conditioning the final layer reads (adaln_noisy)
 
         Returns:
-            torch.Tensor: (B, N, dim) float32, no grad
+            torch.Tensor: (B, N, dim) float32
         """
         f = self.final[0]
         with torch.no_grad():
-            return (f.norm_final(tokens) * (1.0 + f.adaLN_modulation(c)).unsqueeze(1)).float()
+            scale = 1.0 + f.adaLN_modulation(c)
+        return (f.norm_final(tokens) * scale.unsqueeze(1)).float()
 
     def predict(self, block, tokens, c, prev=None, xt_tokens=None):
         """
@@ -112,10 +116,12 @@ class HighwayTap:
     Command (registers forward hooks on the transformer). While `capturing`, keeps every main block's output, the final
     layer's input and conditioning, and its output, all detached: the stop-gradient. With gradient checkpointing the
     block outputs are the checkpoint boundaries, which the model keeps anyway, so this costs no extra memory; the hooks
-    ignore the recomputation in backward because capturing is off by then.
+    ignore the recomputation in backward because capturing is off by then. joint (§21, m00896): the block outputs keep
+    their autograd graph (no stop-gradient), so highway token gradients can flow back into the model.
     """
 
-    def __init__(self, transformer):
+    def __init__(self, transformer, joint=False):
+        self.joint = joint
         self.capturing, self.blocks, self.final_in, self.c, self.final_out, self.xt_tokens = False, {}, None, None, None, None
         self.handles = [transformer.register_forward_pre_hook(self._model_pre, with_kwargs=True)]
         self.handles += [layer.register_forward_hook(self._block_hook(i)) for i, layer in enumerate(transformer.layers)]
@@ -130,7 +136,7 @@ class HighwayTap:
     def _block_hook(self, i):
         def hook(module, args, output):
             if self.capturing:
-                self.blocks[i] = output.detach()
+                self.blocks[i] = output if self.joint else output.detach()
         return hook
 
     def _final_pre(self, module, args, kwargs):
@@ -161,7 +167,7 @@ class HighwayTap:
         self.blocks, self.final_in, self.c, self.final_out, self.xt_tokens = {}, None, None, None, None
 
 
-def highway_backward(highway, tap, sigma=None):
+def highway_backward(highway, tap, sigma=None, token_grads=False):
     """
     Command (accumulates .grad of the highway heads). Every head against the final layer's output, one block at a time so
     only one head's graph is alive. With sigma (m00813) the loss is the preview's own error: the shown preview is the
@@ -170,22 +176,45 @@ def highway_backward(highway, tap, sigma=None):
 
     Args:
         sigma (torch.Tensor | None): (B,) the noise level of each sample in the batch
+        token_grads (bool): joint training (§21): each head reads its block's image tokens through a detached leaf, and
+            the leaf's gradient d L_i / d tokens_i is returned, for one model backward that adds them (joint_backward)
 
     Returns:
-        list[float]: per block, the (σ²-weighted) error relative to the target's (σ²-weighted) power
+        list[float]: per block, the (σ²-weighted) error relative to the target's (σ²-weighted) power;
+        with token_grads, (that list, [d L_i / d tokens_i (B, N, dim) per block])
     """
     target = tap.final_out.float()
     w = torch.ones(target.shape[0], device=target.device) if sigma is None else sigma.float().to(target.device) ** 2
     w = (w / w.mean()).view(-1, 1, 1)
     power = (w * target ** 2).mean()
-    losses, prev = [], None
+    losses, grads, prev = [], [], None
     for i in range(len(highway.heads)):
-        pred = highway.predict(i, tap.image_tokens(i), tap.c, prev, tap.xt_tokens)
+        tokens = tap.image_tokens(i).detach().requires_grad_(token_grads)
+        pred = highway.predict(i, tokens, tap.c, prev, tap.xt_tokens)
         loss = (w * (pred - target) ** 2).mean()
         loss.backward()
         losses.append(loss.detach() / power)
+        grads.append(tokens.grad)
         prev = pred.detach()
-    return torch.stack(losses).tolist()
+    rel = torch.stack(losses).tolist()
+    return (rel, grads) if token_grads else rel
+
+
+def joint_backward(loss, tap, grads, weight):
+    """
+    Command (accumulates .grad of the model's trainable weights). One backward of loss + weight · mean_i L_i, where L_i
+    is block i's highway loss, given grads = [d L_i / d tokens_i] from highway_backward(token_grads=True): the chain
+    rule through each block's captured (not detached) image tokens. One call, so gradient checkpointing recomputes each
+    block once and DDP reduces once.
+
+    Args:
+        loss (torch.Tensor): the model's scalar loss (the flow loss)
+        tap (HighwayTap): joint=True, after the forward
+        grads (list[torch.Tensor]): per block (B, N, dim)
+        weight (float): w_hw, the highway term's weight
+    """
+    blocks = [tap.image_tokens(i) for i in range(len(grads))]
+    torch.autograd.backward([loss] + blocks, [None] + [g * (weight / len(grads)) for g in grads])
 
 
 def all_reduce_grads(module, world):
