@@ -32,6 +32,9 @@
   --space-4: 48px;
   --hairline: 1px;
   --bar-height: 4px;
+  --progress-height: 8px;
+  --segment-gap: 2px;
+  --pulse-period: 0.6s;
   --control-pad-y: 7px;
   --control-pad-x: 14px;
   --checker-size: 32px;
@@ -161,11 +164,17 @@ button.link { border: 0; background: none; padding: 0; color: var(--muted); font
 .bar > div { height: 100%; width: 0; background: var(--accent); }
 .file.cached .bar > div { background: var(--fg); }
 
-/* Generation progress (main.js showProgress): overall bar, one segment per sampler step, the progress line. */
-.gen-progress { display: grid; row-gap: var(--space-1); margin: var(--space-2) 0; }
-.gen-steps { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; column-gap: var(--space-1); }
-.gen-steps > div { height: var(--bar-height); background: var(--line); }
-.gen-steps > div > div { height: 100%; width: 0; background: var(--fg); }
+/* Generation progress (main.js showProgress): the Steps bar (one segment per sampler step, filled by its transformer
+   chunks), the Model bar (stages and the current pass's block groups, widths by expected time), the status line. */
+.gen-progress { display: grid; grid-template-columns: max-content 1fr; gap: var(--space-1) var(--space-2); align-items: center; margin: var(--space-2) 0; }
+.gen-progress > p { grid-column: 1 / -1; }
+.segments { display: flex; column-gap: var(--segment-gap); }
+.segments > div { flex: 1 1 0; min-width: 0; height: var(--progress-height); background: var(--line); }
+.segments > div > div { height: 100%; width: 0; background: var(--fg); }
+.segments > .done { background: var(--fg); }
+.segments > .running { background: var(--accent); animation: running var(--pulse-period) ease-in-out infinite alternate; }
+@keyframes running { from { opacity: 1; } to { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) { .segments > .running { animation: none; } }
 .gen-progress .meta { margin: 0; font-variant-numeric: tabular-nums; }
 
 /* Trimask controls (trimask_ui.js): value palette, filter groups, remap matrix. */

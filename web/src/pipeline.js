@@ -8,7 +8,7 @@ import { Tokenizer } from '@huggingface/tokenizers';
 import { versionFiles, fetchCached } from './models.js';
 import { gemmaInputs, selectIndex, COMPLEX_HUMAN_INSTRUCTION } from './prompt.js';
 import { embeddingKey, getEmbedding, putEmbedding } from './embcache.js';
-import { gaussianNoise, progressCounter } from './util.js';
+import { gaussianNoise, progressCounter, yieldTask } from './util.js';
 import { splitX0 } from './splitter.js';
 
 const LATENT_CHANNELS = 32;          // both VAEs: (B, LC, LH, LW); LH = H / 32 (DC-AE, SANA) or H / 8 (FLUX.2, FIBO2)
@@ -226,18 +226,6 @@ function inputTypes(session) {
   return Object.fromEntries(session.inputMetadata.map((m) => [m.name, m.type]));
 }
 
-/**
- * Command. Runs a session and records its wall time under `stage` in `timings`.
- *
- * @returns {Promise<Record<string, ort.Tensor>>}
- */
-async function timed(timings, stage, session, feeds) {
-  const t0 = performance.now();
-  const out = await session.run(feeds);
-  timings[stage] = performance.now() - t0;
-  return out;
-}
-
 export class Pipeline {
   /**
    * Command. Downloads (or reads from cache) every file of a version and creates the ORT sessions.
@@ -260,23 +248,22 @@ export class Pipeline {
     p.version = version;
     p.ep = ep;
     p.tokenizer = new Tokenizer(json('tokenizer'), json('tokenizer_config'));
-    p.sessions = {};
     p.types = {};
-    p.chunks = null;  // the transformer's chained chunk sessions when the version has them (web_chunks.split)
+    p.chains = {};  // role → its sessions in run order: one, or the parts of a split graph (web_chunks.split)
     for (const role of Object.keys(DEFAULT_NAMES)) {
       const chunked = byRole[`${role}_chunks`];
       const [graphs, external] = chunked ? [chunked, byRole[role] ?? []] : [[byRole[role][0]], byRole[role].slice(1)];
       const sessions = [];
       for (const [i, g] of graphs.entries()) {
         const onGpu = chunked && ep === 'webgpu' && i < graphs.length - 1;  // intermediate float tensors stay on the GPU
+        const own = chunked ? external.filter((e) => g.external.includes(e.name)) : external;  // a part reads only its weight files
         sessions.push(await ort.InferenceSession.create(g.data, {
           executionProviders: [ep],
-          externalData: external.map((e) => ({ path: e.name, data: e.data })),
+          externalData: own.map((e) => ({ path: e.name, data: e.data })),
           ...(onGpu ? { preferredOutputLocation: Object.fromEntries(g.gpu_outputs.map((n) => [n, 'gpu-buffer'])) } : {}),
         }));
       }
-      if (chunked) p.chunks = sessions;
-      else p.sessions[role] = sessions[0];
+      p.chains[role] = sessions;
       p.types[role] = Object.assign({}, ...sessions.map(inputTypes));
     }
     const tf = version.manifest.files.text_encoder;
@@ -285,34 +272,63 @@ export class Pipeline {
     p.matte = { rev: -1, latent: null };
     p.family = version.manifest.family ?? 'sana';
     p.hasLambda = p.name('transformer', 'adapter_scale') in p.types.transformer;  // runtime-λ graph (manifest "adapter")
+    p.gpu = ep === 'webgpu' ? await ort.env.webgpu.device : null;  // the GPUDevice ORT runs on: progress follows its queue (run)
     p.splitter = version.manifest.splitter ?? null;  // a splitter version (manifest §17): one velocity per background head, runtime γ
     if (p.splitter && !(p.name('transformer', 'gamma') in p.types.transformer)) throw new Error(`${version.id}: splitter manifest but no gamma input`);
     return p;
   }
 
-  /** Pure function. Progress units of one transformer pass: its chunk count, or 1 for an unsplit graph. @example p.passUnits() // 5 */
-  passUnits() { return this.chunks?.length ?? 1; }
+  /**
+   * Query (reads this version's sessions and manifest). One stage of the progress plan: graph `role`'s parts and unit count (manifest chunked; null units
+   * for an unsplit graph).
+   *
+   * @example p.stagePlan('text_encoder', 'text', 'Text encoder (Gemma)', 'layer') // {stage: 'text', label: 'Text encoder (Gemma)', unit: 'layer', parts: 26, units: 26}
+   */
+  stagePlan(role, stage, label, unit) {
+    return { stage, label, unit, parts: this.chains[role].length, units: this.version.manifest.files[role].units ?? null };
+  }
 
   /**
-   * Command. One transformer pass: the unsplit session, or the chunks in order (each reads its inputs from the graph
-   * inputs and earlier chunks' outputs; GPU-resident intermediates are released after the pass). Calls `tick` after
-   * each chunk and records the pass's wall time under `label`.
+   * Command (the counter calls onProgress). The progress counter of one generation (util.js
+   * progressCounter) with this version's parts.
    *
+   * @param {number} steps
+   * @param {number} passes - transformer passes per step (2 with CFG)
+   * @param {object[]} before - stagePlan()s of the stages before the sampler steps
+   * @param {object[]} after - stagePlan()s of the stages after
+   * @param {Function} onProgress
+   * @returns {ReturnType<typeof progressCounter>}
+   */
+  progress(steps, passes, before, after, onProgress) {
+    const { parts, units } = this.stagePlan('transformer', null, null, 'block');
+    return progressCounter({ steps, passes, transformer: { parts, units }, before, after }, onProgress);
+  }
+
+  /**
+   * Command. Runs graph `role`: its one session, or its parts in order (each reads its inputs from the graph inputs and
+   * earlier parts' outputs; GPU-resident intermediates are released at the end), and records the wall time under
+   * `label`. Progress never makes the computation wait (m00754): under WebGPU, `run` only submits GPU work and returns
+   * long before the GPU finishes, so part c is reported when the GPU has finished the work submitted before it
+   * (`queue.onSubmittedWorkDone`, a promise nobody awaits): the bar follows the GPU, not the submission. Under wasm
+   * the computation blocks the page, so before each part it yields one task (yieldTask, no frame wait) so the page can
+   * paint between parts.
+   *
+   * @param {string} role
    * @param {Record<string, ort.Tensor>} feeds - the unsplit graph's inputs
    * @param {Record<string, number|string>} timings
    * @param {string} label
-   * @param {() => void} tick
+   * @param {(c: number) => void} startPart
    * @returns {Promise<Record<string, ort.Tensor>>} {output_name: tensor}
    */
-  async runTransformer(feeds, timings, label, tick) {
-    if (!this.chunks) { const out = await timed(timings, label, this.sessions.transformer, feeds); await tick(); return out; }
+  async run(role, feeds, timings, label, startPart) {
     const t0 = performance.now(), values = { ...feeds }, made = [];
-    for (const s of this.chunks) {
+    for (const [c, s] of this.chains[role].entries()) {
+      if (this.gpu) this.gpu.queue.onSubmittedWorkDone().then(() => startPart(c));
+      else { startPart(c); await yieldTask(); }
       const out = await s.run(Object.fromEntries(s.inputNames.map((n) => [n, values[n]])));
       for (const [name, tensor] of Object.entries(out)) { values[name] = tensor; made.push(tensor); }
-      await tick();
     }
-    const name = this.name('transformer', 'output');
+    const name = this.name(role, 'output');
     for (const t of made) if (t !== values[name] && t.location === 'gpu-buffer') t.dispose();
     timings[label] = performance.now() - t0;
     return { [name]: values[name] };
@@ -329,9 +345,10 @@ export class Pipeline {
    *
    * @param {string} prompt - a JSON prompt (fibo2Prompt)
    * @param {Record<string, number|string>} timings
+   * @param {(c: number) => void} startPart - progress, called before each text-encoder part
    * @returns {Promise<{data: Float32Array, dims: number[]}>}
    */
-  async embedFibo2(prompt, timings) {
+  async embedFibo2(prompt, timings, startPart) {
     const key = embeddingKey(this.encoderId, prompt);
     if (this.memory.has(key)) { timings.text_encoder = 'cached (memory)'; return this.memory.get(key); }
     const stored = await getEmbedding(key);
@@ -342,10 +359,10 @@ export class Pipeline {
     timings.tokenize = performance.now() - t0;
     if (ids.length > text.max_tokens) throw new Error(`prompt is ${ids.length} tokens; this version takes at most ${text.max_tokens}`);
     const types = this.types.text_encoder, n = (k) => this.name('text_encoder', k);
-    const out = await timed(timings, 'text_encoder', this.sessions.text_encoder, {
+    const out = await this.run('text_encoder', {
       [n('input_ids')]: makeTensor(types[n('input_ids')], ids, [1, ids.length]),
       [n('attention_mask')]: makeTensor(types[n('attention_mask')], ids.map(() => 1), [1, ids.length]),
-    });
+    }, timings, 'text_encoder', startPart);
     const hidden = out[n('output')];
     const value = { data: asFloat32(hidden), dims: hidden.dims };
     this.memory.set(key, value);
@@ -371,14 +388,14 @@ export class Pipeline {
     const t0 = performance.now();
     const m = this.version.manifest, f = VAE_FACTOR.fibo2, cfg = guidance > 1;
     const dims = [1, LATENT_CHANNELS, height / f, width / f];
-    const stages = cfg ? ['text', 'text', 'matte', 'decoder'] : ['text', 'matte', 'decoder'];  // text (+ null prompt), trimask, decoder
-    const tick = progressCounter(steps, cfg ? 2 : 1, this.passUnits(), stages, onProgress);
-    const emb = await this.embedFibo2(fibo2Prompt(prompt, m.text_encoder.caption_key), timings);
-    await tick('text encoder', 0, 'text');
-    const nullEmb = cfg ? await this.embedFibo2(m.text_encoder.null_prompt, {}) : null;
-    if (cfg) await tick('text encoder (null prompt)', 0, 'text');
-    const cond = await this.encodeMatte(matte, matteRev, width, height, timings);
-    await tick('trimask encoder', 0, 'matte');
+    const text = (label) => this.stagePlan('text_encoder', 'text', label, 'layer');
+    const before = [text('Text encoder (Qwen3-VL)'), ...(cfg ? [text('Text encoder (null prompt)')] : []),
+                    this.stagePlan('vae_encoder', 'matte', 'Trimask encoder (VAE)', 'block')];
+    const after = (this.splitter?.heads ?? [null]).map((h) => this.stagePlan('vae_decoder', 'decoder', h ? `Image decoder (${h})` : 'Image decoder', 'block'));
+    const progress = this.progress(steps, cfg ? 2 : 1, before, after, onProgress);
+    const emb = await this.embedFibo2(fibo2Prompt(prompt, m.text_encoder.caption_key), timings, (c) => progress.start(progress.stagePart(0, c)));
+    const nullEmb = cfg ? await this.embedFibo2(m.text_encoder.null_prompt, {}, (c) => progress.start(progress.stagePart(1, c))) : null;
+    const cond = await this.encodeMatte(matte, matteRev, width, height, timings, (c) => progress.start(progress.stagePart(before.length - 1, c)));
     const types = this.types.transformer, n = (k) => this.name('transformer', k);
     const t = (k, values, d) => makeTensor(types[n(k)], values, d);
     const sigmas = fibo2Sigmas(steps, fibo2Mu((dims[2] * dims[3]) / 4, m.sampler.shift_seq, m.sampler.shift_mu));
@@ -387,12 +404,12 @@ export class Pipeline {
     const promptT = t('prompt_embeds', emb.data, emb.dims), nullT = nullEmb && t('prompt_embeds', nullEmb.data, nullEmb.dims);
     let x = gaussianNoise(dims.reduce((a, b) => a * b), seed), heads = null;
     for (let k = 0; k < steps; k++) {
-      const pass = async (e, label) => asFloat32((await this.runTransformer({
+      const pass = async (e, label, j) => asFloat32((await this.run('transformer', {
         ...fixed, [n('latents')]: t('latents', x, dims), [n('sigma')]: t('sigma', [sigmas[k]], [1]), [n('prompt_embeds')]: e,
-      }, timings, label, () => tick(label, k + 1)))[n('output')]);
-      let v = await pass(promptT, `transformer ${k + 1}`);
+      }, timings, label, (c) => progress.start(progress.passPart(k + 1, j, c))))[n('output')]);
+      let v = await pass(promptT, `transformer ${k + 1}`, 1);
       if (nullT) {
-        const vNull = await pass(nullT, `transformer ${k + 1} (null)`);
+        const vNull = await pass(nullT, `transformer ${k + 1} (null)`, 2);
         v = v.map((c, i) => vNull[i] + guidance * (c - vNull[i]));
       }
       if (this.splitter && k === steps - 1) heads = splitX0(x, v, sigmas[k], this.splitter.heads.length);  // v: head-major (1, K, 32, LH, LW)
@@ -400,11 +417,11 @@ export class Pipeline {
       x = x.map((xi, i) => xi + ds * v[i]);  // head 0's velocity: the first 32·LH·LW values
     }
     const nLat = this.name('vae_decoder', 'latent');
-    const decode = async (z, label) => asFloat32((await timed(timings, label, this.sessions.vae_decoder,
-      { [nLat]: makeTensor(this.types.vae_decoder[nLat], z, dims) }))[this.name('vae_decoder', 'output')]);
+    const decode = async (z, label, j) => asFloat32((await this.run('vae_decoder', { [nLat]: makeTensor(this.types.vae_decoder[nLat], z, dims) },
+      timings, label, (c) => progress.start(progress.afterPart(j, c))))[this.name('vae_decoder', 'output')]);
     const images = [];
-    for (const [j, z] of (heads ?? [x]).entries()) images.push(await decode(z, heads ? `vae_decoder ${this.splitter.heads[j]}` : 'vae_decoder'));
-    await tick('image decoder', 0, 'decoder');
+    for (const [j, z] of (heads ?? [x]).entries()) images.push(await decode(z, heads ? `vae_decoder ${this.splitter.heads[j]}` : 'vae_decoder', j));
+    progress.finish();
     timings.total = performance.now() - t0;
     return { image: images[0].map((v) => 2 * v - 1), images: heads ? images : null, timings };
   }
@@ -416,7 +433,7 @@ export class Pipeline {
    * @param {Record<string, number|string>} timings - receives text_encoder ms or 'cached'
    * @returns {Promise<{data: Float32Array, dims: number[], mask: number[]}>}
    */
-  async embed(prompt, timings) {
+  async embed(prompt, timings, startPart) {
     const key = embeddingKey(this.encoderId, prompt);
     if (this.memory.has(key)) { timings.text_encoder = 'cached (memory)'; return this.memory.get(key); }
     const stored = await getEmbedding(key);
@@ -427,12 +444,12 @@ export class Pipeline {
     const t0 = performance.now();
     const { ids, mask } = gemmaInputs(encode, prompt, m.complex_human_instruction ?? COMPLEX_HUMAN_INSTRUCTION, maxLen, GEMMA_PAD_ID);
     timings.tokenize = performance.now() - t0;
-    const types = this.types.text_encoder, s = this.sessions.text_encoder;
+    const types = this.types.text_encoder;
     const [nIds, nMask] = [this.name('text_encoder', 'input_ids'), this.name('text_encoder', 'attention_mask')];
-    const out = await timed(timings, 'text_encoder', s, {
+    const out = await this.run('text_encoder', {
       [nIds]: makeTensor(types[nIds], ids, [1, ids.length]),
       [nMask]: makeTensor(types[nMask], mask, [1, mask.length]),
-    });
+    }, timings, 'text_encoder', startPart);
     const hidden = out[this.name('text_encoder', 'output')];
     const d = hidden.dims[2];
     const sel = selectIndex(ids.length, maxLen);
@@ -450,14 +467,15 @@ export class Pipeline {
    * @param {number} width - W
    * @param {number} height - H
    * @param {Record<string, number|string>} timings
+   * @param {(c: number) => void} startPart - progress, called before each VAE-encoder part
    * @returns {Promise<Float32Array>} (1, 32, H/32, W/32), × scaling_factor
    */
-  async encodeMatte(matte, rev, width, height, timings) {
+  async encodeMatte(matte, rev, width, height, timings, startPart) {
     rev = `${rev}:${width}x${height}`;
     if (this.matte.rev === rev) { timings.vae_encoder = 'cached (same matte)'; return this.matte.latent; }
     const nImg = this.name('vae_encoder', 'image');
-    const out = await timed(timings, 'vae_encoder', this.sessions.vae_encoder,
-      { [nImg]: makeTensor(this.types.vae_encoder[nImg], matte, [1, 3, height, width]) });
+    const out = await this.run('vae_encoder', { [nImg]: makeTensor(this.types.vae_encoder[nImg], matte, [1, 3, height, width]) },
+      timings, 'vae_encoder', startPart);
     const m = this.version.manifest, sf = m.latent_scaling_in_graph ? 1 : m.scaling_factor;
     const latent = asFloat32(out[this.name('vae_encoder', 'output')]).map((v) => v * sf);
     this.matte = { rev, latent };
@@ -472,7 +490,7 @@ export class Pipeline {
    *   width: number, height: number}} job - matte (1, 3, H, W); timesteps: sprintTimesteps(...) (steps + 1 angles);
    *   guidance: Sprint's embedded guidance scale (one pass, not CFG); width, height: multiples of 32;
    *   adapterScale: λ for runtime-λ versions (hasLambda), ignored otherwise
-   * @param {Function} [onProgress] - called after each stage and each transformer chunk (see progressCounter)
+   * @param {Function} [onProgress] - called as each part of each graph starts, and at the end (see progressCounter)
    * @returns {Promise<{image: Float32Array, timings: Record<string, number|string>}>} image (1, 3, H, W) in [−1, 1]
    */
   async generate(job, onProgress = () => {}) {
@@ -482,11 +500,10 @@ export class Pipeline {
     const t0 = performance.now();
     const dims = [1, LATENT_CHANNELS, height / VAE_FACTOR.sana, width / VAE_FACTOR.sana];
     const steps = timesteps.length - 1;
-    const tick = progressCounter(steps, 1, this.passUnits(), ['text', 'matte', 'decoder'], onProgress);
-    const emb = await this.embed(prompt, timings);
-    await tick('text encoder', 0, 'text');
-    const matteLatent = await this.encodeMatte(matte, matteRev, width, height, timings);
-    await tick('matte encoder', 0, 'matte');
+    const progress = this.progress(steps, 1, [this.stagePlan('text_encoder', 'text', 'Text encoder (Gemma)', 'layer'),
+      this.stagePlan('vae_encoder', 'matte', 'Matte encoder (VAE)', 'block')], [this.stagePlan('vae_decoder', 'decoder', 'Image decoder', 'block')], onProgress);
+    const emb = await this.embed(prompt, timings, (c) => progress.start(progress.stagePart(0, c)));
+    const matteLatent = await this.encodeMatte(matte, matteRev, width, height, timings, (c) => progress.start(progress.stagePart(1, c)));
     const m = this.version.manifest, types = this.types.transformer;
     const n = (k) => this.name('transformer', k);
     const t = (k, values, dims) => makeTensor(types[n(k)], values, dims);
@@ -501,9 +518,9 @@ export class Pipeline {
     let latents = gaussianNoise(numel, seed), denoised;
     for (let k = 0; k + 1 < timesteps.length; k++) {
       const label = `transformer ${k + 1}`;
-      const out = await this.runTransformer({
+      const out = await this.run('transformer', {
         ...fixed, [n('noise')]: t('noise', latents, dims), [n('timestep')]: t('timestep', [timesteps[k]], [1]),
-      }, timings, label, () => tick(label, k + 1));
+      }, timings, label, (c) => progress.start(progress.passPart(k + 1, 1, c)));
       denoised = asFloat32(out[n('output')]);
       const s = timesteps[k + 1];
       if (s > 0) {
@@ -513,9 +530,9 @@ export class Pipeline {
     }
     const latent = denoised.map((v) => v / (m.latent_scaling_in_graph ? 1 : m.scaling_factor));
     const nLat = this.name('vae_decoder', 'latent');
-    const dec = await timed(timings, 'vae_decoder', this.sessions.vae_decoder,
-      { [nLat]: makeTensor(this.types.vae_decoder[nLat], latent, dims) });
-    await tick('image decoder', 0, 'decoder');
+    const dec = await this.run('vae_decoder', { [nLat]: makeTensor(this.types.vae_decoder[nLat], latent, dims) },
+      timings, 'vae_decoder', (c) => progress.start(progress.afterPart(0, c)));
+    progress.finish();
     timings.total = performance.now() - t0;
     const image = asFloat32(dec[this.name('vae_decoder', 'output')]);
     return { image: m.decoder_output_range === '0,1' ? image.map((v) => 2 * v - 1) : image, timings };

@@ -161,68 +161,120 @@ export function decodeToPixels(chw, matte, hw) {
 const STAGE_PASS_FRACTION = { text: 0.12, matte: 0.076, decoder: 0.113 };
 
 /**
- * Command (calls onProgress). Progress of one generation in time-weighted units: a transformer chunk is 1 unit, a
- * pass is `chunks` units, a stage is STAGE_PASS_FRACTION × chunks units. Each tick reports {done, total, label, step,
- * steps, stepDone, perStep, elapsed ms, remaining ms | null}: step 0 = before or after the sampler steps; stepDone =
- * chunks done in that step of perStep (passes × chunks); remaining = units left × the mean chunk time measured so far
- * in this run (null until a chunk has run).
+ * Pure function. The 1-based units (blocks, layers) a part holds: web_chunks.split puts unit b of B, 0-based, in part
+ * ⌊b·K/B⌋.
  *
- * @param {number} steps - sampler steps
- * @param {number} passes - transformer passes per step (2 with CFG)
- * @param {number} chunks - chunks per pass (1 = unsplit graph)
- * @param {string[]} stages - the other stages of this generation (keys of STAGE_PASS_FRACTION, repeats allowed)
- * @param {Function} onProgress
- * @returns {(label: string, step?: number, stage?: string) => Promise<void>} tick: step > 0 for a chunk, else stage;
- *   await it: it yields to the browser so the page repaints (wasm runs keep the main thread busy between ticks)
+ * @param {number} c - part index, 0-based
+ * @param {number} k - parts
+ * @param {number} b - units
+ * @returns {[number, number]} first and last unit, 1-based
+ *
+ * @example partUnits(0, 11, 46) // [1, 5]
+ * @example partUnits(10, 11, 46) // [43, 46]
+ * @example partUnits(3, 20, 20) // [4, 4]
  */
-export function progressCounter(steps, passes, chunks, stages, onProgress) {
-  const weight = (stage) => STAGE_PASS_FRACTION[stage] * chunks;
-  const perStep = passes * chunks, total = steps * perStep + stages.reduce((s, k) => s + weight(k), 0);
-  const t0 = performance.now();
-  let done = 0, stepDone = 0, current = 0, last = t0, chunkTime = 0, chunkCount = 0;
-  return (label, step = 0, stage = null) => {
-    const now = performance.now();
-    if (step) { chunkTime += now - last; chunkCount += 1; }
-    last = now;
-    done += step ? 1 : weight(stage);
-    stepDone = step === current ? stepDone + 1 : 1;
-    current = step;
-    onProgress({ done, total, label, step, steps, stepDone: step ? stepDone : 0, perStep, elapsed: now - t0,
-                 remaining: chunkCount ? (total - done) * (chunkTime / chunkCount) : null });
-    return yieldToBrowser();
-  };
+export function partUnits(c, k, b) {
+  return [Math.ceil((c * b) / k) + 1, Math.ceil(((c + 1) * b) / k)];
 }
 
 /**
- * Command. Lets the browser paint and handle input between progress ticks. A visible page waits for the next frame
- * (requestAnimationFrame, then one task, so the new bar state is drawn); a hidden page, where animation frames pause,
- * yields one task through MessageChannel (not setTimeout, which background tabs throttle).
+ * Pure function. Where a part is, as text: its unit range out of the stage's units.
  *
- * @returns {Promise<void>}
- * @example await yieldToBrowser() // undefined, after the next frame (visible page) or one task (hidden page)
- */
-export function yieldToBrowser() {
-  const task = (resolve) => { const c = new MessageChannel(); c.port1.onmessage = () => { c.port1.close(); resolve(); }; c.port2.postMessage(0); };
-  const visible = globalThis.document?.visibilityState === 'visible';
-  return new Promise((resolve) => (visible ? requestAnimationFrame(() => task(resolve)) : task(resolve)));
-}
-
-/**
- * Pure function. The progress line of one generation event (pipeline.js progressCounter).
- *
- * @param {{label: string, step: number, steps: number, stepDone: number, perStep: number, elapsed: number, remaining: number|null}} p
- * @param {number} chunks - transformer chunks per pass (1 = unsplit graph)
+ * @param {[number, number]} r - first and last unit, 1-based
+ * @param {string} unit - the unit's name ('block', 'layer')
+ * @param {number} units - the stage's unit count
  * @returns {string}
  *
- * @example progressLine({label: 'transformer 2', step: 2, steps: 4, stepDone: 3, perStep: 5, elapsed: 4200, remaining: 6100}, 5)
- * // 'Step 2 of 4 · transformer 2 · blocks 3/5 done · 4.2 s · about 0:07 left'
- * @example progressLine({label: 'text encoder', step: 0, steps: 4, stepDone: 0, perStep: 5, elapsed: 900, remaining: null}, 5)
- * // 'text encoder done · 0.9 s'
+ * @example unitText([10, 13], 'block', 46) // 'blocks 10–13 of 46'
+ * @example unitText([14, 14], 'layer', 26) // 'layer 14 of 26'
  */
-export function progressLine(p, chunks) {
+export function unitText([first, last], unit, units) {
+  return `${first === last ? `${unit} ${first}` : `${unit}s ${first}–${last}`} of ${units}`;
+}
+
+/**
+ * Command (each report calls onProgress; reads the clock). Progress of one generation for two bars and a status line.
+ * A generation is a fixed list of parts: the stages before the sampler steps (`before`), steps × passes transformer
+ * passes of `transformer.parts` parts each, the stages after (`after`); a stage of a split graph (web_chunks.split) is
+ * one part per unit group, an unsplit one a single part. The caller reports each part as it STARTS (`start(i)`, or
+ * `finish()` at the end): the parts before it are done, it is running; a report at or before the newest one is ignored. Nothing here waits: onProgress must only store
+ * the event (main.js paints at most once per animation frame), so progress costs no compute time (m00754).
+ * Time weights: a transformer part is 1, a stage STAGE_PASS_FRACTION[stage] × transformer.parts, split evenly over its
+ * parts. Event: {running: label | null, where: text | null, step, steps, pass, passes, stepFill: [0..1] per step,
+ * model: [{label, weight, state: 'done'|'running'|'todo'}] (the Model bar: before-stage parts, the current pass's parts,
+ * after-stage parts), done, total, elapsed ms, remaining ms | null (units left × mean transformer-part time)}.
+ *
+ * @param {{steps: number, passes: number, transformer: {parts: number, units: number|null},
+ *   before: {stage: string, label: string, parts: number, units: number|null, unit: string}[], after: same}} plan -
+ *   units: the graph's unit count (manifest chunked[role].units; null when unsplit), unit: its name
+ * @param {Function} onProgress
+ * @returns {{start: (i: number) => void, stagePart: (j: number, c: number) => number,
+ *   passPart: (step: number, pass: number, c: number) => number, afterPart: (j: number, c: number) => number, finish: () => void}}
+ */
+export function progressCounter({ steps, passes, transformer, before, after }, onProgress) {
+  const k = transformer.parts, perStep = passes * k;
+  const where = (c, g) => (g.units ? unitText(partUnits(c, g.parts, g.units), g.unit, g.units) : null);
+  const expand = (list) => list.flatMap((g) => Array.from({ length: g.parts }, (_, c) => ({
+    label: g.label, where: where(c, g), weight: (STAGE_PASS_FRACTION[g.stage] * k) / g.parts })));
+  const pre = expand(before), post = expand(after), first = (list, j) => list.slice(0, j).reduce((s, g) => s + g.parts, 0);
+  const tf = { ...transformer, unit: 'block' };
+  const parts = [...pre, ...Array.from({ length: steps * perStep }, (_, i) => ({ label: 'transformer', where: where(i % k, tf), weight: 1 })), ...post];
+  const total = parts.reduce((s, q) => s + q.weight, 0), t0 = performance.now(), passStart = pre.length, postStart = pre.length + steps * perStep;
+  let partTime = 0, partCount = 0, last = null;  // last: [part index, start time]
+  const report = (i) => {
+    if (last && i <= last[0]) return;  // GPU completions can land after a later part (or finish) was reported
+    const now = performance.now();
+    if (last && last[0] >= passStart && last[0] < postStart) { partTime += now - last[1]; partCount += 1; }
+    last = [i, now];
+    const done = parts.slice(0, i).reduce((s, q) => s + q.weight, 0), x = i - passStart, inSteps = x >= 0 && x < steps * perStep;
+    const step = inSteps ? Math.floor(x / perStep) + 1 : 0, pass = inSteps ? Math.floor((x % perStep) / k) + 1 : 0;
+    const c = inSteps ? x % k : -1, state = (j) => (j < i ? 'done' : j === i ? 'running' : 'todo');
+    const passState = (j) => (x < 0 ? 'todo' : x >= steps * perStep ? 'done' : j < c ? 'done' : j === c ? 'running' : 'todo');
+    onProgress({
+      running: i < parts.length ? parts[i].label : null, where: i < parts.length ? parts[i].where : null, step, steps, pass, passes,
+      stepFill: Array.from({ length: steps }, (_, s) => Math.min(1, Math.max(0, (x - s * perStep) / perStep))),
+      model: [...pre.map((q, j) => ({ ...q, state: state(j) })),
+              ...Array.from({ length: k }, (_, j) => ({ label: where(j, tf) ?? 'transformer', weight: 1, state: passState(j) })),
+              ...post.map((q, j) => ({ ...q, state: state(postStart + j) }))],
+      done, total, elapsed: now - t0, remaining: partCount ? (total - done) * (partTime / partCount) : null,
+    });
+  };
+  return { start: report, stagePart: (j, c) => first(before, j) + c, passPart: (st, ps, c) => passStart + (st - 1) * perStep + (ps - 1) * k + c,
+           afterPart: (j, c) => postStart + first(after, j) + c, finish: () => report(parts.length) };
+}
+
+/**
+ * Command. Yields one task to the browser (MessageChannel: unlike setTimeout it is not throttled, unlike
+ * requestAnimationFrame it does not wait for a frame), so the page can paint and handle input between two blocking wasm
+ * runs. Costs well under a millisecond.
+ *
+ * @returns {Promise<void>}
+ * @example await yieldTask() // undefined, after one task
+ */
+export function yieldTask() {
+  return new Promise((resolve) => { const c = new MessageChannel(); c.port1.onmessage = () => { c.port1.close(); resolve(); }; c.port2.postMessage(0); });
+}
+
+/**
+ * Pure function. The status line of one progress event (progressCounter): what runs now, where, time and time left.
+ *
+ * @param {object} p - a progressCounter event
+ * @returns {string}
+ *
+ * @example progressLine({running: 'transformer', where: 'blocks 10–13 of 46', step: 2, steps: 4, pass: 1, passes: 2, elapsed: 4200, remaining: 6100})
+ * // 'Step 2 of 4 · pass 1 of 2 (CFG) · blocks 10–13 of 46 · 4.2 s · about 0:07 left'
+ * @example progressLine({running: 'Text encoder (Gemma)', where: 'layer 3 of 26', step: 0, steps: 2, elapsed: 900, remaining: null})
+ * // 'Text encoder (Gemma) · layer 3 of 26 · 0.9 s'
+ * @example progressLine({running: 'Image decoder', where: null, step: 0, steps: 2, elapsed: 61000, remaining: 3000})
+ * // 'Image decoder · 61.0 s · about 0:03 left'
+ * @example progressLine({running: null, steps: 4, elapsed: 98000, remaining: 0})
+ * // 'Done · 4 steps · 98.0 s'
+ */
+export function progressLine(p) {
   const seconds = `${(p.elapsed / 1000).toFixed(1)} s`;
+  if (p.running === null) return `Done · ${p.steps} step${p.steps === 1 ? '' : 's'} · ${seconds}`;
   const left = p.remaining === null ? '' : ` · about ${formatEta(p.remaining / 1000)} left`;
-  if (!p.step) return `${p.label} done · ${seconds}${left}`;
-  const blocks = chunks > 1 ? ` · blocks ${((p.stepDone - 1) % chunks) + 1}/${chunks} done` : '';
-  return `Step ${p.step} of ${p.steps} · ${p.label}${blocks} · ${seconds}${left}`;
+  const where = p.where ? ` · ${p.where}` : p.step ? ' · transformer (one graph: no per-block progress)' : '';
+  const head = p.step ? `Step ${p.step} of ${p.steps}${p.passes > 1 ? ` · pass ${p.pass} of ${p.passes} (CFG)` : ''}` : p.running;
+  return `${head}${where} · ${seconds}${left}`;
 }

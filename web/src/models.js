@@ -28,10 +28,12 @@
 //        "parts": [{url, bytes}],                     (optional; shards concatenated in order, URLs relative to the folder)
 //        "external_data": [{path, bytes, sha256, parts}],  (optional; ONNX external weights)
 //        "names": {role: onnx_name}                   (optional; overrides the default names in pipeline.js)
-//        "chunks": [{path, bytes, sha256, parts, gpu_outputs}]  (transformer only, optional: the graph split between
-//                                                     blocks (web_chunks.split, manifest §12 "Progress"); the app runs them
-//                                                     in order instead of `path`, on the same external_data; gpu_outputs
-//                                                     stay on the GPU between chunks under WebGPU)
+//        "chunks": [{path, bytes, sha256, parts, gpu_outputs, external}]  (optional: the graph split between its units
+//                                                     (web_chunks.split, manifest §12 "Progress"); the app runs them in
+//                                                     order instead of `path`; each reads only its `external` files of
+//                                                     external_data; gpu_outputs stay on the GPU between chunks under WebGPU)
+//        "units": number                              (with chunks: the graph's unit count (blocks, layers), for the
+//                                                     progress labels)
 //     }}}
 //   "latent_scaling_in_graph": bool,                 (optional, default false: JS does × / ÷ scaling_factor)
 //   "decoder_output_range": "-1,1" | "0,1",          (optional, default "-1,1")
@@ -73,7 +75,7 @@ export async function loadVersions(base) {
   }));
 }
 
-const CHUNK_FILE = /^transformer\.chunk(\d+)\.onnx$/;  // web_chunks.split: the transformer as K chained graphs
+const PART_FILE = /^[a-z_]+\.part\d+\.onnx$/;  // web_chunks.split: a graph as K chained parts (exporter manifest "chunked")
 
 // Exporter graph input/output names → this app's role keys (see DEFAULT_NAMES in pipeline.js). FIBO2 versions use
 // their graph names directly (FIBO2_NAMES in pipeline.js), so they get no "names" entry.
@@ -105,18 +107,20 @@ export function normalizeManifest(raw) {
   if (!exported) return { ...raw, missing: MODEL_FILES.filter((r) => !raw.files[r]) };
   const files = {};
   const entry = (n, b) => ({ path: n, bytes: b, sha256: raw.sha256?.[n], parts: raw.parts?.[n] });
-  const chunkIndex = (n) => Number(n.match(CHUNK_FILE)?.[1] ?? -1);
   for (const [name, bytes] of Object.entries(raw.files)) {
     const role = name.replace(/\.onnx(\.data)?$|\.json$/, '');
-    if (name.endsWith('.data') || chunkIndex(name) >= 0) continue;
+    if (name.endsWith('.data') || PART_FILE.test(name)) continue;
     files[role] = { ...entry(name, bytes), ...(raw.family === 'fibo2' ? {} : { names: EXPORT_NAMES[role] }) };
     // external weights: <name>.data, plus extra files <name>.<tag>.data (the -lambda delta: transformer.onnx.lambda.data;
     // FIBO2's < 2 GB pieces: transformer.onnx.p0.data, …)
     const data = Object.keys(raw.files).filter((n) => n.startsWith(`${name}.`) && n.endsWith('.data')).sort();
     if (data.length) files[role].external_data = data.map((n) => entry(n, raw.files[n]));
   }
-  const chunks = Object.keys(raw.files).filter((n) => chunkIndex(n) >= 0).sort((a, b) => chunkIndex(a) - chunkIndex(b));
-  if (chunks.length) files.transformer.chunks = chunks.map((n, i) => ({ ...entry(n, raw.files[n]), gpu_outputs: raw.chunk_gpu_outputs[i] }));
+  for (const [role, c] of Object.entries(raw.chunked ?? {})) {
+    files[role].chunks = Array.from({ length: c.parts }, (_, i) => `${role}.part${i}.onnx`)
+      .map((n, i) => ({ ...entry(n, raw.files[n]), gpu_outputs: c.gpu_outputs[i], external: c.external[i] }));
+    files[role].units = c.units;
+  }
   return {
     label: raw.version, description: raw.source ? `Exported from ${raw.source}.` : '',
     family: raw.family ?? 'sana', sampler: raw.sampler, text_encoder: raw.text_encoder,
@@ -168,7 +172,7 @@ export function versionFiles(version) {
       const url = new URL(g.path, version.url).href;
       const parts = g.parts?.map((p) => ({ url: new URL(p.url, version.url).href, bytes: p.bytes }));
       out.push({ role: g.role, name: g.path.split('/').pop(), url, bytes: g.bytes, key: g.sha256 ? `sha256:${g.sha256}` : `${url}?v=${g.bytes}`,
-        parts, gpu_outputs: g.gpu_outputs });
+        parts, gpu_outputs: g.gpu_outputs, external: g.external });
     }
   }
   return out;

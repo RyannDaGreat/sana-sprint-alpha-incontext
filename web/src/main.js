@@ -28,7 +28,8 @@ const PAGES_MODELS = 'https://huggingface.co/OneOverZero/sana-sprint-alpha-incon
 const defaultModels = location.hostname.endsWith('github.io') ? PAGES_MODELS : '../models/web/';
 const modelsBase = new URL(params.get('models') ?? defaultModels, location.href).href;
 
-const state = { versions: [], selected: null, pipeline: null, busy: false, pending: false, timer: null, last: null, segmenter: null, hasPhoto: false };
+const state = { versions: [], selected: null, pipeline: null, busy: false, pending: false, timer: null, last: null, segmenter: null, hasPhoto: false,
+  progress: null, progressFrame: 0 };  // progress: the newest progress event; progressFrame: its pending animation frame
 
 /** Command. Shows a message in the status line (red when it is an error). */
 function status(text, isError = false) {
@@ -325,17 +326,32 @@ function showTimings(t) {
 
 // ---------- generation ----------
 
-/** Command. Draws one generation event: the overall bar, one segment per sampler step, and the progress line. */
+/**
+ * Command. Takes one progress event (util.js progressCounter) and returns at once: it only stores the event and asks
+ * for one animation frame, where drawProgress paints the newest event (m00754: the UI must not slow generation down;
+ * events between two frames are dropped, not queued).
+ */
 function showProgress(p) {
-  const steps = $('gen-steps');
+  state.progress = p;
+  state.progressFrame ||= requestAnimationFrame(drawProgress);
+}
+
+/**
+ * Command. Paints the newest progress event: the Steps bar (one segment per sampler step, filled by its transformer
+ * parts), the Model bar (one segment per part of every graph: done, running, to do) and the status line.
+ */
+function drawProgress() {
+  state.progressFrame = 0;
+  const p = state.progress, steps = $('gen-steps'), model = $('gen-model');
   if (steps.children.length !== p.steps) steps.innerHTML = '<div><div></div></div>'.repeat(p.steps);
+  if (model.children.length !== p.model.length) model.innerHTML = '<div></div>'.repeat(p.model.length);
   $('gen-progress').hidden = false;
-  $('gen-progress').querySelector('.bar > div').style.width = `${(100 * p.done) / p.total}%`;
-  [...steps.children].forEach((seg, i) => {
-    const fill = i + 1 < p.step || (!p.step && p.done === p.total) ? 1 : i + 1 === p.step ? p.stepDone / p.perStep : 0;
-    seg.firstElementChild.style.width = `${100 * fill}%`;
+  p.stepFill.forEach((f, i) => { steps.children[i].firstElementChild.style.width = `${100 * f}%`; });
+  p.model.forEach((m, i) => {
+    Object.assign(model.children[i], { className: m.state, title: m.where ? `${m.label} · ${m.where}` : m.label });
+    model.children[i].style.flexGrow = m.weight;
   });
-  $('gen-label').textContent = progressLine(p, state.pipeline.passUnits());
+  $('gen-label').textContent = progressLine(p);
 }
 
 /** Command. Runs one generation from the current editor state; queues one more if busy. */
@@ -343,16 +359,13 @@ async function generate() {
   if (!state.pipeline) return;
   if (state.busy) { state.pending = true; return; }
   state.busy = true;
-  status('Generating…');
   const sampler = samplerSettings(), seed = Number($('seed').value), { width, height } = sampler;
+  status(`Generating ${width} × ${height}, ${sampler.steps} step${sampler.steps === 1 ? '' : 's'}: progress below.`);
   const matte = matteAtSize(width, height);
-  $('gen-steps').innerHTML = '';
+  $('gen-steps').innerHTML = $('gen-model').innerHTML = '';
   const { image, images, timings } = await state.pipeline.generate({
     prompt: $('prompt').value, matte: mattePixelsToTensor(matte, width * height), matteRev: editor.rev, seed, ...sampler,
   }, showProgress).catch(fail).finally(() => { state.busy = false; });
-  const steps = $('gen-steps').children.length;
-  $('gen-label').textContent = `Took ${steps} step${steps === 1 ? '' : 's'} in ${(timings.total / 1000).toFixed(1)} s`
-    + (state.pipeline.passUnits() > 1 ? ` · ${state.pipeline.passUnits()} block groups per transformer pass` : '');
   $('equation').textContent = equationText(state.pipeline.version.manifest, sampler, seed);
   const { onGray, cutout } = decodeToPixels(image, matte, width * height);
   const split = images && splitterPixels(images, rgbaFromComposites(images, state.pipeline.splitter.backgrounds, width * height), width, height);
