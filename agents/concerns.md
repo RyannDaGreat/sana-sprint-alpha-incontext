@@ -446,3 +446,10 @@
 - Root cause: the sub-agents picked a smaller test size for speed and nobody checked it against the full-resolution rule; my own view.html copied their 512² PNGs.
 - Fix: evaluation and every visualization at 1024² originals, 1:1 lossless PNG; headers say exactly what is shown. My 512² view.html server (port 47781) is stopped.
 - Lesson: before showing any image page, check the native size of the source data and that the page shows it 1:1.
+
+## 2026-11-20 — UI polish and the "slop" blind test (m00747, m00748, m00768)
+- Two passes of icon buttons, glyph grids, font picker, cache dots; then a full restyle as an editor (workbench layout, Inter, blue accent). Behavior checks (brush, eraser, undo, redo, dilate, erode, font pick, cache dots) pass after every step.
+- Blind test: Haiku sees ours beside a public editor UI and names the amateur one. Rounds 1 to 4 (30 trials each): ours named in 77, 77, 73, 87 %. Round 1 labels covered the top-left corner of a screenshot (clipped title); fixed from round 2 on with a header strip.
+- Lesson: the test is confounded. Haiku names the reference by its logo or product name and ours by its "Matte → Image" title ("matches this project's own app"). On phone trials the answer was "A" in 9 of 10 trials in round 4 whichever side was ours (position bias). Desktop was 20 of 20 in every round. Real fixes that Haiku's reasons pointed to: clipped select text and clipped "Background" swatch (fixed), dense microcopy (folded into notes), uniform outlined tiles (flat tiles), plain empty output panel (glyph).
+- Not done: Haiku also cites the generic rounded-card plus blue-accent look; changing that is a design decision, not a bug.
+- Mistake of mine: `pkill -f <pattern>` matched my own shell command line and killed the shell (exit 144) three times. Use `kill $(pgrep -f "[p]attern")`.
