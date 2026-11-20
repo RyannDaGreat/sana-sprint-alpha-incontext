@@ -5,7 +5,7 @@
 
 import * as ort from 'onnxruntime-web/webgpu';
 import { Tokenizer } from '@huggingface/tokenizers';
-import { versionFiles, fetchCached } from './models.js';
+import { versionFiles, downloadToCache, readCached } from './models.js';
 import { gemmaInputs, selectIndex, COMPLEX_HUMAN_INSTRUCTION } from './prompt.js';
 import { embeddingKey, getEmbedding, putEmbedding } from './embcache.js';
 import { gaussianNoise, progressCounter, yieldTask } from './util.js';
@@ -15,6 +15,7 @@ import { SneakPeek, tweedieX0, blendX0, poolLatent, highwayWeight, tableAt } fro
 const LATENT_CHANNELS = 32;          // both VAEs: (B, LC, LH, LW); LH = H / 32 (DC-AE, SANA) or H / 8 (FLUX.2, FIBO2)
 const VAE_FACTOR = { sana: 32, fibo2: 8 };
 const GEMMA_PAD_ID = 0;
+const DOWNLOAD_PARALLEL = 6;  // files downloading at once (the old build fetched every file at once; 6 keeps rows readable and the network busy)
 const PREFETCH_PARTS = 4;  // graph parts whose files are read ahead of session creation (bounds the bytes held in JS while loading)
 // FIBO2's sessions need more than wasm32's 4 GB, so they run on the Memory64 build (web/scripts/build_ort_memory64.sh,
 // served from public/ort-memory64/); SANA keeps npm's build. ORT initializes its wasm once per page: one runtime per page.
@@ -268,9 +269,19 @@ export class Pipeline {
     // Files are read just before the session that needs them and dropped after its last session: reading all of a FIBO2
     // version (≈ 15 GB) into JS first, then copying it into ORT, peaked near twice the model in one tab ("Array buffer
     // allocation failed", then NotReadableError and failed WebGPU readbacks on a 36 GB machine, 2026-11-20).
+    // Downloads are separate from reads (m00866): every missing file downloads into OPFS now, DOWNLOAD_PARALLEL at a
+    // time in session order, holding no bytes in JS; reads stay lazy (just before the first session, dropped after the last)
     const entries = versionFiles(version).map((f) => ({ ...f, promise: null }));
-    const get = (e) => (e.promise ??= fetchCached(e, (d, t, c) => onProgress(e, d, t, c))
-      .then((data) => { onProgress(e, e.bytes, e.bytes, null); return data; }));  // null: done, whichever way (no row stays 'waiting')
+    let started = 0, finished = 0;
+    for (const e of entries) {  // e.start() releases e's download; kick() keeps DOWNLOAD_PARALLEL running, in session order
+      const gate = new Promise((r) => { e.start = r; });
+      e.cached = gate.then(() => downloadToCache(e, (d, t, c) => onProgress(e, d, t, c)));
+      e.cached.then(() => {}, () => {}).then(() => { finished += 1; kick(); });  // a failure is reported by the get() that awaits it
+    }
+    const kick = () => { while (started < entries.length && started - finished < DOWNLOAD_PARALLEL) entries[started++].start(); };
+    kick();
+    const get = (e) => (e.promise ??= (e.start(), e.cached).then(() => readCached(e))  // a file needed first jumps the download queue
+      .then((data) => { onProgress(e, e.bytes, e.bytes, null); return data; }));  // null: its bytes are in hand ('loaded')
     const drop = (e) => { e.promise = null; };  // the bytes can be collected; a later get() reads the cache again
     const byRole = {};
     for (const e of entries) (byRole[e.role] ??= []).push(e);

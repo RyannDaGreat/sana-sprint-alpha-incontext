@@ -253,76 +253,102 @@ export function cacheState(flags) {
   return n === flags.length ? 'full' : 'partial';
 }
 
-const keyQueue = new Map(); // cache key → promise of the last fetchCached on it
+const keyQueue = new Map(); // cache key → promise of the last cache operation on it
 
 /**
- * Command. Returns a file's bytes from the OPFS cache, or downloads it (streamed, with progress) while writing it
- * to OPFS. Calls on the same key run one after another (versions share Gemma and DC-AE files: a read must never
- * overlap the write of the same file). Fails loudly if the size differs from the manifest.
+ * Command. Runs `op` alone on a cache key: one after another in this page (versions share Gemma and DC-AE files: a
+ * read must never overlap the write of the same file) and, through a Web Lock, across tabs (an old and a new build
+ * open after the service worker's update both use OPFS: a read of a file another tab rewrote fails with
+ * NotReadableError, m00863). A failed op is reported to its own caller only; the queue goes on.
  *
- * @param {{url: string, key: string, bytes: number, parts?: {url: string, bytes: number}[]}} file - parts: shards to concatenate
- * @param {(done: number, total: number, fromCache: boolean) => void} onProgress
- * @returns {Promise<Uint8Array>}
+ * @param {string} key - cache key
+ * @param {() => Promise<any>} op
+ * @returns {Promise<any>} op's result
  */
-export function fetchCached(file, onProgress) {
-  // the previous call's error is reported to that call's own caller; here it only orders the queue
-  // the Web Lock serializes the same key across tabs too (an old and a new build open after the service worker's
-  // update both read and write OPFS: a read of a file another tab rewrote fails with NotReadableError, m00863)
-  const run = (keyQueue.get(file.key) ?? Promise.resolve()).catch(() => {})
-    .then(() => navigator.locks.request(`opfs:${file.key}`, () => fetchCachedNow(file, onProgress)));
-  keyQueue.set(file.key, run);
+function onKey(key, op) {
+  const run = (keyQueue.get(key) ?? Promise.resolve()).catch(() => {}).then(() => navigator.locks.request(`opfs:${key}`, op));
+  keyQueue.set(key, run);
   return run;
 }
 
 /**
- * Command. fetchCached without the per-key queue. A download is written to `<name>.part` and renamed to `<name>`
- * only when complete, so an interrupted download (closed tab, network error) never looks cached.
+ * Command. Makes sure a file is in the OPFS cache, downloading it if not. The download streams straight into
+ * `<name>.part` (renamed to `<name>` only when complete, so an interrupted download never looks cached) and keeps
+ * none of the bytes in JS: downloading a 15 GB FIBO2 version costs no memory, and the files of a version download in
+ * parallel, independent of when Pipeline.load reads them (2026-11-20: reading each file just before its session
+ * had also made the downloads lazy and one at a time, m00866). Fails loudly if the size differs from the manifest.
+ *
+ * @param {{url: string, key: string, bytes: number, parts?: {url: string, bytes: number}[]}} file - parts: shards to concatenate
+ * @param {(done: number, total: number, fromCache: boolean) => void} onProgress - fromCache true: already cached
+ * @returns {Promise<void>}
  */
-async function fetchCachedNow(file, onProgress) {
-  let hit = await cachedFile(file.key);
-  if (hit && hit.size !== file.bytes) {  // builds before 2026-11-17 left a 0-byte file when a download was interrupted
-    console.warn(`cached ${file.url}: ${hit.size} bytes, manifest says ${file.bytes}; deleting and downloading again`);
-    await (await cacheDir()).removeEntry(await cacheName(file.key));
-    hit = null;
-  }
-  if (hit) {
-    const data = new Uint8Array(file.bytes);
-    const read = async (blob) => {
-      for (let at = 0; at < file.bytes; at += CACHE_READ_CHUNK_BYTES) {  // Chrome throws NotReadableError reading a >2 GB Blob at once
-        data.set(new Uint8Array(await blob.slice(at, at + CACHE_READ_CHUNK_BYTES).arrayBuffer()), at);
-        onProgress(Math.min(at + CACHE_READ_CHUNK_BYTES, file.bytes), file.bytes, true);
+export function downloadToCache(file, onProgress) {
+  return onKey(file.key, async () => {
+    const hit = await cachedFile(file.key);
+    if (hit && hit.size === file.bytes) { onProgress(file.bytes, file.bytes, true); return; }
+    if (hit) {  // builds before 2026-11-17 left a 0-byte file when a download was interrupted
+      console.warn(`cached ${file.url}: ${hit.size} bytes, manifest says ${file.bytes}; deleting and downloading again`);
+      await (await cacheDir()).removeEntry(await cacheName(file.key));
+    }
+    const name = await cacheName(file.key);
+    const handle = await (await cacheDir()).getFileHandle(`${name}${PART_SUFFIX}`, { create: true });
+    const writer = await handle.createWritable();
+    let done = 0;
+    for (const part of file.parts ?? [{ url: file.url }]) {  // shards (≤ 95 MB, GitHub's file limit) are concatenated
+      const res = await fetch(part.url, { cache: 'no-store' });
+      if (!res.ok) { await writer.abort(); throw new Error(`GET ${part.url}: HTTP ${res.status}`); }
+      const reader = res.body.getReader();
+      for (;;) {
+        const { value, done: end } = await reader.read();
+        if (end) break;
+        if (done + value.length > file.bytes) { await writer.abort(); throw new Error(`${file.url}: more than the manifest's ${file.bytes} bytes`); }
+        await writer.write(value);
+        done += value.length;
+        onProgress(done, file.bytes, false);
       }
+    }
+    if (done !== file.bytes) { await writer.abort(); throw new Error(`${file.url}: got ${done} bytes, manifest says ${file.bytes}`); }
+    await writer.close();
+    await handle.move(name);
+  });
+}
+
+/**
+ * Command (takes the key's lock). A cached file's bytes, read in CACHE_READ_CHUNK_BYTES slices (Chrome throws
+ * NotReadableError reading a >2 GB Blob at once). A File snapshot goes stale when the file changes after it was taken
+ * (NotReadableError): the handle is re-acquired and read once more; a second failure surfaces. Fails if not cached.
+ *
+ * @param {{url: string, key: string, bytes: number}} file
+ * @returns {Promise<Uint8Array>}
+ */
+export function readCached(file) {
+  return onKey(file.key, async () => {
+    const read = async () => {
+      const blob = await cachedFile(file.key);
+      if (!blob) throw new Error(`${file.url}: not in the cache (downloadToCache first)`);
+      const data = new Uint8Array(file.bytes);
+      for (let at = 0; at < file.bytes; at += CACHE_READ_CHUNK_BYTES) data.set(new Uint8Array(await blob.slice(at, at + CACHE_READ_CHUNK_BYTES).arrayBuffer()), at);
+      return data;
     };
-    try { await read(hit); } catch (e) {
-      if (e.name !== 'NotReadableError') throw e;  // a File snapshot goes stale when the file changes after it was taken:
+    try { return await read(); } catch (e) {
+      if (e.name !== 'NotReadableError') throw e;
       console.warn(`cached ${file.url}: the cache file changed while reading (${e.message}); reading it again`);
-      await read(await cachedFile(file.key));  // re-acquire once; a second failure surfaces
+      return read();
     }
-    return data;
-  }
-  const name = await cacheName(file.key);
-  const handle = await (await cacheDir()).getFileHandle(`${name}${PART_SUFFIX}`, { create: true });
-  const writer = await handle.createWritable();
-  const data = new Uint8Array(file.bytes);
-  let done = 0;
-  for (const part of file.parts ?? [{ url: file.url }]) {  // shards (≤ 95 MB, GitHub's file limit) are concatenated
-    const res = await fetch(part.url, { cache: 'no-store' });
-    if (!res.ok) throw new Error(`GET ${part.url}: HTTP ${res.status}`);
-    const reader = res.body.getReader();
-    for (;;) {
-      const { value, done: end } = await reader.read();
-      if (end) break;
-      if (done + value.length > file.bytes) throw new Error(`${file.url}: more than the manifest's ${file.bytes} bytes`);
-      data.set(value, done);
-      await writer.write(value);
-      done += value.length;
-      onProgress(done, file.bytes, false);
-    }
-  }
-  if (done !== file.bytes) { await writer.abort(); throw new Error(`${file.url}: got ${done} bytes, manifest says ${file.bytes}`); }
-  await writer.close();
-  await handle.move(name);
-  return data;
+  });
+}
+
+/**
+ * Command. A file's bytes: downloadToCache, then readCached (small files and the segmenter; Pipeline.load uses the
+ * two steps separately so downloads run ahead and in parallel while reads stay lazy).
+ *
+ * @param {{url: string, key: string, bytes: number, parts?: {url: string, bytes: number}[]}} file
+ * @param {(done: number, total: number, fromCache: boolean) => void} onProgress
+ * @returns {Promise<Uint8Array>}
+ */
+export async function fetchCached(file, onProgress) {
+  await downloadToCache(file, onProgress);
+  return readCached(file);
 }
 
 /**
