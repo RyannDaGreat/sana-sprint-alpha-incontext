@@ -238,7 +238,12 @@ export class Pipeline {
    */
   static async load(version, ep, onProgress, onPrepare = () => {}) {
     if (!canLoadHere(version)) throw new Error(`${version.id} needs the ${runtimeOf(version)} runtime; this page started ${runtime}: reload`);
-    if (runtime === null && runtimeOf(version) === 'memory64') ort.env.wasm.wasmPaths = new URL(MEMORY64_PATH, document.baseURI).href;
+    if (runtime === null && runtimeOf(version) === 'memory64') {
+      ort.env.wasm.wasmPaths = new URL(MEMORY64_PATH, document.baseURI).href;
+      // One thread: under the PWA's cross-origin isolation the Memory64 build's threaded wasm stalls session creation
+      // forever (live site, 2026-11-20: frozen at "text encoder · part 1 of 113"; loads in 109 s with one thread)
+      ort.env.wasm.numThreads = 1;
+    }
     runtime = runtimeOf(version);
     const files = versionFiles(version);
     const bytes = await Promise.all(files.map((f) => fetchCached(f, (d, t, c) => onProgress(f, d, t, c))));
