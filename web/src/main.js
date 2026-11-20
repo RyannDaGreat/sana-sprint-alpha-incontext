@@ -747,7 +747,7 @@ function progressRows(files, box = $('files')) {
   for (const f of files) {
     const row = document.createElement('div');
     row.className = 'file';
-    row.innerHTML = '<span class="name"></span><div class="bar"><div></div></div><span class="info meta">waiting</span>';
+    row.innerHTML = '<span class="name"></span><div class="bar"><div></div></div><span class="info meta">queued</span>';
     row.querySelector('.name').textContent = f.name;
     box.append(row);
     const k = rowKey(f);  // two files with the same bytes share a content-addressed URL: never key rows by URL alone (rows stuck at 'waiting')
@@ -756,7 +756,9 @@ function progressRows(files, box = $('files')) {
   return (f, done, total, fromCache) => { for (const r of rows.get(rowKey(f)) ?? []) update(r, done, total, fromCache); };
   function update(r, done, total, fromCache) {
     if (fromCache === null) {  // the file's bytes are in hand (Pipeline.load): a row no progress call reached must not stay 'waiting' (m00861)
-      if (!r.touched) { r.row.querySelector('.bar > div').style.width = '100%'; r.row.querySelector('.info').textContent = `${formatBytes(total)} · loaded`; }
+      r.row.querySelector('.bar > div').style.width = '100%';  // its session can use it: the last state of every row (never a bare 'queued')
+      const info = r.row.querySelector('.info');
+      if (!info.textContent.endsWith(' · loaded')) info.textContent = `${r.touched ? info.textContent : formatBytes(total)} · loaded`;
       return;
     }
     r.touched = true;
@@ -765,7 +767,7 @@ function progressRows(files, box = $('files')) {
     r.drawn = now;
     r.row.querySelector('.bar > div').style.width = `${(100 * done) / total}%`;
     r.row.classList.toggle('cached', fromCache);
-    if (fromCache) { r.row.querySelector('.info').textContent = `${formatBytes(total)} · from cache`; return; }
+    if (fromCache) { r.row.querySelector('.info').textContent = `${formatBytes(total)} · cached`; return; }
     const seconds = (now - t0) / 1000;
     const { mbps, eta } = rate(done, total, seconds);
     r.row.querySelector('.info').textContent = done === total
