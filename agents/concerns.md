@@ -453,3 +453,9 @@
 - Lesson: the test is confounded. Haiku names the reference by its logo or product name and ours by its "Matte → Image" title ("matches this project's own app"). On phone trials the answer was "A" in 9 of 10 trials in round 4 whichever side was ours (position bias). Desktop was 20 of 20 in every round. Real fixes that Haiku's reasons pointed to: clipped select text and clipped "Background" swatch (fixed), dense microcopy (folded into notes), uniform outlined tiles (flat tiles), plain empty output panel (glyph).
 - Not done: Haiku also cites the generic rounded-card plus blue-accent look; changing that is a design decision, not a bug.
 - Mistake of mine: `pkill -f <pattern>` matched my own shell command line and killed the shell (exit 144) three times. Use `kill $(pgrep -f "[p]attern")`.
+
+## 2026-11-20 — fair blind test (coordinator request after m00768)
+- Fair test: both screenshots get the app bar (56 px desktop, 80 px phone) covered by a flat bar of the page's own color, plus hand-placed covers over product names in carbon, photopea_app, pixlr_app, tldraw (`make_trials.py --fair`).
+- Leak found: Haiku agents started with the Agent tool inherit this repo's context and say things like "matches this project's recent web-app commits". Fair test via Agent tool, r4 images: 83 % named ours (30 trials; desktop 19 of 20). The same 30 trials with fresh `claude --model haiku -p` processes started from a neutral directory (`run_blind.py`): 63 % (desktop 12 of 20). Use the neutral-directory runner for any future round.
+- Neutral-directory rounds, 60 trials each (40 desktop, 20 phone, same pairs and sides): r4 UI 48 % (29/60), r5 UI 53 % (32/60). The 5-point difference is inside the noise (standard error about 6.5 points); two 30-trial samples of the same UI gave 63 % and 48 %.
+- r5 fixes: filter tiles four per row with two-line labels, "Select all" instead of a second "Whole matte", grey disabled Generate, no leading dot in the levels line.
