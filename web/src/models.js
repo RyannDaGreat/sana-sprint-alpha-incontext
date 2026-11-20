@@ -21,6 +21,8 @@
 //   "splitter": {heads, backgrounds, gamma, ...} | null (fibo2, manifest §17: the transformer takes gamma (γ) and returns
 //                                                     one velocity per head (1, K, 32, LH, LW); heads name the backgrounds,
 //                                                     backgrounds their values (gray 0.5, white 1, black 0); weights contain "γ")
+//   "matte": {head, mu, source, ...} | null           (fibo2, manifest §21: the transformer also takes mu (μ) and returns one more
+//                                                     velocity, the alpha matte as a gray image, after the splitter heads)
 //   "files": {                                        (paths are relative to the version folder)
 //     "tokenizer": {path, bytes}, "tokenizer_config": {path, bytes},
 //     "text_encoder" | "vae_encoder" | "transformer" | "vae_decoder": {
@@ -127,7 +129,7 @@ export function normalizeManifest(raw) {
     family: raw.family ?? 'sana', sampler: raw.sampler, text_encoder: raw.text_encoder,
     scaling_factor: raw.vae.scaling_factor, timestep: raw.sampler.timestep, guidance: raw.sampler.guidance,
     weights: raw.weights, precision: precisionLabel(raw.quantization, raw.family), adapter: raw.adapter ?? null, cond: raw.cond,
-    splitter: raw.splitter ?? null,
+    splitter: raw.splitter ?? null, matte: raw.matte ?? null,
     highway: raw.highway ?? null,  // sneak peek highway (§18): chunk stream names, c, start, blend and expected-error tables
     trained_sizes: raw.trained_sizes ?? [1024],  // exports before trained_sizes all come from 1024-only runs
     dynamic_size: typeof raw.graphs.transformer.inputs[0][1][2] === 'string',  // [1, 32, "LH", "LW"]: any size

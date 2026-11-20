@@ -68,7 +68,7 @@ function toggleTheme() {
 
 let levelsFrame = 0; // pending readout frame (declared first: the editor's constructor already reports a change)
 // persistence state (manifest §20), declared before the editor for the same reason
-const PERSIST_IDS = ['prompt', 'seed', 'steps', 'guidance', 's-max', 's-mid', 'size', 'lambda', 'gamma', 'lambda-v', 'gamma-v', 'realtime', 'sneak-peek', 'every-layer', 'peek-decoder'];
+const PERSIST_IDS = ['prompt', 'seed', 'steps', 'guidance', 's-max', 's-mid', 'size', 'lambda', 'gamma', 'mu', 'lambda-v', 'gamma-v', 'mu-v', 'realtime', 'sneak-peek', 'every-layer', 'peek-decoder'];
 const SAVE_DEBOUNCE_MS = 400;  // after the last edit
 const persist = { ready: false, timer: 0, warned: false };  // ready: only after the saved state was restored (else the starter disc overwrites it)
 
@@ -546,7 +546,7 @@ function samplerSettings() {
   const sMid = steps === 2 ? Number($('s-mid').value) : null;
   const [width, height] = $('size').value.split('x').map(Number);
   return { steps, guidance: Number($('guidance').value), timesteps: sprintTimesteps(steps, Number($('s-max').value), sMid), width, height,
-    adapterScale: Number($('lambda-v').value), gamma: Number($('gamma-v').value) };  // the typed value (may be outside 0-1, m00893)
+    adapterScale: Number($('lambda-v').value), gamma: Number($('gamma-v').value), mu: Number($('mu-v').value) };  // the typed value (may be outside 0-1, m00893)
 }
 
 /**
@@ -573,9 +573,9 @@ function matteAtSize(width, height) {
  *   {steps: 2, guidance: 4.5, timesteps: [1.5708, 1.3, 0], width: 1024, height: 1024}, 0)
  * // 'W_sprint + (W_control − W_adapter) + gates · control_v2 step 1500 · transformer fp16 · Gemma fp16 · Sprint sampler, 2 steps at s = 1.5708, 1.3 · guidance 4.5 (embedded) · 1024 × 1024 · seed 0'
  */
-function equationText(manifest, { steps, guidance, timesteps, width, height, adapterScale, gamma }, seed) {
+function equationText(manifest, { steps, guidance, timesteps, width, height, adapterScale, gamma, mu }, seed) {
   const weights = manifest.weights ?? 'weight equation missing from manifest.json';
-  const scaled = (manifest.adapter ? weights.replace('λ', adapterScale) : weights).replace('γ', manifest.splitter ? gamma : 'γ');
+  const scaled = (manifest.adapter ? weights.replace('λ', adapterScale) : weights).replace('γ', manifest.splitter ? gamma : 'γ').replace('μ', manifest.matte ? mu : 'μ');
   const head = `${scaled} · ${manifest.precision} · `;
   const tail = `${width} × ${height} · seed ${seed}`;
   if (manifest.family === 'fibo2') {
@@ -619,6 +619,7 @@ function syncSamplerUi() {
   $('lambda').disabled = $('lambda-v').disabled = !state.pipeline?.hasLambda;
   const splitter = state.pipeline?.splitter;  // manifest §17: γ and the Alpha / Uncertainty views
   $('gamma').disabled = $('gamma-v').disabled = !splitter;
+  $('mu').disabled = $('mu-v').disabled = !state.pipeline?.matte;  // manifest §21
   $('tab-alpha').hidden = $('tab-uncertainty').hidden = !splitter;
   $('tab-gray').textContent = splitter ? `RGB (${splitter.heads.join(' · ')})` : 'RGB on gray';
   if (!splitter && ['alpha', 'uncertainty'].includes(document.querySelector('.tab.on')?.dataset.view)) $('tab-gray').click();
@@ -835,16 +836,38 @@ async function generate() {
 
 /**
  * Query (uses the loaded splitter's backgrounds). A finished generation's output views as [canvas id, RGBA bytes, width]:
- * splitter versions: the heads side by side, RGBA, alpha, uncertainty; otherwise RGB on gray and RGBA (alpha from the mask).
+ * splitter versions: the heads side by side, RGBA, alpha (a matte version's matte head, splitFit), uncertainty; otherwise RGB on gray and RGBA (alpha from the mask).
  * Single mode and the four-way pad share it (m00886).
  *
  * @param {{image: object, images?: Float32Array[]}} result
  * @param {Uint8ClampedArray} matte - (height, width, 4) the mask at the output size
  * @returns {[string, Uint8ClampedArray, number][]}
  */
+/**
+ * Pure function. The RGBA fit of a splitter generation: the iterative least-squares fit over the background heads gives
+ * color and α; a matte version (manifest §21) takes α from its matte head instead (the gray image's mean over RGB,
+ * clipped to [0, 1]) and keeps the fit's color and uncertainty.
+ *
+ * @param {Float32Array[]} images - K heads, each (3, H, W) in [0, 1]; the matte head last when pipeline.matte
+ * @param {{splitter: {backgrounds: number[]}, matte: object|null}} pipeline
+ * @param {number} hw - H·W
+ * @returns {{color: Float32Array, alpha: Float32Array, uncertainty: Float32Array}}
+ *
+ * @example splitFit([gray, white, black, Float32Array.of(0.2, 0.2, 0.2)], { splitter: { backgrounds: [0.5, 1, 0] }, matte: {} }, 1).alpha
+ *   // Float32Array [0.2]: from the matte head, not the fit
+ */
+function splitFit(images, pipeline, hw) {
+  const k = pipeline.splitter.backgrounds.length;
+  const fit = rgbaFromComposites(images.slice(0, k), pipeline.splitter.backgrounds, hw);
+  if (!pipeline.matte) return fit;
+  const m = images[k], alpha = new Float32Array(hw);
+  for (let i = 0; i < hw; i++) alpha[i] = Math.min(1, Math.max(0, (m[i] + m[hw + i] + m[2 * hw + i]) / 3));
+  return { ...fit, alpha };
+}
+
 function outputViews({ image, images }, matte, width, height) {
   const { onGray, cutout } = decodeToPixels(image, matte, width * height);
-  const split = images && splitterPixels(images, rgbaFromComposites(images, state.pipeline.splitter.backgrounds, width * height), width, height);
+  const split = images && splitterPixels(images, splitFit(images, state.pipeline, width * height), width, height);
   return split ? [['out-gray', split.strip, images.length * width], ['out-rgba', split.rgba, width], ['out-alpha', split.alpha, width],
                   ['out-uncertainty', split.uncertainty, width]]
     : [['out-gray', onGray, width], ['out-rgba', cutout, width]];  // without a splitter, RGBA takes its alpha from the input mask
@@ -1001,7 +1024,7 @@ function bindGreek(id) {
   slider.addEventListener('input', () => { box.value = slider.value; });
   box.addEventListener('input', () => { slider.value = Math.min(Number(slider.max), Math.max(Number(slider.min), Number(box.value))); scheduleRealtime(); scheduleSave(); });
 }
-['lambda', 'gamma'].forEach(bindGreek);
+['lambda', 'gamma', 'mu'].forEach(bindGreek);
 
 // Generate turns into Cancel while it runs, with Pause / Resume beside it (m00894); Esc cancels. Both act between graph parts.
 $('generate').addEventListener('click', () => (running() ? cancelRun() : generate()));
@@ -1014,7 +1037,7 @@ $('pause').addEventListener('click', () => {
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && running() && $('gal-view').hidden) cancelRun(); });
 $('prompt').addEventListener('input', scheduleRealtime);
 $('seed').addEventListener('input', scheduleRealtime);
-for (const id of ['steps', 'guidance', 's-max', 's-mid', 'size', 'lambda', 'gamma']) $(id).addEventListener('input', () => { syncSamplerUi(); scheduleRealtime(); });
+for (const id of ['steps', 'guidance', 's-max', 's-mid', 'size', 'lambda', 'gamma', 'mu']) $(id).addEventListener('input', () => { syncSamplerUi(); scheduleRealtime(); });
 $('realtime').addEventListener('change', scheduleRealtime);
 $('new-seed').addEventListener('click', () => { $('seed').value = Math.floor(Math.random() * SEED_RANGE); scheduleRealtime(); });
 $('prompt').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) generate(); });
