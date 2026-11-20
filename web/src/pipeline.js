@@ -227,6 +227,24 @@ function inputTypes(session) {
   return Object.fromEntries(session.inputMetadata.map((m) => [m.name, m.type]));
 }
 
+/**
+ * Pure function. For every tensor name that a chain's parts consume, the index of the last part that reads it; the
+ * chain's output is kept (Infinity).
+ *
+ * @param {{inputNames: string[]}[]} chain - sessions in run order
+ * @param {string} output - the chain's output name
+ * @returns {Record<string, number>}
+ *
+ * @example lastUses([{ inputNames: ['x'] }, { inputNames: ['a', 'x'] }, { inputNames: ['b'] }], 'y')
+ * // { x: 1, a: 1, b: 2, y: Infinity }
+ */
+export function lastUses(chain, output) {
+  const last = {};
+  chain.forEach((s, c) => s.inputNames.forEach((n) => { last[n] = c; }));
+  last[output] = Infinity;
+  return last;
+}
+
 export class Pipeline {
   /**
    * Command. Downloads (or reads from cache) every file of a version and creates the ORT sessions.
@@ -240,13 +258,15 @@ export class Pipeline {
     if (!canLoadHere(version)) throw new Error(`${version.id} needs the ${runtimeOf(version)} runtime; this page started ${runtime}: reload`);
     if (runtime === null && runtimeOf(version) === 'memory64') {
       ort.env.wasm.wasmPaths = new URL(MEMORY64_PATH, document.baseURI).href;
-      // One thread: under the PWA's cross-origin isolation the Memory64 build's threaded wasm stalls session creation
-      // forever (live site, 2026-11-20: frozen at "text encoder · part 1 of 113"; loads in 109 s with one thread)
-      ort.env.wasm.numThreads = 1;
+      // wasm EP only: one thread (under the PWA's cross-origin isolation the Memory64 build's threaded wasm stalled session
+      // creation, frozen at "text encoder · part 1 of 113"). Not for WebGPU: FIBO2 on WebGPU worked with the default
+      // threads and failed readbacks ("Failed to wait for the operation") after numThreads = 1 (2026-11-20, m00858-m00860)
+      if (ep === 'wasm') ort.env.wasm.numThreads = 1;
     }
     runtime = runtimeOf(version);
     const files = versionFiles(version);
-    const bytes = await Promise.all(files.map((f) => fetchCached(f, (d, t, c) => onProgress(f, d, t, c))));
+    const bytes = await Promise.all(files.map((f) => fetchCached(f, (d, t, c) => onProgress(f, d, t, c))
+      .then((data) => { onProgress(f, f.bytes, f.bytes, null); return data; })));  // null: done, whichever way (no row stays 'waiting')
     const byRole = {};
     files.forEach((f, i) => ((byRole[f.role] ??= []).push({ ...f, data: bytes[i] })));
     const json = (role) => JSON.parse(new TextDecoder().decode(byRole[role][0].data));
@@ -328,13 +348,24 @@ export class Pipeline {
   }
 
   /**
+   * Command. Releases every ORT session of this pipeline (its weights' GPU and wasm memory). Switching versions without
+   * this kept each loaded FIBO2 (≈ 14 GB) alive: memory piled up until WebGPU readbacks failed (2026-11-20).
+   */
+  async release() {
+    const all = [...Object.values(this.chains).flat(), this.fastDecoder?.session, this.highway?.session].filter(Boolean);
+    for (const s of all) await s.release();
+    this.chains = {};
+    this.broken = 'released';
+  }
+
+  /**
    * Command. Runs graph `role`: its one session, or its parts in order (each reads its inputs from the graph inputs and
-   * earlier parts' outputs; GPU-resident intermediates are released at the end), and records the wall time under
-   * `label`. Progress never makes the computation wait (m00754): under WebGPU, `run` only submits GPU work and returns
-   * long before the GPU finishes, so part c is reported when the GPU has finished the work submitted before it
-   * (`queue.onSubmittedWorkDone`, a promise nobody awaits): the bar follows the GPU, not the submission. Under wasm
-   * the computation blocks the page, so before each part it yields one task (yieldTask, no frame wait) so the page can
-   * paint between parts.
+   * earlier parts' outputs; a GPU-resident output is released right after the last part that reads it, lastUses), and
+   * records the wall time under `label`. Progress never makes the computation wait (m00754): under WebGPU, `run` only
+   * submits GPU work, so part c is reported when the GPU has finished the work submitted before it
+   * (`queue.onSubmittedWorkDone`, a promise nobody awaits). Under wasm the computation blocks the page, so before each
+   * part it yields one task (yieldTask, no frame wait) so the page can paint between parts.
+   * After a failed run (not a cancel) the pipeline is marked broken: ORT's runtime is unusable, later runs fail loudly.
    *
    * @param {string} role
    * @param {Record<string, ort.Tensor>} feeds - the unsplit graph's inputs
@@ -345,27 +376,34 @@ export class Pipeline {
    *   (the sneak peek reads a part's main stream there; it returns at once unless it takes a preview)
    * @param {() => Promise<() => void>} [gate] - awaited before every part (manifest §20): resolves with a release function
    *   once this job may run one part (the four-way pad's turn-taking), or throws an AbortError to cancel the job between parts
+   * @param {() => Promise<void>} [between] - awaited after every part, inside the job's turn (the sneak peek's decoder)
    * @returns {Promise<Record<string, ort.Tensor>>} {output_name: tensor}
    */
-  async run(role, feeds, timings, label, startPart, afterPart, gate) {
-    const t0 = performance.now(), values = { ...feeds }, made = [];
-    const name = this.name(role, 'output');
+  async run(role, feeds, timings, label, startPart, afterPart, gate, between) {
+    if (this.broken) throw new Error(`the model failed earlier (${this.broken}); reload the page`);
+    const t0 = performance.now(), values = { ...feeds }, made = new Map();  // made: name → GPU-resident tensor this run created
+    const chain = this.chains[role], name = this.name(role, 'output'), last = lastUses(chain, name);
+    const free = (c) => {  // a part's GPU outputs are released as soon as no later part reads them (not at the chain's end:
+      for (const [k, t] of made) if ((last[k] ?? -1) <= c) { t.dispose(); made.delete(k); }  // ~46 kept streams overflowed GPU memory)
+    };
     try {
-      for (const [c, s] of this.chains[role].entries()) {
+      for (const [c, s] of chain.entries()) {
         const release = gate ? await gate() : null;
         try {
           if (this.gpu) this.gpu.queue.onSubmittedWorkDone().then(() => startPart(c));
           else { startPart(c); await yieldTask(); }
           const out = await s.run(Object.fromEntries(s.inputNames.map((n) => [n, values[n]])));
-          for (const [k, tensor] of Object.entries(out)) { values[k] = tensor; made.push(tensor); }
+          for (const [k, tensor] of Object.entries(out)) { values[k] = tensor; if (tensor.location === 'gpu-buffer') made.set(k, tensor); }
           if (afterPart) await afterPart(c, values);
+          free(c);
+          if (between) await between();  // this job's sneak peek decodes here, inside its turn: never concurrently with a part
         } finally { release?.(); }
       }
     } catch (e) {  // a cancelled (or failed) job frees every GPU buffer it made, the output too, then rethrows
-      for (const t of made) if (t.location === 'gpu-buffer') t.dispose();
+      for (const t of made.values()) t.dispose();
+      if (e.name !== 'AbortError') this.broken = e.message.slice(0, 160);  // ORT's runtime is unusable after a failed run
       throw e;
     }
-    for (const t of made) if (t !== values[name] && t.location === 'gpu-buffer') t.dispose();
     timings[label] = performance.now() - t0;
     return { [name]: values[name] };
   }
@@ -441,6 +479,7 @@ export class Pipeline {
     let x = gaussianNoise(dims.reduce((a, b) => a * b), seed), heads = null;
     const fd = this.fastDecoder, hw = this.highway, peek = fd && onPreview && new SneakPeek(fd.session,
       (z, d) => ({ [fd.names.latent]: new ort.Tensor('float32', z, d) }), fd.names.image, onPreview);
+    const between = peek ? () => peek.drain() : undefined;  // previews decode between this job's parts (one ORT run at a time)
     const timeline = peek ? { steps, blocks: hw?.blocks ?? 0, points: [], weights: hw?.weights ?? null } : null;  // the accordion's plot data
     let prevX0 = null, lastExpected = Infinity;  // the previous step's full-model x̂0; the expected error of the last shown preview
     const blockOfPart = hw ? Object.fromEntries(Object.entries(hw.stream).map(([name, b]) => [this.partProducing(name), [b, name]])) : {};
@@ -469,7 +508,7 @@ export class Pipeline {
     for (let k = 0; k < steps; k++) {
       const pass = async (e, label, j) => asFloat32((await this.run('transformer', {
         ...fixed, [n('latents')]: t('latents', x, dims), [n('sigma')]: t('sigma', [sigmas[k]], [1]), [n('prompt_embeds')]: e,
-      }, timings, label, (c) => progress.start(progress.passPart(k + 1, j, c)), hw && peek && j === 1 ? blockPeek(k) : undefined, gate))[n('output')]);
+      }, timings, label, (c) => progress.start(progress.passPart(k + 1, j, c)), hw && peek && j === 1 ? blockPeek(k) : undefined, gate, between))[n('output')]);
       let v = await pass(promptT, `transformer ${k + 1}`, 1);
       if (nullT) {
         const vNull = await pass(nullT, `transformer ${k + 1} (null)`, 2);
@@ -487,7 +526,7 @@ export class Pipeline {
     }
     const nLat = this.name('vae_decoder', 'latent');
     const decode = async (z, label, j) => asFloat32((await this.run('vae_decoder', { [nLat]: makeTensor(this.types.vae_decoder[nLat], z, dims) },
-      timings, label, (c) => progress.start(progress.afterPart(j, c)), undefined, gate))[this.name('vae_decoder', 'output')]);
+      timings, label, (c) => progress.start(progress.afterPart(j, c)), undefined, gate, between))[this.name('vae_decoder', 'output')]);
     const images = [];
     for (const [j, z] of (heads ?? [x]).entries()) images.push(await decode(z, heads ? `vae_decoder ${this.splitter.heads[j]}` : 'vae_decoder', j));
     progress.finish();

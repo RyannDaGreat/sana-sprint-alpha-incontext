@@ -132,8 +132,9 @@ export class SneakPeek {
   stats() { return { shown: this.shown, dropped: this.dropped, spentMs: this.spentMs, fraction: this.spentMs / (performance.now() - this.t0) }; }
 
   /**
-   * Command. Queues x̂0 for a preview and returns at once (never awaited by the compute loop). A queued estimate that
-   * has not started yet is replaced: only the newest one is decoded.
+   * Command. Queues x̂0 for a preview and returns at once. A queued estimate that has not been decoded yet is replaced:
+   * only the newest one is decoded. Decoding happens in drain(), which the pipeline awaits between graph parts: one ORT
+   * runtime must never run two sessions at once (the asyncify build; concurrent runs broke WebGPU readbacks, 2026-11-20).
    *
    * @param {Float32Array} x0 - (1, 32, LH, LW) normalized latents
    * @param {number[]} dims - [1, 32, LH, LW]
@@ -145,11 +146,10 @@ export class SneakPeek {
     if (!this.enabled || (!always && performance.now() < this.nextAt)) return false;  // the step's own estimate (always) skips the duty wait
     if (this.pending) this.dropped++;
     this.pending = { x0, dims, label };
-    if (!this.busy) this.drain().catch((e) => { this.busy = false; console.error('sneak peek: fast decoder failed', e); throw e; });
     return true;
   }
 
-  /** Command. Decodes queued estimates one at a time until the queue is empty. */
+  /** Command. Decodes the queued estimate, if any (awaited by the pipeline between graph parts and before returning). */
   async drain() {
     this.busy = true;
     while (this.pending) {
