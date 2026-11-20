@@ -415,7 +415,7 @@ def train(mode, run, adapter=None, control=None, rank=64, batch_size=2, max_step
             tap.capturing = False  # the backward recomputes checkpointed blocks: keep only this forward's outputs
         loss.backward()
         if highway is not None:  # after the model's backward: its gradients are already final
-            highway_rel = sneak_peek.highway_backward(highway, tap)
+            highway_rel = sneak_peek.highway_backward(highway, tap, sigmas)  # σ²-weighted: the preview's x̂0 error (m00813)
             sneak_peek.all_reduce_grads(highway, world)
             highway_opt.step()
             highway_opt.zero_grad(set_to_none=True)

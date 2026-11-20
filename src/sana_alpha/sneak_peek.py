@@ -36,11 +36,17 @@ class SneakPeekHighway(torch.nn.Module):
     loads into it unchanged). p_{k−1} enters detached: every block trains on its own, like the plain heads.
     """
 
-    def __init__(self, transformer, residual=False):
-        """Command (allocates the heads on the final linear's device)."""
+    def __init__(self, transformer, residual=False, time_film=True, xt_skip=True):
+        """
+        Command (allocates the heads on the final linear's device). time_film (m00813): each head also gets a per-block
+        scale and shift of its output from the timestep conditioning c (the final layer's adaLN input), zero-initialized,
+        so a fresh head is still the final linear; c already scales the head's input through the frozen final norm.
+        xt_skip (m00815: the goal is the Tweedie estimate, and x_t is free to read): each head also adds a zero-initialized
+        Linear(128, 128) of the input latent x_t's own tokens (2×2-patchified), so x̂0 = x_t − σ·v̂ can lean on x_t directly.
+        """
         super().__init__()
         base = final_linear(transformer)
-        self.residual = residual
+        self.residual, self.time_film, self.xt_skip = residual, time_film, xt_skip
         self.heads = torch.nn.ModuleList(torch.nn.Linear(base.in_features, base.out_features, device=base.weight.device,
                                                          dtype=torch.float32) for _ in transformer.layers)
         with torch.no_grad():
@@ -48,6 +54,17 @@ class SneakPeekHighway(torch.nn.Module):
                 h.weight.copy_(base.weight.float())
                 h.bias.copy_(base.bias.float())
         self.final = [transformer.final_layer]
+        if xt_skip:
+            self.skip = torch.nn.ModuleList(torch.nn.Linear(base.out_features, base.out_features, device=base.weight.device) for _ in transformer.layers)
+            with torch.no_grad():
+                for f in self.skip:
+                    f.weight.zero_(); f.bias.zero_()
+        if time_film:
+            c_dim = transformer.final_layer.adaLN_modulation[1].in_features
+            self.film = torch.nn.ModuleList(torch.nn.Linear(c_dim, 2 * base.out_features, device=base.weight.device) for _ in transformer.layers)
+            with torch.no_grad():
+                for f in self.film:
+                    f.weight.zero_(); f.bias.zero_()
         if residual:
             o, dev = base.out_features, base.weight.device
             self.mix = torch.nn.ModuleList(torch.nn.Linear(o, o, bias=False, device=dev) for _ in transformer.layers)
@@ -72,12 +89,18 @@ class SneakPeekHighway(torch.nn.Module):
         with torch.no_grad():
             return (f.norm_final(tokens) * (1.0 + f.adaLN_modulation(c)).unsqueeze(1)).float()
 
-    def predict(self, block, tokens, c, prev=None):
+    def predict(self, block, tokens, c, prev=None, xt_tokens=None):
         """
         Near-pure function (builds an autograd graph into block `block`'s parameters only). (B, N, dim) -> (B, N, 128)
         float32 velocity tokens. prev: the previous block's peek (B, N, 128), residual highways only (None at block 0).
+        xt_tokens: (B, N, 128) the input latent's tokens (HighwayTap.xt_tokens), xt_skip highways only.
         """
         p = self.heads[block](self.modulated(tokens, c))
+        if self.xt_skip:
+            p = p + self.skip[block](xt_tokens.float())
+        if self.time_film:
+            scale, shift = self.film[block](c.float()).unsqueeze(1).chunk(2, dim=-1)
+            p = p * (1.0 + scale) + shift
         if self.residual and prev is not None:
             prev = prev.detach()
             p = p + self.mix[block](prev) + self.mlp[block](torch.cat([prev, p], -1))
@@ -93,10 +116,16 @@ class HighwayTap:
     """
 
     def __init__(self, transformer):
-        self.capturing, self.blocks, self.final_in, self.c, self.final_out = False, {}, None, None, None
-        self.handles = [layer.register_forward_hook(self._block_hook(i)) for i, layer in enumerate(transformer.layers)]
+        self.capturing, self.blocks, self.final_in, self.c, self.final_out, self.xt_tokens = False, {}, None, None, None, None
+        self.handles = [transformer.register_forward_pre_hook(self._model_pre, with_kwargs=True)]
+        self.handles += [layer.register_forward_hook(self._block_hook(i)) for i, layer in enumerate(transformer.layers)]
         self.handles.append(transformer.final_layer.register_forward_pre_hook(self._final_pre, with_kwargs=True))
         self.handles.append(transformer.final_layer.register_forward_hook(self._final_post))
+
+    def _model_pre(self, module, args, kwargs):
+        if self.capturing:  # x_t (B, 32, LH, LW) -> tokens (B, N, 128) in the order the final layer outputs them
+            x = kwargs["hidden_states"].detach()
+            self.xt_tokens = fibo2.patchify(x).flatten(2).transpose(1, 2)
 
     def _block_hook(self, i):
         def hook(module, args, output):
@@ -129,23 +158,30 @@ class HighwayTap:
 
     def clear(self):
         """Command. Drops the captured tensors."""
-        self.blocks, self.final_in, self.c, self.final_out = {}, None, None, None
+        self.blocks, self.final_in, self.c, self.final_out, self.xt_tokens = {}, None, None, None, None
 
 
-def highway_backward(highway, tap):
+def highway_backward(highway, tap, sigma=None):
     """
-    Command (accumulates .grad of the highway heads). The MSE of every head against the final layer's output, one
-    block at a time so only one head's graph is alive.
+    Command (accumulates .grad of the highway heads). Every head against the final layer's output, one block at a time so
+    only one head's graph is alive. With sigma (m00813) the loss is the preview's own error: the shown preview is the
+    Tweedie estimate x̂0 = x_t − σ·v̂, so its error is σ·(v̂ − v), and each sample is weighted by σ² (normalized by the
+    batch's mean σ², which keeps the scale of the plain loss).
+
+    Args:
+        sigma (torch.Tensor | None): (B,) the noise level of each sample in the batch
 
     Returns:
-        list[float]: per block, the error relative to the target's power, mean((pred − target)²) / mean(target²)
+        list[float]: per block, the (σ²-weighted) error relative to the target's (σ²-weighted) power
     """
     target = tap.final_out.float()
-    power = (target ** 2).mean()
+    w = torch.ones(target.shape[0], device=target.device) if sigma is None else sigma.float().to(target.device) ** 2
+    w = (w / w.mean()).view(-1, 1, 1)
+    power = (w * target ** 2).mean()
     losses, prev = [], None
     for i in range(len(highway.heads)):
-        pred = highway.predict(i, tap.image_tokens(i), tap.c, prev)
-        loss = ((pred - target) ** 2).mean()
+        pred = highway.predict(i, tap.image_tokens(i), tap.c, prev, tap.xt_tokens)
+        loss = (w * (pred - target) ** 2).mean()
         loss.backward()
         losses.append(loss.detach() / power)
         prev = pred.detach()
@@ -179,8 +215,8 @@ def load_highway(highway, folder):
     saved = load_file(path)
     missing, unexpected = highway.load_state_dict(saved, strict=False)
     assert not unexpected, f"{path}: unexpected highway keys {unexpected[:4]}"
-    assert all(k.startswith(("mix.", "mlp.")) for k in missing), f"{path}: missing highway keys {missing[:4]}"
-    return True  # a plain checkpoint in a residual highway: the residual parts stay zero, so it predicts as the plain one
+    assert all(k.startswith(("mix.", "mlp.", "film.", "skip.")) for k in missing), f"{path}: missing highway keys {missing[:4]}"
+    return True  # an older checkpoint without the residual, FiLM or x_t-skip parts: they stay zero, so it predicts as saved
 
 
 def tweedie_x0(xt, velocity, sigma):
