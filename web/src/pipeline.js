@@ -261,6 +261,7 @@ export class Pipeline {
         const onGpu = chunked && ep === 'webgpu' && i < graphs.length - 1;  // intermediate float tensors stay on the GPU
         const own = chunked ? external.filter((e) => g.external.includes(e.name)) : external;  // a part reads only its weight files
         onPrepare(made, nGraphs, role);
+        await new Promise((r) => setTimeout(r, 0));  // one task per part so the status can paint (session creation blocks the page; ≈ 0.5 s over 113 parts vs ≈ 30 s of creation)
         sessions.push(await ort.InferenceSession.create(g.data, {
           executionProviders: [ep],
           externalData: own.map((e) => ({ path: e.name, data: e.data })),
