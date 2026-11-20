@@ -205,9 +205,24 @@ async function cacheName(key) {
  * @returns {Promise<File|null>}
  */
 async function cachedFile(key) {
+  const handle = await cachedHandle(key);
+  return handle && handle.getFile();
+}
+
+/**
+ * Query. The cache's file handle for `key`, or null when it is not cached: one direct lookup (listing the whole cache
+ * directory per file made the version cards and loads quadratic in the number of cached files, m00851).
+ *
+ * @returns {Promise<FileSystemFileHandle|null>}
+ */
+async function cachedHandle(key) {
   const name = await cacheName(key);
-  for await (const entry of (await cacheDir()).values()) if (entry.name === name) return entry.getFile();
-  return null;
+  try {
+    return await (await cacheDir()).getFileHandle(name);
+  } catch (e) {
+    if (e.name === 'NotFoundError') return null; // not cached: the expected miss
+    throw e;
+  }
 }
 
 /**
@@ -217,7 +232,7 @@ async function cachedFile(key) {
  * @returns {Promise<boolean[]>}
  */
 export async function cachedFlags(files) {
-  return Promise.all(files.map(async (f) => (await cachedFile(f.key)) !== null));
+  return Promise.all(files.map(async (f) => (await cachedHandle(f.key)) !== null));
 }
 
 /**

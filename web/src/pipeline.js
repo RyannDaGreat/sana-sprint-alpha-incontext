@@ -235,7 +235,7 @@ export class Pipeline {
    * @param {(file: object, done: number, total: number, fromCache: boolean) => void} onProgress
    * @returns {Promise<Pipeline>}
    */
-  static async load(version, ep, onProgress) {
+  static async load(version, ep, onProgress, onPrepare = () => {}) {
     if (!canLoadHere(version)) throw new Error(`${version.id} needs the ${runtimeOf(version)} runtime; this page started ${runtime}: reload`);
     if (runtime === null && runtimeOf(version) === 'memory64') ort.env.wasm.wasmPaths = new URL(MEMORY64_PATH, document.baseURI).href;
     runtime = runtimeOf(version);
@@ -250,6 +250,9 @@ export class Pipeline {
     p.tokenizer = new Tokenizer(json('tokenizer'), json('tokenizer_config'));
     p.types = {};
     p.chains = {};  // role → its sessions in run order: one, or the parts of a split graph (web_chunks.split)
+    const graphsOf = (role) => byRole[`${role}_chunks`] ?? [byRole[role][0]];
+    const nGraphs = Object.keys(DEFAULT_NAMES).reduce((n, role) => n + graphsOf(role).length, 0);
+    let made = 0;  // session creation after the downloads is its own phase (~90-115 per-part sessions): reported, m00852
     for (const role of Object.keys(DEFAULT_NAMES)) {
       const chunked = byRole[`${role}_chunks`];
       const [graphs, external] = chunked ? [chunked, byRole[role] ?? []] : [[byRole[role][0]], byRole[role].slice(1)];
@@ -257,11 +260,13 @@ export class Pipeline {
       for (const [i, g] of graphs.entries()) {
         const onGpu = chunked && ep === 'webgpu' && i < graphs.length - 1;  // intermediate float tensors stay on the GPU
         const own = chunked ? external.filter((e) => g.external.includes(e.name)) : external;  // a part reads only its weight files
+        onPrepare(made, nGraphs, role);
         sessions.push(await ort.InferenceSession.create(g.data, {
           executionProviders: [ep],
           externalData: own.map((e) => ({ path: e.name, data: e.data })),
           ...(onGpu ? { preferredOutputLocation: Object.fromEntries(g.gpu_outputs.map((n) => [n, 'gpu-buffer'])) } : {}),
         }));
+        made += 1;
       }
       p.chains[role] = sessions;
       p.types[role] = Object.assign({}, ...sessions.map(inputTypes));

@@ -454,10 +454,10 @@ async function refreshCacheInfo() {
 /** Command. Renders the version cards with their cached status. */
 async function renderVersions() {
   const box = $('versions');
-  box.innerHTML = '';
-  for (const v of state.versions) {
+  const allFlags = await Promise.all(state.versions.map((v) => cachedFlags(versionFiles(v)))); // all at once, then one DOM swap (m00851)
+  const cards = state.versions.map((v, i) => {
     const files = versionFiles(v);
-    const flags = await cachedFlags(files);
+    const flags = allFlags[i];
     const total = files.reduce((a, f) => a + f.bytes, 0);
     const nCached = flags.filter(Boolean).length;
     const card = document.createElement('div');
@@ -478,8 +478,9 @@ async function renderVersions() {
     btn.disabled = state.pipeline?.version === v || v.manifest.missing.length > 0;
     if (v.manifest.missing.length) btn.textContent = `Not ready: no ${v.manifest.missing.join(', ')}`;
     btn.addEventListener('click', () => loadVersion(v).catch(fail));
-    box.append(card);
-  }
+    return card;
+  });
+  box.replaceChildren(...cards);
 }
 
 /** Command. Creates one progress row per file in `box` and returns its updater. */
@@ -528,7 +529,8 @@ async function loadVersion(v) {
   $('ep').textContent = label;
   status(`Loading ${v.id}…`);
   const t0 = performance.now();
-  state.pipeline = await Pipeline.load(v, ep, progressRows(versionFiles(v)));
+  const prepare = (k, n, role) => status(`Preparing ${v.id}: ${role.replace('_', ' ')} · part ${k + 1} of ${n} (${((performance.now() - t0) / 1000).toFixed(0)} s)`);
+  state.pipeline = await Pipeline.load(v, ep, progressRows(versionFiles(v)), prepare);
   const url = new URL(location.href);
   url.searchParams.set('version', v.id);
   history.replaceState(null, '', url);
