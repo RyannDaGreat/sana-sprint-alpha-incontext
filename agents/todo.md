@@ -77,3 +77,11 @@
 
 ## 134 — Real-time mode with cancel/restart (m00848)
 - While drawing, a running generation is cancelled partway and restarted with the new condition at once (sneak peek makes partial results useful).
+
+## m00900 / m00902 — layout, top tabs, gallery freeze, model card Loading, 5 px panes (fork Layout)
+- [x] Gallery freeze: not reproduced headless (no WebGPU here; 20 stored generations open in 3–8 ms, with and without a model load); every swallowed error made loud, IndexedDB `blocked` now rejects, main-thread blocks > 200 ms logged
+- [x] Top tabs Editor | Gallery | Models; Four-way pad is a switch in the output header
+- [x] Output above the trimask (resizable split); prompt and settings at full height on the right
+- [x] Model card says Loading… with the live status line at once
+- [x] Every pane ≥ 5 px (m00902)
+- [ ] User: try Gallery on the live site; if it freezes again, the console now says where
