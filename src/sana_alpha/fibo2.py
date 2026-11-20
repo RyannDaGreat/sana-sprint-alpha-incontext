@@ -329,6 +329,118 @@ def set_context_tokens(transformer, cond):
         transformer.context_gate_state["context_tokens"] = 0 if cond is None else cond.shape[2] * cond.shape[3] // 4
 
 
+SPLIT_BACKGROUNDS = {"gray": 0.5, "white": 1.0, "black": 0.0}  # splitter heads in output order (§17), the background each target is composited on (split_alpha.composite_on_gray's gray_level); head 0 is the model's original output
+SPLITTER_HEAD_FILE = "splitter_head.safetensors"  # In a splitter step folder: SplitterHead.delta (weight, bias), float32
+
+
+class SplitterHead(torch.nn.Module):
+    """
+    FIBO2's final linear (dim -> 128 = 2·2 patch × 32 latent channels) made K heads for the splitter (§17), one per
+    SPLIT_BACKGROUNDS: head k's weights are W_base + γ·Δ_k, Δ zero-initialized, so every head starts as the base layer
+    (the user's "triplicate it": rows 128–383 begin as copies of 0–127) and γ = 0 is the original model.
+    forward returns head 0, the shape the transformer's own unpatchify expects, and keeps every head's output in
+    self.last (B, N, K·128) for split_velocities.
+    """
+
+    def __init__(self, base, heads=len(SPLIT_BACKGROUNDS)):
+        """Command (keeps base frozen, adds the trainable float32 delta Linear(dim, K·128), zeros)."""
+        super().__init__()
+        self.base, self.heads, self.gamma, self.last = base.requires_grad_(False), heads, 1.0, None
+        self.delta = torch.nn.Linear(base.in_features, heads * base.out_features, device=base.weight.device, dtype=torch.float32)
+        torch.nn.init.zeros_(self.delta.weight)
+        torch.nn.init.zeros_(self.delta.bias)
+
+    def forward(self, x):
+        """Command (sets self.last). (B, N, dim) -> head 0 (B, N, 128); self.last = all heads (B, N, K·128)."""
+        import einx
+        import torch.nn.functional as F
+
+        base = self.base(x)
+        delta = F.linear(x, self.delta.weight.to(x.dtype), self.delta.bias.to(x.dtype))
+        self.last = einx.add("B N C, B N (K C) -> B N (K C)", base, self.gamma * delta, K=self.heads)
+        return self.last[..., :base.shape[-1]]
+
+
+def attach_splitter(transformer):
+    """
+    Command (replaces transformer.final_layer.linear with a SplitterHead around it). Returns the SplitterHead.
+    """
+    head = transformer.final_layer.linear = SplitterHead(transformer.final_layer.linear)
+    return head
+
+
+def splitter_of(transformer):
+    """Query. The transformer's SplitterHead, or None for a model without the splitter."""
+    head = transformer.final_layer.linear
+    return head if isinstance(head, SplitterHead) else None
+
+
+def split_velocities(head, height, width):
+    """
+    Pure function (of head.last, the last forward's output). Every head's velocity, unpatchified exactly as FIBO2's
+    forward unpatchifies its output (token (h, w) row-major, features (C, ph, pw)).
+
+    Args:
+        head (SplitterHead): after a transformer forward
+        height, width (int): LH, LW of the latents
+
+    Returns:
+        torch.Tensor: (B, K, 32, LH, LW), head order SPLIT_BACKGROUNDS
+
+    Examples:
+        >>> head = SplitterHead(torch.nn.Linear(4, 8))  # 8 = 2·2 patch × 2 channels, K = 3
+        >>> _ = head(torch.randn(1, 6, 4))  # 6 tokens = a (4, 6) latent
+        >>> split_velocities(head, 4, 6).shape
+        torch.Size([1, 3, 2, 4, 6])
+        >>> v = split_velocities(head, 4, 6); bool((v[:, 0] == v[:, 2]).all())  # Δ = 0: the heads are copies
+        True
+    """
+    import einx
+
+    return einx.rearrange("B (H W) (K C PH PW) -> B K C (H PH) (W PW)", head.last, H=height // 2, K=head.heads, PH=2, PW=2)
+
+
+def rgba_from_composites(composites, backgrounds):
+    """
+    Pure function. RGBA from one image composited on K known solid backgrounds (§17): C_k = α·F + (1 − α)·b_k, least
+    squares per pixel over the K backgrounds × 3 channels for α (shared) and α·F (per channel). The residual is the
+    uncertainty: 0 when the K images agree with one RGBA.
+
+        1 − α = Σ_k,c (C_kc − mean_k C_c)·(b_k − b̄) / (3·Σ_k (b_k − b̄)²),   α·F_c = mean_k C_kc − (1 − α)·b̄
+
+    α is clipped to [0, 1] before α·F is computed; F = α·F / α (0 where α = 0), clipped to [0, 1].
+
+    Args:
+        composites (np.ndarray): (K, H, W, 3) float RGB in [0, 1], e.g. the splitter's decoded heads
+        backgrounds (Sequence[float]): (K,) each composite's background value, e.g. SPLIT_BACKGROUNDS.values()
+
+    Returns:
+        tuple: rgba (H, W, 4) float32 straight (not premultiplied) alpha, uncertainty (H, W) float32 RMS residual
+
+    Examples:
+        >>> F, a = np.array([[[0.2, 0.6, 1.0], [0.9, 0.1, 0.4]]]), np.array([[1.0, 0.25]])  # (1, 2, 3), (1, 2)
+        >>> b = list(SPLIT_BACKGROUNDS.values())
+        >>> C = np.stack([a[..., None] * F + (1 - a[..., None]) * k for k in b])
+        >>> rgba, err = rgba_from_composites(C, b)
+        >>> np.round(rgba.astype(float), 6).tolist(), float(err.max()) < 1e-6
+        ([[[0.2, 0.6, 1.0, 1.0], [0.9, 0.1, 0.4, 0.25]]], True)
+        >>> C[0, 0, 0] += 0.3  # the gray image disagrees at one pixel: its uncertainty rises
+        >>> np.round(rgba_from_composites(C, b)[1].astype(float), 3).tolist()
+        [[0.141, 0.0]]
+    """
+    import einx
+
+    c, b = np.asarray(composites, dtype=np.float64), np.asarray(list(backgrounds), dtype=np.float64)
+    c_mean, b_dev = c.mean(0), b - b.mean()
+    beta = einx.multiply("K H W C, K -> K H W C", c - c_mean, b_dev).sum((0, 3)) / (3 * (b_dev ** 2).sum())
+    alpha = np.clip(1 - beta, 0, 1)
+    premul = c_mean - einx.multiply("H W, -> H W 1", 1 - alpha, b.mean())
+    fit = premul + einx.multiply("H W, K -> K H W 1", 1 - alpha, b)
+    uncertainty = np.sqrt(((c - fit) ** 2).mean(axis=(0, 3)))
+    color = np.clip(np.divide(premul, alpha[..., None], out=np.zeros_like(premul), where=alpha[..., None] > 0), 0, 1)
+    return np.concatenate([color, alpha[..., None]], -1).astype(np.float32), uncertainty.astype(np.float32)
+
+
 def gray_image(size):
     """
     Pure function. The all-gray trimask ("unknown everywhere") as the VAE input: (1, 3, S, S) in [-1, 1].
@@ -340,7 +452,23 @@ def gray_image(size):
     return torch.full((1, 3, size, size), GRAY / 127.5 - 1)
 
 
-def load_eval_model(checkpoint, device, base=FIBO2_DIR):
+def load_splitter(transformer, folder, gamma):
+    """
+    Command (changes transformer weights in place, replaces its final linear). A splitter step folder (§17) at strength γ:
+    its LoRA merged with scale γ, and attach_splitter with the saved head delta and head.gamma = γ. γ = 0 leaves the
+    model's outputs unchanged (three copies of head 0).
+
+    Returns:
+        SplitterHead
+    """
+    merge_lora(transformer, load_file(folder / "lora.safetensors"), scale=gamma)
+    head = attach_splitter(transformer)
+    head.delta.load_state_dict(load_file(folder / SPLITTER_HEAD_FILE))
+    head.gamma = gamma
+    return head
+
+
+def load_eval_model(checkpoint, device, base=FIBO2_DIR, gamma=1.0):
     """
     Query (reads weights, allocates GPU memory). The shipped model of one control checkpoint (§14 step 3: FIBO2 + the
     control LoRA alone, the adapter removed) with the text encoder, the VAE, its BatchNorm stats and the null prompt.
@@ -352,6 +480,7 @@ def load_eval_model(checkpoint, device, base=FIBO2_DIR):
         checkpoint (str): a train_fibo2 control step folder, e.g. models/fibo2/fibo2_tri/step_002000
         device (torch.device)
         base (str): FIBO2_DIR or TURBO_DIR
+        gamma (float): splitter checkpoints only: the splitter strength γ (load_splitter)
 
     Returns:
         dict: transformer, text (encoder, processor), vae, bn, null (embeds, mask)
@@ -359,9 +488,13 @@ def load_eval_model(checkpoint, device, base=FIBO2_DIR):
     from diffusers import AutoencoderKLFlux2
 
     meta = json.loads((models.localize(checkpoint) / "meta.json").read_text())
-    assert meta["mode"] == "control" and not meta["gates"], f"{checkpoint}: only control checkpoints without gates are evaluated"
+    assert meta["mode"] in ("control", "splitter") and not meta["gates"], f"{checkpoint}: only control or splitter checkpoints without gates are evaluated"
     transformer = load_transformer(device, base=base)
-    merge_lora(transformer, load_file(models.localize(checkpoint) / "lora.safetensors"), scale=1.0)
+    if meta["mode"] == "splitter":  # W_base + control + γ·splitter (§17): the splitter was trained on the control checkpoint it names
+        merge_lora(transformer, load_file(models.localize(meta["control"]) / "lora.safetensors"), scale=1.0)
+        load_splitter(transformer, models.localize(checkpoint), gamma)
+    else:
+        merge_lora(transformer, load_file(models.localize(checkpoint) / "lora.safetensors"), scale=1.0)
     if (models.localize(checkpoint) / "student.safetensors").exists():  # a distill_fibo2.transfer folder: + the 4-step student LoRA
         merge_lora(transformer, load_file(models.localize(checkpoint) / "student.safetensors"), scale=1.0)
     text = load_text_encoder(device)
@@ -383,7 +516,8 @@ def generate_images(model, captions, trimasks, seeds, steps, guidance):
         steps (int), guidance (float): sampler steps and CFG
 
     Returns:
-        tuple: images (N, S, S, 3) float32 RGB in [0, 1], seconds per image (list of N floats)
+        tuple: images (N, S, S, 3) float32 RGB in [0, 1] — with a splitter (N, K, S, S, 3), one per SPLIT_BACKGROUNDS
+               head (rgba_from_composites makes RGBA of them) —, seconds per image (list of N floats)
     """
     import time
 
@@ -396,8 +530,9 @@ def generate_images(model, captions, trimasks, seeds, steps, guidance):
         cond = normalize_latents(vae.encode(x.to(vae.dtype)).latent_dist.mode(), *bn)
         embeds, mask = encode_prompts(*model["text"], [caption_prompt(caption)])
         out = sample(model["transformer"], embeds, mask, *model["null"], cond, steps, guidance, seed, cond.shape)
-        image = (vae.decode(denormalize_latents(out, *bn).to(vae.dtype)).sample.float().clamp(-1, 1) + 1) / 2
-        images.append(image[0].permute(1, 2, 0).cpu().numpy())
+        heads = out[0] if out.dim() == 5 else out  # (K, 32, LH, LW) with a splitter: the VAE decodes each head
+        image = (vae.decode(denormalize_latents(heads, *bn).to(vae.dtype)).sample.float().clamp(-1, 1) + 1) / 2
+        images.append(image.permute(0, 2, 3, 1).cpu().numpy()[0 if out.dim() == 4 else slice(None)])
         torch.cuda.synchronize()
         seconds.append(time.perf_counter() - began)
     return np.stack(images), seconds
@@ -418,9 +553,12 @@ def sample(transformer, embeds, mask, null_embeds, null_mask, cond, steps, guida
         shape (tuple): (B, 32, LH, LW) of the output
 
     Returns:
-        torch.Tensor: (B, 32, LH, LW) normalized latents
+        torch.Tensor: (B, 32, LH, LW) normalized latents; with a splitter (attach_splitter), every head's clean estimate
+        (B, K, 32, LH, LW) from the last step: the gray ODE is integrated as without it, and with the shared noise
+        estimate ε̂ = x_t + (1 − σ)·v_gray, x0_k = ε̂ − v_k (§17); head 0 equals the plain sampler's output
     """
     b, c, h, w = shape
+    head = splitter_of(transformer)
     device = embeds.device
     mu = shift_mu(h * w // 4)
     sigmas = [float(shift_sigmas(torch.tensor(s), mu)) for s in np.linspace(1.0, 1 / steps, steps)] + [0.0]
@@ -430,10 +568,12 @@ def sample(transformer, embeds, mask, null_embeds, null_mask, cond, steps, guida
     run = lambda e, m: transformer(hidden_states=x.to(transformer.dtype), timestep=torch.full((b,), s, device=device),
                                    encoder_hidden_states=e, encoder_attention_mask=m, context_latents=context,
                                    return_dict=False)[0].float()
+    heads = lambda v: v[:, None] if head is None else split_velocities(head, h, w).float()  # (B, K, 32, LH, LW)
     for s, s_next in zip(sigmas[:-1], sigmas[1:]):
-        v = run(embeds, mask)
+        v = heads(run(embeds, mask))
         if guidance > 1:
-            uncond = run(null_embeds.expand(b, -1, -1, -1), None if null_mask is None else null_mask.expand(b, -1))
+            uncond = heads(run(null_embeds.expand(b, -1, -1, -1), None if null_mask is None else null_mask.expand(b, -1)))
             v = uncond + guidance * (v - uncond)
-        x = x + (s_next - s) * v
-    return x
+        x0 = x[:, None] + (1 - s) * v[:, :1] - v
+        x = x + (s_next - s) * v[:, 0]
+    return x if head is None else x0

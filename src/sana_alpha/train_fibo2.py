@@ -6,6 +6,11 @@ FIBO2 trimask model (manifest §14): the §13 recipe on Bria Fibo 2.0, in two mo
     control  LoRA on W_adapter (the adapter merged in, frozen), condition = the trimask latent (fibo2_trimask_<S>) as
              FIBO2's own clean context image, target = the RGB on gray (fibo2_gray_<S>). Methods drawn uniformly, as §13.
     final    W_base + (W_control − W_adapter) = FIBO2 + the control LoRA alone: the adapter is never merged into it.
+    splitter (manifest §17) on W_adapter + the control LoRA of one control checkpoint (--control, merged, frozen): a new
+             LoRA plus fibo2.SplitterHead's delta on the final linear, so the model outputs one velocity per
+             fibo2.SPLIT_BACKGROUNDS (gray, white, black); targets v_k = ε − x0_k with one shared ε (x_t from the gray),
+             x0_k = fibo2_<background>_<S>. New parameters, so the optimizer always starts fresh. Shipped: W_base + control
+             + γ·splitter (fibo2.load_splitter).
 Gates (--gates, control only): off by default. FIBO2 was trained to read clean context images (its edit mode), so the
 condition path exists already; §13's GateControl gates start a new path at zero. --gates True adds them anyway
 (fibo2.attach_context_gates: one zero-initialized tanh gate per block on the attention to the trimask tokens). Multi-resolution as §13 (train_control.RESOLUTION_PROBS, step_resolution).
@@ -31,7 +36,7 @@ import pandas as pd
 import torch
 import torch.distributed as dist
 from PIL import Image
-from safetensors.torch import save_file
+from safetensors.torch import load_file, save_file
 from torch.nn.parallel import DistributedDataParallel
 
 from sana_alpha import fibo2, models
@@ -66,18 +71,18 @@ def load_index(mode, versions, rank, world, seed):
     """
     import lance
 
-    done = "fibo2_colorbg_256" if mode == "adapter" else "fibo2_gray_256"  # the last column encode_fibo2 writes
+    done = {"adapter": "fibo2_colorbg_256", "control": "fibo2_gray_256", "splitter": "fibo2_black_256"}[mode]  # the last column its encoder writes
     ds = lance.dataset(str(LANCE), version=versions[0])
     rows = ds.to_table(columns=["page_id", "subject"], with_row_id=True,
                        filter=f"{done} IS NOT NULL AND split = 'train' AND NOT nsfw").to_pandas()
-    if mode == "control":
+    if mode != "adapter":
         tri = lance.dataset(str(TRIMASK_LANCE), version=versions[1])
         options = tri.to_table(columns=["page_id", "method"], with_row_id=True, filter="fibo2_trimask_256 IS NOT NULL").to_pandas()
         rows = rows[rows.page_id.isin(options.page_id)]
     rows = rows.sort_values("page_id").reset_index(drop=True)
     rows = rows.iloc[rank_shard(len(rows), rank, world, seed).numpy()].reset_index(drop=True)
     index = dict(rowids=rows._rowid.to_numpy(), captions=rows.subject.astype(str).tolist())
-    if mode == "control":
+    if mode != "adapter":
         options = options[options.page_id.isin(rows.page_id)].sort_values("_rowid")
         per_method = options.method.value_counts().reindex(METHODS, fill_value=0)
         assert (per_method > 0).all(), f"trimask methods without rows in rank {rank}'s shard: {per_method.to_dict()}"
@@ -132,11 +137,16 @@ def read_batch(tables, index, mode, res, idx, rows):
     Query (reads Blobs). One batch's raw latents at resolution res.
 
     Returns:
-        dict: res, idx (B,), rows (B,), target (B, 32, res/8, res/8) bf16; control also cond (B, 32, res/8, res/8) bf16
+        dict: res, idx (B,), rows (B,), target (B, 32, res/8, res/8) bf16 — splitter: (B, K, 32, res/8, res/8), one per
+              fibo2.SPLIT_BACKGROUNDS —; control and splitter also cond (B, 32, res/8, res/8) bf16
     """
-    target = "fibo2_colorbg" if mode == "adapter" else "fibo2_gray"
-    batch = dict(res=res, idx=idx, rows=rows, target=read_latent_blobs(tables[0], f"{target}_{res}", index["rowids"][idx.numpy()].tolist()))
-    if mode == "control":
+    rowids = index["rowids"][idx.numpy()].tolist()
+    if mode == "splitter":
+        target = torch.stack([read_latent_blobs(tables[0], f"fibo2_{bg}_{res}", rowids) for bg in fibo2.SPLIT_BACKGROUNDS], dim=1)
+    else:
+        target = read_latent_blobs(tables[0], f"{'fibo2_colorbg' if mode == 'adapter' else 'fibo2_gray'}_{res}", rowids)
+    batch = dict(res=res, idx=idx, rows=rows, target=target)
+    if mode != "adapter":
         batch["cond"] = read_latent_blobs(tables[1], f"fibo2_trimask_{res}", index["cond_rowids"][rows.numpy()].tolist())
     return batch
 
@@ -156,7 +166,8 @@ def gray_latents(device, bn):
 @torch.no_grad()
 def write_preview(transformer, vae, text, batch, captions, bn, path):
     """
-    Command. Samples PREVIEW_COUNT rows (fixed noise per row) and writes the grid at full resolution as a lossless PNG (m00705).
+    Command. Samples PREVIEW_COUNT rows (fixed noise per row) and writes the grid at full resolution as a lossless PNG (m00705):
+    [trimask | generated | reference] rows; splitter: [trimask | generated gray, white, black | reference gray, white, black].
 
     Args:
         transformer: the model being trained (eval mode during the call)
@@ -170,15 +181,18 @@ def write_preview(transformer, vae, text, batch, captions, bn, path):
     device = vae.device
     embeds, mask = fibo2.encode_prompts(*text, [fibo2.caption_prompt(c) for c in captions])
     null, null_mask = fibo2.encode_prompts(*text, [fibo2.NULL_PROMPT])
-    target = fibo2.normalize_latents(batch["target"].to(device), *bn)
+    split = batch["target"].dim() == 5  # splitter: (B, K, 32, LH, LW), one target per head
+    heads = (lambda x: list(x.unbind(1))) if split else (lambda x: [x])
+    target = heads(batch["target"].to(device))
     cond = fibo2.normalize_latents(batch["cond"].to(device), *bn) if "cond" in batch else None
     transformer.eval()
     out = torch.cat([fibo2.sample(transformer, embeds[i:i + 1], mask[i:i + 1], null, null_mask,
                                   None if cond is None else cond[i:i + 1], PREVIEW_STEPS, PREVIEW_CFG, seed=i,
-                                  shape=target[i:i + 1].shape) for i in range(len(captions))])
+                                  shape=target[0][i:i + 1].shape) for i in range(len(captions))])
     transformer.train()
     decode = lambda x: ((vae.decode(fibo2.denormalize_latents(x, *bn).to(vae.dtype)).sample.float().clamp(-1, 1) + 1) / 2)
-    columns = ([decode(cond)] if cond is not None else []) + [decode(out), decode(target)]
+    raw = lambda x: decode(fibo2.normalize_latents(x, *bn))
+    columns = ([decode(cond)] if cond is not None else []) + [decode(o) for o in heads(out)] + [raw(t) for t in target]
     grid = torch.cat([torch.cat(list(col), dim=1) for col in columns], dim=2)  # (3, rows·S, columns·S)
     path.parent.mkdir(parents=True, exist_ok=True)
     image = Image.fromarray((grid.permute(1, 2, 0).cpu().numpy() * 255).round().astype(np.uint8))
@@ -207,13 +221,13 @@ def dataset_changes(run_dir):
 def load_checkpoint(transformer, folder, gates):
     """
     Command (loads weights into transformer). A step folder's LoRA (lora.safetensors, as fibo2.lora_state wrote it) and,
-    with gates, its gates.safetensors, into the trainable modules made by fibo2.add_lora / attach_context_gates.
+    with gates, its gates.safetensors, into the trainable modules made by fibo2.add_lora / attach_context_gates; with a
+    splitter attached, its fibo2.SPLITTER_HEAD_FILE into the head's delta.
 
     Returns:
         int: the folder's step (meta.json)
     """
     from peft.utils import set_peft_model_state_dict
-    from safetensors.torch import load_file
 
     lora = {k: v for k, v in load_file(folder / "lora.safetensors").items() if not k.endswith(".alpha")}
     result = set_peft_model_state_dict(transformer, lora)
@@ -225,19 +239,23 @@ def load_checkpoint(transformer, folder, gates):
         with torch.no_grad():
             for i, g in enumerate(transformer.context_gates):
                 g.copy_(saved[f"context_gates.{i}"])
+    head = fibo2.splitter_of(transformer)
+    if head is not None:
+        head.delta.load_state_dict(load_file(folder / fibo2.SPLITTER_HEAD_FILE))
     return json.loads((folder / "meta.json").read_text())["step"]
 
 
-def train(mode, run, adapter=None, rank=64, batch_size=2, max_steps=20000, warmup=500, lr=1.0, weight_decay=0.01,
+def train(mode, run, adapter=None, control=None, rank=64, batch_size=2, max_steps=20000, warmup=500, lr=1.0, weight_decay=0.01,
           max_grad_norm=1.0, cond_drop=0.1, text_drop=0.1, save_every=500, preview_every=500, log_every=10, seed=0,
           multires=True, gates=False, init_from=None, fresh_optimizer=False):
     """
     Command. Trains the adapter or control LoRA with DDP (torchrun) or on one GPU; writes models/fibo2/<run>/.
 
     Args:
-        mode (str): "adapter" or "control"
+        mode (str): "adapter", "control" or "splitter"
         run (str): output folder name under models/fibo2/
-        adapter (str | None): control only: the adapter checkpoint folder (step_XXXXXX)
+        adapter (str | None): control and splitter: the adapter checkpoint folder (step_XXXXXX)
+        control (str | None): splitter only: the control checkpoint folder it trains on (merged, frozen), e.g. models/fibo2/fibo2_tri/step_007500
         rank (int): LoRA rank (alpha = rank)
         batch_size (int): per GPU, at every resolution (as §13)
         max_steps, warmup (int): optimizer steps, linear warmup steps
@@ -257,7 +275,8 @@ def train(mode, run, adapter=None, rank=64, batch_size=2, max_steps=20000, warmu
     import lance
     import prodigyopt
 
-    assert mode in ("adapter", "control") and (mode == "adapter") == (adapter is None), f"mode {mode!r} with adapter {adapter!r}"
+    assert mode in ("adapter", "control", "splitter") and (mode == "adapter") == (adapter is None), f"mode {mode!r} with adapter {adapter!r}"
+    assert (mode == "splitter") == (control is not None), f"mode {mode!r} with control {control!r}: the splitter needs its control checkpoint"
     assert not gates or mode == "control", "gates are for the control mode"
     rank_id, world, device = setup_distributed()
     torch.backends.cuda.matmul.allow_tf32 = True
@@ -271,7 +290,7 @@ def train(mode, run, adapter=None, rank=64, batch_size=2, max_steps=20000, warmu
     tables = [lance.dataset(str(t), version=v) for t, v in zip((LANCE, TRIMASK_LANCE), versions[0])]
     index = load_index(mode, versions[0], rank_id, world, seed)
     log(f"world {world}, mode {mode}, shard {len(index['captions'])} records" +
-        (f", {len(index['cond_rowids'])} trimasks" if mode == "control" else "") + f", lance versions {versions[0]}")
+        (f", {len(index['cond_rowids'])} trimasks" if mode != "adapter" else "") + f", lance versions {versions[0]}")
 
     if main:  # one node-local copy, made once, before the other ranks read it
         for part in ("transformer", "text_encoder", "processor", "vae"):
@@ -282,7 +301,11 @@ def train(mode, run, adapter=None, rank=64, batch_size=2, max_steps=20000, warmu
     text = fibo2.load_text_encoder(device)
     null, null_mask = fibo2.encode_prompts(*text, [fibo2.NULL_PROMPT])
     transformer = fibo2.load_transformer(device, adapter)
+    if mode == "splitter":  # W_adapter + control, frozen (§17)
+        fibo2.merge_lora(transformer, load_file(models.localize(control) / "lora.safetensors"), scale=1.0)
     fibo2.add_lora(transformer, rank)
+    if mode == "splitter":  # after add_lora: peft marks every non-LoRA parameter frozen when it injects
+        fibo2.attach_splitter(transformer)
     if gates:
         fibo2.attach_context_gates(transformer)
     start_step = 0
@@ -294,7 +317,8 @@ def train(mode, run, adapter=None, rank=64, batch_size=2, max_steps=20000, warmu
     trainable = [p for p in transformer.parameters() if p.requires_grad]
     gate_params = list(transformer.context_gates) if gates else []
     lora_params = [p for p in trainable if all(p is not g for g in gate_params)]
-    log(f"trainable params {sum(p.numel() for p in trainable) / 1e6:.1f}M (LoRA rank {rank}{' + 46 context gates' if gates else ''})")
+    log(f"trainable params {sum(p.numel() for p in trainable) / 1e6:.1f}M (LoRA rank {rank}{' + 46 context gates' if gates else ''}"
+        f"{' + splitter head delta' if mode == 'splitter' else ''})")
     model = DistributedDataParallel(transformer, device_ids=[device.index]) if world > 1 else transformer
     groups = [dict(params=lora_params, weight_decay=weight_decay)] + ([dict(params=gate_params, weight_decay=0.0)] if gates else [])
     optimizer = prodigyopt.Prodigy(groups, lr=lr, betas=(0.9, 0.999),
@@ -323,7 +347,7 @@ def train(mode, run, adapter=None, rank=64, batch_size=2, max_steps=20000, warmu
     if main and preview_every:
         from diffusers import AutoencoderKLFlux2
         vae = AutoencoderKLFlux2.from_pretrained(models.localize(VAE_DIR), torch_dtype=torch.bfloat16).to(device)
-        if mode == "control":
+        if mode != "adapter":
             preview_idx, preview_rows = control_preview_rows(index)
         else:
             preview_idx = preview_rows = torch.arange(PREVIEW_COUNT)
@@ -338,8 +362,9 @@ def train(mode, run, adapter=None, rank=64, batch_size=2, max_steps=20000, warmu
     step_res = lambda s: step_resolution(s, seed) if multires else 1024
     reader = ThreadPoolExecutor(1)
     pending = reader.submit(read_batch, tables, index, mode, step_res(start_step), *next(batches))
-    meta = dict(run=run, mode=mode, adapter=str(adapter), rank=rank, batch_size=batch_size, world=world, multires=multires, gates=gates,
-                lance_versions=versions[0], objective="flow v=eps-x0, FIBO2-shifted logit-normal sigma",
+    meta = dict(run=run, mode=mode, adapter=str(adapter), control=str(control), rank=rank, batch_size=batch_size, world=world, multires=multires, gates=gates,
+                lance_versions=versions[0], objective="flow v=eps-x0, FIBO2-shifted logit-normal sigma"
+                + (", one head per background, shared eps" if mode == "splitter" else ""),
                 init_from=str(init_from), start_step=start_step, fresh_optimizer=fresh_optimizer, dataset_change_steps=changes)
     drawn = torch.zeros(len(METHODS), dtype=torch.long)
     res_steps, res_secs = dict.fromkeys(RESOLUTION_PROBS, 0), dict.fromkeys(RESOLUTION_PROBS, 0.0)
@@ -349,13 +374,15 @@ def train(mode, run, adapter=None, rank=64, batch_size=2, max_steps=20000, warmu
         t_step, batch = time.time(), pending.result()
         res, idx, rows = batch["res"], batch["idx"], batch["rows"]
         pending = reader.submit(read_batch, tables, index, mode, step_res(step + 1), *next(batches))  # read one step ahead
-        x0 = fibo2.normalize_latents(batch["target"].to(device), *bn)
+        target = batch["target"].to(device)
+        x0s = fibo2.normalize_latents(target.flatten(0, 1), *bn).unflatten(0, target.shape[:2]) if mode == "splitter" else None
+        x0 = x0s[:, 0] if mode == "splitter" else fibo2.normalize_latents(target, *bn)  # the gray: the trajectory x_t follows
         b = len(x0)
         drop_text = (torch.rand(b, generator=gen) < text_drop).tolist()
         captions = [fibo2.NULL_PROMPT if d else fibo2.caption_prompt(index["captions"][j]) for d, j in zip(drop_text, idx.tolist())]
         embeds, mask = fibo2.encode_prompts(*text, captions)
         context = None
-        if mode == "control":
+        if mode != "adapter":
             cond = fibo2.normalize_latents(batch["cond"].to(device), *bn)
             keep = (torch.rand(b, generator=gen) >= cond_drop).to(device).view(-1, 1, 1, 1)
             context = [torch.where(keep, cond, gray[res].to(device)).to(torch.bfloat16)]
@@ -366,6 +393,8 @@ def train(mode, run, adapter=None, rank=64, batch_size=2, max_steps=20000, warmu
         with torch.autocast("cuda", torch.bfloat16):
             pred = model(hidden_states=xt.to(torch.bfloat16), timestep=sigmas, encoder_hidden_states=embeds,
                          encoder_attention_mask=mask, context_latents=context, return_dict=False)[0]
+        if mode == "splitter":  # every head against its own x0, one shared ε (§17); pred is head 0 again
+            pred, x0, noise = fibo2.split_velocities(fibo2.splitter_of(transformer), *x0.shape[2:]), x0s, noise[:, None]
         loss = ((pred.float() - flow_velocity_target(x0, noise)) ** 2).mean()
         loss.backward()
         grad_norm = torch.nn.utils.clip_grad_norm_(trainable, max_grad_norm)
@@ -375,7 +404,7 @@ def train(mode, run, adapter=None, rank=64, batch_size=2, max_steps=20000, warmu
         step, seen = step + 1, seen + b * world
         torch.cuda.synchronize(device)
         res_steps[res], res_secs[res] = res_steps[res] + 1, res_secs[res] + time.time() - t_step
-        if mode == "control":
+        if mode != "adapter":
             drawn += torch.bincount(index["cond_method"][rows], minlength=len(METHODS))
         if step % log_every == 0:
             dt = time.time() - t_last
@@ -387,13 +416,16 @@ def train(mode, run, adapter=None, rank=64, batch_size=2, max_steps=20000, warmu
             log("resolutions (last %d steps): %s" % (METHOD_LOG_EVERY, ", ".join(
                 f"{r}: {n} steps {res_secs[r] / max(n, 1):.2f} s/step" for r, n in res_steps.items())))
             res_steps, res_secs = dict.fromkeys(RESOLUTION_PROBS, 0), dict.fromkeys(RESOLUTION_PROBS, 0.0)
-            if mode == "control":
+            if mode != "adapter":
                 log(f"trimask methods drawn (rank 0, last {METHOD_LOG_EVERY} steps): {dict(zip(METHODS, drawn.tolist()))}, outlines {outline_fraction(drawn)} (target {OUTLINE_SHARE})")
                 drawn.zero_()
         if main and (step % save_every == 0 or step == max_steps):
             folder = out_dir / f"step_{step:06d}"
             folder.mkdir(parents=True, exist_ok=True)
             save_file(fibo2.lora_state(transformer, rank), folder / "lora.safetensors")
+            if mode == "splitter":
+                save_file({k: v.detach().float().cpu() for k, v in fibo2.splitter_of(transformer).delta.state_dict().items()},
+                          folder / fibo2.SPLITTER_HEAD_FILE)
             if gates:
                 save_file({f"context_gates.{i}": g.detach().float().cpu() for i, g in enumerate(gate_params)}, folder / "gates.safetensors")
             torch.save(optimizer.state_dict(), folder / "optimizer.pt")  # ≈ 3.2 GB: Prodigy's 4 float32 states per LoRA weight, and d
