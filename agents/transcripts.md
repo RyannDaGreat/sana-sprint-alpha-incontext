@@ -1020,26 +1020,26 @@ I also don't see why you artificially limit the width of my divider panes. Don't
 ## m00903 — 2026-11-20 ~5:35 PM
 And yeah, once the new highway pilot thing has numbers, notify me. You can notify me up to five different times. You can choose your notification points wisely to keep me informed throughout this process. Try to plan it so they're spaced evenly and have very big semantic meaning. Each should be focused: to the point, human readable, not meandering.
 
-## m00904 — 2026-11-20 ~6:00 PM
+## m00904 — 2026-11-20 ~6:00–6:20 PM
 I clicked Start in the four-way pad and only two of the four start. One of them still says "starting". Annoying. In fact, they're already on step three and the others still say "starting". Are you able to reproduce this? Have a Sonnet agent try?
 
-## m00905 — 2026-11-20 ~6:20 PM
+## m00905 — 2026-11-20 ~6:00–6:20 PM
 I enabled Every layer. Are you sure it's actually giving me a preview on every layer? Because it doesn't update every time it goes through another block.
 
-## m00906 — 2026-11-20 ~6:30 PM
+## m00906 — 2026-11-20 ~6:00–6:20 PM
 It also occurred to me: the gallery should also save all the sneak peeks. The sneak peek timeline should be part of the gallery. Is this what you're doing?
 
-## m00907 — 2026-11-20 ~6:40 PM
+## m00907 — 2026-11-20 ~6:00–6:20 PM
 In addition to the +/− Fit 1:1, there should also be an expand button that opens the image in a new tab.
 
-## m00908 — 2026-11-20 ~6:55 PM
+## m00908 — 2026-11-20 ~6:00–6:20 PM
 The gallery still kills every other button once I go into it. I can't even click the other tabs, and there's no error in the console when I do that, or if there is, it's been swamped out by everything else. I only see ONNX stuff.
 
-## m00909 — 2026-11-20 ~6:57 PM
+## m00909 — 2026-11-20 ~6:00–6:20 PM
 Again, I said to use PanZoom from my SvelteLib library; it's one of my GitHub repositories. If you're not using it, get the fuck out and don't use PanZoom at all. In fact, I think we're done here. No more pan zoom.
 
-## m00910 — 2026-11-20 ~7:15 PM
+## m00910 — 2026-11-20 ~6:00–6:20 PM
 And again, the check mark for Every layer sneak peek: it's just a lie.
 
-## m00911 — 2026-11-20 ~7:40 PM (with pasted console logs: "mode: gallery", "gallery: reading the stored generations", "gallery: 0 generations")
+## m00911 — 2026-11-20 ~6:00–6:20 PM (with pasted console logs: "mode: gallery", "gallery: reading the stored generations", "gallery: 0 generations")
 Try actually playing with the gallery. The gallery just always falls to shit whenever you click on it; in fact it breaks the whole app every time. Whenever I click Gallery I'm unable to go back to any tab. So annoying. I'm gonna try it again, and what do you know? It doesn't matter whether the model is loaded or not, it still fucks up. And again, there's no feedback. I need you to make it much more verbose around here if you want any hope of me helping you debug this. I'll just paste what actually happened here; it didn't really print very much, but I'm unable to click anywhere else now. Also, there's no reason the gallery should be empty: I've made plenty of generations.
