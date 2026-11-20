@@ -109,7 +109,8 @@ def main(worker, workers, batch_divisor=1, jobs="magick,trimask", limit=None):
     every_job = {  # job: (table, key columns, sql key text, blob columns, done column)
         "magick": ("magick_samples", ["page_id"], "page_id", ["rgb_on_gray", "rgba"], "fibo2_colorbg_256"),
         "trimask": ("trimask_augmentations", ["page_id", "method", "variant"], "concat(page_id, method)", ["trimask"], "fibo2_trimask_256"),
-        "split": ("magick_samples", ["page_id"], "page_id", ["rgba"], "fibo2_black_256"),
+        "split": ("magick_samples", ["page_id"], "page_id", ["rgba", "fibo2_colorbg_256"], "fibo2_black_256"),  # colorbg: only rows the
+        # magick job encoded, i.e. the training rows (3 rows store an RGB PNG as rgba and were never encoded)
     }
     names = jobs.split(",") if isinstance(jobs, str) else list(jobs)  # Fire parses "a,b" as a tuple
     start, encoded, commits = time.time(), 0, []
