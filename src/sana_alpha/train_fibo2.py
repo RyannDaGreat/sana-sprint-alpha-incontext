@@ -247,7 +247,7 @@ def load_checkpoint(transformer, folder, gates):
 
 def train(mode, run, adapter=None, control=None, rank=64, batch_size=2, max_steps=20000, warmup=500, lr=1.0, weight_decay=0.01,
           max_grad_norm=1.0, cond_drop=0.1, text_drop=0.1, save_every=500, preview_every=500, log_every=10, seed=0,
-          multires=True, gates=False, init_from=None, fresh_optimizer=False, sneak_peek_highway=False, highway_lr=1e-4):
+          multires=True, gates=False, init_from=None, fresh_optimizer=False, sneak_peek_highway=False, highway_lr=1e-4, highway_residual=False):
     """
     Command. Trains the adapter or control LoRA with DDP (torchrun) or on one GPU; writes models/fibo2/<run>/.
 
@@ -275,6 +275,8 @@ def train(mode, run, adapter=None, control=None, rank=64, batch_size=2, max_step
             image tokens, predicting the final layer's output; its own AdamW (highway_lr), so the model's training is unchanged
             (its gradients are bit-identical with it on or off). Resumes from init_from's sneak_peek.HIGHWAY_FILE when present,
             else every head starts as a copy of the final linear
+        highway_residual (bool): the residual highway (m00774, sneak_peek.SneakPeekHighway): each block also reads the
+            previous block's peek; a plain highway checkpoint resumes into it unchanged
     """
     import lance
     import prodigyopt
@@ -321,7 +323,7 @@ def train(mode, run, adapter=None, control=None, rank=64, batch_size=2, max_step
     trainable = [p for p in transformer.parameters() if p.requires_grad]
     highway = tap = None
     if sneak_peek_highway:  # outside the model and its optimizer: stop-gradient, own AdamW (§18)
-        highway, tap = sneak_peek.SneakPeekHighway(transformer), sneak_peek.HighwayTap(transformer)
+        highway, tap = sneak_peek.SneakPeekHighway(transformer, highway_residual), sneak_peek.HighwayTap(transformer)
         resumed = bool(init_from) and sneak_peek.load_highway(highway, Path(init_from))
         highway_opt = torch.optim.AdamW(highway.parameters(), lr=highway_lr, weight_decay=0.0)
         log(f"sneak peek highway: {len(highway.heads)} heads, {sum(p.numel() for p in highway.parameters()) / 1e6:.1f}M params, "

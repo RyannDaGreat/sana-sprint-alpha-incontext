@@ -25,20 +25,37 @@ def final_linear(transformer):
     return head.base if head is not None else transformer.final_layer.linear
 
 
-class SneakPeekHighway(torch.nn.Module):
-    """One Linear(dim, 128) per main block (float32), each a copy of the final linear at the start."""
+RESIDUAL_HIDDEN = 256  # the residual highway's per-block MLP width (m00774)
 
-    def __init__(self, transformer):
+
+class SneakPeekHighway(torch.nn.Module):
+    """
+    One Linear(dim, 128) per main block (float32), each a copy of the final linear at the start. With residual (m00774),
+    block k also reads the previous block's peek: p_k = L_k(m_k) + R_k·p_{k−1} + MLP_k([p_{k−1}; L_k(m_k)]), R_k and
+    the MLP's last layer zero at the start, so a fresh residual highway equals the plain one (and a plain checkpoint
+    loads into it unchanged). p_{k−1} enters detached: every block trains on its own, like the plain heads.
+    """
+
+    def __init__(self, transformer, residual=False):
         """Command (allocates the heads on the final linear's device)."""
         super().__init__()
         base = final_linear(transformer)
+        self.residual = residual
         self.heads = torch.nn.ModuleList(torch.nn.Linear(base.in_features, base.out_features, device=base.weight.device,
                                                          dtype=torch.float32) for _ in transformer.layers)
         with torch.no_grad():
             for h in self.heads:
                 h.weight.copy_(base.weight.float())
                 h.bias.copy_(base.bias.float())
-        self.final = [transformer.final_layer]  # a list: the frozen final layer must not become a submodule (its weights are the model's)
+        self.final = [transformer.final_layer]
+        if residual:
+            o, dev = base.out_features, base.weight.device
+            self.mix = torch.nn.ModuleList(torch.nn.Linear(o, o, bias=False, device=dev) for _ in transformer.layers)
+            self.mlp = torch.nn.ModuleList(torch.nn.Sequential(torch.nn.Linear(2 * o, RESIDUAL_HIDDEN, device=dev), torch.nn.GELU(),
+                                                               torch.nn.Linear(RESIDUAL_HIDDEN, o, device=dev)) for _ in transformer.layers)
+            with torch.no_grad():
+                for m, f in zip(self.mix, self.mlp):
+                    m.weight.zero_(); f[2].weight.zero_(); f[2].bias.zero_()  # a list: the frozen final layer must not become a submodule (its weights are the model's)
 
     def modulated(self, tokens, c):
         """
@@ -55,9 +72,16 @@ class SneakPeekHighway(torch.nn.Module):
         with torch.no_grad():
             return (f.norm_final(tokens) * (1.0 + f.adaLN_modulation(c)).unsqueeze(1)).float()
 
-    def predict(self, block, tokens, c):
-        """Near-pure function (builds an autograd graph into head `block` only). (B, N, dim) -> (B, N, 128) float32 velocity tokens."""
-        return self.heads[block](self.modulated(tokens, c))
+    def predict(self, block, tokens, c, prev=None):
+        """
+        Near-pure function (builds an autograd graph into block `block`'s parameters only). (B, N, dim) -> (B, N, 128)
+        float32 velocity tokens. prev: the previous block's peek (B, N, 128), residual highways only (None at block 0).
+        """
+        p = self.heads[block](self.modulated(tokens, c))
+        if self.residual and prev is not None:
+            prev = prev.detach()
+            p = p + self.mix[block](prev) + self.mlp[block](torch.cat([prev, p], -1))
+        return p
 
 
 class HighwayTap:
@@ -118,11 +142,13 @@ def highway_backward(highway, tap):
     """
     target = tap.final_out.float()
     power = (target ** 2).mean()
-    losses = []
+    losses, prev = [], None
     for i in range(len(highway.heads)):
-        loss = ((highway.predict(i, tap.image_tokens(i), tap.c) - target) ** 2).mean()
+        pred = highway.predict(i, tap.image_tokens(i), tap.c, prev)
+        loss = ((pred - target) ** 2).mean()
         loss.backward()
         losses.append(loss.detach() / power)
+        prev = pred.detach()
     return torch.stack(losses).tolist()
 
 
@@ -130,7 +156,7 @@ def all_reduce_grads(module, world):
     """Command (averages module's grads over the DDP world; the highway is outside DDP)."""
     if world > 1:
         import torch.distributed as dist
-        grads = [p.grad for p in module.parameters()]
+        grads = [p.grad for p in module.parameters() if p.grad is not None]  # block 0's residual parts never get one (no previous peek): the same on every rank
         flat = torch.cat([g.flatten() for g in grads])
         dist.all_reduce(flat)
         flat /= world
@@ -150,8 +176,11 @@ def load_highway(highway, folder):
     path = folder / HIGHWAY_FILE
     if not path.exists():
         return False
-    highway.load_state_dict(load_file(path))
-    return True
+    saved = load_file(path)
+    missing, unexpected = highway.load_state_dict(saved, strict=False)
+    assert not unexpected, f"{path}: unexpected highway keys {unexpected[:4]}"
+    assert all(k.startswith(("mix.", "mlp.")) for k in missing), f"{path}: missing highway keys {missing[:4]}"
+    return True  # a plain checkpoint in a residual highway: the residual parts stay zero, so it predicts as the plain one
 
 
 def tweedie_x0(xt, velocity, sigma):
