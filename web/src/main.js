@@ -264,9 +264,9 @@ $('show-photo').addEventListener('change', () => $('matte-square').classList.tog
 
 // ---------- output ----------
 
-for (const t of document.querySelectorAll('.tab')) {
+for (const t of document.querySelectorAll('#single-head .tab')) {  // the output views only (the mode and pad tabs have their own)
   t.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach((x) => x.classList.toggle('on', x === t));
+    document.querySelectorAll('#single-head .tab').forEach((x) => x.classList.toggle('on', x === t));
     for (const view of ['gray', 'rgba', 'alpha', 'uncertainty', 'timeline']) $(`out-${view}`).hidden = t.dataset.view !== view;
     $('timeline-controls').hidden = t.dataset.view !== 'timeline';
     $('tl-plot').hidden = t.dataset.view !== 'timeline' || !timeline.errors;
@@ -324,6 +324,9 @@ function openItem(i) {
   gal.output = 0;
   const it = gal.items[i];
   $('gal-info').textContent = `${i + 1} / ${gal.items.length} · ${new Date(it.ts).toLocaleString()} · ${it.info}`;
+  const other = state.pipeline && it.version !== state.pipeline.version.id;  // m00887: settings only, never a model switch
+  $('gal-model-note').hidden = !other;
+  $('gal-model-note').textContent = other ? `made with ${it.version}` : '';
   $('gal-outputs').innerHTML = '';
   it.outputs.forEach((o, k) => {
     const b = document.createElement('button');
@@ -350,7 +353,7 @@ $('gal-load').addEventListener('click', async () => {
   syncSamplerUi();
   scheduleSave();
   $('gal-view').hidden = true;
-  status(`Loaded the settings of ${new Date(gal.items[gal.open].ts).toLocaleString()} (model: ${gal.items[gal.open].version}).`);
+  status(`Loaded the settings of ${new Date(gal.items[gal.open].ts).toLocaleString()} (made with ${gal.items[gal.open].version}; the loaded model is unchanged).`);
 });
 $('gal-download').addEventListener('click', () => {
   const it = gal.items[gal.open], o = it.outputs[gal.output], a = document.createElement('a');
@@ -605,6 +608,7 @@ function applyFamily(family, defaults) {
  */
 function syncSamplerUi() {
   const fibo2 = familyOf(state.pipeline?.version ?? state.selected) === 'fibo2';
+  for (const b of document.querySelectorAll('#pad-tabs [data-padview=alpha], #pad-tabs [data-padview=uncertainty]')) b.hidden = !state.pipeline?.splitter;
   const dec = state.pipeline?.decoderFiles ?? {};  // the sneak peek options only where a version ships them (m00880)
   $('every-layer').closest('label').hidden = !state.pipeline?.highway;
   $('peek-decoder').closest('label').hidden = Object.keys(dec).length === 0;
@@ -810,11 +814,7 @@ async function generate() {
   }
   const { image, images, timings, timeline } = result;
   $('equation').textContent = equationText(state.pipeline.version.manifest, sampler, seed);
-  const { onGray, cutout } = decodeToPixels(image, matte, width * height);
-  const split = images && splitterPixels(images, rgbaFromComposites(images, state.pipeline.splitter.backgrounds, width * height), width, height);
-  const views = split ? [['out-gray', split.strip, images.length * width], ['out-rgba', split.rgba, width], ['out-alpha', split.alpha, width],
-                         ['out-uncertainty', split.uncertainty, width]]
-    : [['out-gray', onGray, width], ['out-rgba', cutout, width]];  // without a splitter, RGBA takes its alpha from the input mask
+  const views = outputViews(result, matte, width, height);
   for (const [id, pixels, w] of views) {
     Object.assign($(id), { width: w, height });
     $(id).getContext('2d').putImageData(new ImageData(pixels, w, height), 0, 0);
@@ -831,6 +831,23 @@ async function generate() {
   if (state.pending) { state.pending = false; generate(); }
 }
 
+/**
+ * Query (uses the loaded splitter's backgrounds). A finished generation's output views as [canvas id, RGBA bytes, width]:
+ * splitter versions: the heads side by side, RGBA, alpha, uncertainty; otherwise RGB on gray and RGBA (alpha from the mask).
+ * Single mode and the four-way pad share it (m00886).
+ *
+ * @param {{image: object, images?: Float32Array[]}} result
+ * @param {Uint8ClampedArray} matte - (height, width, 4) the mask at the output size
+ * @returns {[string, Uint8ClampedArray, number][]}
+ */
+function outputViews({ image, images }, matte, width, height) {
+  const { onGray, cutout } = decodeToPixels(image, matte, width * height);
+  const split = images && splitterPixels(images, rgbaFromComposites(images, state.pipeline.splitter.backgrounds, width * height), width, height);
+  return split ? [['out-gray', split.strip, images.length * width], ['out-rgba', split.rgba, width], ['out-alpha', split.alpha, width],
+                  ['out-uncertainty', split.uncertainty, width]]
+    : [['out-gray', onGray, width], ['out-rgba', cutout, width]];  // without a splitter, RGBA takes its alpha from the input mask
+}
+
 /** Command. In real-time mode (always in the four-way pad), schedules a debounced generation after an edit. */
 function scheduleRealtime() {
   if (!state.pipeline || !($('realtime').checked || (padMode() && pad.started))) return;
@@ -842,7 +859,7 @@ function scheduleRealtime() {
 
 const PAD_SLOTS = 4;
 const PAD_EDIT_DEBOUNCE_MS = 300;  // a slot's prompt / seed edit restarts it after this pause
-const pad = { sched: new TurnScheduler(), slots: [], started: false };
+const pad = { sched: new TurnScheduler(), slots: [], started: false, view: 'gray' };
 
 /** Query. Whether the four-way pad tab is the active mode. */
 function padMode() { return !$('pad').hidden; }
@@ -859,11 +876,11 @@ function buildPad(saved) {
     const el = document.createElement('div');
     el.className = `slot${s.off ? ' off' : ''}`;
     el.innerHTML = `<div class="square"><canvas width="1024" height="1024"></canvas><p class="slot-state">idle</p></div>
-      <textarea rows="2" aria-label="Prompt ${i + 1}"></textarea>
+      <input type="text" class="slot-prompt" aria-label="Prompt ${i + 1}">
       <div class="slot-row"><label>Seed <input type="number" min="0"></label><button class="link">New seed</button></div>`;
     $('pad').append(el);
     const slot = { ...s, el, canvas: el.querySelector('canvas'), state: el.querySelector('.slot-state'), key: null, gen: 0, timer: 0, t0: 0 };
-    const [prompt, seed] = [el.querySelector('textarea'), el.querySelector('input')];
+    const [prompt, seed] = [el.querySelector('.slot-prompt'), el.querySelector('input[type=number]')];
     prompt.value = slot.prompt; seed.value = slot.seed;
     const edited = () => { slot.prompt = prompt.value; slot.seed = Number(seed.value); scheduleSave();
       clearTimeout(slot.timer); if (pad.started) slot.timer = setTimeout(() => padRestart(i), PAD_EDIT_DEBOUNCE_MS); };
@@ -908,16 +925,30 @@ async function padRestart(i) {
     return null;
   });
   if (!res || !live()) return;
-  const { onGray } = decodeToPixels(res.image, matte, width * height);
-  slot.canvas.getContext('2d').putImageData(new ImageData(onGray, width, height), 0, 0);
+  slot.views = Object.fromEntries(outputViews(res, matte, width, height).map(([id, px, w]) => [id.replace('out-', ''), { px, w, h: height }]));
+  paintSlot(slot);
   slot.state.textContent = `done · seed ${slot.seed} · ${((performance.now() - slot.t0) / 1000).toFixed(1)} s`;
 }
+
+/** Command. Paints a finished slot's chosen output view (the pad's view tabs, m00886); a missing view falls back to gray. */
+function paintSlot(slot) {
+  const v = slot.views?.[pad.view] ?? slot.views?.gray;
+  if (!v) return;
+  Object.assign(slot.canvas, { width: v.w, height: v.h });
+  slot.canvas.getContext('2d').putImageData(new ImageData(v.px, v.w, v.h), 0, 0);
+  slot.canvas.classList.toggle('checker', pad.view === 'rgba');
+}
+for (const b of document.querySelectorAll('#pad-tabs .tab')) b.addEventListener('click', () => {
+  pad.view = b.dataset.padview;
+  for (const x of document.querySelectorAll('#pad-tabs .tab')) x.classList.toggle('on', x === b);
+  pad.slots.forEach(paintSlot);
+});
 
 /** Command. Switches between the single output and the four-way pad (the editor and settings are shared). */
 function setMode(mode) {
   for (const b of $('mode-tabs').querySelectorAll('.tab')) b.classList.toggle('on', b.dataset.mode === mode);
   const isPad = mode === 'pad';
-  $('pad').hidden = $('pad-help').hidden = !isPad;
+  $('pad').hidden = $('pad-help').hidden = $('pad-tabs').hidden = !isPad;
   $('single-head').hidden = $('equation').hidden = isPad;
   document.querySelector('.output-panel > .square').hidden = isPad;
   if (isPad && !pad.slots.length) buildPad();

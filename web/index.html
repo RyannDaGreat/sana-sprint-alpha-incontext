@@ -79,11 +79,15 @@
         <div class="gal-view-bar row">
           <span id="gal-info" class="meta"></span>
           <span id="gal-outputs" class="tabs"></span>
-          <button id="gal-load">Load settings</button><button id="gal-download">Download</button><button id="gal-delete">Delete</button>
+          <button id="gal-load" title="Restores the mask, prompt, seed and settings; never switches the model">Load settings</button><span id="gal-model-note" class="meta" hidden></span><button id="gal-download">Download</button><button id="gal-delete">Delete</button>
           <button id="gal-close" title="Close (Esc)">×</button>
         </div>
         <div class="gal-view-img"><img id="gal-img" alt=""></div>
       </div>
+      <span id="pad-tabs" class="tabs pad-tabs" hidden>
+        <button class="tab on" data-padview="gray">RGB</button><button class="tab" data-padview="rgba">RGBA</button>
+        <button class="tab" data-padview="alpha" hidden>Alpha</button><button class="tab" data-padview="uncertainty" hidden>Uncertainty</button>
+      </span>
       <div id="pad" class="pad" hidden></div>
       <p id="pad-help" class="meta" hidden>Click an image to switch it off (it dims and pauses; the others get its turns). Editing a prompt or seed restarts that one; editing the mask or the settings restarts all.</p>
       <p id="equation" class="meta equation"></p>
