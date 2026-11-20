@@ -784,7 +784,7 @@ def onnx_generate(sessions, tokenizer_ids, null_ids, trimask, noise, steps, guid
     return decode(x) if gamma is None else np.stack([decode(x0[:, k]) for k in range(x0.shape[1])])
 
 
-def verify(version, items=4, steps=4, guidance=None, size=512, chunks=False):
+def verify(version, items=4, steps=4, guidance=None, size=512, chunks=False, lam=0.0, gamma=None):
     """
     Command (one GPU). Exported graphs (ORT CUDA EP) vs the shipped PyTorch model (fibo2.load_eval_model, bf16) on held-out
     eval items: text embeddings, condition latents and one velocity pass (relative error), then whole generations with the
@@ -798,6 +798,10 @@ def verify(version, items=4, steps=4, guidance=None, size=512, chunks=False):
         steps, guidance (int, float | None): sampler settings of the generations; guidance default = the manifest's
         size (int): image side of the generations (a trained size)
         chunks (bool): run the transformer as its chunk chain (web_chunks.split); results go to verify_chunks.json
+        lam (float): λ, the adapter strength (m00834: 0 = shipped, adapter removed; 1 = the training model): PyTorch merges
+            the adapter LoRA (meta.json "adapter") at scale λ, the graphs get adapter_scale = λ
+        gamma (float | None): a splitter version's γ; None = the manifest's (1.0). At γ = 0 every head must equal head 0
+            (the control-only model), reported as heads_max_diff
     """
     import numpy as np
     from PIL import Image
@@ -806,9 +810,15 @@ def verify(version, items=4, steps=4, guidance=None, size=512, chunks=False):
     guidance = manifest["sampler"]["guidance"] if guidance is None else guidance
     out = we.VERIFY_DIR / version
     out.mkdir(parents=True, exist_ok=True)
-    gamma = manifest["splitter"]["gamma"] if "splitter" in manifest else None
+    suffix = "" if (not lam and gamma is None) else f"_lam{lam:g}" + ("" if gamma is None else f"_g{float(gamma):g}")  # the default run keeps its old file names
+    gamma = (manifest["splitter"]["gamma"] if gamma is None else float(gamma)) if "splitter" in manifest else None
     split = {} if gamma is None else {"gamma": np.array([gamma], np.float32)}
     model = fibo2.load_eval_model(manifest["source"], "cuda", BASES[manifest.get("base", "dev")]["dir"], gamma=1.0 if gamma is None else gamma)
+    if lam:  # the training model: + λ·adapter LoRA (W_adapter − W_dev), as the graph's exact λ branch
+        from safetensors.torch import load_file
+        from sana_alpha import models
+        meta = json.loads((models.localize(Path(manifest["source"])) / "meta.json").read_text())
+        fibo2.merge_lora(model["transformer"], load_file(models.localize(meta["adapter"]) / "lora.safetensors"), scale=float(lam))
     encoder, processor = model["text"]
     template = manifest["text_encoder"]["template"]
     ids = lambda p: processor(text=[template.format(p)], return_tensors="np")["input_ids"].astype(np.int64)
@@ -839,16 +849,17 @@ def verify(version, items=4, steps=4, guidance=None, size=512, chunks=False):
         image_in = np.repeat((np.round(c["trimask"] * 255) / 127.5 - 1)[None, None].astype(np.float32), 3, axis=1)
         cond_o = sessions["vae_encoder"].run(None, {"image": image_in})[0]
         v_o = sessions["transformer"].run(None, {"latents": c["noise"] * 0.8 + 0.2 * cond_o, "cond_latents": cond_o, "sigma": np.array([0.8], np.float32),
-                                                 "prompt_embeds": emb_o, "adapter_scale": np.array([0.0], np.float32), **split})[0]
-        image_o = onnx_generate(sessions, c["ids"], null_ids, c["trimask"], c["noise"], steps, guidance, gamma=gamma)
+                                                 "prompt_embeds": emb_o, "adapter_scale": np.array([lam], np.float32), **split})[0]
+        image_o = onnx_generate(sessions, c["ids"], null_ids, c["trimask"], c["noise"], steps, guidance, adapter_scale=lam, gamma=gamma)
         r = dict(caption=c["caption"], text_rel=rel(emb_o, c["emb_t"]), cond_rel=rel(cond_o, c["cond_t"]), velocity_rel=rel(v_o, c["v_t"]),
-                 image_psnr=psnr(image_o, c["image_t"]), nonfinite=int((~np.isfinite(image_o)).sum()))
+                 image_psnr=psnr(image_o, c["image_t"]), nonfinite=int((~np.isfinite(image_o)).sum()), lam=lam, gamma=gamma,
+                 **({} if gamma is None else dict(heads_max_diff=float(np.abs(image_o - image_o[:1]).max()))))
         results.append(r)
         print(json.dumps(r), flush=True)
         for tag, img in (("onnx_chunks" if chunks else "onnx", image_o), ("torch", c["image_t"])):
             img = img if img.ndim == 3 else np.concatenate(list(img), axis=1)  # splitter: the K heads side by side
-            Image.fromarray((img.clip(0, 1) * 255).round().astype(np.uint8)).save(out / f"item{c['k']}_{tag}.png")
-    (out / ("verify_chunks.json" if chunks else "verify.json")).write_text(json.dumps(dict(version=version, steps=steps, guidance=guidance, size=size, chunks=chunks, items=results), indent=1))
+            Image.fromarray((img.clip(0, 1) * 255).round().astype(np.uint8)).save(out / f"item{c['k']}_{tag}{suffix}.png")
+    (out / f"verify{'_chunks' if chunks else ''}{suffix}.json").write_text(json.dumps(dict(version=version, steps=steps, guidance=guidance, size=size, chunks=chunks, lam=lam, gamma=gamma, items=results), indent=1))
     print(f"wrote {out}", flush=True)
 
 
