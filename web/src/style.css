@@ -53,6 +53,18 @@
   --group-title-w: 4.5em;   /* filter group labels line up */
   --matrix-label-w: 6em;    /* remap matrix row labels */
   --cell-size: 22px;        /* remap matrix radio cell */
+  --tool-w: 44px;           /* square icon buttons of the tool row (also the touch target size) */
+  --tool-gap: 6px;
+  --icon-size: 22px;
+  --icon-stroke: 1.5;
+  --op-w: 116px;            /* filter button cell width: every button in a group is this wide or a share of the row */
+  --glyph-w: 52px;          /* before → after glyph on filter buttons */
+  --leading-tight: 1.2;
+  --v-white: #ffffff;       /* matte values drawn in glyphs, same in both themes */
+  --v-gray: #808080;
+  --v-black: #000000;
+  --focus-w: 2px;         /* keyboard focus ring */
+  --disabled-opacity: 0.4;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -129,7 +141,17 @@ input[type="number"] { width: 6em; }
 textarea { width: 100%; resize: vertical; font-size: var(--size-text); }
 button, .button { cursor: pointer; }
 button:hover:not(:disabled), .button:hover { border-color: var(--fg); }
-button:disabled { color: var(--muted); cursor: default; }
+button:disabled { opacity: var(--disabled-opacity); cursor: default; }
+:is(button, .button, input, select, textarea):focus-visible { outline: var(--focus-w) solid var(--accent); outline-offset: var(--focus-w); }
+
+/* Icon buttons: the visible glyph is an inline SVG, the text stays for screen readers. */
+.sr { position: absolute; width: var(--hairline); height: var(--hairline); overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.ico { width: var(--icon-size); height: var(--icon-size); fill: none; stroke: currentColor; stroke-width: var(--icon-stroke);
+  stroke-linecap: square; stroke-linejoin: miter; display: block; }
+.row.tools { gap: var(--tool-gap); }
+.tools > button { width: var(--tool-w); height: var(--tool-w); padding: 0; display: grid; place-items: center; position: relative; }
+.tools > #undo { margin-left: var(--space-3); }
+#redo .ico { transform: scaleX(-1); }
 button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
 button.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); font-weight: var(--weight-strong); margin-left: auto; }
 button.primary:disabled { background: var(--field); color: var(--muted); border-color: var(--line); }
@@ -188,7 +210,16 @@ button.link { border: 0; background: none; padding: 0; color: var(--muted); font
 .cell { display: inline-grid; place-items: center; width: var(--cell-size); height: var(--cell-size); cursor: pointer; }
 .cell input { accent-color: var(--accent); margin: 0; }
 .trimask button.primary-lite:not(:disabled) { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
-.palette .field { min-width: var(--group-title-w); }
+/* Filter groups: a title column and a grid of equal-width buttons (glyph above label). */
+.group { flex-wrap: nowrap; align-items: start; }
+.ops { flex: 1; display: grid; grid-template-columns: repeat(auto-fill, var(--op-w)); gap: var(--space-1); }
+.ops > .meta { align-self: center; }
+.op { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-1); text-align: left;
+  padding: var(--space-1) var(--space-2); font-size: var(--size-meta); line-height: var(--leading-tight); }
+.op span { text-wrap: balance; }
+.glyph { width: var(--glyph-w); height: auto; display: block; }
+.glyph .tile { stroke: var(--line); }
+.glyph .arrow { fill: none; stroke: var(--muted); }
 .preview-badge { position: absolute; left: var(--space-2); top: var(--space-2); padding: var(--space-1) var(--space-2);
   background: var(--accent); color: var(--accent-fg); font-size: var(--size-meta); pointer-events: none; }
 

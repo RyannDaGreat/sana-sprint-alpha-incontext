@@ -50,16 +50,60 @@ function html(s) {
   return t.content.firstElementChild;
 }
 
+// Before/after glyphs on the filter buttons: two TILE-sized black tiles with an arrow between them.
+const TILE = 21;
+const TILE_GAP = 11;
+const MID = TILE / 2;
+const VALUE_NAME = { 0: 'black', 0.5: 'gray', 1: 'white' };
+const SOFT_FADES = [[8, 0.3], [6.5, 0.4], [5, 0.6], [3.5, 1]]; // [radius, opacity]: a stepped blur, no <defs> needed
+
+/** Pure function. SVG circle centered in a tile, filled with a matte value (CSS token --v-white|gray|black). @example disc(5, 'white') // '<circle cx="10.5" cy="10.5" r="5" fill="var(--v-white)" opacity="1"/>' */
+const disc = (r, value, opacity = 1) => `<circle cx="${MID}" cy="${MID}" r="${r}" fill="var(--v-${value})" opacity="${opacity}"/>`;
+const SOFT = SOFT_FADES.map(([r, o]) => disc(r, 'white', o)).join('');
+const HARD = disc(8, 'gray') + disc(5, 'white');
+const OP_TILES = { // op id → [before, after]
+  grow: [disc(5, 'white'), disc(8, 'white')],
+  shrink: [disc(7, 'white'), disc(4, 'white')],
+  growGray: [disc(5, 'white'), disc(8, 'gray') + disc(5, 'white')],
+  shrinkGray: [disc(7, 'white'), disc(7, 'gray') + disc(4, 'white')],
+  band: [disc(6, 'white'), disc(8, 'gray') + disc(4, 'white')],
+  soften: [disc(6, 'white'), SOFT],
+  harden: [SOFT, HARD],
+};
+
+/** Pure function. Three vertical stripes (black | gray | white) with the given values, filling a tile. @example stripes([0, 0.5, 0.5]) // black, gray, gray stripes */
+const stripes = (values) => values.map((v, i) => `<rect x="${i * TILE / 3}" width="${TILE / 3}" height="${TILE}" fill="var(--v-${VALUE_NAME[v]})"/>`).join('');
+
+/**
+ * Pure function. SVG string of a filter's before → after glyph. A remap shows its mapping as stripes
+ * (before: black | gray | white; after: the targets [black, gray, white] it maps to).
+ *
+ * @param {string} id - op id (grow, shrink, growGray, shrinkGray, band, soften, harden, remap)
+ * @param {{to?: number[]}} [p] - remap targets [black, gray, white]
+ * @returns {string}
+ *
+ * @example glyph('remap', {to: [0, 0.5, 0.5]}) // '<svg class="glyph" ...>': stripes black|gray|white → black|gray|gray
+ * @example glyph('grow') // '<svg class="glyph" ...>': a small white disc → a larger one
+ */
+function glyph(id, p) {
+  const tiles = id === 'remap' ? [stripes([0, 0.5, 1]), stripes(p.to)] : OP_TILES[id];
+  if (!tiles) throw new Error(`no glyph for trimask op "${id}"`);
+  const tile = (x, shapes) => `<g transform="translate(${x})"><rect class="tile" width="${TILE}" height="${TILE}" fill="var(--v-black)"/>${shapes}</g>`;
+  const arrowX = TILE + TILE_GAP / 2;
+  return `<svg class="glyph" viewBox="0 0 ${2 * TILE + TILE_GAP} ${TILE}" aria-hidden="true">${tile(0, tiles[0])}`
+    + `<path class="arrow" d="M${arrowX - 3} ${MID}h6m-2-2 2 2-2 2"/>${tile(TILE + TILE_GAP, tiles[1])}</svg>`;
+}
+
 /** Command. Builds the value palette into `box`; names = labels for white, gray, black. */
 function palette(box, editor, names) {
-  const row = html(`<div class="row palette"><span class="field">${names.title}</span></div>`);
+  const row = html(`<div class="row group palette"><span class="field group-title">${names.title}</span><div class="ops"></div></div>`);
   for (const [i, l] of LEVELS.entries()) {
     const b = html(`<button class="swatch${l.v === editor.level ? ' on' : ''}" data-level="${l.v}"><i style="--swatch: rgb(${255 * l.v}, ${255 * l.v}, ${255 * l.v})"></i>${names.levels[i]}</button>`);
     b.addEventListener('click', () => {
       row.querySelectorAll('.swatch').forEach((x) => x.classList.toggle('on', x === b));
       editor.setLevel(l.v);
     });
-    row.append(b);
+    row.lastChild.append(b);
   }
   box.append(row);
 }
@@ -92,13 +136,13 @@ function immediateButtons(box, editor, groups, sizeLabel, note) {
     run(last.id, { ...last.params, size: v }, last.label);
   });
   for (const [title, ops] of groups) {
-    const row = html(`<div class="row"><span class="field group-title">${title}</span></div>`);
+    const row = html(`<div class="row group"><span class="field group-title">${title}</span><div class="ops"></div></div>`);
     for (const [label, id, extra, tip] of ops) {
-      const b = html(`<button class="op"></button>`);
-      b.textContent = label;
+      const b = html(`<button class="op">${glyph(id, extra)}<span></span></button>`);
+      b.lastChild.textContent = label;
       if (tip) b.title = tip;
       b.addEventListener('click', () => run(id, { ...(extra ?? {}), size: extra?.to ? undefined : Number(size.value) }, label));
-      row.append(b);
+      row.lastChild.append(b);
     }
     box.append(row);
   }
@@ -121,9 +165,9 @@ function designA(box, editor) {
 
 /** Command. The "Where" row: filters act on the whole matte or only inside a lasso selection. */
 function scopeRow(box, editor) {
-  const scope = html(`<div class="row"><span class="field group-title">Where</span><span class="meta scope">Whole matte</span>
+  const scope = html(`<div class="row group"><span class="field group-title">Where</span><div class="ops"><span class="meta scope">Whole matte</span>
     <button class="lasso-tool" title="Pick the Lasso tool: drag around a region and the filters below change only inside it">Lasso a region</button>
-    <button class="lasso-clear" title="Drop the lasso: filters change the whole matte again">Whole matte</button></div>`);
+    <button class="lasso-clear" title="Drop the lasso: filters change the whole matte again">Whole matte</button></div></div>`);
   const sync = () => { scope.querySelector('.scope').textContent = editor.selection ? 'Inside the lasso' : 'Whole matte'; };
   scope.querySelector('.lasso-tool').addEventListener('click', () => document.querySelector('[data-tool="lasso"]').click());
   scope.querySelector('.lasso-clear').addEventListener('click', () => { editor.setSelection(null); sync(); });

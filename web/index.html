@@ -55,17 +55,17 @@
 
     <section class="panel tools-panel">
       <div class="row tools">
-        <button class="tool on" data-tool="brush">Brush</button>
-        <button class="tool" data-tool="eraser">Eraser</button>
-        <button class="tool" data-tool="text">Text</button>
-        <button class="tool" data-tool="rect">Rectangle</button>
-        <button class="tool" data-tool="ellipse">Ellipse</button>
-        <button class="tool" data-tool="polygon" title="Click to place corners; click the first corner, double-click or press Enter to close. Esc cancels.">Polygon</button>
-        <button class="tool" data-tool="line" title="Click to place points (width = Brush size); double-click or Enter to finish. Esc cancels.">Line</button>
-        <button class="tool" data-tool="lasso" title="Not a drawing tool: drag around a region and the filters change only inside it. Click once to drop it." hidden>Lasso (filter region)</button>
-        <button class="tool" data-tool="move">Move</button>
-        <button id="undo" title="Undo (Ctrl/Cmd+Z)" disabled>Undo</button>
-        <button id="redo" title="Redo (Ctrl/Cmd+Shift+Z or Ctrl+Y)" disabled>Redo</button>
+        <button class="tool on" data-tool="brush" title="Brush"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4 10 14"/><path d="M10 14 7.5 13C5 13 5 16 4 19c3-.5 6-1 6-4z"/></svg><span class="sr">Brush</span></button>
+        <button class="tool" data-tool="eraser" title="Eraser"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 16 13 7l6 6-7 7H7z"/><path d="m9 11 6 6"/><path d="M12 20h8"/></svg><span class="sr">Eraser</span></button>
+        <button class="tool" data-tool="text" title="Text"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6V5h14v1M12 5v14M9 19h6"/></svg><span class="sr">Text</span></button>
+        <button class="tool" data-tool="rect" title="Rectangle"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="6" width="16" height="12"/></svg><span class="sr">Rectangle</span></button>
+        <button class="tool" data-tool="ellipse" title="Ellipse"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="12" rx="8" ry="6"/></svg><span class="sr">Ellipse</span></button>
+        <button class="tool" data-tool="polygon" title="Polygon. Click to place corners; click the first corner, double-click or press Enter to close. Esc cancels."><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 21 10l-4 10H7L3 10z"/></svg><span class="sr">Polygon</span></button>
+        <button class="tool" data-tool="line" title="Line. Click to place points (width = Brush size); double-click or Enter to finish. Esc cancels."><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18 10 8l5 6 5-8"/></svg><span class="sr">Line</span></button>
+        <button class="tool" data-tool="lasso" title="Lasso. Not a drawing tool: drag around a region and the filters change only inside it. Click once to drop it." hidden><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="10" rx="8" ry="6" stroke-dasharray="3 2.5"/><path d="M9 15c-1 2 0 4 2 5"/></svg><span class="sr">Lasso (filter region)</span></button>
+        <button class="tool" data-tool="move" title="Move"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M3 12h18M12 3 9 6M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/></svg><span class="sr">Move</span></button>
+        <button id="undo" title="Undo (Ctrl/Cmd+Z)" disabled><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7 4 12l5 5M4 12h9a4 4 0 0 1 0 8H9"/></svg><span class="sr">Undo</span></button>
+        <button id="redo" title="Redo (Ctrl/Cmd+Shift+Z or Ctrl+Y)" disabled><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7 4 12l5 5M4 12h9a4 4 0 0 1 0 8H9"/></svg><span class="sr">Redo</span></button>
       </div>
       <div class="row">
         <label class="field">Size (brush, eraser, line width) <input id="brush-size" type="range" min="4" max="400" value="64"><span id="brush-size-v" class="meta">64</span></label>
