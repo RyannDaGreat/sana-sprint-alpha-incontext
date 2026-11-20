@@ -67,7 +67,7 @@ function toggleTheme() {
 
 let levelsFrame = 0; // pending readout frame (declared first: the editor's constructor already reports a change)
 // persistence state (manifest §20), declared before the editor for the same reason
-const PERSIST_IDS = ['prompt', 'seed', 'steps', 'guidance', 's-max', 's-mid', 'size', 'lambda', 'gamma', 'realtime', 'sneak-peek', 'every-layer', 'peek-decoder'];
+const PERSIST_IDS = ['prompt', 'seed', 'steps', 'guidance', 's-max', 's-mid', 'size', 'lambda', 'gamma', 'lambda-v', 'gamma-v', 'realtime', 'sneak-peek', 'every-layer', 'peek-decoder'];
 const SAVE_DEBOUNCE_MS = 400;  // after the last edit
 const persist = { ready: false, timer: 0, warned: false };  // ready: only after the saved state was restored (else the starter disc overwrites it)
 
@@ -545,7 +545,7 @@ function samplerSettings() {
   const sMid = steps === 2 ? Number($('s-mid').value) : null;
   const [width, height] = $('size').value.split('x').map(Number);
   return { steps, guidance: Number($('guidance').value), timesteps: sprintTimesteps(steps, Number($('s-max').value), sMid), width, height,
-    adapterScale: Number($('lambda').value), gamma: Number($('gamma').value) };
+    adapterScale: Number($('lambda-v').value), gamma: Number($('gamma-v').value) };  // the typed value (may be outside 0-1, m00893)
 }
 
 /**
@@ -615,11 +615,9 @@ function syncSamplerUi() {
   $('s-max').disabled = fibo2;
   $('s-mid').disabled = fibo2 || $('steps').value !== '2';
   $('guidance-v').textContent = $('guidance').value;
-  $('lambda-v').textContent = $('lambda').value;
-  $('lambda').disabled = !state.pipeline?.hasLambda;
+  $('lambda').disabled = $('lambda-v').disabled = !state.pipeline?.hasLambda;
   const splitter = state.pipeline?.splitter;  // manifest §17: γ and the Alpha / Uncertainty views
-  $('gamma-v').textContent = $('gamma').value;
-  $('gamma').disabled = !splitter;
+  $('gamma').disabled = $('gamma-v').disabled = !splitter;
   $('tab-alpha').hidden = $('tab-uncertainty').hidden = !splitter;
   $('tab-gray').textContent = splitter ? `RGB (${splitter.heads.join(' · ')})` : 'RGB on gray';
   if (!splitter && ['alpha', 'uncertainty'].includes(document.querySelector('.tab.on')?.dataset.view)) $('tab-gray').click();
@@ -793,6 +791,7 @@ async function generate() {
   }
   state.busy = true;
   single.key = `run${++single.runs}`;
+  syncRunButtons();
   const sampler = samplerSettings(), seed = Number($('seed').value), { width, height } = sampler;
   status(`Generating ${width} × ${height}, ${sampler.steps} step${sampler.steps === 1 ? '' : 's'}: progress below.`);
   const matte = matteAtSize(width, height);
@@ -804,8 +803,12 @@ async function generate() {
     prompt: $('prompt').value, matte: mattePixelsToTensor(matte, width * height), matteRev: editor.rev, seed, ...sampler,
     onPreview: $('sneak-peek').checked ? showPeek : null,
     everyLayer: $('every-layer').checked,
-    gate: $('realtime').checked ? single.sched.gateFor(single.key) : undefined,  // the turn gate only where a cancel can come (real time); a plain run is ungated (WebGPU readback failures, m00860)
-  }, showProgress).catch((e) => { if (e.name !== 'AbortError') fail(e); return null; }).finally(() => { state.busy = false; });
+    gate: single.sched.gateFor(single.key),  // Cancel / Pause (m00894) and real-time edits act between graph parts
+  }, showProgress).catch((e) => { if (e.name !== 'AbortError') fail(e); return null; }).finally(() => { state.busy = false; syncRunButtons(); });
+  if (state.cancelled) {
+    state.cancelled = false;
+    status(`Cancelled at ${state.progress ? progressLine(state.progress) : 'the start'}. The previews so far stay in the Timeline tab.`);
+  }
   if (!result) {  // cancelled (a newer edit is pending) or failed
     if (state.pending) { state.pending = false; generate(); }
     return;
@@ -844,6 +847,28 @@ function outputViews({ image, images }, matte, width, height) {
   return split ? [['out-gray', split.strip, images.length * width], ['out-rgba', split.rgba, width], ['out-alpha', split.alpha, width],
                   ['out-uncertainty', split.uncertainty, width]]
     : [['out-gray', onGray, width], ['out-rgba', cutout, width]];  // without a splitter, RGBA takes its alpha from the input mask
+}
+
+/** Query. Whether a generation is running (single mode, or any pad slot). */
+function running() { return padMode() ? pad.slots.some((sl) => sl.running) : state.busy; }
+
+/** Query. The scheduler keys of what is running. */
+function runKeys() { return padMode() ? pad.slots.filter((sl) => sl.running).map((sl) => sl.key) : state.busy ? [single.key] : []; }
+
+/** Command. Cancels what is running (its next graph part throws; its buffers are freed); the previews and Timeline so far stay. */
+function cancelRun() {
+  if (padMode()) { pad.started = false; for (const sl of pad.slots) if (sl.running) { pad.sched.cancel(sl.key); sl.state.textContent = 'cancelled'; } }
+  else { state.pending = false; single.sched.cancel(single.key); state.cancelled = true; }
+  syncRunButtons();
+}
+
+/** Command. Generate ⇄ Cancel, and Pause shown only while something runs. */
+function syncRunButtons() {
+  const on = running();
+  $('generate').textContent = on ? 'Cancel' : 'Generate';
+  $('generate').classList.toggle('primary', !on);
+  $('pause').hidden = !on;
+  if (!on) $('pause').textContent = 'Pause';
 }
 
 /** Command. In real-time mode (always in the four-way pad), schedules a debounced generation after an edit. */
@@ -913,6 +938,8 @@ async function padRestart(i) {
   Object.assign(slot.canvas, { width, height });
   slot.t0 = performance.now();
   slot.state.textContent = 'starting';
+  slot.running = true;
+  syncRunButtons();
   const live = () => slot.key === key;  // a restarted slot ignores its old job's late callbacks
   const res = await state.pipeline.generate({
     prompt: slot.prompt, matte: mattePixelsToTensor(matte, width * height), matteRev: editor.rev, seed: slot.seed, ...sampler,
@@ -921,7 +948,7 @@ async function padRestart(i) {
   }, (p) => { if (live()) slot.state.textContent = progressLine(p); }).catch((e) => {
     if (e.name !== 'AbortError' && live()) { slot.state.textContent = `error: ${e.message}`; console.error(e); }
     return null;
-  });
+  }).finally(() => { if (live()) { slot.running = false; syncRunButtons(); } });
   if (!res || !live()) return;
   slot.views = Object.fromEntries(outputViews(res, matte, width, height).map(([id, px, w]) => [id.replace('out-', ''), { px, w, h: height }]));
   paintSlot(slot);
@@ -955,11 +982,34 @@ function setMode(mode) {
   document.querySelector('.output-panel > .square').hidden = isPad;
   if (isPad && !pad.slots.length) buildPad();
   if (!isPad) { for (const s of pad.slots) if (s.key) pad.sched.cancel(s.key); pad.started = false; }
+  syncRunButtons();
   scheduleSave();
 }
 for (const b of $('mode-tabs').querySelectorAll('.tab')) b.addEventListener('click', () => setMode(b.dataset.mode));
 
-$('generate').addEventListener('click', generate);
+/**
+ * Command. Pairs a Greek-letter slider with its number box (m00893): the box takes any value (also < 0 or > 1) and is
+ * what the graph gets; the slider follows it, pinned at its end when the value is outside its range; moving the slider
+ * sets the box. One helper for λ, γ (and μ when it arrives).
+ *
+ * @param {string} id - the slider's id; its box is `${id}-v`
+ */
+function bindGreek(id) {
+  const slider = $(id), box = $(`${id}-v`);
+  slider.addEventListener('input', () => { box.value = slider.value; });
+  box.addEventListener('input', () => { slider.value = Math.min(Number(slider.max), Math.max(Number(slider.min), Number(box.value))); scheduleRealtime(); scheduleSave(); });
+}
+['lambda', 'gamma'].forEach(bindGreek);
+
+// Generate turns into Cancel while it runs, with Pause / Resume beside it (m00894); Esc cancels. Both act between graph parts.
+$('generate').addEventListener('click', () => (running() ? cancelRun() : generate()));
+$('pause').addEventListener('click', () => {
+  const on = $('pause').textContent === 'Pause';
+  runKeys().forEach((k) => (padMode() ? pad.sched : single.sched).setPaused(k, on));
+  $('pause').textContent = on ? 'Resume' : 'Pause';
+  status(on ? 'Paused (between graph parts). Press Resume.' : 'Resumed.');
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && running() && $('gal-view').hidden) cancelRun(); });
 $('prompt').addEventListener('input', scheduleRealtime);
 $('seed').addEventListener('input', scheduleRealtime);
 for (const id of ['steps', 'guidance', 's-max', 's-mid', 'size', 'lambda', 'gamma']) $(id).addEventListener('input', () => { syncSamplerUi(); scheduleRealtime(); });
