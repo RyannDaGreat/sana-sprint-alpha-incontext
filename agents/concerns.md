@@ -514,3 +514,7 @@
 ## 2026-11-20 ~4 PM — sneak peek still not monotone with the trained highway; GPU-7 collision (PeekCalib)
 - PeekDemo saw a sawtooth and 10–18 worse previews per generation at λ 0. Cause: the gate tables (blend w, expected error) were fitted on the 20-step smoke heads, in latent MSE (which favors blurry estimates). Fix: per-checkpoint perceptual calibration (LPIPS after the shipped fast decoder) + a margin on the expected table and a cap at the step end (tune.py): ≤ 1 worse preview per generation, at the cost of 82 → 14 previews shown. A strict gate on mean tables cannot be monotone per item: neighbouring blocks differ by less than per-item LPIPS noise.
 - My calibration on GPU 7 ran the splitship_loop's step-4000 verify out of GPU memory (02:39 PM); the loop skipped to step 5000. The coordinator queued `ship4000`. Lesson: never start a GPU job on the ship loop's GPU without the loop's free-memory pause covering it.
+
+## 2026-11-20 4:30 PM — journal pages without head/body tags broke four publishes (main agent)
+- publish_pages asserts exactly one </head>, <body>, </body> per journal page; the sneak peek demo builder wrote none, so publishes failed four times (each fixed one tag, then the re-render dropped them all again).
+- Fix: the builder writes the tags; lesson: check all three tags on every page before a publish, not one per failure.

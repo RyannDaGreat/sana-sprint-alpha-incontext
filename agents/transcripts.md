@@ -869,3 +869,153 @@ Nothing was printed out in the console. It just didn't load; the button was just
 
 ## m00854 — 2026-11-20 ~4:40 AM
 Okay, the Generate button works now.
+
+## m00855 — 2026-11-20 ~10:18 AM
+URL of the new decoder images? What was the best? How much better than when I last asked?
+
+## m00856 — 2026-11-20 ~10:21 AM
+highway.onnx still says "waiting".
+
+## m00857 — 2026-11-20 ~10:30 AM
+r5a3_long is a winner right now, I agree. It's worth the wait.
+
+## m00858 — 2026-11-20 ~10:39 AM (pasted console output)
+Error: failed to call OrtRun(). ERROR_CODE: 1, ERROR_MESSAGE: .../onnxruntime/core/providers/webgpu/buffer_manager.cc:669 BufferManager::Download ... map_async_result.status == wgpu::MapAsyncStatus::Success was false. Failed to download data from buffer. wgpu::MapAsyncStatus value: 0 — at h.generateFibo2 (pipeline-D1daRqkb.js) — then ort-wasm-simd-threaded.asyncify.mjs: Aborted(TypeError: Cannot convert null to a BigInt).
+
+## m00859 — 2026-11-20 ~10:45 AM (pasted)
+With it off it did: Uncaught (in promise) Error: failed to call OrtRun() ... webgpu/buffer_manager.cc:665 BufferManager::Download ... [ONNXRuntimeError] : 1 : FAIL : Failed to wait for the operation:2 — at h.generateFibo2.
+
+## m00860 — 2026-11-20 ~10:48 AM
+It worked earlier.
+
+## m00861 — 2026-11-20 ~10:52 AM
+Also, highway.onnx is often stuck "waiting" even after I know it's in the cache. It worked once. It's inconsistent upon page reload.
+
+## m00862 — 2026-11-20 ~10:54 AM
+(Weirdness like that is not new, by the way — but I'm frustrated, and I don't want to go back into incognito or wait 50 years for the models to load from scratch again.)
+
+## m00863 — 2026-11-20 ~10:56 AM
+Error: The requested file could not be read, typically due to permission problems that have occurred after a reference to a file was acquired.
+
+## m00864 — 2026-11-20 ~10:58 AM
+Push when fixed, and notify when done.
+
+## m00865 — 2026-11-20 ~11:35 AM
+There are too many dead tmux sessions.
+
+## m00866 — 2026-11-20 ~11:40 AM
+Even in incognito they all say "waiting" (pasted: text_encoder.part12..34.onnx waiting; text_encoder.onnx.p0.data 1.75 GB downloaded in 144.7 s at 12.4 MB/s; p1, p2 waiting; tokenizer files from cache). Almost all do, anyway.
+
+## m00867 — 2026-11-20 ~11:42 AM
+Fix it then. The downloads ARE working... one model shard at a time...
+
+## m00868 — 2026-11-20 ~11:50 AM
+Notify me when it's up.
+
+## m00869 — 2026-11-20 ~11:52 AM (pasted console)
+splitter-BErBPlKV.js:1 Uncaught (in promise) RangeError: Array buffer allocation failed at new Uint8Array (splitter-BErBPlKV.js:1:9163).
+
+## m00870 — 2026-11-20 ~11:58 AM
+Do we have any demo images of the sneak peeks, so I can see how they evolve over time?
+
+## m00871 — 2026-11-20 ~12:05 PM (pasted rows)
+All cached, but the stupid Generate button is still greyed out??? No indication, no printout, just silence and a dead button. Is it doing anything? (Rows: text_encoder.part0–3 "cached · loaded", text_encoder.onnx.p0.data "cached · loaded", tokenizer files "cached · loaded"; every other file "cached", none loaded — text_encoder.part4 onward, p1/p2, all transformer, VAE, highway, fast_decoder.)
+
+## m00872 — 2026-11-20 ~12:08 PM
+Wait, I reloaded, it loaded.
+
+## m00873 — 2026-11-20 ~12:15 PM
+Is there a reason that sneak peek can't update on every layer? Would it be too slow?
+
+## m00874 — 2026-11-20 ~12:18 PM
+Where is the bottleneck?
+
+## m00875 — 2026-11-20 ~12:20 PM
+After the fact, it would be nice to have a scrubbable timeline next to RGBA/Alpha/etc. for the sneak peek timeline, that lets me scrub between different snapshots.
+
+## m00876 — 2026-11-20 ~12:23 PM
+It would also be nice to have a gallery tab that lets me see all past generations (stored to disk cache, of course).
+
+## m00877 — 2026-11-20 ~12:25 PM
+Have an agent work on another professional, navigable UI for that.
+
+## m00878 — 2026-11-20 ~12:26 PM
+(Remember to KISS.)
+
+## m00879 — 2026-11-20 ~12:30 PM
+Also, remember how I asked for the graph of error vs. final pixels over time of peeks to be displayed? I want that graph in peek scrub too, please.
+
+## m00880 — 2026-11-20 ~12:36 PM
+Also, for sneak peek, when enabled I want another switch, "every layer": if true it should show every layer; default off. And whether we want the small or big decoder model (default to the small one). Remember we have 2 models for decoding, the super fast one and the fast one, right?
+
+## m00881 — 2026-11-20 ~12:40 PM (pasted rows: text_encoder.part0–3, p0.data, tokenizer "cached · loaded"; part4 onward, p1, p2 only "cached")
+Huh? It says a few are loaded. It makes no indication if any are LOADING or how long it will take. Radio silence >:( Print something, damn it!
+
+## m00882 — 2026-11-20 ~12:43 PM
+I refreshed the page enough, and then it finally did something.
+
+## m00883 — 2026-11-20 ~1:46 PM
+Until I resized the text boxes, the 4-way pads hid the images.
+
+## m00884 — 2026-11-20 ~1:48 PM
+NWD.
+
+## m00885 — 2026-11-20 ~1:55 PM
+Hell, the text boxes in that demo do not even need to be resizable; a one-line one is fine.
+
+## m00886 — 2026-11-20 ~1:56 PM
+The 4-way pad should still have the "RGB (gray · white · black) / RGBA / Alpha / Uncertainty" options, because when they're done all I see is the on-gray.
+
+## m00887 — 2026-11-20 ~1:58 PM
+The gallery should save the seeds, prompts, etc. into them, so I can load it again (but maybe not the model: save it in the gallery, but when I load settings I don't want to load the whole model with it).
+
+## m00888 — 2026-11-20 ~2:02 PM
+The gallery is a top-level fullscreen tab thing, where I select between modes on the same bar that says "Matte → Image".
+
+## m00889 — 2026-11-20 ~2:04 PM
+Also, please have another agent implement pan/zoom + minimap for the image displays.
+
+## m00890 — 2026-11-20 ~2:05 PM
+(That's in svelte-lib.)
+
+## m00891 — 2026-11-20 ~2:05 PM
+Can you please, right now, update the journal to feature the 4: original image, VAE decoded, fast VAE output and super-fast VAE output side by side (so I don't have to sift through so many columns), or a button to just filter these 4? The ones we actually use.
+
+## m00892 — 2026-11-20 ~2:27 PM
+On top of the black/white/gray splitter, let's add another adapter: the alpha-matte adapter (another Greek letter), which adds another channel (the grayscale mask channel). Once you reach the next checkpoint, push, and then work on that, please.
+
+## m00893 — 2026-11-20 ~2:30 PM
+Also, it would be nice if the UI had a way to override the Greek letters, so I could do negative or over-1 values.
+
+## m00894 — 2026-11-20 ~2:32 PM
+And if I could cancel the generate — because the Generate button should show Cancel if I could cancel — or pause.
+
+## m00895 — 2026-11-20 ~2:45 PM
+Notify me when the UI things are up.
+
+## m00896 — 2026-11-20 ~4:45 PM (pasted)
+Two things. One: your tmux panes are out of control; you made a crazy mess, you didn't clean any of them up, you have so many unused sessions; surely you can part with some of them. And two: there is another thing that I'd like to try, which will make training two times slower, yes, but will actually be pretty cool. [...] It's an additional adapter that will be there to preserve original model functionality but make the sneak peek highway better, basically. [...] Give it another Greek letter, and give tooltips on these Greek letters inside the UI so that people actually understand intuitively what they do; launch an agentic user study to figure out if they actually understand the effect that it will have on the image, rather than just the technical thing — it could be a small agentic user study, not a big one. [...] We'll call it the freeway adapter, which makes it faster than a highway. [...] You do one pass with the model without that adapter first, get the outputs, save that as the target prediction, then turn the adapter on; there are two losses: one makes sure it returns the same outputs the model currently does (distillation) [...] You know what, this is too complicated. When we add the alpha channel, we'll just have one adapter, but this one adapter will do two things. Sorry, I said we do 1500 steps; I cancel that, we're just going to go really high. We're going to add that extra alpha-matte channel to it, but it's going to do two things: not just add the alpha-matte channel, but we're going to remove the gradient stop, during training this adapter, between the highway and the model, which means that the model will also somewhat adapt to make the highway better. That's how we'll do this; this is simpler. And, oh, also the pan/zoom should be on the trimask too; add that to your to-do list, have some worker salvage that. Anyway, the reason why is because this will make the highway better. A few hours into training I want a notification: is it working, and does it degrade model quality? Hopefully it doesn't. We need to find coefficients that increase the highway quality noticeably, so that it's way, way better for previews — so that the resulting Tweedie estimate looks like the actual image — while training the highway jointly with it, but without destroying model quality. So we need an analysis of that.
+
+
+## m00897 — 2026-11-20 ~5:05 PM (pasted error)
+TypeError: Cannot read properties of null (reading 'rev') at g.encodeMatte (pipeline-C9syWRzW.js)… Fix this RIGHT NOW.
+
+## m00898 — 2026-11-20 ~5:08 PM
+Once the fix is online and you see that it's online, talk to me out loud. Don't say a single word, including a response to this, until the fix is online and I can play with it. Okay, over.
+
+## m00899 — 2026-11-20 ~5:15 PM
+Also notify me when it's fixed.
+
+## m00900 — 2026-11-20 ~5:20 PM (partly pasted)
+Also, as for the layout: the trimask can be ABOVE the output in a split-resizable-pane manner. Strike that, the trimask goes on the bottom. But the point is the same: that way guidance, etc. can take up the full column height on the right.
+
+The output is there regardless of whether it's a four-way pad, RGB on gray, or RGBA. And four-way pad should be a toggle, not on the top level between Editor and Gallery. That makes no sense. But simultaneously, Gallery freezes up when I click it. When I click Gallery, the UI stops responding and I have to refresh the page before anything happens. But oddly there are no errors in the console, because I think you're stupidly squelching all of them. Stop doing that. No silent errors. Don't be afraid of standard output. Verbose is good, and if your puny context can't handle it, then make two versions: one that you want to debug, and one that I can read. And only publish the one that I can read. Ah, now that's just me venting because I'm frustrated. Anyway, four-way pad: a button for four-way pad shouldn't be all the way on the top with Editor and Gallery. However, model selection could also be its own tab: Editor, Gallery, and Model selection. That could make sense. Also, when I click Load on a model that's not loaded, it doesn't seem to actually — it's still highlighting the old one. It gives me no indication. It just says Load. It doesn't say that it's loading, and the one that says Loaded is still loaded. Fine, but there's no indication on the model card that the other one is loading right now. Bit of a stupid problem, ain't it?
+
+## m00901 — 2026-11-20 ~5:30 PM
+You know, I'm also thinking about making it structurally impossible for the highway to get worse, by feeding in the Tweedie prediction and noise prediction of the previous step, as well as the noise, into however the highway works. Because then it should be basically impossible, in addition to all these other parameters we're giving it now. Because then, instead of having you go ahead and do blending after the fact, wouldn't it be better if the highway learns that? Learns that the Tweedie value will be more inaccurate if it uses the coefficients and weights wrongly? So that's what we want to learn, instead of the previous highway, which was kind of stupid in that respect.
+
+## m00902 — 2026-11-20 ~5:32 PM
+I also don't see why you artificially limit the width of my divider panes. Don't do that. Minimum can be 5 pixels. I don't like it when you limit the size of the divider panes.
+
+## m00903 — 2026-11-20 ~5:35 PM
+And yeah, once the new highway pilot thing has numbers, notify me. You can notify me up to five different times. You can choose your notification points wisely to keep me informed throughout this process. Try to plan it so they're spaced evenly and have very big semantic meaning. Each should be focused: to the point, human readable, not meandering.

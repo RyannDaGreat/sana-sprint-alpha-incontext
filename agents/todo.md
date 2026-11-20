@@ -17,6 +17,14 @@
 | 131 | GitHub Pages site (journal + WebGPU app) as a progressive web app: installable, works offline after one visit (m00836) | not measured | Fork PWA running |
 | 135 | Splitter checkpoints to the web every 1000 steps (turbo + dev, γ, int8, per-block, highway graph; verify λ/γ 0 and 1; publish; live test) (m00849) | not measured | Fork SplitShip running |
 | 136 | Generate button disabled after load (live bug); resizable 1px panes (svelte-lib behavior); Svelte port plan (m00850) | not measured | Fork PaneFix running |
+| 137 | Output view "Timeline" tab next to RGB/RGBA/Alpha: scrub every sneak peek snapshot after a generation (m00875) | not measured | Fork PeekScrub running |
+| 138 | Gallery tab: every past generation stored in browser disk storage (lossless outputs + full settings), grid, open 1:1, load settings, delete, clear (m00876) | not measured | Fork PeekScrub (second commit) |
+| 139 | Sneak peek sawtooth with the trained highway: recalibrate blend/skip tables in pixel space (perceptual), gate monotone (PeekDemo finding) | not measured | Fork PeekCalib running |
+| 140 | Sneak peek options: "Every layer" switch (default off), preview decoder small | big (default small = r2a3_xs, big = r5a3_long) (m00880) | not measured | PeekScrub (UI) + PeekCalib (manifests) |
+| 141 | Pad: prompts not hidden, one-line boxes, view tabs; gallery Load settings without model; Gallery as a top-level mode (m00883–m00888) | not measured | Fork PeekScrub |
+| 142 | Pan/zoom + minimap on image displays (m00889) | not measured | Fork PanZoom running |
+| 143 | Matte adapter (μ): 4th head predicting the alpha matte; BlueJay matte encode; train after splitter 5000; app Alpha view (m00892, §21) | not measured | Fork Matte running |
+| 144 | λ/γ/μ override inputs (any value); Generate turns into Cancel + Pause/Resume during a run (m00893, m00894) | not measured | Fork PeekScrub |
 | 50–52 | Trimask: table (337,934 rows, 19 methods, 0 violations, 4 resolutions), encode, training code | see git log | pushed |
 | 53 | control_tri_scratch: from scratch, multires | — | stopped 1:29 PM at step 15840 by user (m00695); last save 15500; 15000 live |
 | 54 | Checkpoint script agents/.scratchpad/tri_checkpoint.sh (merge, λ int4 web, verify, publish) | b09151d 742c2ac dec4e00 | pushed; step 3000 + 6000 live, notified 8:13/8:33 AM; 9000 queued (tmux tri_ckpt9) |
@@ -56,13 +64,22 @@
 10. Morning (~8 AM): fast-decoder report, every candidate sorted best → worst, ≥ 48 examples, link (m00786)
 12. Morning (~8 AM): sneak peek UI done in the app, with the per-generation preview-timeline graph in a closed accordion (m00822)
 9. Problems at once
+14. UI things live (Timeline, Gallery mode, pad fixes, Greek-letter overrides, Cancel/Pause, pan/zoom) (m00895)
+13. NWD (m00884): "Done" when all running work is finished (publish, PeekScrub, PeekCalib, ship loop to step 5000, training)
+
+## Highway + matte notifications (m00903): at most 5, spaced evenly, one big meaning each, short and readable
+- H1 (~8 PM): matte W pilots done: which W, does joint training help previews, does final quality drop (λ = 0 and λ = 1)
+- H2: Highway2 (learned blend, m00901) pilot numbers vs the old highway, and which highway the long run uses
+- H3: the long matte + highway run is launched, with a measured ETA
+- H4 (a few hours in, m00896): is it working, and does final image quality degrade
+- H5: the long run finished and shipped to the web app, with the link
 
 ## 128 — Cross-step activation reuse / layer skipping (m00820) — after everything else; no permission needed to start
 - Measure redundancy: per-block cosine similarity / relative change of hidden states between consecutive steps (dev 20 steps, turbo 4), and the error of reusing step s−1's block output at step s (training-free caching, FORA/Δ-DiT style).
 - Trained version: store every block's activations at step s−1; at step s feed them through zero-init (ControlNet-like) connectors; schedule-dependent layer skipping (middle steps skip the first half, late steps skip ~80%), distilled to the full model's x̂0 (Learning-to-Cache style).
 - Report speedup vs quality (SSIM/LPIPS/ΔE + VLM) in a journal report; log in manifest §19.
 
-## 129 — Splitter v2: direct alpha lane (m00824) — after fibo2_split, only if the ghost alpha persists
+## 129 — Superseded by item 143 (matte adapter μ, m00892)
 - Encode the alpha matte as a white-on-black image (FLUX.2 VAE, 1024/768/512/256) for every training row (new encode_fibo2 job, BlueJay).
 - 4 heads: gray, white, black, alpha; fuse with the least-squares fit (decontaminated color stays from the fit).
 
@@ -78,6 +95,9 @@
 ## 134 — Real-time mode with cancel/restart (m00848)
 - While drawing, a running generation is cancelled partway and restarted with the new condition at once (sneak peek makes partial results useful).
 
+## 145 — Greek-letter tooltips + small agentic user study (m00896)
+## 146 — Pan/zoom on the trimask editor, drawing unaffected (m00896)
+## 147 — μ adapter training with the highway stop-gradient removed; coefficient pilots; quality analysis + notification a few hours in (m00896)
 ## m00900 / m00902 — layout, top tabs, gallery freeze, model card Loading, 5 px panes (fork Layout)
 - [x] Gallery freeze: not reproduced headless (no WebGPU here; 20 stored generations open in 3–8 ms, with and without a model load); every swallowed error made loud, IndexedDB `blocked` now rejects, main-thread blocks > 200 ms logged
 - [x] Top tabs Editor | Gallery | Models; Four-way pad is a switch in the output header
