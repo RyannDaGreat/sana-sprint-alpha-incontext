@@ -1025,3 +1025,15 @@ I clicked Start in the four-way pad and only two of the four start. One of them 
 
 ## m00905 — 2026-11-20 ~6:20 PM
 I enabled Every layer. Are you sure it's actually giving me a preview on every layer? Because it doesn't update every time it goes through another block.
+
+## m00906 — 2026-11-20 ~6:30 PM
+It also occurred to me: the gallery should also save all the sneak peeks. The sneak peek timeline should be part of the gallery. Is this what you're doing?
+
+## m00907 — 2026-11-20 ~6:40 PM
+In addition to the +/− Fit 1:1, there should also be an expand button that opens the image in a new tab.
+
+## m00908 — 2026-11-20 ~6:55 PM
+The gallery still kills every other button once I go into it. I can't even click the other tabs, and there's no error in the console when I do that, or if there is, it's been swamped out by everything else. I only see ONNX stuff.
+
+## m00909 — 2026-11-20 ~6:57 PM
+Again, I said to use PanZoom from my SvelteLib library; it's one of my GitHub repositories. If you're not using it, get the fuck out and don't use PanZoom at all. In fact, I think we're done here. No more pan zoom.

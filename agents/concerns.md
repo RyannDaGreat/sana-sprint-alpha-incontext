@@ -518,3 +518,9 @@
 ## 2026-11-20 4:30 PM — journal pages without head/body tags broke four publishes (main agent)
 - publish_pages asserts exactly one </head>, <body>, </body> per journal page; the sneak peek demo builder wrote none, so publishes failed four times (each fixed one tag, then the re-render dropped them all again).
 - Fix: the builder writes the tags; lesson: check all three tags on every page before a publish, not one per failure.
+
+## 2026-11-20 ~7:00 PM — pan/zoom removed (m00909)
+- The user asked (m00889) for pan/zoom from their SvelteLib library. We shipped a vanilla-JS port (web/src/panzoom.js) instead of the library itself. The user: "If you're not using it, get the fuck out and don't use PanZoom at all … No more pan zoom." Lesson: when the user names their own library, use that library, or say plainly that we can't, before building a copy.
+- Removed: panzoom.js, its 3 attach sites, its CSS. Not merged and dropped: branch pzmask (trimask pan/zoom) and branch expand (the ⤢ open-in-new-tab button of m00907, which lived in the pan/zoom bar).
+- The gallery freeze (m00908) is still not reproduced: live site, 60 fake generations of 4 × 1024² PNGs, no model loaded: every tab responds in under 35 ms and nothing covers the tabs. The pan/zoom on the gallery view was one suspect; it is gone now.
+- Old manifest bullet, for the record: - **Pan/zoom + minimap (m00889, m00890).** `web/src/panzoom.js` `attachPanZoom(view)`: a vanilla-JS port of the user's SvelteLib `src/lib/PanZoom.svelte` (viewport math: expZoomFactor, zoomTowards, pan, pinch, ease-out animation; plain wheel pans, ctrl+wheel / trackpad pinch zooms; zoom 1 = fitted) …
