@@ -1040,3 +1040,6 @@ Again, I said to use PanZoom from my SvelteLib library; it's one of my GitHub re
 
 ## m00910 — 2026-11-20 ~7:15 PM
 And again, the check mark for Every layer sneak peek: it's just a lie.
+
+## m00911 — 2026-11-20 ~7:40 PM (with pasted console logs: "mode: gallery", "gallery: reading the stored generations", "gallery: 0 generations")
+Try actually playing with the gallery. The gallery just always falls to shit whenever you click on it; in fact it breaks the whole app every time. Whenever I click Gallery I'm unable to go back to any tab. So annoying. I'm gonna try it again, and what do you know? It doesn't matter whether the model is loaded or not, it still fucks up. And again, there's no feedback. I need you to make it much more verbose around here if you want any hope of me helping you debug this. I'll just paste what actually happened here; it didn't really print very much, but I'm unable to click anywhere else now. Also, there's no reason the gallery should be empty: I've made plenty of generations.

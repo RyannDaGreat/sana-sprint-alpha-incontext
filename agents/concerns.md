@@ -524,3 +524,8 @@
 - Removed: panzoom.js, its 3 attach sites, its CSS. Not merged and dropped: branch pzmask (trimask pan/zoom) and branch expand (the ⤢ open-in-new-tab button of m00907, which lived in the pan/zoom bar).
 - The gallery freeze (m00908) is still not reproduced: live site, 60 fake generations of 4 × 1024² PNGs, no model loaded: every tab responds in under 35 ms and nothing covers the tabs. The pan/zoom on the gallery view was one suspect; it is gone now.
 - Old manifest bullet, for the record: - **Pan/zoom + minimap (m00889, m00890).** `web/src/panzoom.js` `attachPanZoom(view)`: a vanilla-JS port of the user's SvelteLib `src/lib/PanZoom.svelte` (viewport math: expZoomFactor, zoomTowards, pan, pinch, ease-out animation; plain wheel pans, ctrl+wheel / trackpad pinch zooms; zoom 1 = fitted) …
+
+## 2026-11-20 ~7:45 PM — the Gallery freeze was an invisible overlay (m00908, m00911)
+- Root cause: `#gal-empty` has class `.empty` (`position: absolute; inset: 0`), made for the output canvas's empty note. In the gallery page no ancestor is positioned, so the note covered the whole page, including the top tabs. With an empty gallery every click hit the note: no error, no freeze of the main thread. Found with `document.elementFromPoint` on the Models tab (agents/.scratchpad/pptr/galfreeze_live.js, N = 0).
+- Why we missed it three times: every probe filled the gallery first (20 and 60 items), so the note was hidden. The user's gallery was empty. Lesson: test the empty state, and when clicks die with no error, check what element is on top before suspecting the main thread.
+- Why it was empty: four-way pad generations were never saved to the gallery; the user mostly used the pad. Now they are.
