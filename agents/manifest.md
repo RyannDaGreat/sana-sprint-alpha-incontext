@@ -650,6 +650,24 @@ Reading: at equal training steps the feature (hint) losses never beat output-onl
 
 **Tooltip user study (m00896), 2026-11-20 ~5 PM ET.** 6 fresh `claude --model haiku -p` participants, each run from an empty neutral directory (no project context), shown only the λ/γ/μ tooltip text (`agents/.scratchpad/tooltip_study/tooltips_v1.txt`, `run_study.sh`), each predicted the image at 0, 0.5, 1 and 2 for every dial. Scored on the gist at 0, 1 and 2: λ 6/6, γ 6/6, μ 6/6 (pass bar 5/6, so wording v1 shipped with no rerun). One slip: p6 had the μ = 0 brightness direction reversed (bright parts transparent) but still read it as "alpha follows brightness, not the matte". Answers: `agents/.scratchpad/tooltip_study/answers_tooltips_v1/p1–p6.txt`. Puppeteer (`check_tooltips.js`): all 5 controls PASS (native title on hover, tip box on keyboard focus, aria-describedby resolves to the same text).
 
+**Learned blend pilot, highway v2 (m00901), 2026-11-20 ~7:30 PM ET.** `sana_alpha.peek_blend run` on splitter step 4000, turbo, 4 steps, no CFG. Fitted to that step's table (`peekcalib/turbo4_step004000.json`), then trained 4000 Adam iterations (batch 8, lr 1e-3) on 48 train items × λ ∈ {0, 1}. Scored on calib.py's 36 held-out items with the shipped fast decoder (r5a3_long fp16) against the full decoder's final image. Numbers: mean over items and all 44 blocks, LPIPS (alex) ↓ / SSIM ↑. "worse": shown previews worse than the one before, per generation, every preview shown (no gate). Output: `agents/.scratchpad/highway2/pilot_step4000/`.
+
+| λ | highway | all | step 1 | step 2 | step 3 | step 4 | worse |
+|---|---|---|---|---|---|---|---|
+| 0 | raw head (no blend) | 0.2305 / 0.8465 | 0.410 / 0.777 | 0.246 / 0.827 | 0.168 / 0.869 | 0.099 / 0.913 | 63.2 |
+| 0 | table blend (shipped v1) | 0.2060 / 0.8569 | 0.410 / 0.777 | 0.226 / 0.817 | 0.130 / 0.891 | 0.058 / 0.942 | 21.9 |
+| 0 | v2 at init | 0.2061 / 0.8569 | 0.410 / 0.777 | 0.226 / 0.817 | 0.130 / 0.891 | 0.058 / 0.942 | 22.0 |
+| 0 | **v2 trained** | **0.1803 / 0.8794** | 0.387 / 0.794 | 0.194 / 0.859 | 0.095 / 0.915 | 0.045 / 0.949 | 77.7 |
+| 1 | raw head (no blend) | 0.1822 / 0.8715 | 0.370 / 0.791 | 0.201 / 0.845 | 0.107 / 0.903 | 0.051 / 0.947 | 43.2 |
+| 1 | table blend (shipped v1) | 0.1619 / 0.8847 | 0.370 / 0.791 | 0.179 / 0.849 | 0.077 / 0.926 | 0.022 / 0.973 | 12.9 |
+| 1 | v2 at init | 0.1619 / 0.8847 | 0.370 / 0.791 | 0.179 / 0.849 | 0.077 / 0.926 | 0.022 / 0.973 | 12.8 |
+| 1 | **v2 trained** | **0.1498 / 0.8950** | 0.358 / 0.796 | 0.163 / 0.872 | 0.061 / 0.937 | 0.017 / 0.974 | 68.2 |
+
+Step-end x̂0 (the full model, for scale), λ = 0: 0.249 / 0.794, 0.141 / 0.884, 0.060 / 0.941, 0.030 / 0.964. λ = 1: 0.203 / 0.830, 0.086 / 0.919, 0.023 / 0.971, 0.007 / 0.987.
+- v2 at init reproduces the table (equal to 3–4 digits), as designed. Trained, it is better at every step on both metrics: mean LPIPS −12% at λ = 0 and −7% at λ = 1.
+- It is not monotone: with every preview shown, 78 / 68 previews per generation are worse than the one before (the table: 22 / 13). The mean improved, but block-to-block jitter grew. The loss only measures each preview against the final image, not against the preview before it. The app's expected-error gate (remedy (c)) hides such previews; that gate needs a recalibration on v2's errors before v2 ships.
+- ONNX v2 graph (`export_highway --blend_dir`): max relative error vs PyTorch 4.6e-7 at a size other than the export size.
+
 ## 20. Four-way pad, persistence, real-time cancel (m00848)
 
 **The user's words (m00848, abridged):** the drawn image and the prompt "should be persistent upon reloading unless we click a reset all button"; "a four-way pad … a separate UI mode … a tab … a lot of the interface is shared": one mask, "up to four prompts with the same hyperparameters … different seeds and different prompts, and it will diffuse all four at once, taking turns"; clicking one makes it "50% transparent" and the other three keep running, faster; "if I change the prompt or the seed midway it will just start over"; and in real-time mode "you should be able to cancel a run partway through and just go back to beginning … with the new condition".
