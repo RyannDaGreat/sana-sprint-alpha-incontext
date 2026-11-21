@@ -722,6 +722,16 @@ No W is worse than the W = 0 control by more than 2 standard errors of the paire
 
 Highway: −11% (λ 0) and −10% (λ 1) vs the baseline. Final images no worse: LPIPS 0.275 vs 0.287 (λ 0) and 0.273 vs 0.274 (λ 1); SSIM 0.722 vs 0.722 and 0.724 vs 0.726. Matte MAE 0.031 (λ 0), 0.019 (λ 1).
 
+**Highway v2 for splitter step 5000 (the shipped checkpoint), 2026-11-20 ~10:20 PM ET.** β = 0, the same procedure as the pilots above (`agents/.scratchpad/highway2/v2_step5000/`). Below: the gate as the app uses it, one table per decoder fitted on λ = 0 and λ = 1 pooled (in-sample, as for v1). Mean LPIPS over all blocks.
+
+| decoder | highway | LPIPS λ = 0 | LPIPS λ = 1 | gated: worse / shown per generation, margin |
+|---|---|---|---|---|
+| big (r5a3_long) | table (v1) | 0.1998 | 0.1630 | 0.97 / 17 / 0.03 |
+| big (r5a3_long) | v2 | 0.1746 | 0.1514 | 0.82 / 14 / 0.04 |
+| small (r2a3_xs) | table (v1) | 0.2512 | 0.1858 | 0.96 / 15 / 0.04 |
+| small (r2a3_xs) | v2 | 0.2379 | 0.1737 | 0.68 / 13 / 0.04 |
+
+Version `fibo2_turbo_fibo2_split_step_005000-int8-lambda-gamma-hw2`: the v1 folder hardlinked, with its own manifest.json (`highway.version: 2`, v2's gate tables), highway.onnx (the v2 graph; 5.2e-7 max relative error vs PyTorch) and fast decoders. Headless Chrome on wasm, 256², 4 steps, Every layer: it loaded in 97 s and generated in 67 min (CPU only). It showed 172 'learned' block previews and 4 step ends, with no page errors. The console errors were 404s for /pwa/ and the favicon (the test server serves the app under /site/) and ONNX Runtime constant-folding warnings.
 
 ## 20. Four-way pad, persistence, real-time cancel (m00848)
 
