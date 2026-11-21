@@ -20,5 +20,6 @@ web/public/masks/categories.json
 /agents/logs
 journal/assets/fastdec/
 journal/assets/sneakpeek/
+journal/assets/reuse/
 journal/sneakpeek/*.png
 journal/sneakpeek/live_test_256/
