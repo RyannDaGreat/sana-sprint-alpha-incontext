@@ -668,6 +668,31 @@ Step-end x̂0 (the full model, for scale), λ = 0: 0.249 / 0.794, 0.141 / 0.884,
 - It is not monotone: with every preview shown, 78 / 68 previews per generation are worse than the one before (the table: 22 / 13). The mean improved, but block-to-block jitter grew. The loss only measures each preview against the final image, not against the preview before it. The app's expected-error gate (remedy (c)) hides such previews; that gate needs a recalibration on v2's errors before v2 ships.
 - ONNX v2 graph (`export_highway --blend_dir`): max relative error vs PyTorch 4.6e-7 at a size other than the export size.
 
+**Matte joint-highway W pilots (§21, m00896), 2026-11-20 evening.** 300 steps each (warmup 50) from splitter step 5000. 16 held-out showcase items (morph_band 0–15), turbo 4 steps, seeds 1000+k. Highway = the highway's x̂0 relative L2 error vs the final image latent, mean over blocks 1–43 (per step: steps 1–4). LPIPS (alex) and SSIM are of the final gray-head image vs the true RGB on gray. Matte MAE = mean |α̂ − α| of the matte head. Baseline = the μ = 0 splitter step 5000 with its own highway. λ = 0:
+
+| folder | λ | highway | per step | LPIPS | SSIM | matte MAE |
+|---|---|---|---|---|---|---|
+| eval_baseline | 0 | 0.554 | 0.77 / 0.61 / 0.49 / 0.34 | 0.287 | 0.722 | – |
+| eval_w0 | 0 | 0.556 | 0.78 / 0.61 / 0.49 / 0.34 | 0.313 | 0.720 | 0.086 |
+| eval_w0.1 | 0 | 0.543 | 0.77 / 0.59 / 0.48 / 0.33 | 0.296 | 0.722 | 0.071 |
+| eval_w0.3 | 0 | 0.528 | 0.75 / 0.58 / 0.46 / 0.32 | 0.285 | 0.727 | 0.053 |
+| eval_w1 | 0 | 0.488 | 0.72 / 0.53 / 0.41 / 0.29 | 0.280 | 0.722 | 0.040 |
+| eval_w3 | 0 | 0.511 | 0.73 / 0.57 / 0.44 / 0.30 | 0.285 | 0.719 | 0.041 |
+
+λ = 1 (adapter merged, the training configuration):
+
+| folder | λ | highway | per step | LPIPS | SSIM | matte MAE |
+|---|---|---|---|---|---|---|
+| eval_baseline_lam1 | 1 | 0.459 | 0.72 / 0.51 / 0.36 / 0.24 | 0.274 | 0.726 | – |
+| eval_w0_lam1 | 1 | 0.462 | 0.74 / 0.52 / 0.36 / 0.23 | 0.294 | 0.726 | 0.021 |
+| eval_w0.1_lam1 | 1 | 0.442 | 0.71 / 0.49 / 0.34 / 0.22 | 0.268 | 0.733 | 0.019 |
+| eval_w0.3_lam1 | 1 | 0.436 | 0.71 / 0.49 / 0.33 / 0.22 | 0.275 | 0.732 | 0.020 |
+| eval_w1_lam1 | 1 | 0.416 | 0.68 / 0.47 / 0.31 / 0.20 | 0.278 | 0.721 | 0.024 |
+| eval_w3_lam1 | 1 | 0.425 | 0.69 / 0.48 / 0.32 / 0.21 | 0.277 | 0.724 | 0.022 |
+
+No W is worse than the W = 0 control by more than 2 standard errors of the paired difference, at either λ. W = 1 has the lowest highway error at both λ (−12% at λ 0, −9% at λ 1 vs the baseline). Its final images: LPIPS 0.280 vs 0.287 (λ 0) and 0.278 vs 0.274 (λ 1); SSIM 0.722 vs 0.722 and 0.721 vs 0.726. The long run uses W = 1.
+
+
 ## 20. Four-way pad, persistence, real-time cancel (m00848)
 
 **The user's words (m00848, abridged):** the drawn image and the prompt "should be persistent upon reloading unless we click a reset all button"; "a four-way pad … a separate UI mode … a tab … a lot of the interface is shared": one mask, "up to four prompts with the same hyperparameters … different seeds and different prompts, and it will diffuse all four at once, taking turns"; clicking one makes it "50% transparent" and the other three keep running, faster; "if I change the prompt or the seed midway it will just start over"; and in real-time mode "you should be able to cancel a run partway through and just go back to beginning … with the new condition".
