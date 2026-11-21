@@ -274,9 +274,11 @@ class HighwayGraph(torch.nn.Module):
     Inputs: stream (1, S, dim) float16, the main stream after block `block` (gist, image, context tokens), c (1, D) the timestep
     conditioning (adaln_noisy, float16), latents (1, 32, LH, LW) float32 x_t, block () int64, start () int64 = the first image token.
     Output: velocity (1, 32, LH, LW) float32, the head's estimate of the model's velocity (x̂0 = x_t − σ·v in the app).
+    Version 2 (a peek_blend.LearnedBlend, §18 m00901) adds the inputs prev_x0 (1, 32, LH, LW) float32, the previous step's
+    x̂0 (zeros at step 1), and sigma (1,) float32, and outputs x0 (1, 32, LH, LW): the learned preview itself.
     """
 
-    def __init__(self, highway, final_state):
+    def __init__(self, highway, final_state, blend=None):
         """Command (copies weights). final_state: the base model's final_layer.{adaLN_modulation.1.*} tensors."""
         super().__init__()
         stack = lambda mods, attr: torch.stack([getattr(m, attr).detach().half().cpu() for m in mods])  # stored fp16 (half the download)
@@ -294,8 +296,9 @@ class HighwayGraph(torch.nn.Module):
         assert not highway.residual, "the residual highway needs the previous peek as an input: not exported"
         self.register_buffer("mw", final_state["final_layer.adaLN_modulation.1.weight"].half())
         self.register_buffer("mb", final_state["final_layer.adaLN_modulation.1.bias"].half())
+        self.blend = blend  # float32: tiny next to the heads
 
-    def forward(self, stream, c, latents, block, start):
+    def forward(self, stream, c, latents, block, start, prev_x0=None, sigma=None):
         """Pure function (given fixed weights). See the class docstring for shapes."""
         import torch.nn.functional as F
         _, _, lh, lw = latents.shape
@@ -312,6 +315,11 @@ class HighwayGraph(torch.nn.Module):
         if self.skip:
             xt = fibo2.patchify(latents.float()).flatten(2).transpose(1, 2)[0]  # (N, 128)
             p = p + F.linear(xt, f(self.sw[block]), f(self.sb[block]))
+        tok = lambda x: fibo2.patchify(x.float()).flatten(2).transpose(1, 2)  # (1, 32, LH, LW) -> (1, N, 128)
+        if self.blend is not None:
+            xt = tok(latents)
+            h = xt - sigma.view(1, 1, 1) * p[None]  # the head's Tweedie estimate
+            p = self.blend(block.view(1), h, tok(prev_x0), xt, sigma.view(1), c)[0]
         return fibo2.unpatchify(p.transpose(0, 1).reshape(1, -1, lh // 2, lw // 2))
 
 
@@ -330,7 +338,7 @@ def final_layer_state(base_dir):
     return out
 
 
-def export_highway(checkpoint, base_dir, out, n_blocks=44, dim=3584, c_dim=256):
+def export_highway(checkpoint, base_dir, out, n_blocks=44, dim=3584, c_dim=256, blend_dir=None):
     """
     Command. Writes the HighwayGraph of a step folder's HIGHWAY_FILE (on the given base's final layer) to `out` (ONNX,
     opset 17, dynamic S, LH, LW) and checks it against the PyTorch module on a random input.
@@ -339,6 +347,7 @@ def export_highway(checkpoint, base_dir, out, n_blocks=44, dim=3584, c_dim=256):
         checkpoint (str): a train_fibo2 step folder with HIGHWAY_FILE, e.g. models/fibo2/hw_smoke2/step_000015
         base_dir (str): fibo2.FIBO2_DIR or fibo2.TURBO_DIR (the version's base: its final layer modulation)
         out (str): e.g. models/web/<version>/highway.onnx
+        blend_dir (str | None): the folder of a peek_blend.BLEND_FILE (default: the checkpoint's); with one, a version 2 graph
     """
     from pathlib import Path
     from types import SimpleNamespace
@@ -352,16 +361,21 @@ def export_highway(checkpoint, base_dir, out, n_blocks=44, dim=3584, c_dim=256):
     finally:
         fibo2.splitter_of = fibo2_splitter_of
     assert load_highway(highway, Path(checkpoint)), f"{checkpoint} has no {HIGHWAY_FILE}"
-    graph = HighwayGraph(highway, final).eval()
+    from sana_alpha import peek_blend
+    blend = peek_blend.load_blend(blend_dir or checkpoint)  # None: a version 1 highway
+    graph = HighwayGraph(highway, final, blend).eval()
     s, lh = 256 + 64 + 300, 16
+    names = ["stream", "c", "latents", "block", "start"] + (["prev_x0", "sigma"] if blend else [])
+    v2 = lambda h, w: (torch.randn(1, 32, h, w), torch.tensor([0.6])) if blend else ()
     # stream and c in float16, as the int8/fp16 chunk graphs pass them; latents float32 as the app holds x_t
-    args = (torch.randn(1, s, dim).half(), torch.randn(1, c_dim).half(), torch.randn(1, 32, lh, lh), torch.tensor(5), torch.tensor(256))
-    torch.onnx.export(graph, args, out, opset_version=17, dynamo=False, input_names=["stream", "c", "latents", "block", "start"],
-                      output_names=["velocity"], dynamic_axes={"stream": {1: "S"}, "latents": {2: "LH", 3: "LW"}, "velocity": {2: "LH", 3: "LW"}})
+    args = (torch.randn(1, s, dim).half(), torch.randn(1, c_dim).half(), torch.randn(1, 32, lh, lh), torch.tensor(5), torch.tensor(256), *v2(lh, lh))
+    out_name = "x0" if blend else "velocity"
+    axes = {"stream": {1: "S"}, "latents": {2: "LH", 3: "LW"}, out_name: {2: "LH", 3: "LW"}, **({"prev_x0": {2: "LH", 3: "LW"}} if blend else {})}
+    torch.onnx.export(graph, args, out, opset_version=17, dynamo=False, input_names=names, output_names=[out_name], dynamic_axes=axes)
     import numpy as np, onnxruntime as ort
-    a2 = (torch.randn(1, s + 40, dim).half(), torch.randn(1, c_dim).half(), torch.randn(1, 32, 12, 20), torch.tensor(43), torch.tensor(256))
+    a2 = (torch.randn(1, s + 40, dim).half(), torch.randn(1, c_dim).half(), torch.randn(1, 32, 12, 20), torch.tensor(43), torch.tensor(256), *v2(12, 20))
     ref = graph(*a2).detach().numpy()
-    got = ort.InferenceSession(out, providers=["CPUExecutionProvider"]).run(None, {n: v.numpy() for n, v in zip(["stream", "c", "latents", "block", "start"], a2)})[0]
+    got = ort.InferenceSession(out, providers=["CPUExecutionProvider"]).run(None, {n: v.numpy() for n, v in zip(names, a2)})[0]
     err = float(np.abs(got - ref).max() / (np.abs(ref).max() + 1e-12))
     print(f"highway graph {out}: max relative error vs PyTorch {err:.2e}")
     assert err < 1e-4, err
