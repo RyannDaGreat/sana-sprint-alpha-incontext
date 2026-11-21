@@ -545,3 +545,8 @@
 
 ## 2026-11-21 ~3:50 AM — a journal publish pushed images but not the site
 - `publish_pages` (pubreuse2, main 350e199) pushed 4 new images to journal-assets, then printed "Everything up-to-date" and made no gh-pages commit, so the phase 2 section of cross_step_reuse.html was not live. The next run (main a3e6f1b) committed and pushed the site (0eb2fc2). Cause not found. Lesson: after every publish, check the live page for the new text; a clean exit does not prove the page changed.
+
+## 2026-11-21 ~4:20 PM — nvidia-smi hangs (D state); CUDA work continues
+- From about 4:20 PM every `nvidia-smi` call hangs in uninterruptible sleep (the first: `nvidia-smi --query-gpu=memory.free -i 7`, from a stale decoder-frenzy `wait_gpu.sh`; even `timeout 20 nvidia-smi` cannot kill it). The matte long run keeps training normally (step 6150 at 5:50 PM), so CUDA works; only the management query is stuck.
+- Effect: anything that waits on nvidia-smi stalls silently. The step 6000 eval sat "waiting" with its checkpoint present. Worked around with run_long_eval_gpu.sh (GPU given by hand). Killed the stale wait_gpu.sh parent.
+- If it persists after the run ends, the node may need a driver reset/reboot (setup.sh recreates the system installs). Do not start jobs whose scheduling depends on nvidia-smi until then.
