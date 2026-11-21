@@ -759,6 +759,22 @@ Version `fibo2_turbo_fibo2_split_step_005000-int8-lambda-gamma-hw2`: the v1 fold
 - For scale, full run vs the true image: turbo LPIPS 0.287 (λ 0) / 0.274 (λ 1); dev 0.512 / 0.259.
 - Phase 2 (trained connectors) matters for turbo only: training-free stops at 25% near-free there, while dev already reaches 35–55% at LPIPS ≤ 0.034.
 
+**Cross-step reuse, phase 2: a trained connector for whole-step reuse (turbo, todo 128), 2026-11-21 ~3:45 AM.** Every main block skipped at steps 2 and 3 (50% of the block evaluations, as phase 1's "all blocks at steps 2 and 3"); the reused image tokens h_s = out_1 + (in_s − in_1) go through a per-step connector h + C_s(LN(h) ‖ LN(in_s) → width W, + a bias from c → GELU → dim, last layer zero-initialized), so training starts at the training-free result. Loss: relative ‖x̂0(h) − x̂0(out_s)‖² through the frozen final layer (gray head), x̂0 = x_t − σ·v. Data: 204 full turbo runs of training items (page ids 16–66, never the 16 held-out ones; trimask methods original and combo_chain; λ 0 and 1), image tokens of the main-block stack's input and output at steps 1–3. 3000 iterations, AdamW 1e-4, batch 1 run (both steps). On-policy (v3, v4): 204 more runs whose step 2 is reused + connector and whose step 3 runs in full as the teacher; fine-tuned 1500 iterations on all runs (on-policy runs train C_3 only). The connector is a token-wise MLP: 11 M (W 1024) or 45 M (W 4096) parameters per step, against 44 blocks of ~150 M each. Script `agents/.scratchpad/reuse/phase2.py` (collect / train / collect_op / eval), chains `chain_v3.sh`, `chain_v4.sh`; connectors `agents/.scratchpad/reuse/phase2_conn_*/connector.pt`. 16 held-out items, vs the full run:
+
+| method (50% skipped) | λ 0: LPIPS / SSIM | λ 1: LPIPS / SSIM |
+|---|---|---|
+| training-free reuse (phase 1) | 0.098 / 0.907 | 0.069 / 0.925 |
+| connector v1 (W 1024) | 0.046 / 0.954 | 0.036 / 0.949 |
+| connector v2 (W 4096) | 0.040 / 0.960 | 0.032 / 0.957 |
+| v3 (v1 + on-policy step 3) | 0.042 / 0.958 | 0.035 / 0.955 |
+| v4 (v2 + on-policy step 3) | **0.038 / 0.960** | **0.031 / 0.957** |
+
+- The connector cuts the LPIPS of 50% whole-step reuse 2.6× at λ 0 and 2.3× at λ 1 (v4). It is now about as cheap as phase 1's 37.5% schedule (step 2 all + step 3 first half: 0.044 / 0.032), but skips 50%.
+- Width and on-policy data each help a little (v1 → v2: −0.006; v1 → v3: −0.004); together v4 is best.
+- Against the true image, LPIPS is unchanged by skipping (full 0.287 / 0.274, v4 0.295 / 0.271): the remaining difference to the full run is mostly a different sample, not a worse one.
+- Not done: the learned schedule-dependent layer skip (Learning-to-Cache router). Phase 1 found partial-block skipping clearly worse than whole-step reuse at the same rate, so the schedule here stays whole steps; a router over (step, block) would need backpropagation through the 8 B transformer at 1024².
+- Not done: the app port (one cached tensor + the connector ONNX per skipped step) and wall-time measurement.
+
 ## 20. Four-way pad, persistence, real-time cancel (m00848)
 
 **The user's words (m00848, abridged):** the drawn image and the prompt "should be persistent upon reloading unless we click a reset all button"; "a four-way pad … a separate UI mode … a tab … a lot of the interface is shared": one mask, "up to four prompts with the same hyperparameters … different seeds and different prompts, and it will diffuse all four at once, taking turns"; clicking one makes it "50% transparent" and the other three keep running, faster; "if I change the prompt or the seed midway it will just start over"; and in real-time mode "you should be able to cancel a run partway through and just go back to beginning … with the new condition".

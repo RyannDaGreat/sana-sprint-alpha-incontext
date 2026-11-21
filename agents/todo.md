@@ -76,6 +76,7 @@
 
 ## 128 — Cross-step activation reuse / layer skipping (m00820) — after everything else; no permission needed to start
 - Phase 1 done 2026-11-21 (manifest §19, journal/cross_step_reuse.html): whole-step reuse wins; turbo step 2 reuse = 25% of blocks for LPIPS 0.014; dev FORA3 = 55% for 0.034 / 0.013. Phase 2 (trained) only worth it for turbo.
+- Phase 2 done 2026-11-21 (§19): reuse every block at turbo steps 2–3 (50%) + a zero-init connector distilled to x̂0: LPIPS 0.098 / 0.069 -> 0.038 / 0.031 (v4). Open: Learning-to-Cache router (not done), app port + wall time.
 - Measure redundancy: per-block cosine similarity / relative change of hidden states between consecutive steps (dev 20 steps, turbo 4), and the error of reusing step s−1's block output at step s (training-free caching, FORA/Δ-DiT style).
 - Trained version: store every block's activations at step s−1; at step s feed them through zero-init (ControlNet-like) connectors; schedule-dependent layer skipping (middle steps skip the first half, late steps skip ~80%), distilled to the full model's x̂0 (Learning-to-Cache style).
 - Report speedup vs quality (SSIM/LPIPS/ΔE + VLM) in a journal report; log in manifest §19.
