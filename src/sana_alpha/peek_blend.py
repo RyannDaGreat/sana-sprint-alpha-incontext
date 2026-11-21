@@ -306,14 +306,15 @@ def gate_tables(lp, end, margins=(0.0, 0.005, 0.01, 0.015, 0.02, 0.03, 0.04, 0.0
 
 
 def run(checkpoint, calib_json, out_dir, cache_dir, base="turbo", n_train=48, n_eval=36, train_iters=4000, monotone=(0.0, 1.0, 4.0),
-        fast="agents/.scratchpad/fastdec_ship/r5a3_long16.onnx",
+        fast="fast_decoder=agents/.scratchpad/fastdec_ship/r5a3_long16.onnx", variants="raw,table,init,learned",
         adapter="models/fibo2/fibo2_adapter/step_001000/lora.safetensors"):
     """
-    Command (GPU; writes out_dir/{beta*/BLEND_FILE, results.json} and prints). The pilot of §18's learned blend against
+    Command (GPU; writes out_dir/{beta*/BLEND_FILE, results_<role>.json} and prints). The pilot of §18's learned blend against
     the shipped table: trajectories at λ = 0 and λ = 1 (cached), fit g to the table, train one blend per monotone weight β,
     then score every (step, block) preview of the held-out items by LPIPS (alex) and SSIM after the shipped fast decoder,
     against the full decoder's final image: raw head, table blend (shipped v1), learned blend at init and trained (v2, per
-    β). Each variant also gets its gate (gate_tables) fitted on its own held-out errors.
+    β). Each variant also gets its gate (gate_tables) fitted on its own held-out errors, per λ and pooled over λ (the
+    app's table). fast: role=onnx pairs (the manifest's decoder roles), one results_<role>.json each; variants: which to score.
     """
     import lpips
     import onnxruntime as ort
@@ -343,16 +344,14 @@ def run(checkpoint, calib_json, out_dir, cache_dir, base="turbo", n_train=48, n_
         save_blend(b, out_dir / f"beta{beta:g}")
         blends[f"learned_b{beta:g}"] = b
 
-    sess = ort.InferenceSession(fast, providers=["CUDAExecutionProvider"])
-    name = sess.get_inputs()[0].name
     LP = lpips.LPIPS(net="alex", verbose=False).cuda().eval()
     side = int(round(trajs_eval[0]["h"].shape[2] ** 0.5))
     lat = lambda tok: fibo2.unpatchify(tok.transpose(-1, -2).reshape(-1, 128, side, side))
 
     @torch.no_grad()
-    def score(tokens, ref):
+    def score(sess, tokens, ref):
         """Query (GPU). (M, N, 128) tokens -> (M,) LPIPS and (M,) SSIM vs ref (1, 3, H, W) in [0, 1]."""
-        lp_, ss_ = [], []
+        lp_, ss_, name = [], [], sess.get_inputs()[0].name
         for i in range(0, len(tokens), 8):
             x = lat(tokens[i:i + 8].float())
             img = torch.cat([torch.from_numpy(sess.run(None, {name: x[j:j + 1].numpy()})[0]) for j in range(len(x))]).cuda().clamp(0, 1)
@@ -361,28 +360,39 @@ def run(checkpoint, calib_json, out_dir, cache_dir, base="turbo", n_train=48, n_
             ss_.append(ssim(img, r, data_range=1.0, size_average=False).cpu())
         return torch.cat(lp_), torch.cat(ss_)
 
-    variants = ("raw", "table", *blends)
+    wanted = variants.split(",") if isinstance(variants, str) else list(variants)
+    names = [v for v in ("raw", "table", *blends) if v in wanted or (v.startswith("learned") and "learned" in wanted)]
     lams = sorted({tj["lam"] for tj in trajs_eval})
-    res = {v: {f"lam{int(l)}": dict(lpips=[], ssim=[], mse=[]) for l in lams} for v in variants + ("step_end",)}
-    for j, tj in enumerate(trajs_eval):
-        with torch.no_grad():
-            ref = (vae.decode(fibo2.denormalize_latents(lat(tj["x0"][-1:]).cuda(), *bn).to(vae.dtype)).sample.float().clamp(-1, 1) + 1) / 2
-        n_s = tj["h"].shape[0]
-        prev = dict(raw=tj["h"].float(), table=table_blend(tj, weights), **{v: apply_blend(b, tj) for v, b in blends.items()})
-        key = f"lam{int(tj['lam'])}"
-        for v, pv in prev.items():
-            lpv, ssv = score(pv.flatten(0, 1), ref)
-            res[v][key]["lpips"].append(lpv.view(n_s, n_k).tolist())
-            res[v][key]["ssim"].append(ssv.view(n_s, n_k).tolist())
-            res[v][key]["mse"].append(latent_mse(pv, tj).tolist())
-        lpv, ssv = score(tj["x0"], ref)
-        res["step_end"][key]["lpips"].append(lpv.tolist())
-        res["step_end"][key]["ssim"].append(ssv.tolist())
-        print(f"eval {j + 1}/{len(trajs_eval)}", flush=True)
-    gates = {v: {lam: gate_tables(np.array(res[v][lam]["lpips"]), np.array(res["step_end"][lam]["lpips"])) for lam in res[v]} for v in variants}
-    (out_dir / "results.json").write_text(json.dumps(dict(checkpoint=checkpoint, steps=steps, n_train=len(trajs_train) // 2,
-                                                          n_eval=len(trajs_eval) // 2, train_iters=train_iters, results=res, gates=gates)))
-    print(summary(out_dir / "results.json"))
+    refs = []
+    with torch.no_grad():
+        for tj in trajs_eval:
+            refs.append((vae.decode(fibo2.denormalize_latents(lat(tj["x0"][-1:]).cuda(), *bn).to(vae.dtype)).sample.float().clamp(-1, 1) + 1) / 2)
+    for role, path in (kv.split("=") for kv in fast.split(",")):
+        sess = ort.InferenceSession(path, providers=["CUDAExecutionProvider"])
+        res = {v: {f"lam{int(l)}": dict(lpips=[], ssim=[], mse=[]) for l in lams} for v in names + ["step_end"]}
+        for j, (tj, ref) in enumerate(zip(trajs_eval, refs)):
+            n_s = tj["h"].shape[0]
+            make = dict(raw=lambda: tj["h"].float(), table=lambda: table_blend(tj, weights), **{v: (lambda b=b: apply_blend(b, tj)) for v, b in blends.items()})
+            key = f"lam{int(tj['lam'])}"
+            for v in names:
+                pv = make[v]()
+                lpv, ssv = score(sess, pv.flatten(0, 1), ref)
+                res[v][key]["lpips"].append(lpv.view(n_s, n_k).tolist())
+                res[v][key]["ssim"].append(ssv.view(n_s, n_k).tolist())
+                res[v][key]["mse"].append(latent_mse(pv, tj).tolist())
+            lpv, ssv = score(sess, tj["x0"], ref)
+            res["step_end"][key]["lpips"].append(lpv.tolist())
+            res["step_end"][key]["ssim"].append(ssv.tolist())
+            print(f"eval {role} {j + 1}/{len(trajs_eval)}", flush=True)
+        pool = lambda v, k: np.concatenate([np.array(res[v][lam][k]) for lam in res[v]])
+        gates = {v: {**{lam: gate_tables(np.array(res[v][lam]["lpips"]), np.array(res["step_end"][lam]["lpips"])) for lam in res[v]},
+                     "pooled": gate_tables(pool(v, "lpips"), np.concatenate([np.array(res["step_end"][lam]["lpips"]) for lam in res["step_end"]]))}
+                 for v in names}
+        out = out_dir / f"results_{role}.json"
+        out.write_text(json.dumps(dict(checkpoint=checkpoint, decoder=path, steps=steps, n_train=len(trajs_train) // 2,
+                                       n_eval=len(trajs_eval) // 2, train_iters=train_iters, results=res, gates=gates)))
+        print(role, path)
+        print(summary(out))
 
 
 def worse_count(lp_sk, end_s):
@@ -403,10 +413,12 @@ def summary(results_json):
     full = json.loads(Path(results_json).read_text())
     r, gates = full["results"], full.get("gates", {})
     lines = []
-    for lam in r["raw"]:
+    for lam in r["step_end"]:
         lines.append(f"λ = {lam[3:]}: mean over held-out items and blocks; LPIPS ↓ / SSIM ↑; worse = previews worse than the one before, per generation"
                      " (all shown | with its gate: worse, shown, margin)")
         for v in [k for k in r if k != "step_end"]:
+            if lam not in r[v]:
+                continue
             lp, ss = np.array(r[v][lam]["lpips"]), np.array(r[v][lam]["ssim"])  # (items, S, K)
             end = np.array(r["step_end"][lam]["lpips"])
             worse = np.mean([worse_count(a, e) for a, e in zip(lp, end)])
