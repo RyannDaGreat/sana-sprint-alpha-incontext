@@ -709,6 +709,20 @@ No W is worse than the W = 0 control by more than 2 standard errors of the paire
 - With its own gate, every variant meets m00813's ≤ 1 worse preview per generation. v2 β = 0 shows as many previews as the table at λ = 0 (11) and fewer at λ = 1 (23 vs 28), with fewer worse ones (0.72 vs 0.83, 0.56 vs 0.97). Its block previews are better on average at every step.
 - Recommendation: ship v2 with β = 0 and its own gate (expected tables from gate_tables). The gate is in-sample, as for v1.
 
+**Matte long run fibo2_matte (W = 1, 6 GPUs), step 1000, 2026-11-20 11:26 PM ET.** Same 16 items and metrics as the W pilots, against the μ = 0 baseline and the W = 1 pilot at 300 steps:
+
+| folder | λ | highway | per step | LPIPS | SSIM | matte MAE |
+|---|---|---|---|---|---|---|
+| eval_baseline | 0 | 0.554 | 0.77 / 0.61 / 0.49 / 0.34 | 0.287 | 0.722 | – |
+| eval_w1 | 0 | 0.488 | 0.72 / 0.53 / 0.41 / 0.29 | 0.280 | 0.722 | 0.040 |
+| eval_long1000 | 0 | 0.495 | 0.73 / 0.55 / 0.42 / 0.28 | 0.275 | 0.722 | 0.031 |
+| eval_baseline_lam1 | 1 | 0.459 | 0.72 / 0.51 / 0.36 / 0.24 | 0.274 | 0.726 | – |
+| eval_w1_lam1 | 1 | 0.416 | 0.68 / 0.47 / 0.31 / 0.20 | 0.278 | 0.721 | 0.024 |
+| eval_long1000_lam1 | 1 | 0.414 | 0.68 / 0.47 / 0.31 / 0.20 | 0.273 | 0.724 | 0.019 |
+
+Highway: −11% (λ 0) and −10% (λ 1) vs the baseline. Final images no worse: LPIPS 0.275 vs 0.287 (λ 0) and 0.273 vs 0.274 (λ 1); SSIM 0.722 vs 0.722 and 0.724 vs 0.726. Matte MAE 0.031 (λ 0), 0.019 (λ 1).
+
+
 ## 20. Four-way pad, persistence, real-time cancel (m00848)
 
 **The user's words (m00848, abridged):** the drawn image and the prompt "should be persistent upon reloading unless we click a reset all button"; "a four-way pad … a separate UI mode … a tab … a lot of the interface is shared": one mask, "up to four prompts with the same hyperparameters … different seeds and different prompts, and it will diffuse all four at once, taking turns"; clicking one makes it "50% transparent" and the other three keep running, faster; "if I change the prompt or the seed midway it will just start over"; and in real-time mode "you should be able to cancel a run partway through and just go back to beginning … with the new condition".

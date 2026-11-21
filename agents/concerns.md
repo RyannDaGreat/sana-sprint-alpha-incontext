@@ -534,3 +534,7 @@
 - The first W pilots ran out of memory in joint_backward (69.6 GB allocated + 8.9 GB reserved at 1024², batch 4): it built a scaled copy of all 44 blocks' token gradients (≈ 5 GB). Fix: scale in place, and PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True; then 65.5 GB.
 - `open(p, "w").write(f(open(p).read()))` truncates p before f runs: when f raised, agents/manifest.md was empty for ~5 minutes. Restored from HEAD + the coordinator's 2 uncommitted m00896 bullets (recovered verbatim from the session transcript). Lesson: read into a variable first, write last.
 - The pilot rule "largest W with no degradation" picked W = 3 although W = 1 beat it on every metric (all W were at least as good as the control): the rule needs "and best highway" when nothing degrades.
+
+## 2026-11-20 11:20 PM — run_long_eval.sh waited forever (Matte fork)
+- free_gpu was `nvidia-smi ... | awk '... {print $1; exit}'` under `set -o pipefail`: awk's early exit SIGPIPEs nvidia-smi, the pipeline fails, and the loop printed "no room" for hours while GPU 6 was free. The coordinator fixed it (collect the match, print in END) and restarted it at 11:20 PM. Lesson: under pipefail, never exit a pipe reader early.
+- My first watcher of it died at once on a zsh "no matches found" glob (logs not yet created); watchers now run under bash and read the tmux pane.
