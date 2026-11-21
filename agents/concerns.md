@@ -529,3 +529,8 @@
 - Root cause: `#gal-empty` has class `.empty` (`position: absolute; inset: 0`), made for the output canvas's empty note. In the gallery page no ancestor is positioned, so the note covered the whole page, including the top tabs. With an empty gallery every click hit the note: no error, no freeze of the main thread. Found with `document.elementFromPoint` on the Models tab (agents/.scratchpad/pptr/galfreeze_live.js, N = 0).
 - Why we missed it three times: every probe filled the gallery first (20 and 60 items), so the note was hidden. The user's gallery was empty. Lesson: test the empty state, and when clicks die with no error, check what element is on top before suspecting the main thread.
 - Why it was empty: four-way pad generations were never saved to the gallery; the user mostly used the pad. Now they are.
+
+## 2026-11-20 ~6 PM — joint highway: OOM, a truncated manifest (Matte fork)
+- The first W pilots ran out of memory in joint_backward (69.6 GB allocated + 8.9 GB reserved at 1024², batch 4): it built a scaled copy of all 44 blocks' token gradients (≈ 5 GB). Fix: scale in place, and PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True; then 65.5 GB.
+- `open(p, "w").write(f(open(p).read()))` truncates p before f runs: when f raised, agents/manifest.md was empty for ~5 minutes. Restored from HEAD + the coordinator's 2 uncommitted m00896 bullets (recovered verbatim from the session transcript). Lesson: read into a variable first, write last.
+- The pilot rule "largest W with no degradation" picked W = 3 although W = 1 beat it on every metric (all W were at least as good as the control): the rule needs "and best highway" when nothing degrades.

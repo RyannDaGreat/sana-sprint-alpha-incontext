@@ -202,7 +202,7 @@ def highway_backward(highway, tap, sigma=None, token_grads=False):
 
 def joint_backward(loss, tap, grads, weight):
     """
-    Command (accumulates .grad of the model's trainable weights). One backward of loss + weight · mean_i L_i, where L_i
+    Command (accumulates .grad of the model's trainable weights; scales grads in place). One backward of loss + weight · mean_i L_i, where L_i
     is block i's highway loss, given grads = [d L_i / d tokens_i] from highway_backward(token_grads=True): the chain
     rule through each block's captured (not detached) image tokens. One call, so gradient checkpointing recomputes each
     block once and DDP reduces once.
@@ -214,7 +214,9 @@ def joint_backward(loss, tap, grads, weight):
         weight (float): w_hw, the highway term's weight
     """
     blocks = [tap.image_tokens(i) for i in range(len(grads))]
-    torch.autograd.backward([loss] + blocks, [None] + [g * (weight / len(grads)) for g in grads])
+    for g in grads:  # in place: a scaled copy of all 44 blocks' gradients is ≈ 5 GB at 1024², batch 4 (the first pilots ran out of memory)
+        g.mul_(weight / len(grads))
+    torch.autograd.backward([loss] + blocks, [None] + grads)
 
 
 def all_reduce_grads(module, world):
