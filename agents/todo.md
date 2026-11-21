@@ -68,10 +68,10 @@
 13. NWD (m00884): "Done" when all running work is finished (publish, PeekScrub, PeekCalib, ship loop to step 5000, training)
 
 ## Highway + matte notifications (m00903): at most 5, spaced evenly, one big meaning each, short and readable
-- H1 (~8 PM): matte W pilots done: which W, does joint training help previews, does final quality drop (λ = 0 and λ = 1)
-- H2: Highway2 (learned blend, m00901) pilot numbers vs the old highway, and which highway the long run uses
-- H3: the long matte + highway run is launched, with a measured ETA
-- H4 (a few hours in, m00896): is it working, and does final image quality degrade
+- [sent 7:40 PM] H1: matte W pilots done: which W, does joint training help previews, does final quality drop (λ = 0 and λ = 1)
+- [sent 7:50 PM] H2: Highway2 (learned blend, m00901) pilot numbers vs the old highway, and which highway the long run uses
+- [sent 07:46 PM] H3: the long matte + highway run is launched, with a measured ETA
+- [sent 11:27 PM] H4 (a few hours in, m00896): is it working, and does final image quality degrade
 - H5: the long run finished and shipped to the web app, with the link
 
 ## 128 — Cross-step activation reuse / layer skipping (m00820) — after everything else; no permission needed to start

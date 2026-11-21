@@ -530,6 +530,10 @@
 - Why we missed it three times: every probe filled the gallery first (20 and 60 items), so the note was hidden. The user's gallery was empty. Lesson: test the empty state, and when clicks die with no error, check what element is on top before suspecting the main thread.
 - Why it was empty: four-way pad generations were never saved to the gallery; the user mostly used the pad. Now they are.
 
+## 2026-11-20 6:30 PM — ship5000 waited forever; GPU 0 idle ~40 min
+- The wait `until grep -q step_005000 latest.txt && ! pgrep -f 'nproc_per_node 6 -m sana_alpha.train_fibo2'` never ended: `pgrep -f` matched the waiting shell's own command line, which contains that string. Training ended about 5:48 PM; GPU 0 sat idle until 6:30 PM. Relaunched split_checkpoint.sh 005000 on GPU 0 directly.
+- Lesson: never `pgrep -f` a pattern that appears in your own command line. Wait on a file the job writes, or match `^uv run torchrun …` as fibo2_supervise.sh does.
+
 ## 2026-11-20 ~6 PM — joint highway: OOM, a truncated manifest (Matte fork)
 - The first W pilots ran out of memory in joint_backward (69.6 GB allocated + 8.9 GB reserved at 1024², batch 4): it built a scaled copy of all 44 blocks' token gradients (≈ 5 GB). Fix: scale in place, and PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True; then 65.5 GB.
 - `open(p, "w").write(f(open(p).read()))` truncates p before f runs: when f raised, agents/manifest.md was empty for ~5 minutes. Restored from HEAD + the coordinator's 2 uncommitted m00896 bullets (recovered verbatim from the session transcript). Lesson: read into a variable first, write last.
