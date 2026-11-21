@@ -542,3 +542,6 @@
 ## 2026-11-20 11:20 PM — run_long_eval.sh waited forever (Matte fork)
 - free_gpu was `nvidia-smi ... | awk '... {print $1; exit}'` under `set -o pipefail`: awk's early exit SIGPIPEs nvidia-smi, the pipeline fails, and the loop printed "no room" for hours while GPU 6 was free. The coordinator fixed it (collect the match, print in END) and restarted it at 11:20 PM. Lesson: under pipefail, never exit a pipe reader early.
 - My first watcher of it died at once on a zsh "no matches found" glob (logs not yet created); watchers now run under bash and read the tmux pane.
+
+## 2026-11-21 ~3:50 AM — a journal publish pushed images but not the site
+- `publish_pages` (pubreuse2, main 350e199) pushed 4 new images to journal-assets, then printed "Everything up-to-date" and made no gh-pages commit, so the phase 2 section of cross_step_reuse.html was not live. The next run (main a3e6f1b) committed and pushed the site (0eb2fc2). Cause not found. Lesson: after every publish, check the live page for the new text; a clean exit does not prove the page changed.
