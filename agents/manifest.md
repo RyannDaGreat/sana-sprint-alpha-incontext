@@ -692,6 +692,22 @@ Step-end x̂0 (the full model, for scale), λ = 0: 0.249 / 0.794, 0.141 / 0.884,
 
 No W is worse than the W = 0 control by more than 2 standard errors of the paired difference, at either λ. W = 1 has the lowest highway error at both λ (−12% at λ 0, −9% at λ 1 vs the baseline). Its final images: LPIPS 0.280 vs 0.287 (λ 0) and 0.278 vs 0.274 (λ 1); SSIM 0.722 vs 0.722 and 0.721 vs 0.726. The long run uses W = 1.
 
+**Monotone term and gates for v2 (m00813), 2026-11-20 ~9:15 PM ET.** The same items, trajectories and scoring as the pilot above (`agents/.scratchpad/highway2/mono_step4000/`). The loss adds β·relu(err_k − err_prev): err is the latent MSE against the final latent, and prev is the preview shown just before. Each variant gets its own gate (`peek_blend.gate_tables`, tune.py's rule: the smallest margin with ≤ 1 shown preview per generation worse than the previous shown one by more than 0.005 LPIPS). The gate is fitted and counted on the same 36 held-out items, as tune.py does for v1. Cells: mean LPIPS / SSIM over all blocks.
+
+| λ | variant | all | step 1 | step 2 | step 3 | step 4 | worse, all shown | gated: worse / shown / margin |
+|---|---|---|---|---|---|---|---|---|
+| 0 | table (v1) | 0.2060 / 0.8569 | 0.410 / 0.777 | 0.226 / 0.817 | 0.130 / 0.891 | 0.058 / 0.942 | 21.9 | 0.83 / 11.0 / 0.05 |
+| 0 | v2 β = 0 | 0.1802 / 0.8795 | 0.386 / 0.794 | 0.194 / 0.860 | 0.095 / 0.915 | 0.045 / 0.949 | 78.3 | 0.72 / 11.0 / 0.05 |
+| 0 | v2 β = 1 | 0.1797 / 0.8795 | 0.387 / 0.793 | 0.194 / 0.859 | 0.094 / 0.915 | 0.044 / 0.950 | 77.8 | 0.83 / 11.0 / 0.05 |
+| 0 | v2 β = 4 | 0.1824 / 0.8768 | 0.389 / 0.790 | 0.197 / 0.856 | 0.097 / 0.912 | 0.046 / 0.948 | 75.8 | 0.83 / 11.0 / 0.05 |
+| 1 | table (v1) | 0.1619 / 0.8847 | 0.370 / 0.791 | 0.179 / 0.849 | 0.077 / 0.926 | 0.022 / 0.973 | 12.9 | 0.97 / 28.0 / 0.015 |
+| 1 | v2 β = 0 | 0.1496 / 0.8950 | 0.357 / 0.796 | 0.163 / 0.872 | 0.061 / 0.937 | 0.017 / 0.974 | 69.1 | 0.56 / 23.0 / 0.02 |
+| 1 | v2 β = 1 | 0.1496 / 0.8949 | 0.357 / 0.796 | 0.163 / 0.872 | 0.061 / 0.937 | 0.017 / 0.975 | 73.1 | 0.78 / 24.0 / 0.02 |
+| 1 | v2 β = 4 | 0.1510 / 0.8941 | 0.359 / 0.796 | 0.164 / 0.871 | 0.063 / 0.936 | 0.018 / 0.974 | 66.3 | 0.61 / 24.0 / 0.02 |
+
+- The latent-MSE hinge does not fix the jitter. β = 4 lowers the all-shown count by only 3 per generation and costs a little mean quality. The jumps are in LPIPS between neighbouring blocks, and a latent-error hinge barely sees them.
+- With its own gate, every variant meets m00813's ≤ 1 worse preview per generation. v2 β = 0 shows as many previews as the table at λ = 0 (11) and fewer at λ = 1 (23 vs 28), with fewer worse ones (0.72 vs 0.83, 0.56 vs 0.97). Its block previews are better on average at every step.
+- Recommendation: ship v2 with β = 0 and its own gate (expected tables from gate_tables). The gate is in-sample, as for v1.
 
 ## 20. Four-way pad, persistence, real-time cancel (m00848)
 
