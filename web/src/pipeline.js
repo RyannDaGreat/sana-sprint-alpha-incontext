@@ -570,7 +570,9 @@ export class Pipeline {
     for (const [name, b] of Object.entries(hw?.stream ?? {})) (blockOfPart[this.partProducing(name)] ??= []).push([b, name]);
     // Per-block previews (§18): after a part that ends main block b, if the preview queue is free, the highway head b estimates
     // the velocity from that block's stream; x̂0 = x − σ·v̂, blended with the previous step's x̂0 (w from the manifest
-    // table), then the fast decoder. Only the conditional pass is used (a CFG preview would need both passes' heads).
+    // table), then the fast decoder. A version 2 highway (§18 m00901) learned the blend: it takes the previous step's x̂0
+    // (zeros at step 1) and σ and outputs the preview x0 itself. Only the conditional pass is used (a CFG preview would
+    // need both passes' heads).
     const blockPeek = (k) => async (c, values) => {
       // 'Every layer' previews every block this part ends, each decoded and painted before the next; otherwise only its last
       for (const hit of everyLayer ? blockOfPart[c] ?? [] : (blockOfPart[c] ?? []).slice(-1)) {
@@ -584,14 +586,17 @@ export class Pipeline {
       // remedy (c) of §18: never show a preview that is expected (held-out table) to be worse than the last one shown
       const expected = hw.expected ? tableAt(hw.expected, k, steps, b) : -Infinity;
       if (!everyLayer && expected >= lastExpected) return;  // 'Every layer' (m00880) shows them all
+      const learned = hw.version === 2;
       const out = await hw.session.run({ stream: values[name], c: values[hw.c], latents: new ort.Tensor('float32', x, dims),
                                          block: new ort.Tensor('int64', BigInt64Array.from([BigInt(b)]), []),
-                                         start: new ort.Tensor('int64', BigInt64Array.from([BigInt(hw.start)]), []) });
-      const raw = tweedieX0(x, asFloat32(out.velocity), sigmas[k]);
+                                         start: new ort.Tensor('int64', BigInt64Array.from([BigInt(hw.start)]), []),
+                                         ...(learned ? { prev_x0: new ort.Tensor('float32', prevX0 ?? new Float32Array(x.length), dims),
+                                                         sigma: new ort.Tensor('float32', [sigmas[k]], [1]) } : {}) });
+      const raw = learned ? asFloat32(out.x0) : tweedieX0(x, asFloat32(out.velocity), sigmas[k]);
       // 'Every layer' shows each block's own estimate: the calibrated w is 0 for most blocks of steps 2-4, which repeats the previous step's x̂0 (m00905)
-      const w = everyLayer ? 1 : highwayWeight(hw.weights, k, steps, b);
+      const w = learned || everyLayer ? 1 : highwayWeight(hw.weights, k, steps, b);
       const shown = prevX0 && w < 1 ? blendX0(raw, prevX0, w) : raw;
-      const queued = peek.offer(shown, dims, `step ${k + 1}/${steps} · block ${b + 1}/${hw.blocks} (${shown === raw ? 'raw' : 'blended'})`);
+      const queued = peek.offer(shown, dims, `step ${k + 1}/${steps} · block ${b + 1}/${hw.blocks} (${learned ? 'learned' : shown === raw ? 'raw' : 'blended'})`);
       peek.charge(performance.now() - t1);  // after the offer: the head's time delays the NEXT preview, not this one
       if (!queued) return;
       if (everyLayer) console.log(`sneak peek: step ${k + 1}/${steps} · block ${b + 1}/${hw.blocks}`);
