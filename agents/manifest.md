@@ -733,6 +733,32 @@ Highway: −11% (λ 0) and −10% (λ 1) vs the baseline. Final images no worse:
 
 Version `fibo2_turbo_fibo2_split_step_005000-int8-lambda-gamma-hw2`: the v1 folder hardlinked, with its own manifest.json (`highway.version: 2`, v2's gate tables), highway.onnx (the v2 graph; 5.2e-7 max relative error vs PyTorch) and fast decoders. Headless Chrome on wasm, 256², 4 steps, Every layer: it loaded in 97 s and generated in 67 min (CPU only). It showed 172 'learned' block previews and 4 step ends, with no page errors. The console errors were 404s for /pwa/ and the favicon (the test server serves the app under /site/) and ONNX Runtime constant-folding warnings.
 
+**Cross-step block reuse, training-free (todo 128 phase 1, m00820), 2026-11-21 ~2 AM.** Splitter step 5000. A skipped main block returns in_s + r, the residual (out − in) of the last pass of the same kind (cond / null) in which it ran (FORA / Δ-DiT). Quality: final gray image vs the full run, same seed. Skipped = main-block evaluations / (steps × 44); the 2 refiner blocks, embedders and final layer always run. Wall time not measured. Turbo: 4 steps, 16 held-out items (morph_band 0–15, seeds 1000+k); dev: 20 steps, CFG 5, 8 items. Script `agents/.scratchpad/reuse/reuse_eval.py`, results `agents/.scratchpad/reuse/<base>[2]_lam<λ>/results.json`, page `journal/cross_step_reuse.html`.
+
+| model | schedule | skipped | λ 0: LPIPS / SSIM vs full | λ 1: LPIPS / SSIM vs full |
+|---|---|---|---|---|
+| turbo | all blocks at step 2 | 25% | 0.014 / 0.986 | 0.016 / 0.981 |
+| turbo | all blocks at step 3 | 25% | 0.031 / 0.963 | 0.014 / 0.981 |
+| turbo | step 2 all + step 3 first half | 38% | 0.044 / 0.952 | 0.032 / 0.962 |
+| turbo | all blocks at steps 2 and 3 | 50% | 0.098 / 0.907 | 0.069 / 0.925 |
+| turbo | first half of blocks at steps 1–2 | 25% | 0.096 / 0.908 | 0.093 / 0.894 |
+| turbo | first half mid + first 80% at step 3 | 45% | 0.157 / 0.856 | 0.126 / 0.863 |
+| turbo | every other block, steps ≥ 1 | 38% | 0.216 / 0.829 | 0.182 / 0.837 |
+| turbo | smallest residual change 25 / 50 / 75% of (step ≥ 1, block) | 19 / 38 / 56% | 0.067 / 0.127 / 0.173 | 0.040 / 0.098 / 0.144 |
+| dev | steps ≥ 10: run every 3rd | 35% | 0.012 / 0.994 | 0.002 / 0.997 |
+| dev | FORA2 (all blocks on odd steps ≥ 3) | 45% | 0.027 / 0.977 | 0.013 / 0.983 |
+| dev | FORA3 (run 0, 1, 2 and every 3rd) | 55% | 0.034 / 0.976 | 0.013 / 0.984 |
+| dev | FORA4 | 65% | 0.061 / 0.960 | 0.022 / 0.973 |
+| dev | FORA2 from step 1 | 50% | 0.087 / 0.921 | 0.048 / 0.940 |
+| dev | first half mid (5–14) + 80% late (15–19) | 45% | 0.143 / 0.898 | 0.049 / 0.942 |
+| dev | every other block, steps ≥ 1 | 48% | 0.402 / 0.694 | 0.230 / 0.796 |
+
+- Redundancy (mean over items, conditional pass): turbo step-to-step cosine of block outputs 0.97–0.99, but residual change ‖Δr‖/‖r‖ 0.60 / 0.32 / 0.33 at steps 1 / 2 / 3 (λ 0). Dev middle steps: cosine ≈ 1.000, residual change 0.06–0.08; first and last steps 0.2–0.4. Blocks 0–14 change least (turbo 0.29 vs 0.48 for 15–43), and reusing one of them alone at steps 1–3 costs least (LPIPS 0.013 vs 0.027 for blocks 30–43; 8 items).
+- Whole-step reuse beats partial-block skipping at the same skip rate. Ranking (step, block) pairs by residual change is a poor proxy for the error they cause.
+- Whole-step reuse needs one cached tensor in the app, not 44: out_s = out_{s−1} + (in_s − in_{s−1}) for the last block.
+- For scale, full run vs the true image: turbo LPIPS 0.287 (λ 0) / 0.274 (λ 1); dev 0.512 / 0.259.
+- Phase 2 (trained connectors) matters for turbo only: training-free stops at 25% near-free there, while dev already reaches 35–55% at LPIPS ≤ 0.034.
+
 ## 20. Four-way pad, persistence, real-time cancel (m00848)
 
 **The user's words (m00848, abridged):** the drawn image and the prompt "should be persistent upon reloading unless we click a reset all button"; "a four-way pad … a separate UI mode … a tab … a lot of the interface is shared": one mask, "up to four prompts with the same hyperparameters … different seeds and different prompts, and it will diffuse all four at once, taking turns"; clicking one makes it "50% transparent" and the other three keep running, faster; "if I change the prompt or the seed midway it will just start over"; and in real-time mode "you should be able to cancel a run partway through and just go back to beginning … with the new condition".
