@@ -171,10 +171,15 @@ def table_blend(traj, weights):
     return w * traj["h"].float() + (1 - w) * p
 
 
-def train(blend, trajs, steps_n=4000, batch=8, lr=1e-3, device="cuda"):
+def train(blend, trajs, steps_n=4000, batch=8, lr=1e-3, device="cuda", monotone=0.0):
     """
     Command (trains blend in place). Adam on the latent MSE of x̂0_show against each generation's final latent, on
     random (trajectory, step, block) samples. Prints the loss every 250 iterations.
+
+    Args:
+        monotone (float): β of the monotone term (m00813, previews must get monotonically better): + β·relu(err_k − err_prev),
+            err = the latent MSE against the final latent, prev = the preview shown just before (block k − 1's, detached;
+            at block 1 the previous step's x̂0; nothing before step 1's block 1)
     """
     blend.to(device).train()
     opt = torch.optim.Adam(blend.parameters(), lr=lr)
@@ -190,7 +195,15 @@ def train(blend, trajs, steps_n=4000, batch=8, lr=1e-3, device="cuda"):
         sig = torch.stack([r["sigma"][s] for r, s in zip(rows, si.tolist())]).to(device).float()
         c = torch.stack([r["c"][s] for r, s in zip(rows, si.tolist())]).to(device)
         target = torch.stack([r["x0"][-1] for r in rows]).to(device)
-        loss = ((blend(ki.to(device), h, p, xt, sig, c) - target) ** 2).mean()
+        err = ((blend(ki.to(device), h, p, xt, sig, c) - target) ** 2).mean((1, 2))
+        loss = err.mean()
+        if monotone:
+            with torch.no_grad():
+                hp = torch.stack([r["h"][s, max(k - 1, 0)] for r, s, k in zip(rows, si.tolist(), ki.tolist())]).to(device).float()
+                prev = torch.where((ki > 0).to(device).view(-1, 1, 1), blend((ki - 1).clamp(min=0).to(device), hp, p, xt, sig, c), p)
+                err_prev = ((prev - target) ** 2).mean((1, 2))
+            has_prev = ((ki > 0) | (si > 0)).to(device).float()
+            loss = loss + monotone * (has_prev * torch.relu(err - err_prev)).mean()
         opt.zero_grad(set_to_none=True)
         loss.backward()
         opt.step()
@@ -219,26 +232,19 @@ def latent_mse(previews, traj):
     return ((previews.float() - traj["x0"][-1].float()) ** 2).mean((-1, -2))
 
 
-def run(checkpoint, calib_json, out_dir, base="turbo", n_train=48, n_eval=36, train_iters=4000,
-        fast="agents/.scratchpad/fastdec_ship/r5a3_long16.onnx",
-        adapter="models/fibo2/fibo2_adapter/step_001000/lora.safetensors"):
+def trajectories(checkpoint, cache_dir, base, n_train, n_eval, steps, adapter):
     """
-    Command (GPU; writes out_dir/{BLEND_FILE, results.json} and prints). The pilot of §18's learned blend against the
-    shipped table: collect train and held-out trajectories at λ = 0 and λ = 1, fit g to the table, train, then score every
-    (step, block) preview of the held-out items by LPIPS (alex) and SSIM after the shipped fast decoder, against the
-    full decoder's final image: raw head (no blend), table blend (shipped v1), learned blend at init and trained (v2).
+    Command (GPU on a cache miss; writes cache_dir/{eval,train}.pt). Held-out and train trajectories at λ = 0 and λ = 1
+    (collect), cached so retraining and rescoring need no 8B model.
+
+    Returns:
+        tuple[list[dict], list[dict]]: (held-out, train) trajectories
     """
-    import lpips
-    import onnxruntime as ort
-    from pytorch_msssim import ssim
+    cache = Path(cache_dir)
+    if (cache / "train.pt").exists():
+        return torch.load(cache / "eval.pt"), torch.load(cache / "train.pt")
     from sana_alpha import fibo2, sneak_peek as sp
     from sana_alpha.eval_set import load_eval_set
-
-    out_dir = Path(out_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
-    calib = json.loads(Path(calib_json).read_text())
-    weights = calib["decoders"]["fast_decoder"]["weights"]
-    steps = calib["steps"]
     model = fibo2.load_eval_model(checkpoint, "cuda", fibo2.TURBO_DIR if base == "turbo" else fibo2.FIBO2_DIR)
     t = model["transformer"]
     tap, highway = sp.HighwayTap(t), sp.SneakPeekHighway(t)
@@ -250,26 +256,92 @@ def run(checkpoint, calib_json, out_dir, base="turbo", n_train=48, n_eval=36, tr
         for k, it in enumerate(d["items"]):
             split[it["split"]].append((it["caption"], d["mattes"][k]))
     held = split["held-out"][:n_eval]
-    tr = split["train"][: n_train // 2] + split["train"][len(split["train"]) // 2:][: n_train - n_train // 2]  # both mask types
-    lams = [0.0, 1.0]
-    # held-out first, λ = 0 then 1 (calib.py's seeds); then train items (λ is already 1: merge back to 0 first)
-    trajs_eval = collect(model, highway, tap, held, 3000, steps, lams, adapter)
+    half = len(split["train"]) // 2
+    tr = split["train"][: n_train // 2] + split["train"][half:][: n_train - n_train // 2]  # both mask types
+    # held-out first (calib.py's seeds), λ = 0 then 1; then the train items (merge λ back to 0 first)
+    trajs_eval = collect(model, highway, tap, held, 3000, steps, [0.0, 1.0], adapter)
     fibo2.merge_lora(t, load_file(adapter), scale=-1.0)
-    trajs_train = collect(model, highway, tap, tr, 5000, steps, lams, adapter)
-    vae, bn = model["vae"], model["bn"]
-    del t, tap, highway
-    model = {"vae": vae, "bn": bn}
-    torch.cuda.empty_cache()
+    trajs_train = collect(model, highway, tap, tr, 5000, steps, [0.0, 1.0], adapter)
+    cache.mkdir(parents=True, exist_ok=True)
+    torch.save(trajs_eval, cache / "eval.pt")
+    torch.save(trajs_train, cache / "train.pt")
+    return trajs_eval, trajs_train
 
-    n_k = trajs_eval[0]["h"].shape[1]
-    blend = LearnedBlend(n_k, trajs_eval[0]["c"].shape[1])
-    all_c = torch.cat([tj["c"] for tj in trajs_train])  # (J·S, D)
-    fit_gate(blend, torch.tensor(weights, dtype=torch.float32).repeat(len(trajs_train), 1), all_c)
-    init = LearnedBlend(n_k, all_c.shape[1])
-    init.load_state_dict(blend.state_dict())
-    init.cuda().eval()
-    train(blend, trajs_train, steps_n=train_iters)
-    save_blend(blend, out_dir)
+
+def gate_tables(lp, end, margins=(0.0, 0.005, 0.01, 0.015, 0.02, 0.03, 0.04, 0.05, 0.06, 0.08, 0.1, 0.15), tol=0.005):
+    """
+    Pure function. The app's gate (remedy (c)) for one variant, as tune.py fits it for v1: expected[s][k] = the mean held-out
+    LPIPS quantized down to steps of the margin and kept one margin above its step end's; a preview is shown only if its
+    expected value is below the last shown one's. Picks the smallest margin with ≤ 1 shown preview per generation worse
+    than the previous shown one by more than tol.
+
+    Args:
+        lp (np.ndarray): (items, S, K) LPIPS of every block preview
+        end (np.ndarray): (items, S) LPIPS of every step end
+
+    Returns:
+        dict: margin, expected (S × K), expected_step_end (S), worse (mean per generation), shown (mean per generation)
+
+    Examples:
+        >>> lp = np.array([[[0.5, 0.45]], [[0.5, 0.47]]]); end = np.array([[0.3], [0.3]])
+        >>> gate_tables(lp, end)["worse"]
+        0.0
+    """
+    mean, mend = lp.mean(0), end.mean(0)
+    for m in margins:
+        q = (lambda x: np.floor(x / m) * m) if m else (lambda x: x)
+        eend = q(mend)
+        et = np.maximum(q(mean), eend[:, None] + m)
+        worse, shown = [], []
+        for li, ei in zip(lp, end):
+            last, seq = np.inf, []
+            for s in range(li.shape[0]):
+                for k in range(li.shape[1]):
+                    if et[s, k] < last:
+                        seq.append(li[s, k]); last = et[s, k]
+                seq.append(ei[s]); last = eend[s]
+            worse.append(sum(1 for a, b in zip(seq, seq[1:]) if b > a + tol)); shown.append(len(seq))
+        if np.mean(worse) <= 1 or m == margins[-1]:
+            return dict(margin=m, expected=et.tolist(), expected_step_end=eend.tolist(), worse=float(np.mean(worse)), shown=float(np.mean(shown)))
+
+
+def run(checkpoint, calib_json, out_dir, cache_dir, base="turbo", n_train=48, n_eval=36, train_iters=4000, monotone=(0.0, 1.0, 4.0),
+        fast="agents/.scratchpad/fastdec_ship/r5a3_long16.onnx",
+        adapter="models/fibo2/fibo2_adapter/step_001000/lora.safetensors"):
+    """
+    Command (GPU; writes out_dir/{beta*/BLEND_FILE, results.json} and prints). The pilot of §18's learned blend against
+    the shipped table: trajectories at λ = 0 and λ = 1 (cached), fit g to the table, train one blend per monotone weight β,
+    then score every (step, block) preview of the held-out items by LPIPS (alex) and SSIM after the shipped fast decoder,
+    against the full decoder's final image: raw head, table blend (shipped v1), learned blend at init and trained (v2, per
+    β). Each variant also gets its gate (gate_tables) fitted on its own held-out errors.
+    """
+    import lpips
+    import onnxruntime as ort
+    from diffusers import AutoencoderKLFlux2
+    from pytorch_msssim import ssim
+    from sana_alpha import fibo2, models
+
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    calib = json.loads(Path(calib_json).read_text())
+    weights, steps = calib["decoders"]["fast_decoder"]["weights"], calib["steps"]
+    trajs_eval, trajs_train = trajectories(checkpoint, cache_dir, base, n_train, n_eval, steps, adapter)
+    torch.cuda.empty_cache()
+    vae = AutoencoderKLFlux2.from_pretrained(models.localize(f"{fibo2.FIBO2_DIR}/vae"), torch_dtype=torch.bfloat16).to("cuda")  # as load_eval_model
+    bn = fibo2.bn_stats(f"{fibo2.FIBO2_DIR}/vae")
+
+    n_k, c_dim = trajs_eval[0]["h"].shape[1], trajs_eval[0]["c"].shape[1]
+    init = LearnedBlend(n_k, c_dim)
+    fit_gate(init, torch.tensor(weights, dtype=torch.float32).repeat(len(trajs_train), 1), torch.cat([tj["c"] for tj in trajs_train]))
+    blends = {"init": init.cuda().eval()}
+    for beta in monotone:
+        b = LearnedBlend(n_k, c_dim)
+        b.load_state_dict(init.state_dict())
+        print(f"train β = {beta}", flush=True)
+        train(b, trajs_train, steps_n=train_iters, monotone=beta)
+        (out_dir / f"beta{beta:g}").mkdir(exist_ok=True)
+        save_blend(b, out_dir / f"beta{beta:g}")
+        blends[f"learned_b{beta:g}"] = b
 
     sess = ort.InferenceSession(fast, providers=["CUDAExecutionProvider"])
     name = sess.get_inputs()[0].name
@@ -289,13 +361,14 @@ def run(checkpoint, calib_json, out_dir, base="turbo", n_train=48, n_eval=36, tr
             ss_.append(ssim(img, r, data_range=1.0, size_average=False).cpu())
         return torch.cat(lp_), torch.cat(ss_)
 
-    variants = ("raw", "table", "init", "learned")
+    variants = ("raw", "table", *blends)
+    lams = sorted({tj["lam"] for tj in trajs_eval})
     res = {v: {f"lam{int(l)}": dict(lpips=[], ssim=[], mse=[]) for l in lams} for v in variants + ("step_end",)}
     for j, tj in enumerate(trajs_eval):
         with torch.no_grad():
-            ref = ((vae.decode(fibo2.denormalize_latents(lat(tj["x0"][-1:]).cuda(), *bn).to(vae.dtype)).sample.float().clamp(-1, 1) + 1) / 2)
+            ref = (vae.decode(fibo2.denormalize_latents(lat(tj["x0"][-1:]).cuda(), *bn).to(vae.dtype)).sample.float().clamp(-1, 1) + 1) / 2
         n_s = tj["h"].shape[0]
-        prev = dict(raw=tj["h"].float(), table=table_blend(tj, weights), init=apply_blend(init, tj), learned=apply_blend(blend, tj))
+        prev = dict(raw=tj["h"].float(), table=table_blend(tj, weights), **{v: apply_blend(b, tj) for v, b in blends.items()})
         key = f"lam{int(tj['lam'])}"
         for v, pv in prev.items():
             lpv, ssv = score(pv.flatten(0, 1), ref)
@@ -306,8 +379,9 @@ def run(checkpoint, calib_json, out_dir, base="turbo", n_train=48, n_eval=36, tr
         res["step_end"][key]["lpips"].append(lpv.tolist())
         res["step_end"][key]["ssim"].append(ssv.tolist())
         print(f"eval {j + 1}/{len(trajs_eval)}", flush=True)
-    (out_dir / "results.json").write_text(json.dumps(dict(checkpoint=checkpoint, steps=steps, n_train=len(tr), n_eval=len(held),
-                                                          train_iters=train_iters, results=res)))
+    gates = {v: {lam: gate_tables(np.array(res[v][lam]["lpips"]), np.array(res["step_end"][lam]["lpips"])) for lam in res[v]} for v in variants}
+    (out_dir / "results.json").write_text(json.dumps(dict(checkpoint=checkpoint, steps=steps, n_train=len(trajs_train) // 2,
+                                                          n_eval=len(trajs_eval) // 2, train_iters=train_iters, results=res, gates=gates)))
     print(summary(out_dir / "results.json"))
 
 
@@ -326,16 +400,20 @@ def worse_count(lp_sk, end_s):
 
 def summary(results_json):
     """Query (reads results.json). A text table: per λ and step, the mean LPIPS and SSIM over items and blocks."""
-    r = json.loads(Path(results_json).read_text())["results"]
+    full = json.loads(Path(results_json).read_text())
+    r, gates = full["results"], full.get("gates", {})
     lines = []
     for lam in r["raw"]:
-        lines.append(f"λ = {lam[3:]}: mean over held-out items and blocks; LPIPS ↓ / SSIM ↑; worse = previews worse than the one before, per generation")
-        for v in ("raw", "table", "init", "learned"):
+        lines.append(f"λ = {lam[3:]}: mean over held-out items and blocks; LPIPS ↓ / SSIM ↑; worse = previews worse than the one before, per generation"
+                     " (all shown | with its gate: worse, shown, margin)")
+        for v in [k for k in r if k != "step_end"]:
             lp, ss = np.array(r[v][lam]["lpips"]), np.array(r[v][lam]["ssim"])  # (items, S, K)
             end = np.array(r["step_end"][lam]["lpips"])
             worse = np.mean([worse_count(a, e) for a, e in zip(lp, end)])
             per_step = " ".join(f"s{s + 1} {lp[:, s].mean():.3f}/{ss[:, s].mean():.3f}" for s in range(lp.shape[1]))
-            lines.append(f"  {v:8s} all {lp.mean():.4f}/{ss.mean():.4f}  {per_step}  worse {worse:.1f}")
+            g = gates.get(v, {}).get(lam)
+            gated = f" | gate {g['worse']:.2f}, {g['shown']:.1f}, {g['margin']}" if g else ""
+            lines.append(f"  {v:12s} all {lp.mean():.4f}/{ss.mean():.4f}  {per_step}  worse {worse:.1f}{gated}")
         end, ends = np.array(r["step_end"][lam]["lpips"]), np.array(r["step_end"][lam]["ssim"])
         lines.append("  step end " + " ".join(f"s{s + 1} {end[:, s].mean():.3f}/{ends[:, s].mean():.3f}" for s in range(end.shape[1])))
     return "\n".join(lines)
