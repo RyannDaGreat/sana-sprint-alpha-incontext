@@ -773,7 +773,16 @@ Version `fibo2_turbo_fibo2_split_step_005000-int8-lambda-gamma-hw2`: the v1 fold
 - Width and on-policy data each help a little (v1 → v2: −0.006; v1 → v3: −0.004); together v4 is best.
 - Against the true image, LPIPS is unchanged by skipping (full 0.287 / 0.274, v4 0.295 / 0.271): the remaining difference to the full run is mostly a different sample, not a worse one.
 - Not done: the learned schedule-dependent layer skip (Learning-to-Cache router). Phase 1 found partial-block skipping clearly worse than whole-step reuse at the same rate, so the schedule here stays whole steps; a router over (step, block) would need backpropagation through the 8 B transformer at 1024².
-- Not done: the app port (one cached tensor + the connector ONNX per skipped step) and wall-time measurement.
+- Not done: the app port (one cached tensor + the connector ONNX per skipped step).
+
+**Wall time, phase 2 (v4), 2026-11-21 ~4 AM.** NVIDIA A100-SXM4-80GB, alone on the GPU, turbo 4 steps, λ 0, median of 10 images after 3 warmups. Whole = the generate_images call (text encoder, trimask VAE encode, sampler, VAE decode); transformer = the sampler's 4 transformer calls (CUDA-synchronized). Script `agents/.scratchpad/reuse/phase2_time.py`, numbers `agents/.scratchpad/reuse/phase2_time.json`.
+
+| size | whole: full → reuse + v4 | speedup | transformer: full → reuse + v4 | speedup |
+|---|---|---|---|---|
+| 1024² | 4.75 s → 2.77 s | 1.71× | 4.26 s → 2.29 s | 1.86× |
+| 512² | 1.25 s → 0.75 s | 1.67× | 1.09 s → 0.59 s | 1.84× |
+
+- Skipping 50% of the main-block evaluations gives 1.84–1.86× on the transformer, and 1.67–1.71× end to end (the text encoder and VAE do not shrink).
 
 ## 20. Four-way pad, persistence, real-time cancel (m00848)
 
