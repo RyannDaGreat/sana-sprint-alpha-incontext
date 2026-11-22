@@ -1179,3 +1179,6 @@ Hey, if it wants more GPUs, by the way, it can use them at low priority. It's ju
 
 ## m00938 — 2026-11-22 ~04:01 PM ET
 Make sure the journal shows me the captions too, by the way, for the MAGICK images — I'm curious to see what they'll be — and for the videos.
+
+## m00939 — 2026-11-22 ~04:02 PM ET
+For the ones on gray, by the way: we don't say "on gray background". Make sure that the captions don't do that; that would be annoying. The whole point is that we're supposed to learn that from the LoRA [transcribed "lore"]. The captions shouldn't tell it [transcribed "The Captains Shouldn't Tell It"].
