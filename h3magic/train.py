@@ -197,6 +197,53 @@ def group_by_length(lengths, batch_size, seed):
     return [batches[i] for i in rng.permutation(len(batches)).tolist()]
 
 
+def safetensors_shapes(data):
+    """
+    Pure function. Tensor shapes from the start of a safetensors file (8-byte little-endian header size, JSON header).
+
+    Args:
+        data (bytes): at least the first 8 + header-size bytes
+
+    Returns:
+        dict[str, list[int]]
+
+    Examples:
+        >>> header = json.dumps({"text_token_tags": {"dtype": "I64", "shape": [212], "data_offsets": [0, 1696]}}).encode()
+        >>> safetensors_shapes(len(header).to_bytes(8, "little") + header)
+        {'text_token_tags': [212]}
+    """
+    size = int.from_bytes(data[:8], "little")
+    return {k: v["shape"] for k, v in json.loads(data[8:8 + size]).items() if k != "__metadata__"}
+
+
+def eastern_clock(now=None):
+    """Query (reads the clock unless `now` is given). "03:57 PM" in US Eastern time; the node itself runs on UTC."""
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    return datetime.fromtimestamp(time.time() if now is None else now, ZoneInfo("America/New_York")).strftime("%I:%M %p")
+
+
+def past_eastern(hhmm, now):
+    """
+    Pure function. Whether the Eastern wall-clock time of `now` (a Unix time) is at or past "HH:MM" (24 h) on that day.
+    An empty hhmm is never past.
+
+    Examples:
+        >>> t = 1795380000  # 2026-11-22 15:40 EST
+        >>> past_eastern("17:45", t), past_eastern("15:30", t), past_eastern("", t)
+        (False, True, False)
+    """
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    if not hhmm:
+        return False
+    hour, minute = map(int, str(hhmm).split(":"))
+    clock = datetime.fromtimestamp(now, ZoneInfo("America/New_York"))
+    return (clock.hour, clock.minute) >= (hour, minute)
+
+
 def ema(previous, value, decay=EMA_DECAY):
     """
     Pure function. Exponential moving average step (None starts it at value).
@@ -442,10 +489,12 @@ class Records:
 
         self.dataset = lance.dataset(str(Path(lance_dir) / f"{TABLES[data]}.lance"))
         self.embed_column, self.latent_column = embed_column, latent_column
-        table = self.dataset.to_table(columns=[KEYS[data]], with_row_id=True,
-                                      filter=f"{latent_column} IS NOT NULL AND {embed_column} IS NOT NULL AND split = '{split}'"
+        names = self.dataset.schema.names
+        ready = f"{latent_column} IS NOT NULL AND {embed_column} IS NOT NULL AND " if {latent_column, embed_column} <= set(names) else "false AND "
+        table = self.dataset.to_table(columns=[KEYS[data]], with_row_id=True, filter=f"{ready}split = '{split}'"
                                       ).to_pandas().sort_values(KEYS[data]).reset_index(drop=True)
-        assert len(table), f"{TABLES[data]}: no {split} rows with {latent_column} and {embed_column}"
+        self.ready_rows = len(table)  # rows of the split with latent + embedding, over all ranks
+        self.split_rows = self.dataset.count_rows(filter=f"split = '{split}'")
         order = np.random.default_rng(0).permutation(len(table))[rank::world]
         self.keys = table[KEYS[data]].to_numpy()[order].tolist()
         self.row_ids = table["_rowid"].to_numpy()[order].tolist()
@@ -453,9 +502,17 @@ class Records:
         print(f"records {TABLES[data]} {split} rank {rank}/{world}: {len(self.row_ids)} rows"
               + (f" x {self.frames} frames" if self.frames else ""), flush=True)
 
-    def text_lengths(self):
-        """Query. Text-token count of every row (reads every embedding blob's header once)."""
-        return [int(e["text_token_tags"].numel()) for e in read_safetensors_blobs(self.dataset, self.embed_column, self.row_ids)]
+    def text_lengths(self, cache):
+        """
+        Query. Text-token count of every row, from each embedding blob's safetensors header only (a few KB, not the
+        ~3 MB blob). `cache` (key -> length) is filled and reused across refreshes.
+        """
+        missing = [(k, r) for k, r in zip(self.keys, self.row_ids) if k not in cache]
+        if missing:
+            for (key, _), blob in zip(missing, self.dataset.take_blobs(self.embed_column, ids=[r for _, r in missing])):
+                head = blob.read(8)
+                cache[key] = safetensors_shapes(head + blob.read(int.from_bytes(head, "little")))["text_token_tags"][0]
+        return [cache[k] for k in self.keys]
 
     def batch(self, rows):
         """
@@ -477,12 +534,12 @@ class Records:
         return dict(latents=latents, prompt_embeds=prompt, text_token_tags=tags, keys=[self.keys[i] for i in rows])
 
 
-def batch_plan(records, mode, data, batch_size, seed):
+def batch_plan(records, mode, data, batch_size, seed, length_cache):
     """Query. This rank's list of row-index batches for one pass: video 1 row; pexels frames 1 clip; magick by text length."""
     if mode == "video" or records.frames:
         order = np.random.default_rng(seed).permutation(len(records.row_ids)).tolist()
         return [[i] for i in order]
-    return group_by_length(records.text_lengths(), batch_size, seed)
+    return group_by_length(records.text_lengths(length_cache), batch_size, seed)
 
 
 def prefetch(records, plan):
@@ -579,17 +636,18 @@ def validate(transformer, records, audio, device, layouts, world):
 def write_status(name, text):
     """Command. One-line STATUS file of adapter `name` (and the shared STATUS.txt) for the coordinator."""
     STATUS_DIR.mkdir(parents=True, exist_ok=True)
-    line = f"{time.strftime('%I:%M:%S %p')} {name}: {text}\n"
+    line = f"{eastern_clock()} {name}: {text}\n"
     (STATUS_DIR / f"STATUS_{name}.txt").write_text(line)
     (STATUS_DIR / "STATUS.txt").write_text(line)
 
 
 def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr=2e-4, weight_decay=0.01, grad_clip=1.0,
           batch_size=16, max_steps=100000, save_every=100, val_every=100, seed=0, embed_column=COLUMNS["embed"],
-          latent_column=None, lance_dir=str(LANCE_DIR)):
+          latent_column=None, lance_dir=str(LANCE_DIR), refresh_every=50, stop_at=""):
     """
     Command. Trains adapter `name` (run under torchrun; one process per GPU). Saves to models/h3magic/<name>/step_XXXXX/
-    and models/h3magic/<name>/final/, logs log.csv, writes STATUS, and stops when STOP_<name> appears or at max_steps.
+    and models/h3magic/<name>/final/, logs log.csv, writes STATUS, and stops when STOP_<name> appears, at max_steps or at
+    stop_at. Validation runs only once every val row has its latent and embedding (so values stay comparable).
 
     Args:
         name (str): adapter name (pexels | imagegen | graymagic)
@@ -604,6 +662,8 @@ def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr
         embed_column (str): text embedding blob column
         latent_column (str | None): default by mode/data from COLUMNS
         lance_dir (str): BlueJay lance folder (a toy folder for tests)
+        refresh_every (int): re-read the table every this many steps, so rows the encoders finish later join the run
+        stop_at (str): "HH:MM" Eastern (24 h): save and stop at that clock time (the schedule's latest stop), "" = never
     """
     dist.init_process_group("nccl")
     rank_id, world = dist.get_rank(), dist.get_world_size()
@@ -626,19 +686,28 @@ def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr
     params = [p for p in transformer.parameters() if p.requires_grad]
     optimizer = torch.optim.AdamW(params, lr=lr, betas=ADAM_BETAS, eps=ADAM_EPS, weight_decay=weight_decay)
     schedule = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda s: min(1.0, (s + 1) / WARMUP_STEPS))
-    train_records = Records(data, mode, "train", rank_id, world, embed_column, latent_column, lance_dir)
-    val_records = Records(data, mode, "val", rank_id, world, embed_column, latent_column, lance_dir)
     generator = torch.Generator(device=device).manual_seed(seed * 1000 + rank_id)
     draws = np.random.default_rng(seed)  # same base noise level on every rank per step
-    layouts, loss_ema, val_loss = {}, None, None
+    layouts, loss_ema, val_loss, lengths = {}, None, None, {}
     if rank_id == 0:
         out.mkdir(parents=True, exist_ok=True)
         (out / "meta.json").write_text(json.dumps(meta, indent=1))
         log = open(out / "log.csv", "a")
-        log.write("step,epoch,base,video_sigma,loss,loss_ema,val_loss,grad_norm,seconds,time\n")
-    step, epoch, started = 0, 0, time.time()
-    while step < max_steps and not stop_file.exists():
-        for batch in prefetch(train_records, batch_plan(train_records, mode, data, batch_size, seed + epoch)):
+        log.write("step,chunk,base,video_sigma,loss,loss_ema,val_loss,grad_norm,seconds,time\n")
+    step, chunk, started, stop = 0, 0, time.time(), 0
+    while not stop:
+        # Re-read the table every refresh_every steps: rows finished since then join (the encoders run alongside)
+        records = Records(data, mode, "train", rank_id, world, embed_column, latent_column, lance_dir)
+        plan = batch_plan(records, mode, data, batch_size, seed * 7919 + chunk, lengths)
+        count = torch.tensor(len(plan), device=device)
+        dist.all_reduce(count, op=dist.ReduceOp.MIN)  # every rank runs the same number of steps (matched collectives)
+        plan, chunk = plan[:min(int(count), refresh_every)], chunk + 1
+        if not plan:
+            if rank_id == 0:
+                write_status(name, f"waiting for rows with {latent_column} + {embed_column} ({records.ready_rows} ready)")
+            time.sleep(60)
+            continue
+        for batch in prefetch(records, plan):
             base = float(draws.random())
             loss = forward_loss(transformer, batch, audio, base, generator, device, layouts)
             loss.backward()
@@ -653,25 +722,28 @@ def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr
             loss_ema = ema(loss_ema, value)
             step += 1
             if step % val_every == 0 or step == 1:
-                transformer.eval()
-                val_loss = validate(transformer, val_records, audio, device, layouts, world)
-                transformer.train()
+                val_records = Records(data, mode, "val", rank_id, world, embed_column, latent_column, lance_dir)
+                if val_records.ready_rows == val_records.split_rows:
+                    transformer.eval()
+                    val_loss = validate(transformer, val_records, audio, device, layouts, world)
+                    transformer.train()
             if rank_id == 0:
                 seconds = (time.time() - started) / step
-                log.write(f"{step},{epoch},{base:.4f},{paired_sigmas(base)[0]:.4f},{value:.5f},{loss_ema:.5f},"
+                log.write(f"{step},{chunk},{base:.4f},{paired_sigmas(base)[0]:.4f},{value:.5f},{loss_ema:.5f},"
                           f"{'' if val_loss is None else f'{val_loss:.5f}'},{grad_norm:.4f},{seconds:.2f},{time.time():.0f}\n")
                 log.flush()
-                print(f"{name} step {step} ep {epoch} sigma {paired_sigmas(base)[0]:.3f} loss {value:.4f} ema {loss_ema:.4f} "
-                      f"val {val_loss} |g| {grad_norm:.3f} {seconds:.1f} s/step "
+                print(f"{name} step {step} rows {records.ready_rows} sigma {paired_sigmas(base)[0]:.3f} loss {value:.4f} "
+                      f"ema {loss_ema:.4f} val {val_loss} |g| {grad_norm:.3f} {seconds:.1f} s/step "
                       f"{torch.cuda.max_memory_allocated(device) / 2**30:.1f} GiB", flush=True)
-                write_status(name, f"step {step} epoch {epoch} loss_ema {loss_ema:.5f} val {val_loss} {seconds:.1f} s/step")
+                write_status(name, f"step {step} train rows {records.ready_rows} loss_ema {loss_ema:.5f} val {val_loss} "
+                                   f"{seconds:.1f} s/step")
                 if step % save_every == 0:
                     save_adapter(transformer, out / f"step_{step:05d}", {**meta, "step": step, "val_loss": val_loss})
-            stop = torch.tensor(int(stop_file.exists() or step >= max_steps), device=device)
-            dist.all_reduce(stop)
-            if int(stop):
+            flag = torch.tensor(int(stop_file.exists() or step >= max_steps or past_eastern(stop_at, time.time())), device=device)
+            dist.all_reduce(flag, op=dist.ReduceOp.MAX)
+            stop = int(flag)
+            if stop:
                 break
-        epoch += 1
     if rank_id == 0:
         save_adapter(transformer, out / "final", {**meta, "step": step, "val_loss": val_loss})
         write_status(name, f"FINISHED at step {step}, val {val_loss}, saved {out / 'final'}")
@@ -716,7 +788,7 @@ def preempt(gpus, name):
         if Path(f"/proc/{pid}").exists():
             os.kill(pid, signal.SIGKILL)
         with open(listing, "a") as f:
-            f.write(f"killed GPU {gpu} pid {pid} by H3Train/{name} {time.strftime('%I:%M %p')} ET\n")
+            f.write(f"killed GPU {gpu} pid {pid} by H3Train/{name} {eastern_clock()} ET\n")
         print(f"preempted low-priority pid {pid} on GPU {gpu}", flush=True)
 
 
@@ -728,7 +800,7 @@ def launch(name, gpus="0,1,2,3,4,5", **kwargs):
     """
     gpus = ",".join(map(str, gpus)) if isinstance(gpus, (list, tuple)) else str(gpus)  # Fire turns "0,1" into a tuple
     STATUS_DIR.mkdir(parents=True, exist_ok=True)
-    (STATUS_DIR / "GPUS.txt").write_text(f"H3Train {name}: GPUs {gpus} from {time.strftime('%I:%M %p')} ET\n")
+    (STATUS_DIR / "GPUS.txt").write_text(f"H3Train {name}: GPUs {gpus} from {eastern_clock()} ET\n")
     preempt([int(g) for g in gpus.split(",")], name)
     args = [f"--{k}={','.join(map(str, v)) if isinstance(v, (list, tuple)) else v}" for k, v in kwargs.items()]
     log = ROOT / f"agents/.scratchpad/logs/h3train_{name}.log"
