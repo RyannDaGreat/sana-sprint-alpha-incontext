@@ -1137,3 +1137,6 @@ Also, before redownloading all the H3 weights, check — have an agent check my 
 Because it's another dump you're copying it from, you shouldn't symlink to it. Dumps don't communicate. You can hardlink, though. Doing that, or any other symlink between dumps, will break dump protocol.
 
 [Note: the times of m00913–m00924 were first written as 3:05–4:40 PM; the node clock showed they all came between 3:04 and 3:20 PM. Corrected.]
+
+## m00926 — 2026-11-22 ~3:25 PM ET
+BirdsEye has many other scores, such as CLIP standard deviation and other things. Have your agents look at all these different metrics to see which ones help choose the best videos.
