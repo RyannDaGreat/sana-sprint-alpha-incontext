@@ -4,19 +4,19 @@
 | # | Item | Product LOC | Status |
 |---|---|---|---|
 | H1 | Transcripts m00912–m00917, manifest §22, this checklist | 0 | done 3:55 PM |
-| H2 | RAM guard 75%, 1 ms poll (`h3magic/ram_guard.py`, tmux ram_guard) | +80 | running since 3:48 PM; not committed |
-| H3 | Pexels selection: 10k real, decent motion, first 6 s; Sonnet audit sub-frenzy + manual check | — | pending research |
-| H4 | BlueJay chunk "H3 MAGIC PROJECT": tables + processors (clips by path, 512² crop, latents, captions, text embeddings, eval) | — | pending |
-| H5 | H3 localized (repo models/ + node /models/) | — | pending |
-| H6 | 20 curated eval prompts (H3 style, no audio) | — | pending |
-| H7 | Captions: H3 style, no audio, 10k Pexels + 10k MAGICK; Muse vs Gemini by measured speed (m00916); notify start + finish | — | pending |
-| H8 | Row 1: stock H3 t2v, 20 prompts, BlueJay inference, GPUs 6–7 | — | pending |
-| H9 | Pexels adapter (6 GPUs), taste + stop at plateau; row 2 | — | pending |
+| H2 | RAM guard 75%, 1 ms poll (`h3magic/ram_guard.py`, tmux ram_guard) | +80 | `7080424` pushed; running since 3:48 PM |
+| H3 | Pexels selection: 10k real, decent motion; Sonnet audits (306 clips) + birdseye_score | 0 (data) | `383fe63`, `06e0d04` pushed; final 10,000 train + 20 val chosen by measured motion 5:00 PM |
+| H4 | BlueJay chunk "H3 MAGIC PROJECT": tables + processors (clips by path, 512² crop, latents, captions, embeddings, eval) | not measured | done (H3Data, H3Engine, Node2 commits); encode/embed/eval run on remote nodes 1–2 |
+| H5 | H3 localized: /models/h3magic (Hub, 1.4 GB/s) + hardlinked models/h3magic | 0 | done, `5a31031`, `ec6b84a` |
+| H6 | 20 curated eval prompts | 0 (data) | `7b025b6` pushed |
+| H7 | Captions (Gemini, H3 style, no audio): 10,020 clips + 10,020 MAGICK (subject only, m00939) | not measured | done 5:04 PM; Gemini ~43,500 images/h vs Muse's logged 2,400 clips/h on 8 GPUs |
+| H8 | Row 1: stock H3 video + image, 20 prompts | not measured | done 4:16 PM; live on journal/h3magic.html |
+| H9 | Pexels adapter, taste + stop at plateau (hard stop 6:30 PM); row 2 | not measured | training since 4:42 PM; 8 GPUs from step 100 |
 | H10 | Image-gen adapter on baked Pexels, 7 frames per clip at 0–6 s (m00917); row 3 (images) | — | pending |
 | H11 | Gray magic adapter on baked Pexels + image-gen; row 4 (images) | — | pending |
 | H12 | Video rows 5a (all on), 5b (gray magic only), 5c (Pexels + gray magic) | — | pending; due 9:00 PM |
-| H13 | Journal page journal/h3magic.html, published periodically | — | pending |
-| H14 | Journal: Pexels selection page (m00930) with ~50 cut 6 s 512² clips (m00932, m00933); notify once when live (m00931) | — | Sonnet agent running |
+| H13 | Journal page journal/h3magic.html (`h3magic/journal.py build`), published per row | not measured | row 1 live (`ec18a1c`) |
+| H14 | Journal: Pexels selection page + 50 clips + captions | not measured | live (`73a07d9`); N3 sent |
 | H16 | Fast decoder for H3 (m00935): explain the shipped r5a3_long + how the genetic search found it (one readable notification), then adapt to H3's VAE on one spare GPU until training needs it | — | Opus agent FastDecH3 running |
 | H17 | H3 fast decoder genetic frenzy (m00942): tiers ≥10×, ≥30×, ≥100× faster than the full H3 VAE decoder, best quality per tier; Sonnet agents commanding Sonnet agents; opportunistic GPUs; own journal page with examples; page with current results now + notify when up | — | Sonnet coordinator running |
 | H15 | Journal: one dataset page per adapter (Pexels clips, image-gen frames, gray MAGICK), each with examples + captions and the adapter lineage (trained on top of which baked adapters) (m00934) | — | after each dataset is cut + captioned |
