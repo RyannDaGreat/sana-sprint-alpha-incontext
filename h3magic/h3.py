@@ -53,7 +53,7 @@ def repoint_index(model_dir):
                and "pretrained_model_name_or_path" in v[2]]
     for entry in entries:
         entry["pretrained_model_name_or_path"] = str(model_dir)
-    temp = index.with_suffix(".tmp")
+    temp = index.with_suffix(f".tmp{os.getpid()}")  # One temp file per process: 16 workers starting at once raced on one name (node 2)
     temp.write_text(json.dumps(spec, indent=2))
     temp.rename(index)
     return len(entries)
