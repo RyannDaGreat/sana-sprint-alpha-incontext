@@ -1200,3 +1200,6 @@ Server started at http://100.112.174.249:43234 <-- In fact, I'll actually give y
 
 ## m00945 — 2026-11-22 ~04:32 PM ET
 Whatever it takes to make things faster, you can go use it. If you need to do more encoding on there, if you need to do more training on there, whatever you need, it's there for you. Just, you know, make sure that you're wise about how you use it, so that you don't fuck things up.
+
+## m00946 — 2026-11-22 ~04:35 PM ET
+I thought we were going to use 10,000 samples for these adapters? Are we only using 1,000?
