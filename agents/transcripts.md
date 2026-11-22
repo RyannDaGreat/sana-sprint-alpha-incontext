@@ -1209,3 +1209,6 @@ Right, well, we have more GPUs. I gave you two extra nodes via web evaluator. If
 
 ## m00948 — 2026-11-22 ~04:38 PM ET
 Oh wait, if the training data is not the bottleneck, then, um — oh, I don't know what to do anymore. Fine, yeah, we can do 1000 then. Fine. I guess just take a look at it, suss it out as you train. If it will take longer to get results, then fine, fine, fine, fine. If this is what it takes to make it work, fine. I still need it by 9 o'clock, as I said before. Okay, final: actually, I'll increase your deadline to 11 PM. That gives you a little bit more time, right?
+
+## m00949 — 2026-11-22 ~04:42 PM ET
+Again, we have two beautiful nodes that are being completely unused right now. Just a reminder.
