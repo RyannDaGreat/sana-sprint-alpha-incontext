@@ -58,6 +58,7 @@ LANCE_DIR = ROOT / "data/lance"
 ADAPTER_ROOT = ROOT / "models/h3magic"            # durable adapters (gitignored)
 LOCAL_ADAPTER_ROOT = Path("/models/h3magic/adapters")  # node-local mirror, read by inference
 STATUS_DIR = ROOT / "agents/.scratchpad/h3train"
+UNCOND_FILE = ADAPTER_ROOT / "uncond_space.safetensors"  # the guidance-loss probe " " embedded (agents/.scratchpad/h3train/embed_uncond.py)
 
 DTYPE = torch.bfloat16
 VIDEO_SHIFT, AUDIO_SHIFT = 12.0, 3.0  # MiniMaxH3SetTimestepsStep: one base grid, two shifts
@@ -135,6 +136,25 @@ def flow_target(clean, noise):
         True
     """
     return clean - noise
+
+
+def guided_target(target, uncond, scale):
+    """
+    Pure function. The guidance-loss target of a CFG-distilled model: uncond + scale · (target − uncond).
+
+    musubi-tuner (dev 37382f2) src/musubi_tuner/minimax_h3_train_network.py:1445,
+    `video_target = uncond_video + float(args.h3_guidance_loss_scale) * video_gap` with `video_gap = video_target - uncond_video`:
+    the true velocity takes the conditional slot of the CFG identity g = u + s·(c − u), so a LoRA trained on it stays in
+    the distilled (guided) space instead of de-distilling H3. `uncond` is the model's own no-grad prediction (LoRA on)
+    for the probe text " ".
+
+    Examples:
+        >>> guided_target(torch.tensor([1.0, 2.0]), torch.tensor([0.5, 2.0]), 4.0).tolist()
+        [2.5, 2.0]
+        >>> guided_target(torch.tensor([1.0]), torch.tensor([0.3]), 1.0).tolist()  # scale 1 = the plain target
+        [1.0]
+    """
+    return uncond + scale * (target - uncond)
 
 
 def audio_latents_for(num_frames):
@@ -384,7 +404,27 @@ def bake(transformer, path, scale=1.0):
     return merged
 
 
-def build_transformer(device, bakes, rank, alpha):
+def merge_foreign_lora(transformer, path):
+    """
+    Command. Merges a LoRA saved in another H3 layout (ai-toolkit / ComfyUI / musubi names, fused qkv) into the weights at
+    weight 1, after diffusers' own converter `_convert_non_diffusers_minimax_h3_lora_to_diffusers` (alpha folded in,
+    qkv split, SwiGLU halves swapped). Returns the number of layers merged.
+    """
+    from diffusers.loaders.lora_conversion_utils import _convert_non_diffusers_minimax_h3_lora_to_diffusers
+    from safetensors.torch import load_file
+
+    state = _convert_non_diffusers_minimax_h3_lora_to_diffusers(load_file(str(path)))
+    modules = dict(transformer.named_modules())
+    merged = 0
+    for key in [k for k in state if ".lora_A." in k]:
+        layer = modules[key.split(".lora_A.")[0].removeprefix("transformer.")]
+        down, up = state[key].to(layer.weight.device), state[key.replace(".lora_A.", ".lora_B.")].to(layer.weight.device)
+        layer.weight.data = (layer.weight.data.float() + lora_delta(down, up, alpha=down.shape[0])).to(layer.weight.dtype)
+        merged += 1
+    return merged
+
+
+def build_transformer(device, bakes, rank, alpha, base_weights=""):
     """
     Command. Loads the H3 transformer straight onto `device` (no full CPU copy: 6 ranks × 66 GB would hit the RAM
     guard), bakes earlier adapters, freezes it, enables gradient checkpointing and attaches a fresh LoRA.
@@ -392,6 +432,7 @@ def build_transformer(device, bakes, rank, alpha):
     Args:
         device (torch.device)
         bakes (list[str]): adapter names to bake in, in order (each at weight 1)
+        base_weights (str): a de-distillation LoRA file (any H3 LoRA layout) merged at weight 1 before the bakes, "" = none
         rank (int), alpha (int): the new LoRA
 
     Returns:
@@ -405,6 +446,8 @@ def build_transformer(device, bakes, rank, alpha):
     transformer = MiniMaxH3Transformer3DModel.from_pretrained(MODEL_DIR / "transformer", torch_dtype=DTYPE,
                                                               device_map={"": str(device)})
     transformer.requires_grad_(False)
+    if base_weights:
+        print(f"base_weights {base_weights}: {merge_foreign_lora(transformer, base_weights)} layers (training only)", flush=True)
     for name in bakes:
         print(f"bake {name}: {bake(transformer, adapter_file(name))} layers from {adapter_file(name)}", flush=True)
     transformer.enable_gradient_checkpointing()
@@ -592,40 +635,52 @@ def prefetch(records, plan):
 # Forward
 # ---------------------------------------------------------------------------------------------------------------------
 
-def forward_loss(transformer, batch, audio, base, generator, device, layouts):
+def forward_loss(transformer, batch, audio, base, generator, device, layouts, guide=None):
     """
     Near-pure function (advances generator; runs the model). Video flow loss of one batch at one base noise level.
+    With `guide` (the guidance loss, musubi-tuner's recipe for CFG-distilled H3) and base >= guide["sigma_min"], the
+    target is guided_target(x_0 − noise, u, scale), u = the model's no-grad prediction for the uncond probe text.
 
     Args:
         transformer (nn.Module)
         batch (dict): latents (B, LC, LT, LH, LW), prompt_embeds (B, N, 5120), text_token_tags (N,)
         audio (Tensor): (AUDIO_CHANNELS, 32, A) silent audio latent for this mode
-        base (float): unshifted grid point in [0, 1]; sigma = shift(base)
+        base (float): unshifted grid point in [0, 1] (musubi's "pre-shift base sigma"); sigma = shift(base)
         generator (torch.Generator): on device
         device (torch.device)
         layouts (dict): cache of Layout by (N, LT, A)
+        guide (dict | None): scale, sigma_min, prompt_embeds (1, M, 5120), text_token_tags (M,)
 
     Returns:
         Tensor: scalar video MSE (float32)
     """
     latents = batch["latents"].to(device)
     lt, a = latents.shape[2], audio.shape[-1]
-    key = (int(batch["text_token_tags"].numel()), lt, a)
-    if key not in layouts:
-        layouts[key] = Layout(batch["text_token_tags"], lt, a, device)
-    layout = layouts[key]
     video_sigma, audio_sigma = paired_sigmas(base)
     video_t, audio_t = 1.0 - video_sigma, 1.0 - audio_sigma
     x0 = video_rows(latents)                                                         # (B, rows, 96)
     a0 = einx.rearrange("R C -> B R C", audio_rows(audio).to(device), B=x0.shape[0])  # (B, C·A, 32)
     noise = torch.randn(x0.shape, generator=generator, device=device)
     audio_noise = torch.randn(a0.shape, generator=generator, device=device)
-    timestep, timestep_indices = layout.row_timesteps(video_t, audio_t)
-    video_pred, _ = transformer(hidden_states=noise_sample(x0, noise, video_t).to(DTYPE),
-                                audio_hidden_states=noise_sample(a0, audio_noise, audio_t).to(DTYPE),
-                                encoder_hidden_states=batch["prompt_embeds"].to(device, DTYPE), timestep=timestep,
-                                timestep_indices=timestep_indices, return_dict=False, **layout.tensors)
-    return torch.nn.functional.mse_loss(video_pred.float(), flow_target(x0, noise))
+    noisy_video = noise_sample(x0, noise, video_t).to(DTYPE)
+    noisy_audio = noise_sample(a0, audio_noise, audio_t).to(DTYPE)
+
+    def predict(text_token_tags, prompt_embeds):
+        """Near-pure function (runs the model). Video velocity (B, rows, 96) for one text layout."""
+        key = (int(text_token_tags.numel()), lt, a)
+        if key not in layouts:
+            layouts[key] = Layout(text_token_tags, lt, a, device)
+        timestep, timestep_indices = layouts[key].row_timesteps(video_t, audio_t)
+        return transformer(hidden_states=noisy_video, audio_hidden_states=noisy_audio,
+                           encoder_hidden_states=prompt_embeds.to(device, DTYPE), timestep=timestep,
+                           timestep_indices=timestep_indices, return_dict=False, **layouts[key].tensors)[0]
+
+    target = flow_target(x0, noise)
+    if guide is not None and base >= guide["sigma_min"]:
+        with torch.no_grad():  # LoRA stays on, as musubi does: u is the adapted model's own uncond prediction
+            uncond = predict(guide["text_token_tags"], einx.rearrange("1 N C -> B N C", guide["prompt_embeds"], B=x0.shape[0]))
+        target = guided_target(target, uncond.float(), guide["scale"])
+    return torch.nn.functional.mse_loss(predict(batch["text_token_tags"], batch["prompt_embeds"]).float(), target)
 
 
 def all_reduce_grads(params, world):
@@ -642,7 +697,7 @@ def all_reduce_grads(params, world):
         offset += g.numel()
 
 
-def validate(transformer, records, audio, device, layouts, world):
+def validate(transformer, records, audio, device, layouts, world, guide=None):
     """
     Query (runs the model without gradients). Mean validation loss over this rank's val items at VAL_BASES with fixed
     noise, averaged over ranks. Deterministic, so successive values are comparable.
@@ -653,7 +708,7 @@ def validate(transformer, records, audio, device, layouts, world):
             batch = records.batch([i])
             for k, base in enumerate(VAL_BASES):
                 generator = torch.Generator(device=device).manual_seed(1000 * i + k)
-                total += forward_loss(transformer, batch, audio, base, generator, device, layouts)
+                total += forward_loss(transformer, batch, audio, base, generator, device, layouts, guide)
                 count += 1
     if world > 1:
         dist.all_reduce(total)
@@ -688,7 +743,8 @@ def write_status(name, text):
 
 def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr=2e-4, weight_decay=0.01, grad_clip=1.0,
           batch_size=16, max_steps=100000, save_every=100, val_every=100, seed=0, embed_column=COLUMNS["embed"],
-          latent_column=None, lance_dir=str(LANCE_DIR), refresh_every=50, stop_at="", resume=""):
+          latent_column=None, lance_dir=str(LANCE_DIR), refresh_every=50, stop_at="", resume="", guidance_scale=0.0,
+          guidance_sigma_min=0.15, guidance_uncond=str(UNCOND_FILE), base_weights=""):
     """
     Command. Trains adapter `name` (run under torchrun; one process per GPU). Saves to models/h3magic/<name>/step_XXXXX/
     and models/h3magic/<name>/final/, logs log.csv, writes STATUS, and stops when STOP_<name> appears, at max_steps or at
@@ -710,6 +766,12 @@ def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr
         refresh_every (int): re-read the table every this many steps, so rows the encoders finish later join the run
         stop_at (str): "HH:MM" Eastern (24 h): save and stop at that clock time (the schedule's latest stop), "" = never.
             A file agents/.scratchpad/h3train/STOP_AT_<name> holding "HH:MM" overrides it while the run is going
+        guidance_scale (float): > 0 = musubi-tuner's guidance loss (they use 4.0; 0 = plain flow target, which
+            de-distills the CFG-distilled H3); the target is guided_target(x_0 − noise, u, scale) when base >= guidance_sigma_min
+        guidance_sigma_min (float): skip the uncond forward below this pre-shift base sigma (musubi: 0.15)
+        guidance_uncond (str): safetensors of the uncond probe's text embedding (" ", h3magic/h3.py embed)
+        base_weights (str): a de-distillation LoRA in any H3 LoRA layout (e.g. ostris' training adapter v2) merged into
+            the base for TRAINING only; the trained adapter is used on the plain base at inference (musubi's --base_weights)
         resume (str): a saved step folder of this adapter, e.g. models/h3magic/pexels/step_00150: continue from its LoRA
             and step (and its AdamW state when optimizer_latest.pt holds that step; else a fresh AdamW with warmup)
     """
@@ -723,13 +785,20 @@ def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr
     stop_file = STATUS_DIR / f"STOP_{name}"
     stop_at_file = STATUS_DIR / f"STOP_AT_{name}"
     meta = dict(name=name, mode=mode, data=data, baked=bakes, rank=rank, alpha=alpha, lr=lr, world=world,
-                video_frames=VIDEO_FRAMES if mode == "video" else 1)
+                video_frames=VIDEO_FRAMES if mode == "video" else 1, guidance_scale=guidance_scale,
+                guidance_sigma_min=guidance_sigma_min, training_only_base_weights=base_weights)
+    guide = None
+    if guidance_scale > 0:
+        from safetensors.torch import load_file
+
+        probe_text = load_file(str(ROOT / guidance_uncond))
+        guide = dict(scale=float(guidance_scale), sigma_min=float(guidance_sigma_min), **probe_text)
 
     audio = silent_audio(device, audio_latents_for(VIDEO_FRAMES) if mode == "video" else IMAGE_AUDIO_LATENTS)
     # Stagger the 66 GB loads two ranks at a time: page cache + per-rank staging stays far from the RAM guard's 75%
     for turn in range(0, world, 2):
         if rank_id // 2 == turn // 2:
-            transformer = build_transformer(device, bakes, rank, alpha)
+            transformer = build_transformer(device, bakes, rank, alpha, base_weights)
         dist.barrier()
     transformer.train()
     params = [p for p in transformer.parameters() if p.requires_grad]
@@ -759,7 +828,7 @@ def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr
             continue
         for batch in prefetch(records, plan):
             base = float(draws.random())
-            loss = forward_loss(transformer, batch, audio, base, generator, device, layouts)
+            loss = forward_loss(transformer, batch, audio, base, generator, device, layouts, guide)
             loss.backward()
             all_reduce_grads(params, world)
             grad_norm = float(torch.nn.utils.clip_grad_norm_(params, grad_clip))
@@ -775,7 +844,7 @@ def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr
                 val_records = Records(data, mode, "val", rank_id, world, embed_column, latent_column, lance_dir)
                 if val_records.ready_rows == val_records.split_rows:
                     transformer.eval()
-                    val_loss = validate(transformer, val_records, audio, device, layouts, world)
+                    val_loss = validate(transformer, val_records, audio, device, layouts, world, guide)
                     transformer.train()
             if rank_id == 0:
                 seconds, last = time.time() - last, time.time()  # this step's wall time
