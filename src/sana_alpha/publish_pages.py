@@ -44,6 +44,7 @@ ROOT = Path(__file__).resolve().parents[2]
 JOURNAL = ROOT / "journal"
 SITE = ROOT / "agents/.scratchpad/gh-pages"
 ASSETS_DIR = ROOT / "agents/.scratchpad/journal-assets"
+DIGEST_CACHE = ROOT / "agents/.scratchpad/journal-assets-digest-cache.json"  # beside, not inside, the worktree: commit_all stages everything in it
 SITE_BRANCH = "gh-pages"
 ASSETS_BRANCH = "journal-assets"
 REPO = "RyannDaGreat/sana-sprint-alpha-incontext"
@@ -337,12 +338,35 @@ def commit_all(path, message):
     return True
 
 
+def cache_key(relative_path, size, mtime_ns):
+    """
+    Pure function. Digest-cache key: a file is re-hashed only when its path, size or mtime changes.
+
+    Examples:
+        >>> cache_key("assets/a/b.png", 1024, 1763542800000000000)
+        'assets/a/b.png|1024|1763542800000000000'
+    """
+    return f"{relative_path}|{size}|{mtime_ns}"
+
+
 def hash_all(pngs):
-    """Query. SHA-256 of every PNG (parallel, HASH_PROCESSES); returns {path relative to journal/: digest}."""
-    print(f"hashing {len(pngs)} PNGs and MP4s", flush=True)
+    """
+    Command. SHA-256 of every PNG/MP4 (parallel, HASH_PROCESSES); returns {path relative to journal/: digest}. Digests
+    are cached in DIGEST_CACHE by cache_key, so only new or changed files are read; rewrites the cache atomically
+    (temp file + os.replace) when any file was hashed.
+    """
+    cache = json.loads(DIGEST_CACHE.read_text()) if DIGEST_CACHE.exists() else {}
+    relative = {p: p.relative_to(JOURNAL).as_posix() for p in pngs}
+    keys = {p: cache_key(relative[p], (st := p.stat()).st_size, st.st_mtime_ns) for p in pngs}
+    stale = [p for p in pngs if keys[p] not in cache]
+    print(f"hashing {len(stale)} of {len(pngs)} PNGs and MP4s (rest cached)", flush=True)
     with ProcessPoolExecutor(HASH_PROCESSES) as pool:
-        digests = list(pool.map(png_digest, pngs, chunksize=32))
-    return {p.relative_to(JOURNAL).as_posix(): digest for p, digest in zip(pngs, digests)}
+        cache.update(zip((keys[p] for p in stale), pool.map(png_digest, stale, chunksize=32)))
+    if stale:
+        temp = DIGEST_CACHE.with_suffix(f".{os.getpid()}.tmp")
+        temp.write_text(json.dumps({keys[p]: cache[keys[p]] for p in pngs}))
+        os.replace(temp, DIGEST_CACHE)
+    return {relative[p]: cache[keys[p]] for p in pngs}
 
 
 def sync_assets(digests, do_push):
