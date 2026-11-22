@@ -1126,3 +1126,6 @@ In fact, anything for this subproject, you don't need to ask for push. It's okay
 
 ## m00922 — 2026-11-22 ~4:19 PM ET
 I pre-approve any commits related to this subdump for now. We can clean things up later.
+
+## m00923 — 2026-11-22 ~4:21 PM ET
+But in their commit titles, do [C:H3M] for H3Magick instead of just [C]. Those are the pre-approved ones.
