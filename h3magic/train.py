@@ -467,6 +467,34 @@ def read_safetensors_blobs(dataset, column, row_ids):
     return [safetensors.torch.load(blob.read()) for blob in dataset.take_blobs(column, ids=row_ids)]
 
 
+def usable(rows, split):
+    """
+    Pure function. Mask of the rows of one split that training may use: the row is in `split` (h3_choose_clip keeps it
+    current while clips are cut; h3_use only says provisional / final), it has a latent and an embedding, and the
+    embedding embeds the CURRENT caption (h3_text_sha256 = sha256 of h3_caption; m00939: recaptions make old ones stale).
+
+    Args:
+        rows (pd.DataFrame): split, h3_caption, h3_text_sha256, has_latent, has_embed
+        split (str): train | val
+
+    Returns:
+        pd.Series[bool]
+
+    Examples:
+        >>> import pandas as pd, hashlib
+        >>> h = lambda t: hashlib.sha256(t.encode()).hexdigest()
+        >>> rows = pd.DataFrame(dict(split=["train", "val", "spare", "train", "train"],
+        ...     h3_caption=["a", "b", "c", "d", "e"], h3_text_sha256=[h("a"), h("b"), h("c"), h("old"), h("e")],
+        ...     has_latent=[True, True, True, True, False], has_embed=[True] * 5))
+        >>> usable(rows, "train").tolist()
+        [True, False, False, False, False]
+    """
+    import hashlib
+
+    fresh = rows["h3_text_sha256"] == rows["h3_caption"].map(lambda t: hashlib.sha256(t.encode("utf-8")).hexdigest() if isinstance(t, str) else None)
+    return (rows["split"] == split) & rows["has_latent"] & rows["has_embed"] & fresh
+
+
 class Records:
     """
     One rank's training items of one table: row ids, text lengths, and lazy blob reads. An item is one row (video, MAGICK
@@ -489,12 +517,16 @@ class Records:
 
         self.dataset = lance.dataset(str(Path(lance_dir) / f"{TABLES[data]}.lance"))
         self.embed_column, self.latent_column = embed_column, latent_column
-        names = self.dataset.schema.names
-        ready = f"{latent_column} IS NOT NULL AND {embed_column} IS NOT NULL AND " if {latent_column, embed_column} <= set(names) else "false AND "
-        table = self.dataset.to_table(columns=[KEYS[data]], with_row_id=True, filter=f"{ready}split = '{split}'"
-                                      ).to_pandas().sort_values(KEYS[data]).reset_index(drop=True)
-        self.ready_rows = len(table)  # rows of the split with latent + embedding, over all ranks
-        self.split_rows = self.dataset.count_rows(filter=f"split = '{split}'")
+        names = set(self.dataset.schema.names)
+        columns = [KEYS[data], "split", "h3_caption", "h3_text_sha256"]
+        rows = self.dataset.to_table(columns=columns, with_row_id=True).to_pandas()
+        for flag, column in (("has_latent", latent_column), ("has_embed", embed_column)):  # blob columns: test NULL in lance
+            have = set(self.dataset.to_table(columns=[KEYS[data]], filter=f"{column} IS NOT NULL")[KEYS[data]].to_pylist()) \
+                if column in names else set()
+            rows[flag] = rows[KEYS[data]].isin(have)
+        table = rows[usable(rows, split)].sort_values(KEYS[data]).reset_index(drop=True)
+        self.ready_rows = len(table)  # usable rows of the split, over all ranks
+        self.split_rows = int((rows["split"] == split).sum())  # every row of the split, ready or not
         order = np.random.default_rng(0).permutation(len(table))[rank::world]
         self.keys = table[KEYS[data]].to_numpy()[order].tolist()
         self.row_ids = table["_rowid"].to_numpy()[order].tolist()
@@ -632,6 +664,13 @@ def validate(transformer, records, audio, device, layouts, world):
 # ---------------------------------------------------------------------------------------------------------------------
 # Commands
 # ---------------------------------------------------------------------------------------------------------------------
+
+def ready(data="pexels", latent_column=COLUMNS["video"], embed_column=COLUMNS["embed"], lance_dir=str(LANCE_DIR)):
+    """Query. Prints "<usable train rows> <usable val rows> <all val rows>" of TABLES[data] (what `train` would use)."""
+    train_rows = Records(data, "video", "train", 0, 1, embed_column, latent_column, lance_dir)
+    val_rows = Records(data, "video", "val", 0, 1, embed_column, latent_column, lance_dir)
+    print(train_rows.ready_rows, val_rows.ready_rows, val_rows.split_rows)
+
 
 def write_status(name, text):
     """Command. One-line STATUS file of adapter `name` (and the shared STATUS.txt) for the coordinator."""
@@ -907,4 +946,4 @@ def sign_probe(data="pexels", latent_column=COLUMNS["video"], embed_column=COLUM
 
 
 if __name__ == "__main__":
-    fire.Fire(dict(train=train, launch=launch, claim=claim, probe=probe, sign_probe=sign_probe))
+    fire.Fire(dict(train=train, launch=launch, claim=claim, ready=ready, probe=probe, sign_probe=sign_probe))
