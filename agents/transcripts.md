@@ -1123,3 +1123,6 @@ And again, do remember it's okay to push to GitHub when you're doing journals. Y
 
 ## m00921 — 2026-11-22 ~4:17 PM ET
 In fact, anything for this subproject, you don't need to ask for push. It's okay, just push.
+
+## m00922 — 2026-11-22 ~4:19 PM ET
+I pre-approve any commits related to this subdump for now. We can clean things up later.
