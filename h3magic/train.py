@@ -673,9 +673,17 @@ def ready(data="pexels", latent_column=COLUMNS["video"], embed_column=COLUMNS["e
 
 
 def write_status(name, text):
-    """Command. One-line STATUS_<name>.txt of adapter `name` for the coordinator (one file per run, so runs on other nodes never overwrite it)."""
+    """
+    Command. One-line STATUS_<name>.txt of adapter `name` for the coordinator; a run on the main node (MAIN_NODE) also
+    writes the shared STATUS.txt (runs on other nodes share this folder and must not overwrite it).
+    """
+    import socket
+
     STATUS_DIR.mkdir(parents=True, exist_ok=True)
-    (STATUS_DIR / f"STATUS_{name}.txt").write_text(f"{eastern_clock()} {name}: {text}\n")
+    line = f"{eastern_clock()} {name}: {text}\n"
+    (STATUS_DIR / f"STATUS_{name}.txt").write_text(line)
+    if socket.gethostname() == (STATUS_DIR / "MAIN_NODE").read_text().strip():
+        (STATUS_DIR / "STATUS.txt").write_text(line)
 
 
 def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr=2e-4, weight_decay=0.01, grad_clip=1.0,
