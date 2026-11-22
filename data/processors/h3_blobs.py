@@ -55,6 +55,33 @@ def shard_sql(key_sql, worker, workers):
     return f"contains('{digits}', substr(encode(sha256({key_sql}), 'hex'), 2, 1))"
 
 
+def shard_range(lo, hi, worker=0, workers=1):
+    """
+    Pure function. The byte shards (0-255) of one worker: shards lo..hi (inclusive), dealt out to workers in turn.
+
+    Examples:
+        >>> shard_range(0, 47, 1, 4)[:3], len(shard_range(0, 47, 1, 4)), len(shard_range(48, 255, 0, 16))
+        ([1, 5, 9], 12, 13)
+    """
+    return list(range(lo, hi + 1))[worker::workers]
+
+
+def byte_shard_sql(key_sql, shards):
+    """
+    Pure function. SQL that keeps the rows whose LAST byte of sha256(key), 0-255, is in shards (256-shard mode, so
+    workers on several nodes can split the keys; shard_sql allows only 16 workers). The last byte, because the MAGICK
+    rows were chosen as the smallest sha256(page_id), so their first bytes are all small.
+
+    Examples:
+        >>> byte_shard_sql("page_id", [0, 171])
+        "substr(encode(sha256(page_id), 'hex'), 63, 2) IN ('00', 'ab')"
+    """
+    if not shards:
+        raise ValueError("byte_shard_sql needs at least one shard")
+    prefixes = ", ".join("'%02x'" % s for s in shards)
+    return f"substr(encode(sha256({key_sql}), 'hex'), 63, 2) IN ({prefixes})"
+
+
 def round_robin(db, tasks, poll_seconds=0):
     """
     Command. Each round runs every task's query once, in order, and passes its rows to the task's handle (which commits

@@ -21,7 +21,7 @@ import torch
 
 sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
-from h3_blobs import read_mp4_rgb, read_png_rgb, round_robin, shard_sql, tensors_bytes
+from h3_blobs import byte_shard_sql, read_mp4_rgb, read_png_rgb, round_robin, shard_range, shard_sql, tensors_bytes
 from h3magic import h3
 
 FRAME_COLUMNS = [f"frame_{s}s" for s in range(7)]  # The m00917 stills at 0..6 s
@@ -34,19 +34,23 @@ JOBS = {  # job: (table, key, blob columns read, output column, rows per query)
 }
 
 
-def job_sql(job, worker, workers):
+def job_sql(job, worker, workers, shards=None):
     """
-    Pure function. The query of one job's not-yet-encoded, captioned rows of this worker.
+    Pure function. The query of one job's not-yet-encoded, captioned rows of this worker: its 16-shard part
+    (worker of workers), or, when shards is a list, the rows of those byte shards (0-255, h3_blobs.byte_shard_sql).
 
     Examples:
         >>> "h3_latent_512 IS NULL" in job_sql("magick", 0, 2) and "h3_caption IS NOT NULL" in job_sql("magick", 0, 2)
         True
+        >>> "IN ('30', '31')" in job_sql("video", 0, 1, [48, 49])
+        True
     """
     table, key, blobs, output, limit = JOBS[job]
+    shard = shard_sql(key, worker, workers) if shards is None else byte_shard_sql(key, shards)
     infos = ", ".join(f"blob_info({c}) AS {c}" for c in blobs)
     ready = " AND ".join(f"{c} IS NOT NULL" for c in blobs)
     return (f"SELECT {key}, {infos} FROM {table} WHERE {output} IS NULL AND h3_caption IS NOT NULL AND {ready} "
-            f"AND {shard_sql(key, worker, workers)} {train_first(table)} LIMIT {limit}")
+            f"AND {shard} {train_first(table)} LIMIT {limit}")
 
 
 def train_first(table):
@@ -87,7 +91,7 @@ def encode_rows(vae, pool, job, rows):
     return [tensors_bytes({"latent": z}, layout="K, LC, LT, LH, LW; K = frames at 0..6 s", **metadata) for z in latents]
 
 
-def main(worker, workers, jobs="magick,frames,video", poll_seconds=120):
+def main(worker, workers, jobs="magick,frames,video", poll_seconds=120, shard_lo=None, shard_hi=None):
     """
     Command. Encodes this worker's rows of every job, one query of each job per round (images first), committing as it
     goes, until a round finds no rows twice `poll_seconds` apart (captions still arrive).
@@ -97,6 +101,8 @@ def main(worker, workers, jobs="magick,frames,video", poll_seconds=120):
         workers (int): Number of workers
         jobs (str | tuple): Comma-separated jobs, in order
         poll_seconds (int): Wait between empty queries
+        shard_lo, shard_hi (int | None): 256-shard mode: this worker takes its turn-dealt part of byte shards
+            shard_lo..shard_hi (h3_blobs.shard_range), so nodes split the keys; None = the old 16-shard mode
     """
     from bluejay import open_database
 
@@ -104,6 +110,8 @@ def main(worker, workers, jobs="magick,frames,video", poll_seconds=120):
     vae = h3.load_vae()
     pool = ThreadPoolExecutor(IO_WORKERS)
     names = jobs.split(",") if isinstance(jobs, str) else list(jobs)
+    shards = None if shard_lo is None else shard_range(shard_lo, shard_hi, worker, workers)
+    print(f"worker {worker}/{workers}: shards {'16-mode' if shards is None else shards}, jobs {names}", flush=True)
 
     def handler(job):
         table, key, _, output, _ = JOBS[job]
@@ -114,7 +122,7 @@ def main(worker, workers, jobs="magick,frames,video", poll_seconds=120):
         return handle
 
     with torch.inference_mode():
-        round_robin(db, [(job_sql(job, worker, workers), handler(job), f"worker {worker} {job}") for job in names], poll_seconds)
+        round_robin(db, [(job_sql(job, worker, workers, shards), handler(job), f"worker {worker} {job}") for job in names], poll_seconds)
     print(f"worker {worker}: done", flush=True)
 
 

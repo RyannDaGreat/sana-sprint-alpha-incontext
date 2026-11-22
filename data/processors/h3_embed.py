@@ -58,12 +58,13 @@ def table_sql(table, worker, workers):
             f"AND {shard_sql(key, worker, workers)} {'' if table == 'h3_eval_prompts' else train_first(table)} LIMIT {limit}")
 
 
-def main(worker, workers, poll_seconds=120, idle_encode_seconds=0):
+def main(worker, workers, poll_seconds=120, idle_encode_seconds=0, shard_lo=None, shard_hi=None):
     """
     Command. Embeds this worker's texts of every table, one query per table per round, until a round finds none twice
     `poll_seconds` apart (captions still arrive). With idle_encode_seconds > 0, a round with no text moves the text
     encoder to the CPU and runs h3_encode's video job on this GPU for that long instead of waiting (no GPU idles while
-    captions trickle in); the worker then runs until killed.
+    captions trickle in); the worker then runs until killed. shard_lo, shard_hi: the idle video encode takes only byte
+    shards shard_lo..shard_hi (h3_encode 256-shard mode), so it never overlaps another node's encode workers.
     """
     import time
     from bluejay import open_database
@@ -94,7 +95,7 @@ def main(worker, workers, poll_seconds=120, idle_encode_seconds=0):
             if vae is None:
                 vae, pool = h3.load_vae(), ThreadPoolExecutor(h3_encode.IO_WORKERS)
             vae.to("cuda")
-            end, sql = time.time() + idle_encode_seconds, h3_encode.job_sql("video", 0, 1)
+            end, sql = time.time() + idle_encode_seconds, h3_encode.job_sql("video", 0, 1, None if shard_lo is None else list(range(shard_lo, shard_hi + 1)))
             while time.time() < end:
                 rows = db.query(sql).to_pylist()
                 if not rows:
