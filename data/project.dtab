@@ -28,6 +28,17 @@ environ
 	 Database
 	DATABASE_PORT 23947	 Far from the ports of the Bluejay demos on the laptop (19471, 19683, 19783)
 
+	 H3 Magic project (manifest §22): MiniMax H3 at 512 x 512, Pexels clips and MAGICK images
+	H3_MAGICK_COUNT 10020	        MAGICK train images in h3_magick_images: the first by sha256(page_id); the first H3_VAL_COUNT of them are val
+	H3_VAL_COUNT 20	                Held-out val rows per source, for validation loss. Never trained on
+	H3_PEXELS_SELECTION h3magic/data/pexels_selection.parquet	 The Pexels clips (fork PexelsPick), relative to the repo root
+	H3_IMAGE_BATCH_SIZE 256	        Images per run of h3_magick_image. CPU only
+	H3_CUT_BATCH_SIZE 16	        Clips per run of h3_cut_clip. CPU: one 4K clip takes ~10 s to decode and crop
+	H3_CAPTION_BATCH_SIZE 64	    Samples per run of h3_caption_*: all in flight at once, one Gemini call each (~30-60 s)
+	H3_MIN_MOTION 1.5	            Least motion_512 (mean |frame - frame 0.5 s later|, 8-bit levels) of a clip to caption and train on
+	H3_PEXELS_TRAIN 10000	        Pexels clips to train on: h3_choose_clip picks them by motion_512 and birdseye_score
+	H3_CERTAIN_FRACTION 0.8	        h3_caption_clip captions a clip before h3_choose_clip when its motion rank is in this share of the expected train set
+
 database
 	backend bluejay.local_database.LocalLanceBackend
 	host 0.0.0.0
@@ -963,6 +974,54 @@ tables
 			 Written by encode_fibo2 (manifest §14): (32, S/8, S/8) bfloat16, key "latent", the raw FLUX.2 VAE mode of the trimask copied to 3 channels
 			fibo2_trimask_1024, fibo2_trimask_768, fibo2_trimask_512, fibo2_trimask_256 blob
 
+	 H3 MAGIC PROJECT (manifest §22). Every table below belongs to the second experiment: adapters on MiniMax H3 at 512 x 512
+
+	h3_import_jobs
+		 One seeded row per slice of H3_PEXELS_SELECTION: h3_import imports each slice exactly once. Fork PexelsPick appends rows, so a new slice is a new row
+		primary_key job_id
+		columns
+			job_id string
+			row_offset, row_count int64
+		initial_rows
+			,	job_id slice_0	row_offset 0	row_count 11523
+
+	h3_magick_images
+		 One row per MAGICK image of the H3 Magic project: the first H3_MAGICK_COUNT usable train images by sha256(page_id)
+		primary_key page_id
+		columns
+			page_id string
+
+			 Written by h3_magick_image
+			split, subject string
+			image_512 blob
+
+			 Written by h3_caption_magick
+			h3_caption, h3_caption_model string
+			h3_caption_seconds float64
+
+	h3_pexels_clips
+		 One row per Pexels clip of the H3 Magic project. The video stays where it is: source_path refers to it (m00912)
+		primary_key pexels_id
+		columns
+			pexels_id string
+
+			 Written by h3_import, from H3_PEXELS_SELECTION
+			source_path, split, birdseye_caption string
+			duration, fps, flow_mean_magnitude float64
+			width, height int64
+
+			 Written by h3_cut_clip
+			clip_512, frame_0s, frame_1s, frame_2s, frame_3s, frame_4s, frame_5s, frame_6s blob
+			motion_512 float64
+
+			 Written by h3_choose_clip, after every clip is cut
+			h3_use string
+			birdseye_score float64
+
+			 Written by h3_caption_clip
+			h3_caption, h3_caption_model string
+			h3_caption_seconds float64
+
 
 processors
 
@@ -1446,6 +1505,155 @@ processors
 		claim	trimask_threshold_claim magick_samples
 		command bash
 			env -u UV_PROJECT_ENVIRONMENT PYTHONPATH=../src OMP_NUM_THREADS=1 uv run --project .. python processors/trimask_augment.py "$BATCH" threshold $TRIMASK_VARIANTS $TRIMASK_SUBSET $TRIMASK_COMPARE_MAX
+
+
+	 H3 MAGIC PROJECT (manifest §22). Every processor below belongs to the second experiment. Run: fish data/run_proc_h3magic.fish
+
+	h3_magick_image	 Adds one h3_magick_images row per chosen MAGICK image: its RGB on gray, area-downsampled to 512 x 512
+		query sql
+			SELECT page_id, subject, rgb_on_gray, h3_split FROM (                                   -- MAGICK images,
+			    SELECT page_id, subject, rgb_on_gray, h3_magick_image_claim,                        -- each ranked
+			           CASE WHEN h3_rank <= $H3_VAL_COUNT THEN 'val' ELSE 'train' END AS h3_split   -- (the first H3_VAL_COUNT are val, the rest train)
+			    FROM (SELECT page_id, subject, rgb_on_gray, h3_magick_image_claim,                  -- by
+			                 row_number() OVER (ORDER BY encode(sha256(page_id), 'hex')) AS h3_rank -- sha256(page_id),
+			          FROM magick_samples                                                           -- of the
+			          WHERE split = 'train' AND NOT nsfw AND rgb_on_gray IS NOT NULL)               -- usable train images:
+			    WHERE   h3_rank               <= $H3_MAGICK_COUNT                                   -- the first H3_MAGICK_COUNT,
+			        AND h3_magick_image_claim IS NULL)                                              -- not yet claimed,
+			ORDER BY random() LIMIT $H3_IMAGE_BATCH_SIZE                                            -- one batch at a time, in random order
+		claim	h3_magick_image_claim magick_samples
+		command bash
+			uv run --script processors/h3_magick_image.py "$BATCH"
+		materialize	                       TYPE  DESCRIPTION                 EXAMPLE
+			rgb_on_gray.png rgb_on_gray	    blob  The MAGICK image on gray    1.4 MB .png
+			input.json	              TYPE  DESCRIPTION                                     EXAMPLE
+				page_id @	    [Key]  str   MAGICK image ID                                 "Hcx82jcUpM"
+				subject @	          ~str   The MAGICK caption                              "red boiled crayfish on a plate ."
+				h3_split @	           str   "val" for the first H3_VAL_COUNT, else "train"  "train"
+		commit
+			h3_magick_images
+				children/	                 TYPE   DESCRIPTION                                                      EXAMPLE
+					image_512 image.png	      blob   rgb_on_gray area-downsampled 1024 -> 512: 512 x 512 RGB, 8 bit   400 KB .png
+					fields.json	   SUBFIELD  TYPE   DESCRIPTION                                                      EXAMPLE
+						page_id @	   [Key]  str    MAGICK image ID                                                  "Hcx82jcUpM"
+						split @	              str    "train", or "val": held out for validation loss                  "train"
+						subject @	         ~str    The MAGICK caption                                               "red boiled crayfish on a plate ."
+
+	h3_caption_magick	 H3-style caption of each MAGICK image, without audio, by Gemini (manifest §22, m00912)
+		query sql
+			SELECT page_id, image_512 FROM h3_magick_images -- H3 Magic MAGICK images,
+			WHERE   h3_caption_magick_claim IS NULL         -- not yet claimed,
+			    AND image_512               IS NOT NULL     -- that h3_magick_image did,
+			ORDER BY split DESC, random()                   -- val first, then in random order,
+			LIMIT $H3_CAPTION_BATCH_SIZE                    -- one batch at a time
+		claim	h3_caption_magick_claim h3_magick_images
+		command bash
+			uv run --script processors/h3_caption.py "$BATCH" image $H3_CAPTION_BATCH_SIZE
+		materialize	               TYPE  DESCRIPTION          EXAMPLE
+			image.png image_512	    blob  The 512 x 512 image  400 KB .png
+		commit
+			h3_magick_images	                 TYPE   DESCRIPTION                                                          EXAMPLE
+				result.json	          SUBFIELD  TYPE   DESCRIPTION                                                          EXAMPLE
+					h3_caption @	             str    The H3 field, labelled: integrated_multimodal_description only       "integrated_multimodal_description: [Shot 1] Live-action, ..."
+					h3_caption_model @	         str    The captioner                                                        "gemini-3.1-pro-preview"
+					h3_caption_seconds @	     float  Wall time of the Gemini calls, rewrites included                     31.2
+
+	h3_import	 Reads H3_PEXELS_SELECTION and adds one h3_pexels_clips row per clip. No video yet
+		query SELECT job_id, row_offset, row_count FROM h3_import_jobs WHERE h3_import_claim IS NULL
+		claim	h3_import_claim h3_import_jobs
+		command bash
+			uv run --script processors/h3_import.py "$SAMPLE" ../$H3_PEXELS_SELECTION
+		materialize
+			input.json	              TYPE  DESCRIPTION                    EXAMPLE
+				job_id @	    [Key]  str   The import job                 "slice_0"
+				row_offset @	       int   First row of its slice         0
+				row_count @	           int   Rows in its slice              11523
+		commit
+			h3_pexels_clips
+				rows.parquet	                        TYPE   DESCRIPTION                                                       EXAMPLE
+					pexels_id @	                  [Key]  str    Pexels video ID                                                   "8085485"
+					source_path @	                     str    The Pexels MP4 on /fsx_scanline (S3 backed), not copied           "/fsx_scanline/.../Attempt_A/8085485"
+					split @	                             str    "train", "val" (held out) or "spare" (fills in for static clips)  "train"
+					birdseye_caption @	                 str    BirdsEye's caption of the whole video                             "A 3D printer ..."
+					duration @	                         float  Seconds                                                           10.01
+					fps @	                             float  Frames per second of the source                                   23.976
+					flow_mean_magnitude @	             float  BirdsEye RAFT flow, whole video, 256 px                           1.89
+					width @	                             int    Source width                                                      2160
+					height @	                         int    Source height                                                     3840
+
+	h3_cut_clip	 Cuts each Pexels clip's first 141 frames at 24 fps (5.875 s, H3's 17n+5 rule), 512 x 512, and 7 frames at 0..6 s
+		 Scale: rp.resize_image_to_hold(512, 512), then rp.crop_image_to_square (center) (m00912). No audio
+		query sql
+			SELECT pexels_id, source_path FROM h3_pexels_clips                    -- Pexels clips,
+			WHERE h3_cut_clip_claim IS NULL                                       -- not yet claimed,
+			ORDER BY CASE split WHEN 'val' THEN 0 WHEN 'train' THEN 1 ELSE 2 END, -- val, then train, then spare,
+			         random() LIMIT $H3_CUT_BATCH_SIZE                            -- one batch at a time, in random order
+		claim	h3_cut_clip_claim h3_pexels_clips
+		command bash
+			uv run --script processors/h3_cut_clip.py "$BATCH"
+		materialize
+			input.json	               TYPE  DESCRIPTION           EXAMPLE
+				pexels_id @	     [Key]  str   Pexels video ID       "8085485"
+				source_path @	        str   The Pexels MP4        "/fsx_scanline/.../Attempt_A/8085485"
+		commit
+			h3_pexels_clips	                  TYPE   DESCRIPTION                                                                    EXAMPLE
+				clip_512 clip.mp4	           blob   141 frames, 24 fps, 512 x 512, H.264 CRF 12, no audio                          3 MB .mp4
+				frame_0s frame_0s.png	       blob   The source frame at 0 s, 512 x 512 RGB (m00917)                                400 KB .png
+				frame_1s frame_1s.png	       blob   The last source frame at or before 1 s                                         400 KB .png
+				frame_2s frame_2s.png	       blob   ... 2 s                                                                        400 KB .png
+				frame_3s frame_3s.png	       blob   ... 3 s                                                                        400 KB .png
+				frame_4s frame_4s.png	       blob   ... 4 s                                                                        400 KB .png
+				frame_5s frame_5s.png	       blob   ... 5 s                                                                        400 KB .png
+				frame_6s frame_6s.png	       blob   ... 6 s                                                                        400 KB .png
+				result.json	            SUBFIELD  TYPE   DESCRIPTION                                                                    EXAMPLE
+					motion_512 @	               float  Mean |frame k - frame k + 12| over the clip, 8-bit levels. Low: static         6.3
+
+	h3_choose_clip	 Chooses the H3_PEXELS_TRAIN train clips and H3_VAL_COUNT val clips: run once, after every clip is cut (processors/h3_choose_clip.py)
+		 Train: the best rank average of motion_512 and birdseye_score (when H3_PEXELS_SELECTION has it), among clips that move at least H3_MIN_MOTION
+		query sql
+			SELECT pexels_id, split, motion_512 FROM h3_pexels_clips -- Pexels clips,
+			WHERE   h3_choose_clip_claim IS NULL                     -- not yet claimed,
+			    AND clip_512             IS NOT NULL                 -- that h3_cut_clip did: all of them in one run
+		claim	h3_choose_clip_claim h3_pexels_clips
+		command bash
+			uv run --script processors/h3_choose_clip.py "$BATCH" ../$H3_PEXELS_SELECTION $H3_PEXELS_TRAIN $H3_VAL_COUNT $H3_MIN_MOTION
+		materialize
+			input.json	                TYPE   DESCRIPTION                     EXAMPLE
+				pexels_id @	      [Key]  str    Pexels video ID                 "8085485"
+				split @	                 str    "train", "val" or "spare"       "train"
+				motion_512 @	         float  Motion of the 512 x 512 clip    6.3
+		commit
+			h3_pexels_clips	                 TYPE   DESCRIPTION                                                          EXAMPLE
+				result.json	          SUBFIELD  TYPE   DESCRIPTION                                                          EXAMPLE
+					h3_use @	                 str    "train", "val" or "unused"                                           "train"
+					birdseye_score @	         float  PexelsPick's BirdsEye score; null if the selection has none          0.71
+
+	h3_caption_clip	 H3-style caption of each Pexels clip (the 512 x 512 clip_512), without audio, by Gemini (manifest §22, m00912)
+		query sql
+			SELECT c.pexels_id, c.clip_512 FROM h3_pexels_clips c                                        -- Pexels clips,
+			LEFT JOIN (SELECT pexels_id, percent_rank() OVER (ORDER BY motion_512 DESC) AS motion_rank   -- (each with its motion rank
+			           FROM h3_pexels_clips WHERE split <> 'val' AND motion_512 IS NOT NULL) r           --  among the cut clips that are not val)
+			       ON r.pexels_id = c.pexels_id                                                         --
+			WHERE   c.h3_caption_clip_claim IS NULL                                                     -- not yet claimed,
+			    AND c.clip_512              IS NOT NULL                                                 -- that h3_cut_clip did,
+			    AND c.motion_512            >= $H3_MIN_MOTION                                           -- that move enough,
+			    AND (c.h3_use IN ('train', 'val')                                                       -- that h3_choose_clip chose,
+			         OR (c.h3_use IS NULL AND c.split = 'val')                                          -- or val before the choice,
+			         OR (c.h3_use IS NULL AND r.motion_rank <= $H3_CERTAIN_FRACTION * $H3_PEXELS_TRAIN  -- or certainly in the train set
+			             / (SELECT count(*) FROM h3_pexels_clips WHERE split <> 'val')))                --     (motion rank well inside it),
+			ORDER BY CASE c.split WHEN 'val' THEN 0 ELSE 1 END, random()                                -- val first, then in random order,
+			LIMIT $H3_CAPTION_BATCH_SIZE                                                                -- one batch at a time
+		claim	h3_caption_clip_claim h3_pexels_clips
+		command bash
+			uv run --script processors/h3_caption.py "$BATCH" clip $H3_CAPTION_BATCH_SIZE
+		materialize	               TYPE  DESCRIPTION   EXAMPLE
+			clip.mp4 clip_512	    blob  The clip      3 MB .mp4
+		commit
+			h3_pexels_clips	                 TYPE   DESCRIPTION                                                          EXAMPLE
+				result.json	          SUBFIELD  TYPE   DESCRIPTION                                                          EXAMPLE
+					h3_caption @	             str    The H3 field, labelled: integrated_multimodal_description only       "integrated_multimodal_description: [Shot 1] Live-action, ..."
+					h3_caption_model @	         str    The captioner                                                        "gemini-3.1-pro-preview"
+					h3_caption_seconds @	     float  Wall time of the Gemini calls, rewrites included                     38.0
 
 
 functions
