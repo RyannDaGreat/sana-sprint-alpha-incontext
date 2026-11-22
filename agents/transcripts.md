@@ -1170,3 +1170,6 @@ In fact, there should be journal entries for subsets of every dataset we train o
 
 ## m00935 — 2026-11-22 ~03:38 PM ET
 In the meanwhile, since other GPUs aren't being used, why don't you take a look at the winning solution for the fast decoder and see if we can make one for H3 as well. The one that we deployed — the big one, not the small one, which is a relative term, because it's actually quite small — that was 32-plus times faster than the original decoder for [FLUX.2] / FIBO. What strategy was used for that? Give me a human-readable notification breaking it down, real simple: how was it created, how was that winning strategy created. And then try to adapt it for H3. You can spare one GPU for that until other agents need them.
+
+## m00936 — 2026-11-22 ~03:38 PM ET
+Don't forget to transcribe me.
