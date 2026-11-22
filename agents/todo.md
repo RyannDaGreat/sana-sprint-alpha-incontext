@@ -18,7 +18,7 @@
 | H13 | Journal page journal/h3magic.html (`h3magic/journal.py build`), published per row | not measured | row 1 live (`ec18a1c`) |
 | H14 | Journal: Pexels selection page + 50 clips + captions | not measured | live (`73a07d9`); N3 sent |
 | H16 | Fast decoder for H3 (m00935): explain the shipped r5a3_long + how the genetic search found it (one readable notification), then adapt to H3's VAE on one spare GPU until training needs it | — | Opus agent FastDecH3 running |
-| H17 | H3 fast decoder genetic frenzy (m00942): tiers ≥10×, ≥30×, ≥100× faster than the full H3 VAE decoder, best quality per tier; Sonnet agents commanding Sonnet agents; opportunistic GPUs; own journal page with examples; page with current results now + notify when up | — | Sonnet coordinator running |
+| H17 | H3 fast decoder genetic frenzy (m00942, m00954): tiers ≥10×, ≥30×, ≥100× faster, + a pure quality prize (≤ 2× the original decode time, every score better than the original vs the source; maximize PSNR) than the full H3 VAE decoder, best quality per tier; Sonnet agents commanding Sonnet agents; opportunistic GPUs; own journal page with examples; page with current results now + notify when up | — | Sonnet coordinator running |
 | H20 | "Basic ass magic" ablation (m00953): LoRA on stock H3 on gray MAGICK images only, on remote node 2; rows: images + videos, 20 prompts | — | dispatching |
 | H15 | Journal: one dataset page per adapter (Pexels clips, image-gen frames, gray MAGICK), each with examples + captions and the adapter lineage (trained on top of which baked adapters) (m00934) | — | after each dataset is cut + captioned |
 
