@@ -1212,3 +1212,6 @@ Oh wait, if the training data is not the bottleneck, then, um — oh, I don't kn
 
 ## m00949 — 2026-11-22 ~04:42 PM ET
 Again, we have two beautiful nodes that are being completely unused right now. Just a reminder.
+
+## m00950 — 2026-11-22 ~04:46 PM ET
+Hell, we can probably even make training go faster, 'cause now you can use all 8 GPUs here and do fancy stuff on the other ones. How does that sound? We got two free nodes! You might not be able to make training go faster by using two nodes at once, 'cause they don't have fast connections between each other, but surely you could do inference and other tests and genetic frenzies and whatever you need to do on the others.
