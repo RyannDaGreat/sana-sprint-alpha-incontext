@@ -1152,3 +1152,6 @@ No reason to pause it. These things could be done in parallel, can't they? This 
 
 ## m00929 — 2026-11-22 ~03:26 PM ET
 Again, you don't always have to use forks. You can use Sonnet agents where warranted, if it's simple; you don't need to use Opus, and you don't need to use a fork. Forks are reserved for things that require all-over context.
+
+## m00930 — 2026-11-22 ~03:31 PM ET
+Why don't you also make a journal entry for Pexels video selection?
