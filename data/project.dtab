@@ -1843,6 +1843,37 @@ queries
 		GROUP BY t.page_id                             -- one row per image,
 		ORDER BY methods DESC, t.page_id               -- the images with the most methods first
 
+	 H3 MAGIC PROJECT (manifest §22)
+
+	view_h3_magick sql
+		SELECT
+		    struct('image' AS widget, image_512 AS src, subject AS caption) AS image_512,
+		    page_id,
+		    split,
+		    subject,
+		    h3_caption
+		FROM h3_magick_images         -- H3 Magic MAGICK images
+		WHERE image_512 IS NOT NULL   -- that h3_magick_image did,
+		ORDER BY split DESC, page_id  -- val first, in a fixed order
+
+	view_h3_pexels sql
+		SELECT
+		    struct('video' AS widget, clip_512 AS src, pexels_id AS caption) AS clip_512,
+		    struct('image' AS widget, frame_0s AS src, '0 s'     AS caption) AS frame_0s,
+		    struct('image' AS widget, frame_3s AS src, '3 s'     AS caption) AS frame_3s,
+		    struct('image' AS widget, frame_6s AS src, '6 s'     AS caption) AS frame_6s,
+		    pexels_id,
+		    split,
+		    h3_use,
+		    motion_512,
+		    birdseye_score,
+		    h3_caption,
+		    birdseye_caption
+		FROM h3_pexels_clips                                -- H3 Magic Pexels clips
+		WHERE clip_512 IS NOT NULL                          -- that h3_cut_clip did,
+		ORDER BY coalesce(h3_use, split), motion_512 DESC   -- by use, most motion first
+
+
 sparrow
 	saves sparrow_saves
 
