@@ -855,3 +855,43 @@ Step 1000 live (after 351b011, one wasm thread for Memory64): fibo2_turbo_fibo2_
 - **W pick (m00896).** Pilots `agents/.scratchpad/matte_pilots/run_pilots.sh` (tmux matte_pilots): after splitter step 5000 and the matte encode, one 300-step run per GPU 1–5 with W ∈ {0, 0.1, 0.3, 1, 3} (warmup 50, so 300 steps train; W = 0 is the control), then `pilot_eval.py` on 16 held-out showcase items (morph_band, turbo 4 steps, λ 0, seeds 1000+k): highway per-block x̂0 error vs the final image latent, LPIPS/SSIM vs the reference, matte MAE; the μ = 0 splitter step 5000 as baseline; `summarize.py` picks the largest W whose LPIPS and SSIM are not worse than W = 0 by more than 2 standard errors of the paired per-item difference and whose highway error is lower.
 - **W pilots, result (2026-11-20 7:02 PM ET; λ = 0 only).** 300 steps each, 16 held-out items, turbo 4 steps; highway = mean relative x̂0 error vs the final latent over blocks 1–43. μ = 0 baseline: highway 0.554, LPIPS 0.287, SSIM 0.722. W 0: 0.556 / 0.313 / 0.720 (matte MAE 0.086); W 0.1: 0.543 / 0.296 / 0.722 (0.071); W 0.3: 0.528 / 0.286 / 0.727 (0.053); **W 1: 0.488 / 0.280 / 0.722 (0.040)**; W 3: 0.511 / 0.285 / 0.719 (0.041). No W degrades vs the W = 0 control (paired, 2 SE). The largest-clean rule gives 3, but W = 1 is better on highway, LPIPS and matte, so the long run uses **W = 1**. Single GPU: 65.5 GB, ≈ 15 s/step at batch 4. λ = 1 not evaluated yet. Long run: `RUN=fibo2_matte MAX_STEPS=10000 LAUNCH="CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 NGPU=6 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True ./train_fibo2.sh matte fibo2_matte --adapter models/fibo2/fibo2_adapter/step_001000 --splitter models/fibo2/fibo2_split/step_005000 --batch_size 4 --max_steps 10000 --highway_joint True --highway_weight 1" agents/.scratchpad/fibo2_supervise.sh`.
 - **Greek-letter tooltips (m00896).** λ, γ, μ get tooltips that explain the visible effect on the image, validated by a small agentic user study (fresh agents predict what moving each slider does to the picture).
+
+## 22. H3 Magic project (second experiment, m00912–m00916, started 2026-11-22 3:00 PM ET)
+
+**Modes (m00912, m00919): autopilot + bulldog + fork mode.** No blocking questions (a question waits at most 60 s, then h3magic decides); never let go of a hard problem; one fork agent per orthogonal item.
+
+**Agent name for notifications: "h3magic"** (m00915). Every phone notification starts "h3magic:", gives context, is short, uses no invented jargon, and is written with the human-readable-notification skill (loaded before each send). At most **10** notifications in total (m00912, m00914).
+
+**Goal (m00912).** Eventually an RGBA version of MiniMax H3 (text to video, 480p class). This first pass stops at RGB on a 50% gray background. Method: the same adapter-on-adapter recipe as §1, on H3. Each adapter is a LoRA trained on the model with all earlier adapters **baked in**; at inference the adapters are summed with weights:
+`W = W_H3 + a·Δ_pexels + b·Δ_imagegen + c·Δ_graymagic`.
+1. **Stock H3** (no adapter): text to video on the 20 eval prompts. Journal row 1.
+2. **Pexels adapter** (Δ_pexels): LoRA on stock H3, trained on 10,000 real Pexels clips (first 6 s, 512×512) with H3-style captions. Makes H3 generate Pexels-like video. Journal row 2 (videos).
+3. **Image-gen adapter** (Δ_imagegen): LoRA on H3 + Δ_pexels (baked), trained on single frames encoded by H3's VAE as single-frame latents (time length 1). m00917 replaced "the frame at 3.0 s" with **7 frames per clip, at 0, 1, 2, 3, 4, 5 and 6 s** (fence posts over the first 6 s, as augmentation): 70,000 images. The frame at 6 s is the last frame at or before 6.0 s. Makes H3 generate one 512×512 image; should be much faster. Journal row 3 (images).
+4. **Gray magic adapter** (Δ_graymagic): LoRA on H3 + Δ_pexels + Δ_imagegen (baked), trained on 10,000 MAGICK images composited on 0.5 gray, 512×512, single-frame latents, with H3-style recaptions of the MAGICK images. Journal row 4 (images).
+5. **Video rows** (inference only, 6 s, 512×512, same 20 prompts):
+   - 5a "all adapters on": a = b = c = 1 (the ablation: expected low motion).
+   - 5b "gray magic only": a = 0, b = 0, c = 1 (hoped: subjects on gray backgrounds with high motion).
+   - 5c "Pexels gray": a = 1, b = 0, c = 1 (for fun: maybe Pexels-like video on gray).
+   Row 5c by **9 PM ET 2026-11-22** is the deliverable (m00912 second paste).
+
+**Not in scope now:** on-white / on-black channel concatenation (the user considered it, then chose on-gray first); the web UI (unchanged, m00912); audio (excluded everywhere: no audio captions, no audio latents, no audio in the prompt).
+
+**Data.**
+- **Pexels**: 10,000 random REAL clips (no synthetic, CGI, animation or renders) with decent motion, from BirdsEye (`/fsx_scanline/from_netflix/burgert/CleanCode/Github/BirdsEye`), chosen with BirdsEye's motion metrics and audited by a sub-frenzy of Sonnet agents plus a manual check. First 6 s only (the captions describe the start). Video files are referenced by path (S3-backed `/fsx_scanline`, m00912 "S3 link references"), not copied as blobs.
+- **Resize/crop**: `rp.resize_images_to_hold(height=512, width=512)` (short side becomes 512, aspect kept), then `rp.crop_images_to_square` (center crop) to 512×512 (m00912).
+- **MAGICK**: 10,000 train images from `magick_samples` (never the eval split), `rgb_on_gray` resized to 512×512.
+- **Split**: the 20 journal eval prompts are curated by hand (h3magic), never trained on. Training uses all 10,000 of each set; a held-out set of 20 Pexels clips and 20 MAGICK images (by hash) is left out for validation loss.
+- **Captions (m00912, m00916, m00918)**: H3-style captions (the T2VA format of BluejayDailies `processors/h3_guide.txt`, field `integrated_multimodal_description` only, every audio part removed) for the 10,000 Pexels clips and the 10,000 MAGICK images, so the caption distribution matches across adapters and the eval prompts. Captioner: Muse Spark (local vLLM) or Gemini (BluejayDailies `processors/gemini.py`), whichever is measured faster; Gemini cost does not matter (m00916). The old MAGICK `subject` captions are kept beside the recaptions. Captioning runs at the same time as GPU work and other processing; it never blocks them (m00918).
+- **Embeddings**: VAE latents (video, 3 s frame, MAGICK image) and H3 text embeddings are precomputed once into BlueJay tables (m00912 "recompute all the embeddings for H3").
+
+**BlueJay (m00912).** New tables and processors go at the **bottom of `data/project.dtab` in their own chunk, headed "H3 MAGIC PROJECT"**, in the house style (§9 dtab-rules). All H3 inference is a BlueJay processor (viewable in Sparrow), with the model loaded once per GPU and kept loaded (no load/unload per batch).
+
+**Models.** H3 weights are localized: a durable copy under the repo's `models/` (gitignored) or the MinimaxH3 dump's copy, and a node-local copy under `/models/` loaded from fast local disk, never re-downloaded.
+
+**Hardware (m00912).** 8× 80 GB GPUs: training on 6 (GPUs 0–5), inference and evaluation on 2 (GPUs 6–7). Never idle GPUs. RAM guard: `h3magic/ram_guard.py` (tmux `ram_guard`) SIGKILLs the biggest process within 1 ms when used RAM passes 75% (m00912). It never kills the OS, the /root mount, tmux or Claude.
+
+**Training rule (m00912 second paste): taste like a chef.** Watch losses and sample images during training; when they plateau, stop and move on. Perfection is not required; reaching the last row by 9 PM is.
+
+**Layout (m00912: "well organized, distinguish this experiment").** Not a sub-dump: the experiment shares this repo's BlueJay project (`data/project.dtab`) and journal, so a sub-dump would need links back into its parent, which the dump rules forbid. Instead: code in `h3magic/` (top level), processors `data/processors/h3_*.py`, DTAB chunk "H3 MAGIC PROJECT", journal page `journal/h3magic.html` + `journal/assets/h3magic/`, models `models/h3magic/`.
+
+**Journal (m00912).** One page, one row per stage, same 20 prompts in every row, full resolution, every item labeled with its weight equation; published to GitHub Pages periodically (`PYTHONPATH=src uv run python -m sana_alpha.publish_pages`).

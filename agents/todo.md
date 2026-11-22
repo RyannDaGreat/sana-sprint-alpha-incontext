@@ -1,5 +1,32 @@
 # TODO
 
+## H3 MAGIC (manifest §22, m00912–m00917) — deadline: last video row by 9:00 PM ET 2026-11-22
+| # | Item | Product LOC | Status |
+|---|---|---|---|
+| H1 | Transcripts m00912–m00917, manifest §22, this checklist | 0 | done 3:55 PM |
+| H2 | RAM guard 75%, 1 ms poll (`h3magic/ram_guard.py`, tmux ram_guard) | +80 | running since 3:48 PM; not committed |
+| H3 | Pexels selection: 10k real, decent motion, first 6 s; Sonnet audit sub-frenzy + manual check | — | pending research |
+| H4 | BlueJay chunk "H3 MAGIC PROJECT": tables + processors (clips by path, 512² crop, latents, captions, text embeddings, eval) | — | pending |
+| H5 | H3 localized (repo models/ + node /models/) | — | pending |
+| H6 | 20 curated eval prompts (H3 style, no audio) | — | pending |
+| H7 | Captions: H3 style, no audio, 10k Pexels + 10k MAGICK; Muse vs Gemini by measured speed (m00916); notify start + finish | — | pending |
+| H8 | Row 1: stock H3 t2v, 20 prompts, BlueJay inference, GPUs 6–7 | — | pending |
+| H9 | Pexels adapter (6 GPUs), taste + stop at plateau; row 2 | — | pending |
+| H10 | Image-gen adapter on baked Pexels, 7 frames per clip at 0–6 s (m00917); row 3 (images) | — | pending |
+| H11 | Gray magic adapter on baked Pexels + image-gen; row 4 (images) | — | pending |
+| H12 | Video rows 5a (all on), 5b (gray magic only), 5c (Pexels + gray magic) | — | pending; due 9:00 PM |
+| H13 | Journal page journal/h3magic.html, published periodically | — | pending |
+
+### Schedule (ET, 2026-11-22)
+- 3:00–4:15 read, plan, data selection, BlueJay chunk, H3 localize, eval prompts
+- 4:15 stock H3 row on GPUs 6–7; captions start (N1); VAE encode on GPUs 0–5
+- ~5:15 captions done (N2); text embeddings
+- 5:20–6:20 Pexels adapter on GPUs 0–5 (N3: started + stock row live)
+- 6:20–7:05 image-gen adapter (N4: Pexels row live)
+- 7:05–8:00 gray magic adapter (N5: image-gen row live)
+- 8:00–8:45 rows 4, 5a, 5b, 5c on all 8 GPUs (N6: gray magic row live)
+- 8:45–9:00 publish journal (N7: final rows live). N8–N10 reserved for problems.
+
 ## REVIEW CHECKLIST (only the user checks items off)
 | # | Item | Product LOC | Status |
 |---|---|---|---|
