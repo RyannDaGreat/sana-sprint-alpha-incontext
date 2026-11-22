@@ -1182,3 +1182,6 @@ Make sure the journal shows me the captions too, by the way, for the MAGICK imag
 
 ## m00939 — 2026-11-22 ~04:02 PM ET
 For the ones on gray, by the way: we don't say "on gray background". Make sure that the captions don't do that; that would be annoying. The whole point is that we're supposed to learn that from the LoRA [transcribed "lore"]. The captions shouldn't tell it [transcribed "The Captains Shouldn't Tell It"].
+
+## m00940 — 2026-11-22 ~04:11 PM ET
+Again, remember the beauty of BlueJay means that you do not need to wait for one job to finish before you start another. Things can stream. As captions come in, you can embed them. As images and videos are processed, you can encode them. You can launch two things at once with BlueJay, almost like a pipeline, an assembly line. Again, don't forget to update transcriptions.
