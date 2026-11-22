@@ -673,11 +673,9 @@ def ready(data="pexels", latent_column=COLUMNS["video"], embed_column=COLUMNS["e
 
 
 def write_status(name, text):
-    """Command. One-line STATUS file of adapter `name` (and the shared STATUS.txt) for the coordinator."""
+    """Command. One-line STATUS_<name>.txt of adapter `name` for the coordinator (one file per run, so runs on other nodes never overwrite it)."""
     STATUS_DIR.mkdir(parents=True, exist_ok=True)
-    line = f"{eastern_clock()} {name}: {text}\n"
-    (STATUS_DIR / f"STATUS_{name}.txt").write_text(line)
-    (STATUS_DIR / "STATUS.txt").write_text(line)
+    (STATUS_DIR / f"STATUS_{name}.txt").write_text(f"{eastern_clock()} {name}: {text}\n")
 
 
 def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr=2e-4, weight_decay=0.01, grad_clip=1.0,
@@ -867,12 +865,22 @@ def preempt(gpus, name):
 def claim(name, gpus="0,1,2,3,4,5"):
     """
     Command. Claims gpus for job `name` in agents/.scratchpad/h3train/GPUS.txt and preempts the low-priority jobs listed
-    on them (GPU policy, m00937). Returns the GPU list as "0,1,...".
+    on them (GPU policy, m00937). Returns the GPU list as "0,1,...". The GPU list and the fastdec pids are this node's
+    (the host in agents/.scratchpad/h3train/MAIN_NODE): on another node (remote runs share this folder) the claim goes
+    to GPUS_<host>.txt and nothing is preempted, since a pid there means a different process.
     """
+    import socket
+
     gpus = ",".join(map(str, gpus)) if isinstance(gpus, (list, tuple)) else str(gpus)  # Fire turns "0,1" into a tuple
     STATUS_DIR.mkdir(parents=True, exist_ok=True)
-    (STATUS_DIR / "GPUS.txt").write_text(f"H3Train {name}: GPUs {gpus} from {eastern_clock()} ET\n")
-    preempt([int(g) for g in gpus.split(",")], name)
+    host = socket.gethostname()
+    main = (STATUS_DIR / "MAIN_NODE").read_text().strip()
+    line = f"H3Train {name} on {host}: GPUs {gpus} from {eastern_clock()} ET\n"
+    if host == main:
+        (STATUS_DIR / "GPUS.txt").write_text(line)
+        preempt([int(g) for g in gpus.split(",")], name)
+    else:
+        (STATUS_DIR / f"GPUS_{host}.txt").write_text(line)
     return gpus
 
 
