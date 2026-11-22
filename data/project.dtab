@@ -1608,8 +1608,8 @@ processors
 		commit
 			h3_magick_images	                 TYPE   DESCRIPTION                                                          EXAMPLE
 				result.json	          SUBFIELD  TYPE   DESCRIPTION                                                          EXAMPLE
-					h3_caption @	             str    The H3 field, labelled: integrated_multimodal_description only       "integrated_multimodal_description: [Shot 1] Live-action, ..."
-					h3_caption_model @	         str    The captioner                                                        "gemini-3.1-pro-preview"
+					h3_caption @	             str    The H3 field, labelled. The subject only, never the background       "integrated_multimodal_description: [Shot 1] Live-action, ..."
+					h3_caption_model @	         str    The captioner. " subject-only": a caption made after m00939          "gemini-3.1-pro-preview subject-only"
 					h3_caption_seconds @	     float  Wall time of the Gemini calls, rewrites included                     31.2
 
 	h3_import	 Reads H3_PEXELS_SELECTION and adds one h3_pexels_clips row per clip. No video yet
