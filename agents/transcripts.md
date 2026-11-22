@@ -1227,3 +1227,6 @@ There is one ablation that we also need to do. Once training starts, there's ano
 
 ## m00954 — 2026-11-22 ~05:11 PM ET
 Also, the H3 Magic fast decoder: there's one other prize I'd like to add to it, which is the pure quality prize. That is: with no more than 2 times the original compute time, increase the PSNR as massively as possible. I wanna see if it's possible to make a better decoder than the original. PSNR, LPIPS, all of the scores — all of them gotta be better. So add that to the genetic frenzy.
+
+## m00955 — 2026-11-22 ~05:13 PM ET
+Well, not just PSNR: it also has to be qualitatively better, which is why I'm asking for LPIPS and other measurements too. It can't just be better in the one category [transcribed "in Cheesa"], because we all know that L2 loss makes things blurry, and a blurrier image might actually register as better. So it should be holistic. The genetic frenzy can have more than just five agents, and all of them can be Sonnets, so maybe we'll have like seven or eight candidates inside the frenzies that can all breed with each other.
