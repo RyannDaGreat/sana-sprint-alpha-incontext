@@ -1000,6 +1000,11 @@ tables
 			h3_caption, h3_caption_model string
 			h3_caption_seconds float64
 
+			 Written by h3_encode and h3_embed: long-lived per-GPU workers (data/processors/h3_encode.py, h3_embed.py, started by run_proc_h3_encode.fish), committed with Bluejay's commit, not Bluejay runs
+			 h3_latent_512: safetensors {"latent": (24, 1, 32, 32) bfloat16}, the H3 VAE latent of image_512, normalized (h3magic/h3.py encode)
+			 h3_text_embed: safetensors {"prompt_embeds": (1, N, 5120) bfloat16, "text_token_tags": (N,) int64} of h3_caption, H3's text encoder (layer 50)
+			h3_latent_512, h3_text_embed blob
+
 	h3_pexels_clips
 		 One row per Pexels clip of the H3 Magic project. The video stays where it is: source_path refers to it (m00912)
 		primary_key pexels_id
@@ -1022,6 +1027,51 @@ tables
 			 Written by h3_caption_clip
 			h3_caption, h3_caption_model string
 			h3_caption_seconds float64
+
+			 Written by h3_encode and h3_embed: long-lived per-GPU workers (data/processors/h3_encode.py, h3_embed.py, started by run_proc_h3_encode.fish), committed with Bluejay's commit, not Bluejay runs
+			 h3_latent_video: {"latent": (24, 42, 32, 32) bfloat16} of clip_512. h3_latent_frames: {"latent": (7, 24, 1, 32, 32)} of frame_0s .. frame_6s. Normalized (h3magic/h3.py encode)
+			 h3_text_embed: {"prompt_embeds": (1, N, 5120) bfloat16, "text_token_tags": (N,) int64} of h3_caption
+			h3_latent_video, h3_latent_frames, h3_text_embed blob
+
+	h3_eval_prompts
+		 The 20 curated eval prompts of h3magic/eval_prompts.json (manifest §22): every journal row uses them. Never trained on
+		primary_key prompt_id
+		columns
+			prompt_id string
+
+			 Written by h3_generate.py plan
+			short, prompt string
+			seed int64
+
+			 Written by h3_embed (as h3_pexels_clips)
+			h3_text_embed blob
+
+	h3_eval_models
+		 One row per H3 model to evaluate: W = W_H3 + a_pexels * Δ_pexels + b_imagegen * Δ_imagegen + c_graymagic * Δ_graymagic
+		 Adapter paths are LoRA folders relative to the repo root; an empty path leaves that adapter out. To evaluate a new model, add a row, then run run_proc_h3_eval.fish
+		primary_key model_tag
+		columns
+			model_tag, mode, pexels_adapter, imagegen_adapter, graymagic_adapter string	 mode: video (141 frames) or image (1 frame)
+			steps int64
+			a_pexels, b_imagegen, c_graymagic float64
+		initial_rows
+			,	model_tag stock_video	mode video	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 0.0
+			,	model_tag stock_image	mode image	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 0.0
+
+	h3_eval_generations
+		 One row per H3 model and eval prompt: what the model makes from the prompt and its seed
+		primary_key model_tag,prompt_id
+		columns
+			model_tag, prompt_id string
+
+			 Written by h3_generate.py plan
+			seed int64
+
+			 Written by h3_generate.py work: long-lived per-GPU workers (started by run_proc_h3_eval.fish), committed with Bluejay's commit, not Bluejay runs
+			 video: 141 frames, 24 fps, 512 x 512, H.264 CRF 12 MP4 (mode video). image: 512 x 512 PNG (mode image). seconds: generation time. gpu: its GPU
+			video, image blob
+			seconds float64
+			gpu int64
 
 
 processors
