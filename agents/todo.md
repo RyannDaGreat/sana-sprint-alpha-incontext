@@ -25,6 +25,7 @@
 - N1 3:32 PM: captioning started (Gemini), 10k videos chosen, 5.875 s not approved
 - N2 03:50 PM: how the big fast decoder (r5a3_long) was made; adapting it to H3
 - N3 04:18 PM: Pexels selection page live (50 clips + captions); stock row done; training starts with 1,000 clips ~4:30
+- N4 05:03 PM: results page (row 1), fast decoder page (round 0), gray magic dataset page live
 
 ### Schedule (ET, 2026-11-22; deadline 11 PM, m00948)
 - 3:00–4:40 plan, data, captions, encode, stock row (done 4:16), Pexels page (live 4:20)
