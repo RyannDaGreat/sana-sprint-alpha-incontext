@@ -1129,3 +1129,6 @@ I pre-approve any commits related to this subdump for now. We can clean things u
 
 ## m00923 — 2026-11-22 ~4:21 PM ET
 But in their commit titles, do [C:H3M] for H3Magick instead of just [C]. Those are the pre-approved ones.
+
+## m00924 — 2026-11-22 ~4:40 PM ET
+Also, before redownloading all the H3 weights, check — have an agent check my other dumps to see if you can symlink [transcribed "start link"] it from another one of my dumps. It might be in there somewhere.

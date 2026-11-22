@@ -551,3 +551,8 @@
 - Effect: anything that waits on nvidia-smi stalls silently. The step 6000 eval sat "waiting" with its checkpoint present. Worked around with run_long_eval_gpu.sh (GPU given by hand). Killed the stale wait_gpu.sh parent.
 - If it persists after the run ends, the node may need a driver reset/reboot (setup.sh recreates the system installs). Do not start jobs whose scheduling depends on nvidia-smi until then.
 - 6:02 PM update: it is not only nvidia-smi. The step 6000 eval (pilot_eval.py, CUDA_VISIBLE_DEVICES=6) has sat in D state since 5:50 PM with an empty log: a NEW CUDA context hangs. The running training keeps its contexts and keeps stepping. Consequences: (1) if the long run crashes, the supervisor's relaunch will hang too; (2) the end-of-run web export needs a new CUDA context, so shipping needs the node fixed first (a Workbench restart after the run ends; setup.sh recreates system installs). No more GPU jobs until then.
+
+## 2026-11-22 ~4:35 PM — H3 weight copy from Lustre ran at ~0 MB/s (h3magic)
+- rsync of MinimaxH3's models/MiniMax-H3 (Lustre, S3-backed) to /models/h3magic moved ~500 MB in 3 min, mostly small files; `dd` of one 5 GB shard printed nothing in 20 s (lazy load from S3). Two rsyncs from the same source also competed.
+- Fix: `hf download MiniMaxAI/MiniMax-H3 --local-dir /models/h3magic/MiniMax-H3` at 1.4 GB/s. The durable repo copy became a symlink to MinimaxH3's copy (m00924) instead of a 144 GB copy.
+- Lesson: for a big node-local copy, measure the source's read speed for 20 s first; the Hub can be 100x faster than a cold Lustre/S3 file.
