@@ -16,6 +16,7 @@
 | H11 | Gray magic adapter on baked Pexels + image-gen; row 4 (images) | — | pending |
 | H12 | Video rows 5a (all on), 5b (gray magic only), 5c (Pexels + gray magic) | — | pending; due 9:00 PM |
 | H13 | Journal page journal/h3magic.html, published periodically | — | pending |
+| H14 | Journal: Pexels selection page (m00930); notify once when live (m00931) | — | Sonnet agent running |
 
 ### Schedule (ET, 2026-11-22)
 - 3:00–4:15 read, plan, data selection, BlueJay chunk, H3 localize, eval prompts
