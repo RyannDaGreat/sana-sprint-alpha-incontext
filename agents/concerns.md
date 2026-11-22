@@ -613,3 +613,9 @@
 - `pkill -f 'train.py train pexels'` from a shell whose own command line held that string killed the shell (exit 144), the same trap as the 2026-11-20 pgrep note. Kill by pid from a script file, or match a pattern your own command line does not contain.
 - Editing a bash script that is running: `sed -i` replaces the file, so the running bash keeps the old text (the "move_to_67.sh 7" fix did not reach the running driver; I re-ran the hand-off by hand). Restart the driver after editing it.
 - Remote nodes share agents/.scratchpad: a run on node 2 would have SIGKILLed node-2 processes whose pids happened to match the local fastdec list, and overwritten the local GPUS.txt / STATUS.txt. Claims, preemption and the shared STATUS.txt are now main-node only (MAIN_NODE).
+
+
+## 2026-11-22 ~6:50 PM ET, FastDecGA round 1 lessons
+- gpu.py's first GPUS_OFFERED parser matched a GPU number in a comment line and offered node2 GPU 6 (h3_embed, forbidden); one child job (r1a7) ran there about 20 min before I killed it. Lesson: parse only lines that start with 'node<N> GPU(s) <list>', and verify offers against the supervisor's own text before launching children. Fixed in gpu.py (parse_gpu_list, anchored regex).
+- Children shared one GPU 4-5 ways, so every timing is 'shared' (seed 148 ms to 1178 ms in different windows) and step counts per minute differed; ranking by wall-clock is confounded. Compare at equal steps; get clean timings at the end.
+- Random-init direct patch decoder failed; keep pretrained tails.
