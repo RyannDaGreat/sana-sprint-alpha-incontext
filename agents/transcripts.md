@@ -1173,3 +1173,6 @@ In the meanwhile, since other GPUs aren't being used, why don't you take a look 
 
 ## m00936 — 2026-11-22 ~03:38 PM ET
 Don't forget to transcribe me.
+
+## m00937 — 2026-11-22 ~03:45 PM ET
+Hey, if it wants more GPUs, by the way, it can use them at low priority. It's just that all the other agents should know it's okay to kill the extra ones if they need them. Let the encoder [the fast-decoder agent] one be opportunistic: when any other process is not using a GPU, it can snag a GPU that's not being used. Make sure the agents are polite to each other. The decoding one is a lower priority.

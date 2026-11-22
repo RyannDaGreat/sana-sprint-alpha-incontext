@@ -890,6 +890,8 @@ Step 1000 live (after 351b011, one wasm thread for Memory64): fibo2_turbo_fibo2_
 
 **Hardware (m00912).** 8× 80 GB GPUs: training on 6 (GPUs 0–5), inference and evaluation on 2 (GPUs 6–7). Never idle GPUs. RAM guard: `h3magic/ram_guard.py` (tmux `ram_guard`) SIGKILLs the biggest process within 1 ms when used RAM passes 75% (m00912). It never kills the OS, the /root mount, tmux or Claude.
 
+**GPU priority (m00937).** Training > encode/embeddings > eval inference > the H3 fast decoder (lowest). The fast decoder takes any idle GPU, lists each such job in `agents/.scratchpad/fastdec_h3/GPUS.txt`, checkpoints often; any higher-priority agent may kill a listed pid when it needs the GPU (rules in `agents/.scratchpad/GPU_POLICY.md`).
+
 **Training rule (m00912 second paste): taste like a chef.** Watch losses and sample images during training; when they plateau, stop and move on. Perfection is not required; reaching the last row by 9 PM is.
 
 **Layout (m00912: "well organized, distinguish this experiment").** Not a sub-dump: the experiment shares this repo's BlueJay project (`data/project.dtab`) and journal, so a sub-dump would need links back into its parent, which the dump rules forbid. Instead: code in `h3magic/` (top level), processors `data/processors/h3_*.py`, DTAB chunk "H3 MAGIC PROJECT", journal page `journal/h3magic.html` + `journal/assets/h3magic/`, models `models/h3magic/`.
