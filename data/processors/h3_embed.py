@@ -3,12 +3,14 @@ H3 text embeddings of the H3 Magic project (manifest §22): long-lived text-enco
 one per GPU, committed with the database's commit. ~0.1 s per caption on an A100.
 
 Each blob is safetensors {"prompt_embeds": (1, N, 5120) bfloat16, "text_token_tags": (N,) int64}: hidden state 50 of the
-t2va text encoder, exactly what H3's denoiser takes (h3magic/h3.py embed). Column h3_text_embed of:
+t2va text encoder, exactly what H3's denoiser takes (h3magic/h3.py embed). h3_text_sha256 = sha256 of the text it embeds:
+a reader must use h3_text_embed only when h3_text_sha256 = encode(sha256(text), 'hex') (m00939: recaptions). Tables:
     h3_pexels_clips   (h3_caption)     h3_magick_images  (h3_caption)     h3_eval_prompts  (prompt)
 
     h3_embed.py WORKER WORKERS [--poll_seconds 120]   (from data/; GPU = $CUDA_VISIBLE_DEVICES)
 """
 
+import hashlib
 import os
 import sys
 
@@ -27,16 +29,31 @@ TABLES = {  # table: (key, text column, rows per query)
 }
 
 
-def table_sql(table, worker, workers):
+def text_sha256(text):
     """
-    Pure function. The query of one table's texts that have no embedding yet, of this worker.
+    Pure function. Hex sha256 of the UTF-8 text: the key that ties an embedding to the exact text it embeds (the SQL
+    side computes the same value with encode(sha256(text), 'hex')).
 
     Examples:
-        >>> table_sql("h3_magick_images", 0, 1).startswith("SELECT page_id, h3_caption AS text FROM h3_magick_images WHERE h3_text_embed IS NULL")
+        >>> text_sha256("abc")[:16]
+        'ba7816bf8f01cfea'
+    """
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def table_sql(table, worker, workers):
+    """
+    Pure function. The query of one table's texts whose embedding is missing or stale (h3_text_sha256 is not the
+    sha256 of the current text, e.g. after a recaption, m00939), of this worker.
+
+    Examples:
+        >>> sql = table_sql("h3_magick_images", 0, 1)
+        >>> sql.startswith("SELECT page_id, h3_caption AS text FROM h3_magick_images") and "h3_text_sha256 <> encode(sha256(h3_caption), 'hex')" in sql
         True
     """
     key, text, limit = TABLES[table]
-    return (f"SELECT {key}, {text} AS text FROM {table} WHERE h3_text_embed IS NULL AND {text} IS NOT NULL "
+    return (f"SELECT {key}, {text} AS text FROM {table} WHERE {text} IS NOT NULL "
+            f"AND (h3_text_embed IS NULL OR h3_text_sha256 IS NULL OR h3_text_sha256 <> encode(sha256({text}), 'hex')) "
             f"AND {shard_sql(key, worker, workers)} LIMIT {limit}")
 
 
@@ -54,8 +71,9 @@ def main(worker, workers, poll_seconds=120):
         key = TABLES[table][0]
 
         def handle(rows):
-            db.commit(table, ["h3_text_embed"], [{key: row[key], "h3_text_embed": tensors_bytes(h3.embed(encoder, row["text"]), layer=50)}
-                                                 for row in rows])
+            db.commit(table, ["h3_text_embed", "h3_text_sha256"],
+                      [{key: row[key], "h3_text_embed": tensors_bytes(h3.embed(encoder, row["text"]), layer=50, text_sha256=text_sha256(row["text"])),
+                        "h3_text_sha256": text_sha256(row["text"])} for row in rows])
         return handle
 
     with torch.inference_mode():

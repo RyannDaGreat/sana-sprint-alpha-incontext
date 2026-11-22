@@ -1004,6 +1004,7 @@ tables
 			 h3_latent_512: safetensors {"latent": (24, 1, 32, 32) bfloat16}, the H3 VAE latent of image_512, normalized (h3magic/h3.py encode)
 			 h3_text_embed: safetensors {"prompt_embeds": (1, N, 5120) bfloat16, "text_token_tags": (N,) int64} of h3_caption, H3's text encoder (layer 50)
 			h3_latent_512, h3_text_embed blob
+			h3_text_sha256 string	 The sha256 (hex) of the h3_caption that h3_text_embed embeds. Use the embedding only when it matches the current caption (m00939)
 
 	h3_pexels_clips
 		 One row per Pexels clip of the H3 Magic project. The video stays where it is: source_path refers to it (m00912)
@@ -1032,6 +1033,7 @@ tables
 			 h3_latent_video: {"latent": (24, 42, 32, 32) bfloat16} of clip_512. h3_latent_frames: {"latent": (7, 24, 1, 32, 32)} of frame_0s .. frame_6s. Normalized (h3magic/h3.py encode)
 			 h3_text_embed: {"prompt_embeds": (1, N, 5120) bfloat16, "text_token_tags": (N,) int64} of h3_caption
 			h3_latent_video, h3_latent_frames, h3_text_embed blob
+			h3_text_sha256 string	 The sha256 (hex) of the h3_caption that h3_text_embed embeds. Use the embedding only when it matches the current caption (m00939)
 
 	h3_eval_prompts
 		 The 20 curated eval prompts of h3magic/eval_prompts.json (manifest §22): every journal row uses them. Never trained on
@@ -1045,6 +1047,7 @@ tables
 
 			 Written by h3_embed (as h3_pexels_clips)
 			h3_text_embed blob
+			h3_text_sha256 string	 The sha256 (hex) of the prompt that h3_text_embed embeds
 
 	h3_eval_models
 		 One row per H3 model to evaluate: W = W_H3 + a_pexels * Δ_pexels + b_imagegen * Δ_imagegen + c_graymagic * Δ_graymagic
