@@ -1185,3 +1185,6 @@ For the ones on gray, by the way: we don't say "on gray background". Make sure t
 
 ## m00940 — 2026-11-22 ~04:11 PM ET
 Again, remember the beauty of BlueJay means that you do not need to wait for one job to finish before you start another. Things can stream. As captions come in, you can embed them. As images and videos are processed, you can encode them. You can launch two things at once with BlueJay, almost like a pipeline, an assembly line. Again, don't forget to update transcriptions.
+
+## m00941 — 2026-11-22 ~04:11 PM ET
+Ford's assembly line [correction to m00940: "like Ford's assembly line"].

@@ -892,7 +892,7 @@ Step 1000 live (after 351b011, one wasm thread for Memory64): fibo2_turbo_fibo2_
 
 **Hardware (m00912).** 8× 80 GB GPUs: training on 6 (GPUs 0–5), inference and evaluation on 2 (GPUs 6–7). Never idle GPUs. RAM guard: `h3magic/ram_guard.py` (tmux `ram_guard`) SIGKILLs the biggest process within 1 ms when used RAM passes 75% (m00912). It never kills the OS, the /root mount, tmux or Claude.
 
-**Streaming (m00918, m00940).** Every BlueJay stage runs at the same time as the stages before it, like an assembly line: cut → caption → embed, cut → encode, as each row becomes ready. No stage waits for an earlier stage to finish its table; training starts when enough rows are ready and picks up new rows as it goes.
+**Streaming (m00918, m00940).** Every BlueJay stage runs at the same time as the stages before it, like Ford's assembly line (m00941): cut → caption → embed, cut → encode, as each row becomes ready. No stage waits for an earlier stage to finish its table; training starts when enough rows are ready and picks up new rows as it goes.
 
 **GPU priority (m00937).** Training > encode/embeddings > eval inference > the H3 fast decoder (lowest). The fast decoder takes any idle GPU, lists each such job in `agents/.scratchpad/fastdec_h3/GPUS.txt`, checkpoints often; any higher-priority agent may kill a listed pid when it needs the GPU (rules in `agents/.scratchpad/GPU_POLICY.md`).
 
