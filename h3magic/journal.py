@@ -36,7 +36,10 @@ SECTIONS = (
     ("5a", "video", (1, 1, 1), "Row 5a: all adapters on, video"),
     ("5b", "video", (0, 0, 1), "Row 5b: gray magic only, video"),
     ("5c", "video", (1, 0, 1), "Row 5c: Pexels + gray magic, video"),
+    ("A1", "image", None, "Ablation \"basic ass magic\" (m00953): one LoRA on stock H3, gray MAGICK only, images"),
+    ("A2", "video", None, "Ablation \"basic ass magic\" (m00953): the same LoRA, video"),
 )
+ABLATION = "basic_ass_magic"  # model_tag prefix of the ablation rows: its LoRA sits in the graymagic slot but was trained on stock H3
 CHECKPOINT_TITLES = {"pexels": "Pexels adapter", "imagegen": "image-gen adapter", "graymagic": "gray magic adapter"}
 
 
@@ -53,14 +56,18 @@ def section_key(mode, weights, tag):
         '5b'
         >>> section_key("image", (1, 1, 0), "imagegen_step_000500")
         'ckpt_imagegen'
+        >>> section_key("video", (0, 0, 1), "basic_ass_magic_video")
+        'A2'
     """
+    if tag.startswith(ABLATION):
+        return {"image": "A1", "video": "A2"}[mode]
     if "step" in tag:
         named = [name for (name, _, _), w in zip(ADAPTERS, weights) if w > 0]
         if not named:
             raise ValueError(f"checkpoint row {tag} has no adapter weight")
         return "ckpt_" + named[-1]
     for key, sec_mode, sec_weights, _ in SECTIONS:
-        if (mode, tuple(float(w) for w in weights)) == (sec_mode, tuple(float(w) for w in sec_weights)):
+        if sec_weights is not None and (mode, tuple(float(w) for w in weights)) == (sec_mode, tuple(float(w) for w in sec_weights)):
             return key
     raise ValueError(f"model {tag}: mode {mode} with weights {weights} matches no journal row")
 
@@ -75,7 +82,11 @@ def weight_equation(row):
         'W_H3 + 0·Δ_pexels + 0·Δ_imagegen + 1·Δ_graymagic'
         >>> weight_equation({"a_pexels": 0.0, "b_imagegen": 0.0, "c_graymagic": 0.0, "pexels_adapter": None, "imagegen_adapter": None, "graymagic_adapter": None})
         'W_H3'
+        >>> weight_equation({"model_tag": "basic_ass_magic_image", "c_graymagic": 1.0})
+        'W_H3 + 1·Δ_basic_ass_magic'
     """
+    if row.get("model_tag", "").startswith(ABLATION):
+        return f"W_H3 + {row['c_graymagic']:g}·Δ_{ABLATION}"
     terms = [f"{row[w]:g}·Δ_{name}" for name, w, path in ADAPTERS if row[w] or row[path]]
     return " + ".join(["W_H3", *terms])
 
