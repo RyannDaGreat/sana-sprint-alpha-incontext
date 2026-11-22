@@ -19,6 +19,9 @@
 | H14 | Journal: Pexels selection page (m00930) with ~50 cut 6 s 512² clips (m00932, m00933); notify once when live (m00931) | — | Sonnet agent running |
 | H15 | Journal: one dataset page per adapter (Pexels clips, image-gen frames, gray MAGICK), each with examples + captions and the adapter lineage (trained on top of which baked adapters) (m00934) | — | after each dataset is cut + captioned |
 
+### Notifications sent (max 10, signed h3magic)
+- N1 3:32 PM: captioning started (Gemini), 10k videos chosen, 5.875 s not approved
+
 ### Schedule (ET, 2026-11-22)
 - 3:00–4:15 read, plan, data selection, BlueJay chunk, H3 localize, eval prompts
 - 4:15 stock H3 row on GPUs 6–7; captions start (N1); VAE encode on GPUs 0–5
