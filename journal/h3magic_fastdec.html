@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>H3 Magic: a fast decoder for H3, by genetic search</title>
+<style>
+:root { --bg:#fdfdfb; --fg:#1d1d1f; --muted:#66666b; --rule:#dcdcd6; --accent:#2f5d8a; --card:#f3f3ee; --gutter:16px; --measure:900px; --gap:12px; --radius:6px; --small:14px; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#18191b; --fg:#e8e8e6; --muted:#a0a0a5; --rule:#3a3b3e; --accent:#8ab4dc; --card:#232427; } }
+:root[data-theme="dark"] { --bg:#18191b; --fg:#e8e8e6; --muted:#a0a0a5; --rule:#3a3b3e; --accent:#8ab4dc; --card:#232427; }
+body { background:var(--bg); color:var(--fg); font:17px/1.6 Georgia,serif; margin:0; }
+main { max-width:var(--measure); margin:0 auto; padding:0 var(--gutter) 64px; }
+a { color:var(--accent); } h1,h2,h3 { font-family:system-ui,sans-serif; line-height:1.25; } h2 { margin-top:2.2em; border-bottom:1px solid var(--rule); padding-bottom:4px; }
+.note,.meta { color:var(--muted); font-size:var(--small); }
+table { border-collapse:collapse; font:var(--small) system-ui,sans-serif; width:100%; } th,td { border-bottom:1px solid var(--rule); padding:4px 8px; text-align:left; vertical-align:top; } th { background:var(--card); }
+.tbl { overflow-x:auto; }
+.clip { background:var(--card); border-radius:var(--radius); padding:var(--gap); margin:var(--gap) 0; }
+.pair { display:grid; grid-template-columns:1fr 1fr; gap:var(--gap); } .pair figure { margin:0; } .pair video { width:100%; display:block; border-radius:var(--radius); background:#000; }
+figcaption { font:var(--small) system-ui,sans-serif; color:var(--muted); margin-top:4px; }
+.tier { border-left:4px solid var(--accent); padding:2px 12px; margin:var(--gap) 0; background:var(--card); }
+dt { font-weight:bold; margin-top:0.6em; } dd { margin-left:1.2em; }
+code { font-size:0.9em; } button { font:var(--small) system-ui,sans-serif; padding:6px 12px; }
+@media (max-width:600px) { .pair { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<main>
+<p class="note"><a href="index.html">&larr; journal index</a> &middot; <a href="h3magic.html">H3 Magic results</a> &middot; <a href="fastdec.html">the FLUX.2 fast decoder search</a></p>
+<h1>H3 Magic: a fast decoder for H3, by genetic search</h1>
+<p>The MiniMax H3 video VAE decoder is a 36-layer transformer. It is slow. We want a small network that turns an H3 latent into video frames much faster, close enough to the full decode to use for previews. We search for it with a <b>genetic frenzy</b>: rounds of Sonnet agents that mutate and cross the best candidates, run opportunistically on whatever GPU is idle. There are three prizes, one per speed tier: <b>10&times;</b>, <b>30&times;</b> and <b>100&times;</b> faster than the full decode, each won by the best quality inside it.</p>
+<p><b>Status (round 0, no candidate trained yet).</b> This page shows what exists now: why, how the FLUX.2 predecessor was made, the H3 facts, the starting design, the rules, and the target quality. Results appear here after every round. Last updated: round 0.</p>
+
+<h2>Why a fast decoder</h2>
+<p>H3 Magic generates video from latents. To <i>see</i> anything we must decode, and the full decoder takes seconds for a clip. A fast decoder lets us show previews while a generation runs (the same idea as the FLUX.2 sneak peek) and makes evaluation and data inspection cheap. Previews do not need to be perfect, but they must look like the real decode: same colors, same motion, no flicker.</p>
+
+<h2>Facts about the H3 decoder</h2>
+<ul>
+<li>36-layer ViT decoder, width 2048, one token per latent voxel (patch 4&times;16&times;16: 4 frames and 16&times;16 pixels per token), run in chunks of 7 latent frames with 256&times;256 spatial tiles.</li>
+<li>Latent for a 141-frame, 512&times;512 clip: <code>(24, 42, 32, 32)</code> = (channels, latent frames, height, width). The encoder reads 17-frame clips = 5 latent frames; the first covers 1 pixel frame, the others 4 each (141 frames = 42 latent frames).</li>
+<li>Full decode time of one such latent, measured on an A100 (H3Engine bench): <b>42.9 s in fp32, 6.48 s in bf16</b> (median of the last 3 of 4 runs; bf16 matches fp32 to 53 dB PSNR). The reference for the speedup is the <b>bf16</b> time.</li>
+</ul>
+
+<h2>How the FLUX.2 fast decoder was made (the predecessor)</h2>
+<p>For the FLUX.2 VAE (49.6M-parameter decoder, 207 ms per 1024&times;1024 image) an earlier genetic search produced <b>r5a3_long</b>, now shipped: 0.88M parameters, 6.5 ms, <b>32&times; faster</b>, SSIM 0.980 against the original images (the full decoder itself scores 0.985). It took 5 rounds of 5 Sonnet agents (188 candidates in all) and about 2.5 GPU hours of training.</p>
+<div class="tbl"><table><tr><th>Decoder</th><th>Params</th><th>ms per 1024&sup2;</th><th>Speedup</th><th>SSIM</th><th>LPIPS</th><th>&Delta;E2000</th></tr>
+<tr><td>Full FLUX.2 decoder</td><td>49.6M</td><td>207</td><td>1&times;</td><td>0.985</td><td>0.004</td><td>1.02</td></tr>
+<tr><td><b>r5a3_long (shipped)</b></td><td>884,673</td><td>6.5 (fp16)</td><td>32&times;</td><td>0.980</td><td>0.011</td><td>1.09</td></tr>
+<tr><td>r2a3_xs (small, shipped)</td><td>&ndash;</td><td>4.9 (fp16)</td><td>42&times;</td><td>0.951</td><td>0.060</td><td>1.57</td></tr></table></div>
+<p class="note">300 held-out images, clean A100, ONNX Runtime CUDA; scores against the original images.</p>
+<h3>What it is</h3>
+<ol>
+<li>Patchify the latent 2&times;2 and map it back to the latent grid with the fal Tiny AE's transposed convolution.</li>
+<li>A TAESD-style decoder <b>cut at &frac14; resolution</b>: residual conv blocks at &#8539; and &frac14; pixel resolution only. The &frac12;-resolution and full-resolution stages, where most pixels and time are, are dropped.</li>
+<li>A head: conv to 128 channels, <b>PixelShuffle(4)</b> to 8 channels at full resolution, then three cheap parallel 3&times;3 branches summed (8&rarr;3, 8&rarr;16&rarr;3, 8&rarr;48&rarr;3; the last two start at zero).</li>
+<li>Trained by distillation from the full decoder: L1 + (1&minus;SSIM) + 0.15&middot;LPIPS against the teacher output, plus 0.5&middot;L1 against the source image and 0.5&middot;L1 in Lab color.</li>
+</ol>
+<h3>Lineage of the winner</h3>
+<div class="tbl"><table><tr><th>Round</th><th>Name</th><th>Parent</th><th>The one change</th><th>SSIM</th><th>LPIPS</th><th>&Delta;E</th><th>ms fp16</th></tr>
+<tr><td>0</td><td>fal Tiny AE</td><td>pretrained</td><td>as is</td><td>0.951</td><td>0.036</td><td>2.71</td><td>38.9 (crowded GPU)</td></tr>
+<tr><td>1</td><td>F_gan</td><td>Tiny AE</td><td>fine-tune on our pairs: teacher + Lab + PatchGAN</td><td>0.975</td><td>0.016</td><td>1.08</td><td>15.8</td></tr>
+<tr><td>2</td><td><b>w_H4r_long</b> (wildcard)</td><td>F_gan</td><td><b>cut at &frac14; res + PixelShuffle(4) head + 8&rarr;3 full-res conv</b>; no GAN; 2&times; longer</td><td>0.9775</td><td>0.0139</td><td>1.16</td><td>5.5</td></tr>
+<tr><td>3</td><td>r3a4_res (crossover)</td><td>w_H4r_long &times; fp16 copy</td><td>+ zero-init 8&rarr;16&rarr;3 branch, fp16 training, LPIPS 0.15, 512&sup2; crops</td><td>0.9786</td><td>0.0120</td><td>1.14</td><td>6.2</td></tr>
+<tr><td>4</td><td>r4a3_wide (mutation)</td><td>r3a4_res</td><td>+ zero-init wider 8&rarr;48&rarr;3 branch</td><td>0.9793</td><td>0.0115</td><td>1.11</td><td>7.63</td></tr>
+<tr><td>5</td><td><b>r5a3_long</b> (mutation)</td><td>r4a3_wide</td><td>same net, 45 min more with whole-image 512&sup2; crops</td><td>0.9802</td><td>0.0108</td><td>1.08</td><td>6.5</td></tr></table></div>
+<h3>Why it won</h3>
+<ul>
+<li>The big idea was a round-2 wildcard: <b>decode at low resolution and upsample with a learned sub-pixel layer</b>. Cutting at &#8539; resolution fails (dotted grid, SSIM 0.77); at &frac14; it works.</li>
+<li>It started from weights that already imitated the FLUX.2 decoder. Random-init students were worse.</li>
+<li>It removed the expensive stages instead of narrowing every stage; narrowing blurred faces.</li>
+<li>Output distillation plus a Lab color loss beat feature hints 5 of 5 times; Lab L1 fixed oversaturation (&Delta;E 2.71 &rarr; 1.08).</li>
+<li>Later rounds were safe mutations: each new branch was zero-initialized, so a child started exactly at its parent and could only improve.</li>
+</ul>
+
+<h2>Round 0: the starting design for H3</h2>
+<p>6.66M parameters. A new <b>3D convolution front</b> on the latent grid (Conv3d 24&rarr;192 and 3 residual blocks with 3&times;3&times;3 temporal mixing, 5.88M) emits 4 frames &times; 64 channels at &#8539; resolution per latent frame. Those feed the <b>r5a3_long tail</b> unchanged, with its weights loaded (0.78M). For a clip-start latent frame only the 4th output is kept (the VAE drops 3 padding frames), so one image latent gives 1 frame. Losses are r5a3_long's, with the full H3 bf16 decode (with tiling, as the pipeline decodes) as teacher. Data: 47 training and 20 held-out Pexels clips (141 frames, 24 fps, 512&sup2; center crop). Open question: whether the H3 latent space maps well onto a tail trained on FLUX.2.</p>
+<p><b>Speed so far:</b> 145 ms for all 141 frames (fp16 autocast, untrained weights, shared GPU, not a clean timing), against 6.48 s for the bf16 full decode: about 45&times;. Quality is not measured yet; no GPU has been free.</p>
+
+<h2>The three prizes and the fitness rule</h2>
+<p>speedup = (full H3 VAE decode, bf16, of one (24, 42, 32, 32) latent &rarr; 141 frames at 512&sup2;) / (candidate time), both measured on the same GPU in the same window, CUDA-synchronized, median of at least 5 runs after warmup. Reference: 6.48 s, so the time limits are below (to be re-measured in a clean window).</p>
+<div class="tier"><b>T10 prize:</b> speedup &ge; 10&times; (about &le; 648 ms for 141 frames)</div>
+<div class="tier"><b>T30 prize:</b> speedup &ge; 30&times; (about &le; 216 ms)</div>
+<div class="tier"><b>T100 prize:</b> speedup &ge; 100&times; (about &le; 65 ms)</div>
+<p>Inside a tier the best candidate is ranked by <b>SSIM</b> against the full decode on the 20 held-out clips, then <b>LPIPS</b> (alex), then <b>flicker</b> (mean |&Delta;frame| difference against the full decode's). A look at sample frames vetoes artifacts the numbers miss. Winners get final clean timings when GPUs are free. Full details: <code>agents/.scratchpad/fastdec_ga/FITNESS.md</code>.</p>
+<p><b>Method.</b> 5 rounds of 5 Sonnet agents; each child is a mutation of a tier leader, a crossover of two leaders, or a wildcard (at least one wildcard per round, at most 2 children per lineage). Groups of 2&ndash;3 meet in a mailbox channel to breed. Every candidate is kept with a genome card. This search has the lowest GPU priority: it only uses a GPU nobody else is using, checkpoints every few minutes, and does CPU-side design work while no GPU is free.</p>
+
+<h2>Examples: the target quality</h2>
+<p>Six held-out clips (not used for training): the source clip on the left, H3's full bf16 decode on the right. A candidate should look like the right-hand video. Frames come straight from the data files and are encoded once to H.264 (yuv420p, CRF 12) at 512&times;512. The fast decoders will appear in these cards as they are trained.</p>
+<p><button onclick="document.querySelectorAll('video').forEach(v=>{v.currentTime=0;v.play()})">Play all from the start</button></p>
+<div class="clip"><b>Pexels clip 8620887</b> <span class="note">held-out, 141 frames at 24 fps, 512&times;512; full decode vs source 36.2 dB PSNR</span><div class="pair"><figure><video src="assets/h3magic_fastdec/8620887_source.mp4" controls muted loop playsinline preload="metadata"></video><figcaption>source clip</figcaption></figure><figure><video src="assets/h3magic_fastdec/8620887_full.mp4" controls muted loop playsinline preload="metadata"></video><figcaption>H3 full decode (the target)</figcaption></figure></div></div>
+<div class="clip"><b>Pexels clip 8106222</b> <span class="note">held-out, 141 frames at 24 fps, 512&times;512; full decode vs source 36.5 dB PSNR</span><div class="pair"><figure><video src="assets/h3magic_fastdec/8106222_source.mp4" controls muted loop playsinline preload="metadata"></video><figcaption>source clip</figcaption></figure><figure><video src="assets/h3magic_fastdec/8106222_full.mp4" controls muted loop playsinline preload="metadata"></video><figcaption>H3 full decode (the target)</figcaption></figure></div></div>
+<div class="clip"><b>Pexels clip 6192775</b> <span class="note">held-out, 141 frames at 24 fps, 512&times;512; full decode vs source 38.7 dB PSNR</span><div class="pair"><figure><video src="assets/h3magic_fastdec/6192775_source.mp4" controls muted loop playsinline preload="metadata"></video><figcaption>source clip</figcaption></figure><figure><video src="assets/h3magic_fastdec/6192775_full.mp4" controls muted loop playsinline preload="metadata"></video><figcaption>H3 full decode (the target)</figcaption></figure></div></div>
+<div class="clip"><b>Pexels clip 856662</b> <span class="note">held-out, 141 frames at 24 fps, 512&times;512; full decode vs source 32.7 dB PSNR</span><div class="pair"><figure><video src="assets/h3magic_fastdec/856662_source.mp4" controls muted loop playsinline preload="metadata"></video><figcaption>source clip</figcaption></figure><figure><video src="assets/h3magic_fastdec/856662_full.mp4" controls muted loop playsinline preload="metadata"></video><figcaption>H3 full decode (the target)</figcaption></figure></div></div>
+<div class="clip"><b>Pexels clip 8513880</b> <span class="note">held-out, 141 frames at 24 fps, 512&times;512; full decode vs source 29.5 dB PSNR</span><div class="pair"><figure><video src="assets/h3magic_fastdec/8513880_source.mp4" controls muted loop playsinline preload="metadata"></video><figcaption>source clip</figcaption></figure><figure><video src="assets/h3magic_fastdec/8513880_full.mp4" controls muted loop playsinline preload="metadata"></video><figcaption>H3 full decode (the target)</figcaption></figure></div></div>
+<div class="clip"><b>Pexels clip 11610252</b> <span class="note">held-out, 141 frames at 24 fps, 512&times;512; full decode vs source 27.0 dB PSNR</span><div class="pair"><figure><video src="assets/h3magic_fastdec/11610252_source.mp4" controls muted loop playsinline preload="metadata"></video><figcaption>source clip</figcaption></figure><figure><video src="assets/h3magic_fastdec/11610252_full.mp4" controls muted loop playsinline preload="metadata"></video><figcaption>H3 full decode (the target)</figcaption></figure></div></div>
+
+<h2>Candidates by round</h2>
+<p class="note">No candidates yet. After each round this section lists every candidate, grouped by round, best first: round, parents, change, speedup, SSIM, LPIPS, flicker, verdict.</p>
+
+<h2>Glossary</h2>
+<dl>
+<dt>Genetic frenzy</dt><dd>Successive rounds of parallel agents that evolve candidates for one measurable problem: select the fittest, breed children by mutation (change one thing in a leader), crossover (combine two leaders) or wildcard (a new idea), keep every candidate with a genome card.</dd>
+<dt>Genome card</dt><dd>A JSON record per candidate: what it is, parents, the change, scores, verdict.</dd>
+<dt>Tier / prize</dt><dd>A speed class (10&times;, 30&times;, 100&times; faster than the full decode); each has its own leader and winner.</dd>
+<dt>Full decode / teacher</dt><dd>The H3 VAE's own 36-layer decoder in bf16. The fast decoder is trained to imitate it and is scored against it.</dd>
+<dt>Latent (24, 42, 32, 32)</dt><dd>The compressed video: 24 channels, 42 latent frames (each 4 pixel frames, the first of each 17-frame clip 1), 32&times;32 spatial (each 16&times;16 pixels).</dd>
+<dt>SSIM</dt><dd>Structural similarity, 1 = identical.</dd>
+<dt>LPIPS (alex)</dt><dd>Learned perceptual distance, 0 = identical.</dd>
+<dt>Flicker</dt><dd>Mean absolute difference between neighboring frames; we compare the candidate's with the full decode's to see if it adds or hides motion noise.</dd>
+<dt>Held-out clips</dt><dd>20 Pexels clips never used for training; all scores use them.</dd>
+<dt>PixelShuffle</dt><dd>A layer that turns channels into pixels (4&times; upsample from 16 channels per pixel), cheap and learned.</dd>
+<dt>bf16 / fp16 / fp32</dt><dd>Number formats; lower precision is faster on a GPU.</dd>
+<dt>Distillation</dt><dd>Training a small network to reproduce a big one's output.</dd>
+<dt>Zero-init branch</dt><dd>A new layer started at zero, so a child begins exactly equal to its parent.</dd>
+<dt>Low priority GPU use</dt><dd>This search takes only idle GPUs; higher-priority jobs may kill its processes at any time.</dd>
+</dl>
+
+</main>
+</body>
+</html>
