@@ -1149,3 +1149,6 @@ If you're [cut off; the next message followed]
 
 ## m00928 — 2026-11-22 ~03:26 PM ET
 No reason to pause it. These things could be done in parallel, can't they? This is just to speed things up.
+
+## m00929 — 2026-11-22 ~03:26 PM ET
+Again, you don't always have to use forks. You can use Sonnet agents where warranted, if it's simple; you don't need to use Opus, and you don't need to use a fork. Forks are reserved for things that require all-over context.
