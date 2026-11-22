@@ -682,7 +682,7 @@ def write_status(name, text):
 
 def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr=2e-4, weight_decay=0.01, grad_clip=1.0,
           batch_size=16, max_steps=100000, save_every=100, val_every=100, seed=0, embed_column=COLUMNS["embed"],
-          latent_column=None, lance_dir=str(LANCE_DIR), refresh_every=50, stop_at=""):
+          latent_column=None, lance_dir=str(LANCE_DIR), refresh_every=50, stop_at="", resume=""):
     """
     Command. Trains adapter `name` (run under torchrun; one process per GPU). Saves to models/h3magic/<name>/step_XXXXX/
     and models/h3magic/<name>/final/, logs log.csv, writes STATUS, and stops when STOP_<name> appears, at max_steps or at
@@ -702,7 +702,10 @@ def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr
         latent_column (str | None): default by mode/data from COLUMNS
         lance_dir (str): BlueJay lance folder (a toy folder for tests)
         refresh_every (int): re-read the table every this many steps, so rows the encoders finish later join the run
-        stop_at (str): "HH:MM" Eastern (24 h): save and stop at that clock time (the schedule's latest stop), "" = never
+        stop_at (str): "HH:MM" Eastern (24 h): save and stop at that clock time (the schedule's latest stop), "" = never.
+            A file agents/.scratchpad/h3train/STOP_AT_<name> holding "HH:MM" overrides it while the run is going
+        resume (str): a saved step folder of this adapter, e.g. models/h3magic/pexels/step_00150: continue from its LoRA
+            and step (and its AdamW state when optimizer_latest.pt holds that step; else a fresh AdamW with warmup)
     """
     dist.init_process_group("nccl")
     rank_id, world = dist.get_rank(), dist.get_world_size()
@@ -712,6 +715,7 @@ def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr
     bakes = list(bake_list) if isinstance(bake_list, (list, tuple)) else [b for b in str(bake_list).split(",") if b]  # Fire turns "a,b" into a tuple
     out = ADAPTER_ROOT / name
     stop_file = STATUS_DIR / f"STOP_{name}"
+    stop_at_file = STATUS_DIR / f"STOP_AT_{name}"
     meta = dict(name=name, mode=mode, data=data, baked=bakes, rank=rank, alpha=alpha, lr=lr, world=world,
                 video_frames=VIDEO_FRAMES if mode == "video" else 1)
 
@@ -725,15 +729,16 @@ def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr
     params = [p for p in transformer.parameters() if p.requires_grad]
     optimizer = torch.optim.AdamW(params, lr=lr, betas=ADAM_BETAS, eps=ADAM_EPS, weight_decay=weight_decay)
     schedule = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda s: min(1.0, (s + 1) / WARMUP_STEPS))
-    generator = torch.Generator(device=device).manual_seed(seed * 1000 + rank_id)
-    draws = np.random.default_rng(seed)  # same base noise level on every rank per step
+    step = resume_from(transformer, optimizer, schedule, resume, out) if resume else 0
+    generator = torch.Generator(device=device).manual_seed(seed * 1000 + rank_id + 7 * step)
+    draws = np.random.default_rng(seed + step)  # same base noise level on every rank per step
     layouts, loss_ema, val_loss, lengths = {}, None, None, {}
     if rank_id == 0:
         out.mkdir(parents=True, exist_ok=True)
         (out / "meta.json").write_text(json.dumps(meta, indent=1))
         log = open(out / "log.csv", "a")
         log.write("step,chunk,base,video_sigma,loss,loss_ema,val_loss,grad_norm,seconds,time\n")
-    step, chunk, started, stop = 0, 0, time.time(), 0
+    chunk, stop, last = 0, 0, time.time()
     while not stop:
         # Re-read the table every refresh_every steps: rows finished since then join (the encoders run alongside)
         records = Records(data, mode, "train", rank_id, world, embed_column, latent_column, lance_dir)
@@ -767,7 +772,7 @@ def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr
                     val_loss = validate(transformer, val_records, audio, device, layouts, world)
                     transformer.train()
             if rank_id == 0:
-                seconds = (time.time() - started) / step
+                seconds, last = time.time() - last, time.time()  # this step's wall time
                 log.write(f"{step},{chunk},{base:.4f},{paired_sigmas(base)[0]:.4f},{value:.5f},{loss_ema:.5f},"
                           f"{'' if val_loss is None else f'{val_loss:.5f}'},{grad_norm:.4f},{seconds:.2f},{time.time():.0f}\n")
                 log.flush()
@@ -778,7 +783,10 @@ def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr
                                    f"{seconds:.1f} s/step")
                 if step % save_every == 0:
                     save_adapter(transformer, out / f"step_{step:05d}", {**meta, "step": step, "val_loss": val_loss})
-            flag = torch.tensor(int(stop_file.exists() or step >= max_steps or past_eastern(stop_at, time.time())), device=device)
+                    torch.save(dict(step=step, optimizer=optimizer.state_dict(), schedule=schedule.state_dict()),
+                               out / "optimizer_latest.pt")  # one file, overwritten: AdamW moments for --resume
+            clock = stop_at_file.read_text().strip() if stop_at_file.exists() else stop_at  # the file overrides --stop_at live
+            flag = torch.tensor(int(stop_file.exists() or step >= max_steps or past_eastern(clock, time.time())), device=device)
             dist.all_reduce(flag, op=dist.ReduceOp.MAX)
             stop = int(flag)
             if stop:
@@ -788,6 +796,31 @@ def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr
         write_status(name, f"FINISHED at step {step}, val {val_loss}, saved {out / 'final'}")
         print(f"{name}: saved final adapter at step {step} to {out / 'final'}", flush=True)
     dist.destroy_process_group()
+
+
+def resume_from(transformer, optimizer, schedule, folder, out):
+    """
+    Command. Loads a saved step folder's LoRA into the attached fresh adapter (set_peft_model_state_dict; every key must
+    match), and the AdamW + schedule state from out/optimizer_latest.pt when it is from the same step. Returns the step.
+    """
+    from peft.utils import set_peft_model_state_dict
+    from safetensors.torch import load_file
+
+    folder = ROOT / folder if not Path(folder).is_absolute() else Path(folder)
+    meta = json.loads((folder / "meta.json").read_text())
+    state = {k.removeprefix("transformer."): v for k, v in load_file(str(folder / "pytorch_lora_weights.safetensors")).items()}
+    result = set_peft_model_state_dict(transformer, state)
+    unexpected = getattr(result, "unexpected_keys", [])
+    assert not unexpected, f"resume {folder}: {len(unexpected)} unexpected keys, e.g. {unexpected[:2]}"
+    saved = out / "optimizer_latest.pt"
+    if saved.exists() and torch.load(saved, map_location="cpu", weights_only=False)["step"] == meta["step"]:
+        moments = torch.load(saved, map_location="cpu", weights_only=False)
+        optimizer.load_state_dict(moments["optimizer"])
+        schedule.load_state_dict(moments["schedule"])
+        print(f"resume {folder}: LoRA + AdamW state at step {meta['step']}", flush=True)
+    else:
+        print(f"resume {folder}: LoRA at step {meta['step']}, fresh AdamW (warmup {WARMUP_STEPS} steps)", flush=True)
+    return int(meta["step"])
 
 
 def low_priority_jobs(text, gpus):
