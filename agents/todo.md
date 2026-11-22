@@ -18,6 +18,7 @@
 | H13 | Journal page journal/h3magic.html, published periodically | — | pending |
 | H14 | Journal: Pexels selection page (m00930) with ~50 cut 6 s 512² clips (m00932, m00933); notify once when live (m00931) | — | Sonnet agent running |
 | H16 | Fast decoder for H3 (m00935): explain the shipped r5a3_long + how the genetic search found it (one readable notification), then adapt to H3's VAE on one spare GPU until training needs it | — | Opus agent FastDecH3 running |
+| H17 | H3 fast decoder genetic frenzy (m00942): tiers ≥10×, ≥30×, ≥100× faster than the full H3 VAE decoder, best quality per tier; Sonnet agents commanding Sonnet agents; opportunistic GPUs; own journal page with examples; page with current results now + notify when up | — | Sonnet coordinator running |
 | H15 | Journal: one dataset page per adapter (Pexels clips, image-gen frames, gray MAGICK), each with examples + captions and the adapter lineage (trained on top of which baked adapters) (m00934) | — | after each dataset is cut + captioned |
 
 ### Notifications sent (max 10, signed h3magic)
