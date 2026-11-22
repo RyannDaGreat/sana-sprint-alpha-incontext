@@ -1164,3 +1164,6 @@ I really hope it shows examples.
 
 ## m00933 — 2026-11-22 ~03:31 PM ET
 Perhaps fifty video, six-second, 512 by 512 clips that show what it actually is going to start [with; i.e. the exact clips training will see].
+
+## m00934 — 2026-11-22 ~03:32 PM ET
+In fact, there should be journal entries for subsets of every dataset we train on, explaining every adapter. That way I understand the lineage of where these different adapters came from inside the journal entries.
