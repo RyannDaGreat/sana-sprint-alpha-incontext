@@ -22,6 +22,7 @@
 
 ### Notifications sent (max 10, signed h3magic)
 - N1 3:32 PM: captioning started (Gemini), 10k videos chosen, 5.875 s not approved
+- N2 03:50 PM: how the big fast decoder (r5a3_long) was made; adapting it to H3
 
 ### Schedule (ET, 2026-11-22)
 - 3:00–4:15 read, plan, data selection, BlueJay chunk, H3 localize, eval prompts
