@@ -595,3 +595,8 @@
 - `pkill -f 'processors/h3_encode.py'` killed my own shell (the pattern was in its command line), exit 144: the concern of 2026-11-20 6:30 PM again. Kill by pid, or match `bin/python processors/...`.
 - Two VAE workers per GPU with 32 images per call ran out of memory: FastDecH3's gen_data had started 34 GB jobs on GPUs 2-4 at the same time, without listing them in fastdec_h3/GPUS.txt, so the GPU policy did not allow killing them. Now 1 worker per GPU, 8 images per call.
 - `fish run_proc_h3_encode.fish 2,3,4 ''`: an empty second list starts no embed worker (checked), so the launcher can run encode alone.
+
+## 2026-11-22 ~4:05 PM — MAGICK captions described the gray background (coordinator brief error)
+- My H3Data brief said: "Stills (MAGICK): ... describe the subject on the flat 50% gray background". The user (m00939): the captions must not mention the gray; the gray magic LoRA must learn it, the caption must not tell it. ~7,000 captions were already written.
+- Fix: new still prompt (subject only), a format check that rejects background words, all 10,020 MAGICK captions cleared and redone, their text embeddings recomputed.
+- Lesson: when a dataset's constant property (background, style) is the thing an adapter must learn, the captions must leave it out; check every caption prompt against what the adapter is meant to absorb.
