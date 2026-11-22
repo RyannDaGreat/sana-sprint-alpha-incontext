@@ -605,3 +605,4 @@
 
 ## 2026-11-22 ~4:51 PM — one agent's uncommitted journal page broke the others' publishes
 - publish_pages asserts git history for every page in journal/; the gray magic dataset agent left a new, uncommitted page there, so the results-page publish failed ("no git history for ['journal/h3magic_dataset_graymagic.html']") after a 15-minute hash. Rule: commit a page before publishing; never leave a new page uncommitted in journal/. Also, a publish hashed all ~58,700 assets each time (~15 min); cace074 caches digests.
+- ~4:52 PM: tcommit.sh read HEAD twice (read-tree HEAD, then commit-tree -p HEAD). Another agent's commit (fe34e21, the gray magic page) landed in between, so 6f39da1 had fe34e21 as parent but the older tree: it deleted that page and its 68 images. bad9b66 restored them. tcommit.sh now pins the parent once and moves main by compare-and-swap (update-ref new old), retrying on a race. Lesson: a lock-free commit must read the parent once and CAS the ref.
