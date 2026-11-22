@@ -1161,3 +1161,6 @@ Once you push that Pexels video selection journal entry, notify me once.
 
 ## m00932 — 2026-11-22 ~03:31 PM ET
 I really hope it shows examples.
+
+## m00933 — 2026-11-22 ~03:31 PM ET
+Perhaps fifty video, six-second, 512 by 512 clips that show what it actually is going to start [with; i.e. the exact clips training will see].
