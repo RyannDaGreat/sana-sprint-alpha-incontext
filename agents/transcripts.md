@@ -1251,3 +1251,6 @@ Is there any training/inference mismatch in the settings? Maybe the FPS settings
 
 ## m00962 — 2026-11-22 ~06:57 PM ET
 If you manage to fix the mush and get a better first adapter, put it in the journal — I want to see it — and notify me. You're still beholden to your original deadline, even if you have to start [over].
+
+## m00963 — 2026-11-22 ~06:57 PM ET
+I did hear that Muon is actually a good way to train. Perhaps you could test and see if that's the case. I heard it's faster than Adam.
