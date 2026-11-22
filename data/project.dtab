@@ -37,7 +37,8 @@ environ
 	H3_CAPTION_BATCH_SIZE 64	    Samples per run of h3_caption_*: all in flight at once, one Gemini call each (~30-60 s)
 	H3_MIN_MOTION 1.5	            Least motion_512 (mean |frame - frame 0.5 s later|, 8-bit levels) of a clip to caption and train on
 	H3_PEXELS_TRAIN 10000	        Pexels clips to train on: h3_choose_clip picks them by motion_512 and birdseye_score
-	H3_CERTAIN_FRACTION 0.8	        h3_caption_clip captions a clip before h3_choose_clip when its motion rank is in this share of the expected train set
+	H3_PROVISIONAL_SHARE 0.40	    Train share of the cut clips while cutting (the final share is 10,000 / 21,503 = 0.46): a margin for clips that drop out
+	H3_CHOOSE_FINAL false	        h3_choose_loop.fish sets env H3_CHOOSE_FINAL=true for the last run, after every clip is cut: exactly H3_PEXELS_TRAIN train
 
 database
 	backend bluejay.local_database.LocalLanceBackend
@@ -1021,7 +1022,7 @@ tables
 			clip_512, frame_0s, frame_1s, frame_2s, frame_3s, frame_4s, frame_5s, frame_6s blob
 			motion_512 float64
 
-			 Written by h3_choose_clip, after every clip is cut
+			 Written by h3_choose_clip, every few minutes while clips are cut, and once more after the last (h3_choose_loop.fish). It also rewrites split
 			h3_use string
 			birdseye_score float64
 
@@ -1662,41 +1663,35 @@ processors
 				result.json	            SUBFIELD  TYPE   DESCRIPTION                                                                    EXAMPLE
 					motion_512 @	               float  Mean |frame k - frame k + 12| over the clip, 8-bit levels. Low: static         6.3
 
-	h3_choose_clip	 Chooses the H3_PEXELS_TRAIN train clips and H3_VAL_COUNT val clips: run once, after every clip is cut (processors/h3_choose_clip.py)
-		 Train: the best rank average of motion_512 and birdseye_score (when H3_PEXELS_SELECTION has it), among clips that move at least H3_MIN_MOTION
+	h3_choose_clip	 Rewrites split: the train clips, the val clips and spare. Runs every few minutes while clips are cut, and once more after the last (processors/h3_choose_clip.py)
+		 Train: the best rank average of motion_512 and birdseye_score among clips that move at least H3_MIN_MOTION: H3_PROVISIONAL_SHARE of the cut clips, then exactly H3_PEXELS_TRAIN
 		query sql
 			SELECT pexels_id, split, motion_512 FROM h3_pexels_clips -- Pexels clips,
-			WHERE   h3_choose_clip_claim IS NULL                     -- not yet claimed,
+			WHERE   h3_choose_clip_claim IS NULL                     -- not yet claimed (h3_choose_loop.fish unclaims every row before each run),
 			    AND clip_512             IS NOT NULL                 -- that h3_cut_clip did: all of them in one run
 		claim	h3_choose_clip_claim h3_pexels_clips
 		command bash
-			uv run --script processors/h3_choose_clip.py "$BATCH" ../$H3_PEXELS_SELECTION $H3_PEXELS_TRAIN $H3_VAL_COUNT $H3_MIN_MOTION
+			uv run --script processors/h3_choose_clip.py "$BATCH" ../$H3_PEXELS_SELECTION $H3_PEXELS_TRAIN $H3_VAL_COUNT $H3_MIN_MOTION $H3_PROVISIONAL_SHARE $H3_CHOOSE_FINAL
 		materialize
-			input.json	                TYPE   DESCRIPTION                     EXAMPLE
-				pexels_id @	      [Key]  str    Pexels video ID                 "8085485"
-				split @	                 str    "train", "val" or "spare"       "train"
-				motion_512 @	         float  Motion of the 512 x 512 clip    6.3
+			input.json	                TYPE   DESCRIPTION                                  EXAMPLE
+				pexels_id @	      [Key]  str    Pexels video ID                              "8085485"
+				split @	                 str    "train", "val" or "spare": the last choice   "train"
+				motion_512 @	         float  Motion of the 512 x 512 clip                 6.3
 		commit
 			h3_pexels_clips	                 TYPE   DESCRIPTION                                                          EXAMPLE
 				result.json	          SUBFIELD  TYPE   DESCRIPTION                                                          EXAMPLE
-					h3_use @	                 str    "train", "val" or "unused"                                           "train"
+					split @	                     str    "train", "val" or "spare"                                            "train"
+					h3_use @	                 str    "provisional" while clips are cut, then "final"                      "final"
 					birdseye_score @	         float  PexelsPick's BirdsEye score; null if the selection has none          0.71
 
 	h3_caption_clip	 H3-style caption of each Pexels clip (the 512 x 512 clip_512), without audio, by Gemini (manifest §22, m00912)
 		query sql
-			SELECT c.pexels_id, c.clip_512 FROM h3_pexels_clips c                                        -- Pexels clips,
-			LEFT JOIN (SELECT pexels_id, percent_rank() OVER (ORDER BY motion_512 DESC) AS motion_rank   -- (each with its motion rank
-			           FROM h3_pexels_clips WHERE split <> 'val' AND motion_512 IS NOT NULL) r           --  among the cut clips that are not val)
-			       ON r.pexels_id = c.pexels_id                                                         --
-			WHERE   c.h3_caption_clip_claim IS NULL                                                     -- not yet claimed,
-			    AND c.clip_512              IS NOT NULL                                                 -- that h3_cut_clip did,
-			    AND c.motion_512            >= $H3_MIN_MOTION                                           -- that move enough,
-			    AND (c.h3_use IN ('train', 'val')                                                       -- that h3_choose_clip chose,
-			         OR (c.h3_use IS NULL AND c.split = 'val')                                          -- or val before the choice,
-			         OR (c.h3_use IS NULL AND r.motion_rank <= $H3_CERTAIN_FRACTION * $H3_PEXELS_TRAIN  -- or certainly in the train set
-			             / (SELECT count(*) FROM h3_pexels_clips WHERE split <> 'val')))                --     (motion rank well inside it),
-			ORDER BY CASE c.split WHEN 'val' THEN 0 ELSE 1 END, random()                                -- val first, then in random order,
-			LIMIT $H3_CAPTION_BATCH_SIZE                                                                -- one batch at a time
+			SELECT pexels_id, clip_512 FROM h3_pexels_clips -- Pexels clips,
+			WHERE   h3_caption_clip_claim IS NULL           -- not yet claimed,
+			    AND clip_512              IS NOT NULL       -- that h3_cut_clip did,
+			    AND split IN ('val', 'train')               -- that h3_choose_clip chose (h3_import's split until then),
+			ORDER BY split DESC, random()                   -- val first, then in random order,
+			LIMIT $H3_CAPTION_BATCH_SIZE                    -- one batch at a time
 		claim	h3_caption_clip_claim h3_pexels_clips
 		command bash
 			uv run --script processors/h3_caption.py "$BATCH" clip $H3_CAPTION_BATCH_SIZE
