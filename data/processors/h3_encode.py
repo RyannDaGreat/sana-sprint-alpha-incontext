@@ -51,18 +51,13 @@ def job_sql(job, worker, workers):
 
 def train_first(table):
     """
-    Pure function. SQL that skips the clips h3_choose_clip left unused and orders train rows first, then val, then the
-    rest, each in random order. A clip's role is h3_use when h3_choose_clip has set it, else its split.
+    Pure function. SQL that orders train rows first, then val, then the rest, each in random order. The role is the
+    split column (train | val | spare); h3_use holds h3_choose_clip's status (provisional | final), not a role.
 
     Examples:
-        >>> train_first("h3_magick_images")
+        >>> train_first("h3_pexels_clips")
         "ORDER BY split = 'train' DESC, split = 'val' DESC, random()"
-        >>> train_first("h3_pexels_clips").startswith("AND coalesce(h3_use, '') <> 'unused' ORDER BY coalesce(h3_use, split) = 'train' DESC")
-        True
     """
-    if table == "h3_pexels_clips":
-        role = "coalesce(h3_use, split)"
-        return f"AND coalesce(h3_use, '') <> 'unused' ORDER BY {role} = 'train' DESC, {role} = 'val' DESC, random()"
     return "ORDER BY split = 'train' DESC, split = 'val' DESC, random()"
 
 
