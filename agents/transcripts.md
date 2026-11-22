@@ -1194,3 +1194,6 @@ You can have an evolutionary — sorry, genetic — a genetic frenzy? What do we
 
 ## m00943 — 2026-11-22 ~04:30 PM ET
 PSST: to that genetic frenzy, I have something neat for them! Server started at http://100.113.41.151:43234 — this is an rp.web_evaluator instance running on another A100 cluster. Be careful: you'll have to figure out where it is and how to use it and how to read stuff from it, and research it... but it's free compute!
+
+## m00944 — 2026-11-22 ~04:31 PM ET
+Server started at http://100.112.174.249:43234 <-- In fact, I'll actually give you another node too. I'll give you two A100 nodes, but this other one is not just for the genetic frenzy [transcribed "genetic rhyme seeds"]; it's for whoever needs extra GPUs to speed things up. But remember, these are different instances, and so all sorts of shittiness might happen, such as — you know, 'cause you're inside a shared drive — all sorts of things could happen, like lag between saving and loading on FSx, or anything else. I don't know what would happen. And it's not a terminal, it's rp's web evaluator, so do research on it and figure out how to use it.
