@@ -1242,3 +1242,6 @@ LoRA mixing [transcribed "loromixing"] does not explain why the Pexels adapter l
 
 ## m00959 — 2026-11-22 ~06:50 PM ET
 And if you aren't able to figure out what I mean by wibbly-wobbly [transcribed "wibbly-worpy"] shit, then why don't you ask a fresh agent to take a look at two original H3 generations and Pexels generations and see which one's the worst and why. Frankly, I don't believe the idea that the LoRA arithmetic is why it's failing. It worked for the other image models, so it should probably work for video, and I've done it successfully on other video models. If you didn't do your homework, don't blame the dog.
+
+## m00960 — 2026-11-22 ~06:55 PM ET
+Why should they mention slow motion? None of this is supposed to be slow motion. If it's slow motion, then we should speed up Pexels [transcribed "hexals"]. But why would it be slow motion?
