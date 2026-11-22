@@ -20,6 +20,7 @@
 | H16 | Fast decoder for H3 (m00935): explain the shipped r5a3_long + how the genetic search found it (one readable notification), then adapt to H3's VAE on one spare GPU until training needs it | — | Opus agent FastDecH3 running |
 | H17 | H3 fast decoder genetic frenzy (m00942, m00954): tiers ≥10×, ≥30×, ≥100× faster, + a pure quality prize (≤ 2× the original decode time; holistically better than the original vs the source: every score incl. LPIPS and a visual check, not a blurry PSNR win, m00955); 7–8 Sonnet children per round (m00955) than the full H3 VAE decoder, best quality per tier; Sonnet agents commanding Sonnet agents; opportunistic GPUs; own journal page with examples; page with current results now + notify when up | — | Sonnet coordinator running |
 | H20 | "Basic ass magic" ablation (m00953): LoRA on stock H3 on gray MAGICK images only, on remote node 2; rows: images + videos, 20 prompts | — | dispatching |
+| H22 | Fix the mush (m00956–m00962): guidance-loss / de-distillation pilots, lr 1e-4; a better first (Pexels) adapter goes in the journal + notify; deadline still 11 PM even if the chain restarts | — | pilots being built |
 | H15 | Journal: one dataset page per adapter (Pexels clips, image-gen frames, gray MAGICK), each with examples + captions and the adapter lineage (trained on top of which baked adapters) (m00934) | — | after each dataset is cut + captioned |
 
 ### Notifications sent (max 10, signed h3magic)

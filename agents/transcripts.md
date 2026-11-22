@@ -1248,3 +1248,6 @@ Why should they mention slow motion? None of this is supposed to be slow motion.
 
 ## m00961 — 2026-11-22 ~06:55 PM ET
 Is there any training/inference mismatch in the settings? Maybe the FPS settings or something else? I don't know. That generally wouldn't explain why it turns to mushy crap, though.
+
+## m00962 — 2026-11-22 ~06:57 PM ET
+If you manage to fix the mush and get a better first adapter, put it in the journal — I want to see it — and notify me. You're still beholden to your original deadline, even if you have to start [over].
