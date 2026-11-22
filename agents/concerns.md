@@ -580,3 +580,9 @@
 - Editing the DTAB (new columns) while 70 loops ran: every run that opened the project before `bluejay initialize` failed ("the database lacks what it declares"), which ended 5 caption loops and 1 cut loop (until_empty exits on a failure); a few finished caption batches were lost at commit. Lesson: edit + initialize in one command, and expect to restart loops after any column change.
 - `av==14.4.0` has no files on PyPI (uv tried an sdist build and failed on missing FFmpeg dev libraries); `av==19.0.2` has a cp312 abi3 wheel with FFmpeg bundled (requires Python 3.12).
 - x264 `-preset medium` with all threads used ~7 cores per clip and was the largest CPU user of the cut; `veryfast` + 2 threads. Decoding 4K is the rest.
+
+## 2026-11-22 ~3:40 PM ET — H3 trainer: three traps (H3Train)
+- peft `add_adapter` on the GPU-resident 66 GB H3 transformer took > 7 minutes: it builds each LoRA layer on the CPU and copies it over, and OpenMP (96 threads per process) spun against the clip cutters' CPU load (py-spy: `GOMP_parallel` in `reduced_float_copy_kernel`). Fix: build the layers under `with torch.device(device)` and OMP_NUM_THREADS=8; now part of the 37 s load.
+- diffusers' `patchify_video_latents` returns (B·rows, C), flattening the batch; feeding it as (B, rows, C) with B = rows made the audio projection ask for 101 GiB. Fix: rearrange "(B R) C -> B R C".
+- Fire parses "0,1" and "a,b" into tuples, so `--gpus 0,1` became CUDA_VISIBLE_DEVICES=(0,1) ("nccl2 requires at least one CUDA device"). Fix: join tuples before use.
+- Clock note: the coordinator's status messages ran about 50 minutes ahead of the real ET clock (at 3:25 PM ET they said ~4:15 PM). Use `TZ=America/New_York date`.
