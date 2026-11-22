@@ -1062,6 +1062,7 @@ tables
 			,	model_tag stock_video	mode video	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 0.0
 			,	model_tag stock_image	mode image	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 0.0
 			,	model_tag pexels_s00100_video	mode video	pexels_adapter models/h3magic/pexels/step_00100	steps 30	a_pexels 1.0	b_imagegen 0.0	c_graymagic 0.0
+			,	model_tag pexels_s00250_video	mode video	pexels_adapter models/h3magic/pexels/step_00250	steps 30	a_pexels 1.0	b_imagegen 0.0	c_graymagic 0.0
 
 	h3_eval_generations
 		 One row per H3 model and eval prompt: what the model makes from the prompt and its seed
