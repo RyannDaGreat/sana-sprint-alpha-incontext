@@ -1203,3 +1203,6 @@ Whatever it takes to make things faster, you can go use it. If you need to do mo
 
 ## m00946 — 2026-11-22 ~04:35 PM ET
 I thought we were going to use 10,000 samples for these adapters? Are we only using 1,000?
+
+## m00947 — 2026-11-22 ~04:36 PM ET
+Right, well, we have more GPUs. I gave you two extra nodes via web evaluator. If you need that to make it faster, go for it. You can hold off on the evolutionary frenzy for now if you need to. I want to see these results more than I care about that. They can be a bit more patient for the evolutionary frenzy if they need to. As long as they all talk to the same BlueJay server, it should be safe to concurrently process them.

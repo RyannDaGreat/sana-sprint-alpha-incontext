@@ -896,6 +896,8 @@ Step 1000 live (after 351b011, one wasm thread for Memory64): fibo2_turbo_fibo2_
 
 **Streaming (m00918, m00940).** Every BlueJay stage runs at the same time as the stages before it, like Ford's assembly line (m00941): cut → caption → embed, cut → encode, as each row becomes ready. No stage waits for an earlier stage to finish its table; training starts when enough rows are ready and picks up new rows as it goes.
 
+**Remote nodes (m00943, m00944, m00945, m00947).** Two extra 8×A100 nodes run rp's web evaluator (not a terminal): node 1 `http://100.113.41.151:43234`, node 2 `http://100.112.174.249:43234`. Both see the same /fsx_scanline. The main results come first (m00947): both nodes serve the H3 Magic pipeline (encode, eval inference) through the same BlueJay server (this node, port 23947), which makes concurrent processing safe; the fast-decoder genetic frenzy waits for spare capacity.
+
 **GPU priority (m00937).** Training > encode/embeddings > eval inference > the H3 fast decoder (lowest). The fast decoder takes any idle GPU, lists each such job in `agents/.scratchpad/fastdec_h3/GPUS.txt`, checkpoints often; any higher-priority agent may kill a listed pid when it needs the GPU (rules in `agents/.scratchpad/GPU_POLICY.md`).
 
 **Training rule (m00912 second paste): taste like a chef.** Watch losses and sample images during training; when they plateau, stop and move on. Perfection is not required; reaching the last row by 9 PM is.
