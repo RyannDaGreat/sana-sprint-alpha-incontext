@@ -1236,3 +1236,6 @@ Why do all the things that you've trained look definitively worse? Every single 
 
 ## m00957 — 2026-11-22 ~06:47 PM ET
 Also, it appears that one of the two nodes is not being used very heavily: only one GPU is doing anything. How is that genetic frenzy for making the decoder better going along? Any progress in that department?
+
+## m00958 — 2026-11-22 ~06:48 PM ET
+LoRA mixing [transcribed "loromixing"] does not explain why the Pexels adapter looks like shit. Before you can explain anything else, you need to figure that out, because that might be the root problem for all of this.
