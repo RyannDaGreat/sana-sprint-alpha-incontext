@@ -984,6 +984,7 @@ tables
 			row_offset, row_count int64
 		initial_rows
 			,	job_id slice_0	row_offset 0	row_count 11523
+			,	job_id slice_1	row_offset 11523	row_count 10000
 
 	h3_magick_images
 		 One row per MAGICK image of the H3 Magic project: the first H3_MAGICK_COUNT usable train images by sha256(page_id)

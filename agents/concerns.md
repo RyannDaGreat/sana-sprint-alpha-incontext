@@ -571,3 +571,12 @@
 ## 2026-11-22 3:25 PM — my commit deleted PexelsPick's files (temp-index commits + a plain commit)
 - Forks commit through a temporary index and update-ref main, so the repo's own index never holds their files. My next plain `git add X && git commit` (c8f4c9b) committed the stale index, which deleted h3magic/data/pexels_selection.parquet and PEXELS_SELECTION.md from HEAD. PexelsPick restored them (06e0d04) and ran `git reset HEAD -- <files>`.
 - Fix: the coordinator also commits through a temporary index (read-tree HEAD; add; commit-tree; update-ref), never the shared index. Check `git show --stat` for unexpected D lines after each commit.
+
+## 2026-11-22 ~3:15–3:45 PM — H3 Magic data chunk (H3Data)
+- After the container reboot, `fish` was missing (setup.sh installs it): the first launcher died at once with "command not found: fish". Lesson: run setup.sh (or check `command -v fish`) after a reboot before launching BlueJay loops.
+- DTAB comment tabs need a space after them: `dtab_format.py fix` squeezed `image.png image_512\t    blob` to `\tblob`, and BlueJay then read `blob` as a materialize path ("Batch path must end in / or have an extension: 'blob'"). Widen the table so at least one space follows the tab.
+- DataFusion cannot order a window by `sha256()` (Binary): "Cannot run range queries on datatype: Binary". Order by `encode(sha256(x), 'hex')`.
+- Adding columns to an existing table: `initial_rows` are not re-applied to a row that already exists, so the seeded `pexels` import row kept NULL offsets and the import failed. The job was re-seeded as `slice_0`.
+- Editing the DTAB (new columns) while 70 loops ran: every run that opened the project before `bluejay initialize` failed ("the database lacks what it declares"), which ended 5 caption loops and 1 cut loop (until_empty exits on a failure); a few finished caption batches were lost at commit. Lesson: edit + initialize in one command, and expect to restart loops after any column change.
+- `av==14.4.0` has no files on PyPI (uv tried an sdist build and failed on missing FFmpeg dev libraries); `av==19.0.2` has a cp312 abi3 wheel with FFmpeg bundled (requires Python 3.12).
+- x264 `-preset medium` with all threads used ~7 cores per clip and was the largest CPU user of the cut; `veryfast` + 2 threads. Decoding 4K is the rest.
