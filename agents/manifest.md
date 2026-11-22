@@ -876,7 +876,7 @@ Step 1000 live (after 351b011, one wasm thread for Memory64): fibo2_turbo_fibo2_
    - 5a "all adapters on": a = b = c = 1 (the ablation: expected low motion).
    - 5b "gray magic only": a = 0, b = 0, c = 1 (hoped: subjects on gray backgrounds with high motion).
    - 5c "Pexels gray": a = 1, b = 0, c = 1 (for fun: maybe Pexels-like video on gray).
-   Row 5c by **9 PM ET 2026-11-22** is the deliverable (m00912 second paste).
+   Row 5c was due by 9 PM ET (m00912 second paste); **the deadline is now 11 PM ET 2026-11-22** (m00948). Training stops (plateau first, else these hard stops): Pexels 6:30 PM, image-gen 7:30 PM, gray magic 8:45 PM; rows 4 and 5a–5c on the remote nodes after that; journal final by 11 PM.
 
 **Not in scope now:** on-white / on-black channel concatenation (the user considered it, then chose on-gray first); the web UI (unchanged, m00912); audio (excluded everywhere: no audio captions, no audio latents, no audio in the prompt).
 

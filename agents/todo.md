@@ -26,15 +26,13 @@
 - N2 03:50 PM: how the big fast decoder (r5a3_long) was made; adapting it to H3
 - N3 04:18 PM: Pexels selection page live (50 clips + captions); stock row done; training starts with 1,000 clips ~4:30
 
-### Schedule (ET, 2026-11-22)
-- 3:00–4:15 read, plan, data selection, BlueJay chunk, H3 localize, eval prompts
-- 4:15 stock H3 row on GPUs 6–7; captions start (N1); VAE encode on GPUs 0–5
-- ~5:15 captions done (N2); text embeddings
-- 5:20–6:20 Pexels adapter on GPUs 0–5 (N3: started + stock row live)
-- 6:20–7:05 image-gen adapter (N4: Pexels row live)
-- 7:05–8:00 gray magic adapter (N5: image-gen row live)
-- 8:00–8:45 rows 4, 5a, 5b, 5c on all 8 GPUs (N6: gray magic row live)
-- 8:45–9:00 publish journal (N7: final rows live). N8–N10 reserved for problems.
+### Schedule (ET, 2026-11-22; deadline 11 PM, m00948)
+- 3:00–4:40 plan, data, captions, encode, stock row (done 4:16), Pexels page (live 4:20)
+- 4:40 Pexels adapter on GPUs 0–5; tasting on remote node 1; encode on 6–7 + node 2
+- ≤ 6:30 Pexels stops (plateau or hard stop) → row 2 on node 1
+- ≤ 7:30 image-gen adapter stops → row 3
+- ≤ 8:45 gray magic adapter stops → row 4, rows 5a/5b/5c on nodes 1+2 + local
+- ≤ 11:00 journal final + notification
 
 ## REVIEW CHECKLIST (only the user checks items off)
 | # | Item | Product LOC | Status |

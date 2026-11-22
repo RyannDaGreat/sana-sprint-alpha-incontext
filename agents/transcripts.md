@@ -1206,3 +1206,6 @@ I thought we were going to use 10,000 samples for these adapters? Are we only us
 
 ## m00947 — 2026-11-22 ~04:36 PM ET
 Right, well, we have more GPUs. I gave you two extra nodes via web evaluator. If you need that to make it faster, go for it. You can hold off on the evolutionary frenzy for now if you need to. I want to see these results more than I care about that. They can be a bit more patient for the evolutionary frenzy if they need to. As long as they all talk to the same BlueJay server, it should be safe to concurrently process them.
+
+## m00948 — 2026-11-22 ~04:38 PM ET
+Oh wait, if the training data is not the bottleneck, then, um — oh, I don't know what to do anymore. Fine, yeah, we can do 1000 then. Fine. I guess just take a look at it, suss it out as you train. If it will take longer to get results, then fine, fine, fine, fine. If this is what it takes to make it work, fine. I still need it by 9 o'clock, as I said before. Okay, final: actually, I'll increase your deadline to 11 PM. That gives you a little bit more time, right?
