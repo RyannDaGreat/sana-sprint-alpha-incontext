@@ -6,7 +6,9 @@
 H3-style captions without audio (manifest §22, m00912): one integrated_multimodal_description per Sample, by Gemini.
 
 kind "clip": the Sample's clip.mp4 (h3_cut_clip's 512 x 512, 141 frames at 24 fps, no audio track).
-kind "image": the Sample's image.png (h3_magick_image's 512 x 512 MAGICK image on 50% gray), one still.
+kind "image": the Sample's image.png (h3_magick_image's 512 x 512 MAGICK image on 50% gray), one still. Its caption describes
+only the subject, never the background (m00939: the gray is what the gray magic adapter must learn); h3_caption_model
+ends " subject-only".
 The prompt is h3_visual_guide.txt (BluejayDailies h3_guide.txt with every audio part removed) plus a task block.
 Format checks and feedback rewrites follow BluejayDailies processors/h3.py. A Sample that still fails raises.
 Writes result.json {h3_caption, h3_caption_model, h3_caption_seconds}.
@@ -48,19 +50,24 @@ Return JSON: {{"{FIELD}": "[Shot 1] ..."}}
 IMAGE_TASK = f"""
 # YOUR TASK — caption ONE still image in exactly this format
 
-You receive one still image, 512 x 512: a subject composited on a flat, uniform, mid-gray (50% gray) background.
-Write the text-to-video prompt that would make the H3 model generate THIS image as a single frame, as faithfully as
-possible. You are describing, not inventing.
+You receive one still image, 512 x 512, of one subject. Write the text-to-video prompt that would make the H3 model
+generate THIS subject as a single frame, as faithfully as possible. You are describing, not inventing.
 
 - Exactly one shot: [Shot 1], with no timestamp and no cuts. The camera holds a static shot.
-- Open [Shot 1] with the visual style (for example live-action, 3D CG, 2D-animated, illustration) and the composition.
-  Then describe the subject: what it is, its appearance, colors, materials, pose, and where it sits in the frame.
-- Say plainly that the background is a plain, flat, uniform mid-gray with nothing else in it.
+- Open [Shot 1] with the visual style (for example live-action, 3D CG, 2D-animated, illustration) and the camera
+  framing (close-up, medium shot, top view, ...). Then describe ONLY the subject: what it is, its appearance, colors,
+  materials, pose, and the light on it.
+- NEVER describe the background, the backdrop, the setting, the surface, or anything behind or around the subject.
+  Do not say what color the background is, and do not use the words background, backdrop, isolated, cut-out or studio.
 - Describe only what is visible. No sound, speech or music, no <d> blocks, no speaker IDs.
 - On-screen text goes verbatim in double quotes.
 
 Return JSON: {{"{FIELD}": "[Shot 1] ..."}}
 """
+
+# m00939: the gray background is what the gray magic adapter must learn, so a MAGICK caption never mentions it
+SETTING = re.compile(r"back ?ground|backdrop|isolated|cut-?out|\bstudio\b|against an? |surrounded by|(empty|negative) space"
+                     r"|(mid|flat|uniform|neutral|plain|solid)[- ]gr[ae]y|gr[ae]y (surface|setting|void|field|wall|space)", re.I)
 
 SHOT = re.compile(r"\[Shot (\d+)\]")
 CUT = re.compile(r"\[Shot (\d+)\]\s*At (\d{2}):(\d{2})\.(\d{3})")
@@ -88,6 +95,10 @@ def problems(answer, kind):
         no audio: the caption must not contain <d> dialogue
         >>> problems({FIELD: ' '}, "image")
         ['missing or empty: integrated_multimodal_description']
+        >>> problems({FIELD: '[Shot 1] 3D CG, a close-up of a red apple. The background is a plain, flat mid-gray.'}, "image")
+        ["describe only the subject, never the background or setting (found 'background')"]
+        >>> problems({FIELD: '[Shot 1] Live-action, a close-up of a gray cat in a plain white collar.'}, "image")  # a gray subject is fine
+        []
     """
     text = str(answer.get(FIELD) or "")
     if not text.strip():
@@ -107,6 +118,8 @@ def problems(answer, kind):
         found.append(f"cut times must increase and stay below {CLIP_SECONDS:.3f} s, got {cuts}")
     if "<d>" in text or "</d>" in text:
         found.append("no audio: the caption must not contain <d> dialogue")
+    if kind == "image" and (match := SETTING.search(text)):
+        found.append(f"describe only the subject, never the background or setting (found {match.group(0)!r})")
     return found
 
 
@@ -153,7 +166,8 @@ def process_sample(sample, kind):
     began = time.time()
     answer = ask(str(sample / ("clip.mp4" if kind == "clip" else "image.png")), kind)
     seconds = time.time() - began
-    (sample / "result.json").write_text(json.dumps(dict(h3_caption=caption_text(answer), h3_caption_model=gemini.MODEL, h3_caption_seconds=seconds)))
+    model = gemini.MODEL + (" subject-only" if kind == "image" else "")  # m00939: marks the MAGICK captions that never mention the background
+    (sample / "result.json").write_text(json.dumps(dict(h3_caption=caption_text(answer), h3_caption_model=model, h3_caption_seconds=seconds)))
     print(f"{sample.name}: {seconds:.1f} s", flush=True)
 
 
