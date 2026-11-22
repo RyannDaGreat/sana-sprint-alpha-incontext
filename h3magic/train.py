@@ -79,6 +79,7 @@ EXCLUDED_SUBSTRING = "adaln"  # MinimaxH3: the AdaLN branch carries the guidance
 ADAM_BETAS, ADAM_EPS = (0.9, 0.99), 1e-8
 WARMUP_STEPS = 20
 VAL_BASES = (0.25, 0.5, 0.75)  # unshifted grid points of the fixed validation noise levels
+PROBE_SIGMAS = (0.2, 0.5, 0.8)  # video σ of the target-sign probe (MinimaxH3 probe)
 EMA_DECAY = 0.98               # loss smoothing for STATUS
 PREFETCH = 4                   # batches read ahead by the loader thread
 COLUMNS = dict(video="h3_latent_video", frames="h3_latent_frames", image="h3_latent_512", embed="h3_text_embed")
@@ -783,7 +784,7 @@ def probe(mode="video", steps=4, batch=7, rank=16, text_tokens=300):
     return result
 
 
-def sign_probe(data="pexels", latent_column=COLUMNS["video"], embed_column=COLUMNS["embed"]):
+def sign_probe(data="pexels", latent_column=COLUMNS["video"], embed_column=COLUMNS["embed"], split="train", lance_dir=str(LANCE_DIR)):
     """
     Command. Checks the training target on a REAL latent against the frozen base model: at three noise levels the base
     prediction must fit x_0 − noise better than its negation and better than zero (MinimaxH3's probe). Raises if not.
@@ -796,10 +797,10 @@ def sign_probe(data="pexels", latent_column=COLUMNS["video"], embed_column=COLUM
 
     transformer = MiniMaxH3Transformer3DModel.from_pretrained(MODEL_DIR / "transformer", torch_dtype=DTYPE,
                                                               device_map={"": str(device)}).eval()
-    records = Records(data, mode, "val", 0, 1, embed_column, latent_column)
+    records = Records(data, mode, split, 0, 1, embed_column, latent_column, lance_dir)
     batch = records.batch([0])
     layouts, verdicts = {}, []
-    for base in VAL_BASES:
+    for base in [sigma / (VIDEO_SHIFT - (VIDEO_SHIFT - 1) * sigma) for sigma in PROBE_SIGMAS]:  # unshifted, so video σ = 0.2, 0.5, 0.8
         latents = batch["latents"].to(device)
         x0 = video_rows(latents)
         generator = torch.Generator(device=device).manual_seed(0)
