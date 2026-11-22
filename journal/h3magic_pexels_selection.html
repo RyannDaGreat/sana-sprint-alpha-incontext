@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>H3 Magic, step 0: the Pexels adapter dataset</title>
+<style>
+:root { --bg: #fdfdfb; --fg: #1d1d1f; --muted: #66666b; --rule: #dcdcd6; --accent: #2f5d8a; --bar: #2f5d8a; --warn: #a33b2f; --gutter: 16px; --measure: 1000px; --font-body: 17px; --font-small: 14px; --pad: 8px; --hairline: 1px; --gap: 24px; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #18191b; --fg: #e8e8e6; --muted: #a0a0a5; --rule: #3a3b3e; --accent: #8ab4dc; --bar: #8ab4dc; --warn: #e58b7f; } }
+:root[data-theme="dark"] { --bg: #18191b; --fg: #e8e8e6; --muted: #a0a0a5; --rule: #3a3b3e; --accent: #8ab4dc; --bar: #8ab4dc; --warn: #e58b7f; }
+body { background: var(--bg); color: var(--fg); font: var(--font-body)/1.6 Georgia, serif; margin: 0; }
+main { max-width: var(--measure); margin: 0 auto; padding: 0 var(--gutter) var(--gap); }
+a { color: var(--accent); }
+details { border-top: var(--hairline) solid var(--rule); margin-top: var(--gap); padding-top: var(--pad); }
+summary { font: bold 1.25em system-ui, sans-serif; cursor: pointer; }
+figure { margin: var(--gap) 0; }
+figure img { width: 100%; height: auto; display: block; background: #000; }
+figcaption { font: var(--font-small)/1.45 system-ui, sans-serif; margin-top: var(--pad); }
+.cap { color: var(--muted); }
+.note, .small { color: var(--muted); font-size: var(--font-small); }
+table { border-collapse: collapse; font: var(--font-small) system-ui, sans-serif; width: 100%; }
+th, td { border-bottom: var(--hairline) solid var(--rule); padding: var(--pad); text-align: left; }
+th { cursor: pointer; }
+.funnel { width: 100%; height: auto; }
+.funnel .bar { fill: var(--bar); }
+.funnel text { fill: var(--fg); font: var(--font-small) system-ui, sans-serif; }
+.funnel .fv { font-weight: bold; }
+dt { font-weight: bold; margin-top: var(--pad); }
+dd { margin-left: 0; }
+</style>
+</head>
+<body>
+<main>
+<h1>H3 Magic, step 0: choosing 10,000 Pexels clips</h1>
+<p class="note">Dataset page of the <b>Pexels adapter</b>.</p>
+<p>We train adapters on the MiniMax H3 text-to-video model. This data trains the <b>Pexels adapter</b>: a LoRA on stock H3 (no earlier adapter). It makes H3 generate Pexels-like video. The adapter needs real stock video with clear motion in the first 6 seconds. We chose the clips with BirdsEye metrics, then checked samples by eye. <a href="index.html">Back to the journal</a>.</p>
+<p><b>Real</b> means camera footage, not a render or an animation. <b>Decent motion</b> means that something visibly moves in the first 6 seconds. Below: examples first, numbers after.</p>
+
+
+<details open><summary>Accepted: real clips with decent or high motion (24 of the 165 that passed)</summary>
+<p class="note">Each strip is a contact sheet: 6 frames from 0 to 5 s of the clip, shown at full resolution and unchanged. Verdicts come from Sonnet agents that looked at the sheet. flow_mean is BirdsEye's RAFT optical-flow mean over the whole video. birdseye_score is 0 (least motion) to 1 (most).</p>
+<figure><img src="assets/h3magic_selection/7218225.png" alt="Contact sheet of Pexels 7218225, 6 frames over the first 6 seconds" loading="lazy"><figcaption><b>Pexels 7218225</b> &middot; verdict: real, motion decent &middot; flow_mean 7.50 &middot; birdseye_score 0.68<br><span class="cap">In a close-up, static shot, a pair of male hands with fair skin are meticulously rolling a joint.</span> <span class="cap">Agent note: hand motion.</span></figcaption></figure>
+<figure><img src="assets/h3magic_selection/7056597.png" alt="Contact sheet of Pexels 7056597, 6 frames over the first 6 seconds" loading="lazy"><figcaption><b>Pexels 7056597</b> &middot; verdict: real, motion decent &middot; flow_mean 1.77 &middot; birdseye_score 0.63<br><span class="cap">The video presents a stunning aerial wide shot of the Bosphorus Strait in Istanbul on a bright, sunny day, capturing the serene interplay of iconic architecture and natural beauty.</span> <span class="cap">Agent note: aerial move toward mosque.</span></figcaption></figure>
+<figure><img src="assets/h3magic_selection/17700841.png" alt="Contact sheet of Pexels 17700841, 6 frames over the first 6 seconds" loading="lazy"><figcaption><b>Pexels 17700841</b> &middot; verdict: real, motion decent &middot; flow_mean 31.52 &middot; birdseye_score 0.83<br><span class="cap">This aerial, high-angle shot captures a serene beach scene, likely in the early morning or late afternoon, under soft, natural light with a bright, hazy sky.</span> <span class="cap">Agent note: waves and aerial move.</span></figcaption></figure>
+<figure><img src="assets/h3magic_selection/8358094.png" alt="Contact sheet of Pexels 8358094, 6 frames over the first 6 seconds" loading="lazy"><figcaption><b>Pexels 8358094</b> &middot; verdict: real, motion high &middot; flow_mean 7.42 &middot; birdseye_score 0.72<br><span class="cap">An aerial wide shot captures a vibrant blue ocean teeming with numerous surfers under a partly cloudy sky.</span> <span class="cap">Agent note: drone over surfer on wave.</span></figcaption></figure>
+<figure><img src="assets/h3magic_selection/8487051.png" alt="Contact sheet of Pexels 8487051, 6 frames over the first 6 seconds" loading="lazy"><figcaption><b>Pexels 8487051</b> &middot; verdict: real, motion decent &middot; flow_mean 0.97 &middot; birdseye_score 0.48<br><span class="cap">The video features a peaceful pastoral scene with a flock of nine sheep, including adults and lambs, grazing in a vibrant green field with yellow flowers.</span> <span class="cap">Agent note: sheep walking, handheld.</span></figcaption></figure>
+<figure><img src="assets/h3magic_selection/10533045.png" alt="Contact sheet of Pexels 10533045, 6 frames over the first 6 seconds" loading="lazy"><figcaption><b>Pexels 10533045</b> &middot; verdict: real, motion high &middot; flow_mean 0.93 &middot; birdseye_score 0.73<br><span class="cap">The video features a close-up of a textured blue wall with a tactile, impasto surface, highlighted by the interplay of light and shadow.</span> <span class="cap">Agent note: palette knife on blue paint.</span></figcaption></figure>
+<figure><img src="assets/h3magic_selection/5922502.png" alt="Contact sheet of Pexels 5922502, 6 frames over the first 6 seconds" loading="lazy"><figcaption><b>Pexels 5922502</b> &middot; verdict: real, motion decent &middot; flow_mean 0.58 &middot; birdseye_score 0.69<br><span class="cap">A woman with a playful expression and a leopard print coat over a silver dress stands against a pink backdrop, tossing banknotes into the air.</span> <span class="cap">Agent note: woman with falling money.</span></figcaption></figure>
+<figure><img src="assets/h3magic_selection/857007.png" alt="Contact sheet of Pexels 857007, 6 frames over the first 6 seconds" loading="lazy"><figcaption><b>Pexels 857007</b> &middot; verdict: real, motion high &middot; flow_mean 6.01 &middot; birdseye_score 0.89<br><span class="cap">The video opens with a beautiful wide shot of a multi-bridge cityscape at sunset, captured from the perspective of a moving vehicle.</span> <span class="cap">Agent note: sunset bridge from moving car.</span></figcaption></figure>
+<figure><img src="assets/h3magic_selection/8566711.png" alt="Contact sheet of Pexels 8566711, 6 frames over the first 6 seconds" loading="lazy"><figcaption><b>Pexels 8566711</b> &middot; verdict: real, motion decent &middot; flow_mean 3.69 &middot; birdseye_score 0.41<br><span class="cap">The video presents a static, low-angle wide shot of a sun-drenched outdoor plaza, possibly on a college campus or in a commercial center, featuring light reddish-brown concrete paving.</span> <span class="cap">Agent note: courtyard, camera moving past benches.</span></figcaption></figure>
+<figure><img src="assets/h3magic_selection/19237270.png" alt="Contact sheet of Pexels 19237270, 6 frames over the first 6 seconds" loading="lazy"><figcaption><b>Pexels 19237270</b> &middot; verdict: real, motion decent &middot; flow_mean 2.70 &middot; birdseye_score 0.33<br><span class="cap">The video features a medium shot from behind of a man standing amidst a tranquil forest of tall, slender trees.</span> <span class="cap">Agent note: tracking shot from behind.</span></figcaption></figure>
+<figure><img src="assets/h3magic_selection/9898282.png" alt="Contact sheet of Pexels 9898282, 6 frames over the first 6 seconds" loading="lazy"><figcaption><b>Pexels 9898282</b> &middot; verdict: real, motion high &middot; flow_mean 11.30 &middot; birdseye_score 0.68<br><span class="cap">The video features a static, eye-level wide shot of two dogs playing in a brightly lit, expansive green grassy area, likely a dog park, which is enclosed by a green chain-link fence with lush trees visible in the background.</span> <span class="cap">Agent note: dog running.</span></figcaption></figure>
+<figure><img src="assets/h3magic_selection/16921872.png" alt="Contact sheet of Pexels 16921872, 6 frames over the first 6 seconds" loading="lazy"><figcaption><b>Pexels 16921872</b> &middot; verdict: real, motion decent &middot; flow_mean 57.65 &middot; birdseye_score 0.85<br><span class="cap">The video opens with a medium shot of a single Atlantic Puffin, its black back and white belly prominent, standing on a rocky, grassy slope.</span> <span class="cap">Agent note: bird walks, camera follows.</span></figcaption></figure>
+<figure><img src="assets/h3magic_selection/6253414.png" alt="Contact sheet of Pexels 6253414, 6 frames over the first 6 seconds" loading="lazy"><figcaption><b>Pexels 6253414</b> &middot; verdict: real, motion high &middot; flow_mean 1.83 &middot; birdseye_score 0.65<br><span class="cap">Two men in white judogi with black belts are seen practicing judo in a dojo, starting with one applying a controlled arm throw to his partner against a blue and white striped wall.</span> <span class="cap">Agent note: judo sparring.</span></figcaption></figure>
+<figure><img src="assets/h3magic_selection/10536904.png" alt="Contact sheet of Pexels 10536904, 6 frames over the first 6 seconds" loading="lazy"><figcaption><b>Pexels 10536904</b> &middot; verdict: real, motion decent &middot; flow_mean 7.49 &middot; birdseye_score 0.68<br><span class="cap">In a captivating medium-close-up shot, a person with dark skin is elegantly adorned in a voluminous, layered gown of delicate white and soft pink tulle, its ruffled sleeves subtly highlighted.</span> <span class="cap">Agent note: hands move.</span></figcaption></figure>
+<figure><img src="assets/h3magic_selection/9750695.png" alt="Contact sheet of Pexels 9750695, 6 frames over the first 6 seconds" loading="lazy"><figcaption><b>Pexels 9750695</b> &middot; verdict: real, motion high &middot; flow_mean 30.67 &middot; birdseye_score 0.78<br><span class="cap">The video features a cheerful young woman with curly brown hair and olive skin, wearing a vibrant green sleeveless dress, as she smiles warmly and subtly sways to music, looking slightly off-camera to her right.</span> <span class="cap">Agent note: camera and subject move.</span></figcaption></figure>
+<figure><img src="assets/h3magic_selection/7341814.png" alt="Contact sheet of Pexels 7341814, 6 frames over the first 6 seconds" loading="lazy"><figcaption><b>Pexels 7341814</b> &middot; verdict: real, motion high &middot; flow_mean 8.03 &middot; birdseye_score 0.76<br><span class="cap">The video captures a high-angle view of three young people performing an acrobatic cheerleading stunt on a polished wooden gymnasium floor, marked with red and blue boundary lines, under the bright natural light filtering through ...</span> <span class="cap">Agent note: overhead gym cheerleading lift.</span></figcaption></figure>
+<figure><img src="assets/h3magic_selection/8577668.png" alt="Contact sheet of Pexels 8577668, 6 frames over the first 6 seconds" loading="lazy"><figcaption><b>Pexels 8577668</b> &middot; verdict: real, motion high &middot; flow_mean 33.71 &middot; birdseye_score 0.88<br><span class="cap">The video captures a joyous outdoor scene in a sun-drenched, dry golden field during what appears to be late afternoon or golden hour, evidenced by the warm light, prominent lens flare, and long shadows stretching across the ...</span> <span class="cap">Agent note: family flying kite, tracking.</span></figcaption></figure>
+<figure><img src="assets/h3magic_selection/17417544.png" alt="Contact sheet of Pexels 17417544, 6 frames over the first 6 seconds" loading="lazy"><figcaption><b>Pexels 17417544</b> &middot; verdict: real, motion decent &middot; flow_mean 9.77 &middot; birdseye_score 0.89<br><span class="cap">The video begins with a low-angle shot, focusing intently on lush, vibrant green grass that fills the foreground, while a weathered, moss-covered rock sits prominently in the mid-ground.</span> <span class="cap">Agent note: camera moves, person walks.</span></figcaption></figure>
+<figure><img src="assets/h3magic_selection/856882.png" alt="Contact sheet of Pexels 856882, 6 frames over the first 6 seconds" loading="lazy"><figcaption><b>Pexels 856882</b> &middot; verdict: real, motion decent &middot; flow_mean 75.06 &middot; birdseye_score 0.54<br><span class="cap">The video showcases a captivating and ethereal underwater ballet, featuring a multitude of translucent jellyfish gracefully pulsating and drifting against a deep, dark blue background.</span> <span class="cap">Agent note: aquarium jellyfish, blue light.</span></figcaption></figure>
+<figure><img src="assets/h3magic_selection/5270502.png" alt="Contact sheet of Pexels 5270502, 6 frames over the first 6 seconds" loading="lazy"><figcaption><b>Pexels 5270502</b> &middot; verdict: real, motion decent &middot; flow_mean 6.64 &middot; birdseye_score 0.83<br><span class="cap">The video begins with a static medium close-up shot focused on the torso and arms of an elderly person, their arms crossed over their chest.</span> <span class="cap">Agent note: person in coat moving.</span></figcaption></figure>
+<figure><img src="assets/h3magic_selection/10117656.png" alt="Contact sheet of Pexels 10117656, 6 frames over the first 6 seconds" loading="lazy"><figcaption><b>Pexels 10117656</b> &middot; verdict: real, motion decent &middot; flow_mean 12.83 &middot; birdseye_score 0.39<br><span class="cap">A serene wide shot captures a vast expanse of a clear, cool blue sky, tinted with subtle violet and lavender hues, suggesting either early morning or late afternoon light.</span> <span class="cap">Agent note: clouds drift.</span></figcaption></figure>
+<figure><img src="assets/h3magic_selection/17453768.png" alt="Contact sheet of Pexels 17453768, 6 frames over the first 6 seconds" loading="lazy"><figcaption><b>Pexels 17453768</b> &middot; verdict: real, motion decent &middot; flow_mean 5.71 &middot; birdseye_score 0.88<br><span class="cap">The video captures a serene, static high-angle wide shot, offering a panoramic view from a verdant hillside overlooking a sprawling city under an overcast sky.</span> <span class="cap">Agent note: drone forward.</span></figcaption></figure>
+<figure><img src="assets/h3magic_selection/8308607.png" alt="Contact sheet of Pexels 8308607, 6 frames over the first 6 seconds" loading="lazy"><figcaption><b>Pexels 8308607</b> &middot; verdict: real, motion decent &middot; flow_mean 0.32 &middot; birdseye_score 0.27<br><span class="cap">A young girl with blonde hair, wearing a white t-shirt and turquoise leggings, sits on a dark brown couch, engaging in a stretching exercise with an older woman in a black sports bra and gray leggings.</span> <span class="cap">Agent note: woman yoga with toddler.</span></figcaption></figure>
+<figure><img src="assets/h3magic_selection/6911834.png" alt="Contact sheet of Pexels 6911834, 6 frames over the first 6 seconds" loading="lazy"><figcaption><b>Pexels 6911834</b> &middot; verdict: real, motion decent &middot; flow_mean 3.04 &middot; birdseye_score 0.61<br><span class="cap">In a static, eye-level medium close-up shot, a young woman with a warm complexion, expressive dark eyes, and a mass of dark, curly hair frames the scene.</span> <span class="cap">Agent note: woman painting flower.</span></figcaption></figure>
+</details>
+
+<details open><summary>Rejected for low motion (12 real clips that barely move)</summary>
+<p class="note">These are real footage. The first 6 seconds have only small motion (a slow push-in, a small shift) or almost none. This is the kind of clip the cutter drops.</p>
+<figure><img src="assets/h3magic_selection/8473589.png" alt="Contact sheet of Pexels 8473589, 6 frames over the first 6 seconds" loading="lazy"><figcaption><b>Pexels 8473589</b> &middot; verdict: real, motion low &middot; flow_mean 1.04 &middot; birdseye_score 0.55<br><span class="cap">A static, eye-level wide shot captures a fluffy, light brown Pomeranian dog sitting patiently inside a stylish brown pet carrier bag.</span> <span class="cap">Agent note: dog in bag, pops up once.</span></figcaption></figure>
+<figure><img src="assets/h3magic_selection/8431628.png" alt="Contact sheet of Pexels 8431628, 6 frames over the first 6 seconds" loading="lazy"><figcaption><b>Pexels 8431628</b> &middot; verdict: real, motion low &middot; flow_mean 15.95 &middot; birdseye_score 0.93<br><span class="cap">A young woman with dark, clear skin and a striking black wide-brimmed hat, featuring a subtle braided band, is captured in a static medium close-up, presented in profile against a soft, light gray background that subtly brightens ...</span> <span class="cap">Agent note: studio portrait, hat, small hand motion.</span></figcaption></figure>
+<figure><img src="assets/h3magic_selection/8942138.png" alt="Contact sheet of Pexels 8942138, 6 frames over the first 6 seconds" loading="lazy"><figcaption><b>Pexels 8942138</b> &middot; verdict: real, motion low &middot; flow_mean 1.72 &middot; birdseye_score 0.39<br><span class="cap">This high-angle, static aerial shot presents a serene yet industrial panoramic view of a wide waterway spanned by a striking red suspension bridge under a clear, bright blue sky.</span> <span class="cap">Agent note: slow drone drift.</span></figcaption></figure>
+<figure><img src="assets/h3magic_selection/9873258.png" alt="Contact sheet of Pexels 9873258, 6 frames over the first 6 seconds" loading="lazy"><figcaption><b>Pexels 9873258</b> &middot; verdict: real, motion low &middot; flow_mean 8.72 &middot; birdseye_score 0.60<br><span class="cap">In a warm, well-lit interior, possibly a study or a cozy room with wooden walls, a multi-ethnic family is gathered around a wooden table, engaged in a learning activity.</span> <span class="cap">Agent note: small hand motion.</span></figcaption></figure>
+<figure><img src="assets/h3magic_selection/12628502.png" alt="Contact sheet of Pexels 12628502, 6 frames over the first 6 seconds" loading="lazy"><figcaption><b>Pexels 12628502</b> &middot; verdict: real, motion low &middot; flow_mean 7.45 &middot; birdseye_score 0.39<br><span class="cap">The video features a static, elevated wide shot capturing a small, distinctive conical island with a prominent, rocky peak and a base adorned with lush green vegetation.</span> <span class="cap">Agent note: island aerial, slow drift.</span></figcaption></figure>
+<figure><img src="assets/h3magic_selection/8180032.png" alt="Contact sheet of Pexels 8180032, 6 frames over the first 6 seconds" loading="lazy"><figcaption><b>Pexels 8180032</b> &middot; verdict: real, motion low &middot; flow_mean 0.46 &middot; birdseye_score 0.22<br><span class="cap">A woman with a contemplative expression and a light grey hijab is seen embracing a man from behind, her hand resting on his shoulder.</span> <span class="cap">Agent note: hijab woman portrait.</span></figcaption></figure>
+<figure><img src="assets/h3magic_selection/10255404.png" alt="Contact sheet of Pexels 10255404, 6 frames over the first 6 seconds" loading="lazy"><figcaption><b>Pexels 10255404</b> &middot; verdict: real, motion low &middot; flow_mean 6.52 &middot; birdseye_score 0.44<br><span class="cap">An expansive aerial view, likely captured by a drone, slowly and smoothly pans across a vast, dense forest covering a gently sloping mountainside during autumn.</span> <span class="cap">Agent note: slow drone drift.</span></figcaption></figure>
+<figure><img src="assets/h3magic_selection/8513892.png" alt="Contact sheet of Pexels 8513892, 6 frames over the first 6 seconds" loading="lazy"><figcaption><b>Pexels 8513892</b> &middot; verdict: real, motion low &middot; flow_mean 1.20 &middot; birdseye_score 0.47<br><span class="cap">In a brightly lit and serene indoor garden, an Asian woman with long dark hair, dressed in a flowing white shirt, leans intently over a large, smooth grey concrete tub filled with clear water and numerous lily pads.</span> <span class="cap">Agent note: woman touching pond water.</span></figcaption></figure>
+<figure><img src="assets/h3magic_selection/8295430.png" alt="Contact sheet of Pexels 8295430, 6 frames over the first 6 seconds" loading="lazy"><figcaption><b>Pexels 8295430</b> &middot; verdict: real, motion low &middot; flow_mean 5.47 &middot; birdseye_score 0.83<br><span class="cap">In a wide, static aerial shot, a serene and expansive body of water, likely a sea or a large lake, stretches across the frame under a bright, overcast sky.</span> <span class="cap">Agent note: tiny boat motion.</span></figcaption></figure>
+<figure><img src="assets/h3magic_selection/8552778.png" alt="Contact sheet of Pexels 8552778, 6 frames over the first 6 seconds" loading="lazy"><figcaption><b>Pexels 8552778</b> &middot; verdict: real, motion low &middot; flow_mean 1.89 &middot; birdseye_score 0.20<br><span class="cap">An aerial, high-angle wide shot captures a vast, arid landscape bathed in the soft, warm light of either dawn or dusk.</span> <span class="cap">Agent note: aerial hillside cows.</span></figcaption></figure>
+<figure><img src="assets/h3magic_selection/12921590.png" alt="Contact sheet of Pexels 12921590, 6 frames over the first 6 seconds" loading="lazy"><figcaption><b>Pexels 12921590</b> &middot; verdict: real, motion static &middot; flow_mean 0.60 &middot; birdseye_score 0.17<br><span class="cap">A high-angle, wide static shot captures the unique Wat Samphran Temple, often referred to as the Dragon Temple, standing majestically amidst a dense canopy of lush green tropical foliage and palm trees under a softly diffused, ...</span> <span class="cap">Agent note: dragon tower over trees, near static.</span></figcaption></figure>
+<figure><img src="assets/h3magic_selection/852334.png" alt="Contact sheet of Pexels 852334, 6 frames over the first 6 seconds" loading="lazy"><figcaption><b>Pexels 852334</b> &middot; verdict: real, motion static &middot; flow_mean 0.31 &middot; birdseye_score 0.03<br><span class="cap">The video offers a tranquil, sun-drenched glimpse into a bustling marina on a clear day, captured through a static, eye-level medium shot.</span> <span class="cap">Agent note: marina boats, near-still.</span></figcaption></figure>
+</details>
+
+<details open><summary>Flagged not real (6 of 306 audited)</summary>
+<p class="note">All clips the agents flagged as synthetic. By eye: two are CGI renders, two look like real studio footage (coils on white, a stop-motion balloon with real objects), two are a motion-graphics composite and a render. The keyword filter had already removed most synthetic clips before this audit.</p>
+<figure><img src="assets/h3magic_selection/10617385.png" alt="Contact sheet of Pexels 10617385, 6 frames over the first 6 seconds" loading="lazy"><figcaption><b>Pexels 10617385</b> &middot; verdict: NOT real (motion graphics composite), motion low &middot; flow_mean 4.64 &middot; birdseye_score 0.72<br><span class="cap">A static, close-up shot, framed from a slightly elevated, over-the-shoulder angle, focuses intently on a dark-skinned hand meticulously holding a fine paintbrush.</span> <span class="cap">Agent note: hand painting letter over photo collage overlay.</span></figcaption></figure>
+<figure><img src="assets/h3magic_selection/3184621.png" alt="Contact sheet of Pexels 3184621, 6 frames over the first 6 seconds" loading="lazy"><figcaption><b>Pexels 3184621</b> &middot; verdict: NOT real (possible-cgi), motion decent &middot; flow_mean 13.82 &middot; birdseye_score 0.90<br><span class="cap">The video presents a static, bright, and evenly lit overhead shot of a clean white surface, likely a studio backdrop or table, with cool-toned lighting.</span> <span class="cap">Agent note: coils on white; looks simulated, doubt.</span></figcaption></figure>
+<figure><img src="assets/h3magic_selection/5889615.png" alt="Contact sheet of Pexels 5889615, 6 frames over the first 6 seconds" loading="lazy"><figcaption><b>Pexels 5889615</b> &middot; verdict: NOT real (cgi), motion low &middot; flow_mean 1.80 &middot; birdseye_score 0.39<br><span class="cap">The video features a static eye-level shot that slowly zooms out, beginning with a medium close-up on a glossy black sign displaying \&quot;BLACK FRIDAY\&quot; in bold white capital letters, positioned on a pristine, highly reflective ...</span> <span class="cap">Agent note: Black Friday gift box render.</span></figcaption></figure>
+<figure><img src="assets/h3magic_selection/6708588.png" alt="Contact sheet of Pexels 6708588, 6 frames over the first 6 seconds" loading="lazy"><figcaption><b>Pexels 6708588</b> &middot; verdict: NOT real (stop-motion), motion decent &middot; flow_mean 8.33 &middot; birdseye_score 0.94<br><span class="cap">The video opens with a static, bright overhead shot showcasing a solid, vibrant yellow background.</span> <span class="cap">Agent note: balloon letters appear; stop-motion/synthetic look.</span></figcaption></figure>
+<figure><img src="assets/h3magic_selection/7829097.png" alt="Contact sheet of Pexels 7829097, 6 frames over the first 6 seconds" loading="lazy"><figcaption><b>Pexels 7829097</b> &middot; verdict: NOT real (3D render), motion high &middot; flow_mean 2.96 &middot; birdseye_score 0.75<br><span class="cap">The video presents a meticulously arranged still life against a dark, minimalist background, featuring a gradually evolving composition of geometric shapes and natural elements.</span> <span class="cap">Agent note: CGI rings and blocks.</span></figcaption></figure>
+<figure><img src="assets/h3magic_selection/9790032.png" alt="Contact sheet of Pexels 9790032, 6 frames over the first 6 seconds" loading="lazy"><figcaption><b>Pexels 9790032</b> &middot; verdict: NOT real (cgi), motion static &middot; flow_mean 0.42 &middot; birdseye_score 0.09<br><span class="cap">A static wide shot captures a modern, elongated solar carport structure situated in a bright outdoor parking lot on a clear day.</span> <span class="cap">Agent note: solar carport render.</span></figcaption></figure>
+</details>
+
+<details open><summary>The filter funnel</summary>
+<svg viewBox="0 0 760 336" role="img" aria-label="Filter funnel bar chart" class="funnel">
+<text x="0" y="12" class="fl">All Pexels videos in BirdsEye</text>
+<rect x="0" y="16" width="600.0" height="14" class="bar"/>
+<text x="606.0" y="26" class="fv">81,766</text>
+<text x="0" y="68" class="fl">Duration &gt;= 6.5 s, short side &gt;= 512 px, caption &gt; 20 characters</text>
+<rect x="0" y="72" width="556.4" height="14" class="bar"/>
+<text x="562.4" y="82" class="fv">75,818</text>
+<text x="0" y="124" class="fl">Synthetic-looking caption keywords removed</text>
+<rect x="0" y="128" width="481.2" height="14" class="bar"/>
+<text x="487.2" y="138" class="fv">65,578</text>
+<text x="0" y="180" class="fl">flow_mean_magnitude &gt;= 1.5 and promo / stop-motion keywords removed</text>
+<rect x="0" y="184" width="270.4" height="14" class="bar"/>
+<text x="276.4" y="194" class="fv">36,847</text>
+<text x="0" y="236" class="fl">Randomly drawn and ffprobe-checked: train + val + spare</text>
+<rect x="0" y="240" width="157.9" height="14" class="bar"/>
+<text x="163.9" y="250" class="fv">21,523</text>
+<text x="0" y="292" class="fl">Of these: train 10,000 + val 20 (the rest, 11,503, is spare)</text>
+<rect x="0" y="296" width="73.5" height="14" class="bar"/>
+<text x="79.5" y="306" class="fv">10,020</text>
+</svg>
+<table class="sortable"><thead><tr><th>#</th><th>Step</th><th>Clips</th></tr></thead><tbody>
+<tr><td>1</td><td>All Pexels videos in BirdsEye</td><td data-sort="81766">81,766</td></tr>
+<tr><td>2</td><td>Duration &gt;= 6.5 s, short side &gt;= 512 px, caption &gt; 20 characters</td><td data-sort="75818">75,818</td></tr>
+<tr><td>3</td><td>Synthetic-looking caption keywords removed</td><td data-sort="65578">65,578</td></tr>
+<tr><td>4</td><td>flow_mean_magnitude &gt;= 1.5 and promo / stop-motion keywords removed</td><td data-sort="36847">36,847</td></tr>
+<tr><td>5</td><td>Randomly drawn and ffprobe-checked: train + val + spare</td><td data-sort="21523">21,523</td></tr>
+<tr><td>6</td><td>Of these: train 10,000 + val 20 (the rest, 11,503, is spare)</td><td data-sort="10020">10,020</td></tr>
+</tbody></table>
+<p class="small">Sources: <code>h3magic/data/PEXELS_SELECTION.md</code>; seed 20261122 for the first draw and 20261123 for the 10,000 extra spare clips. The final 10,000 are not fixed yet: see "What happens next".</p>
+</details>
+
+<details open><summary>Which BirdsEye metric predicts real motion?</summary>
+<p>We audited 306 clips: 165 had decent or high motion in the first 6 seconds, 6 were not real. For each BirdsEye metric we computed the AUC for "moving" (decent or high). AUC 0.5 is chance. 1.0 is perfect. Click a header to sort.</p>
+<table class="sortable"><thead><tr><th>Metric</th><th>Audited clips</th><th>AUC moving</th><th>Spearman with motion level</th><th>AUC real</th><th>Videos with the field (of 81,764)</th></tr></thead><tbody>
+<tr><td><code>phash_max_change</code></td><td data-sort="306">306</td><td data-sort="0.739759295078444">0.740</td><td data-sort="0.489042791340381">0.49</td><td data-sort="0.4425">0.44</td><td data-sort="81764">81,764</td></tr>
+<tr><td><code>phash_std_change</code></td><td data-sort="306">306</td><td data-sort="0.7384698044272513">0.738</td><td data-sort="0.4753553987120075">0.48</td><td data-sort="0.41888888888888887">0.42</td><td data-sort="81764">81,764</td></tr>
+<tr><td><code>phash_mean_change</code></td><td data-sort="306">306</td><td data-sort="0.7313561143348377">0.731</td><td data-sort="0.47476028841245776">0.47</td><td data-sort="0.4966666666666667">0.50</td><td data-sort="81764">81,764</td></tr>
+<tr><td><code>phash_temporal_std</code></td><td data-sort="306">306</td><td data-sort="0.7243068987749839">0.724</td><td data-sort="0.4538932724686563">0.45</td><td data-sort="0.4658333333333333">0.47</td><td data-sort="81764">81,764</td></tr>
+<tr><td><code>clip_std</code></td><td data-sort="306">306</td><td data-sort="0.7080163335482483">0.708</td><td data-sort="0.41003219318344497">0.41</td><td data-sort="0.3766666666666667">0.38</td><td data-sort="81764">81,764</td></tr>
+<tr><td><code>gve_std</code></td><td data-sort="139">139</td><td data-sort="0.6592132505175984">0.659</td><td data-sort="0.29810163147232355">0.30</td><td data-sort="None">&ndash;</td><td data-sort="37126">37,126</td></tr>
+<tr><td><code>flow_std_magnitude</code></td><td data-sort="306">306</td><td data-sort="0.6167633784655061">0.617</td><td data-sort="0.2879063776078317">0.29</td><td data-sort="0.39333333333333337">0.39</td><td data-sort="81764">81,764</td></tr>
+<tr><td><code>flow_temporal_std</code></td><td data-sort="306">306</td><td data-sort="0.6156673114119923">0.616</td><td data-sort="0.28886508928871757">0.29</td><td data-sort="0.49500000000000005">0.50</td><td data-sort="81764">81,764</td></tr>
+<tr><td><code>flow_max_magnitude</code></td><td data-sort="306">306</td><td data-sort="0.6094132817537072">0.609</td><td data-sort="0.2734876978311492">0.27</td><td data-sort="0.42388888888888887">0.42</td><td data-sort="81764">81,764</td></tr>
+<tr><td><code>flow_mean_magnitude</code></td><td data-sort="306">306</td><td data-sort="0.5852568235546958">0.585</td><td data-sort="0.2224538718746716">0.22</td><td data-sort="0.46944444444444444">0.47</td><td data-sort="81764">81,764</td></tr>
+<tr><td><code>flow_min_magnitude</code></td><td data-sort="306">306</td><td data-sort="0.5697829357403826">0.570</td><td data-sort="0.17590643256775848">0.18</td><td data-sort="0.5933333333333333">0.59</td><td data-sort="81764">81,764</td></tr>
+<tr><td><code>height</code></td><td data-sort="306">306</td><td data-sort="0.5258542875564152">0.526</td><td data-sort="0.050915585134664196">0.05</td><td data-sort="0.6294444444444445">0.63</td><td data-sort="81764">81,764</td></tr>
+<tr><td><code>bits_per_pixel_second</code></td><td data-sort="306">306</td><td data-sort="0.4929722759509994">0.493</td><td data-sort="0.02369528119261522">0.02</td><td data-sort="0.7761111111111111">0.78</td><td data-sort="81764">81,764</td></tr>
+<tr><td><code>file_size_bytes</code></td><td data-sort="306">306</td><td data-sort="0.48048570814528263">0.480</td><td data-sort="-0.006281872794597183">-0.01</td><td data-sort="0.6622222222222223">0.66</td><td data-sort="81764">81,764</td></tr>
+<tr><td><code>fps</code></td><td data-sort="306">306</td><td data-sort="0.477799269288631">0.478</td><td data-sort="-0.03060333878035933">-0.03</td><td data-sort="0.46277777777777784">0.46</td><td data-sort="81764">81,764</td></tr>
+<tr><td><code>duration</code></td><td data-sort="306">306</td><td data-sort="0.4760369653986676">0.476</td><td data-sort="-0.034406272096804774">-0.03</td><td data-sort="0.5111111111111111">0.51</td><td data-sort="81764">81,764</td></tr>
+<tr><td><code>num_frames</code></td><td data-sort="306">306</td><td data-sort="0.4657210401891253">0.466</td><td data-sort="-0.052413640664521005">-0.05</td><td data-sort="0.5069444444444444">0.51</td><td data-sort="81764">81,764</td></tr>
+<tr><td><code>width</code></td><td data-sort="306">306</td><td data-sort="0.45503975929507845">0.455</td><td data-sort="-0.05514816391448239">-0.06</td><td data-sort="0.5180555555555556">0.52</td><td data-sort="81764">81,764</td></tr>
+<tr><td><code>dwpose_first_human_frame</code></td><td data-sort="18">18</td><td data-sort="None">&ndash;</td><td data-sort="None">&ndash;</td><td data-sort="None">&ndash;</td><td data-sort="5123">5,123</td></tr>
+<tr><td><code>dwpose_last_human_frame</code></td><td data-sort="18">18</td><td data-sort="None">&ndash;</td><td data-sort="None">&ndash;</td><td data-sort="None">&ndash;</td><td data-sort="5123">5,123</td></tr>
+<tr><td><code>dwpose_max_people</code></td><td data-sort="18">18</td><td data-sort="None">&ndash;</td><td data-sort="None">&ndash;</td><td data-sort="None">&ndash;</td><td data-sort="5123">5,123</td></tr>
+<tr><td><code>nb_pro3_2k_4x4_span8_filter_max_jump</code></td><td data-sort="0">0</td><td data-sort="None">&ndash;</td><td data-sort="None">&ndash;</td><td data-sort="None">&ndash;</td><td data-sort="491">491</td></tr>
+<tr><td><code>nb_pro3_2k_4x4_span8_filter_pass</code></td><td data-sort="0">0</td><td data-sort="None">&ndash;</td><td data-sort="None">&ndash;</td><td data-sort="None">&ndash;</td><td data-sort="491">491</td></tr>
+<tr><td><code>nb_pro3_2k_4x4_span8_filter_pf_cv</code></td><td data-sort="0">0</td><td data-sort="None">&ndash;</td><td data-sort="None">&ndash;</td><td data-sort="None">&ndash;</td><td data-sort="491">491</td></tr>
+<tr><td><code>nb_pro3_2k_4x4_span8_filter_pf_max_diff</code></td><td data-sort="0">0</td><td data-sort="None">&ndash;</td><td data-sort="None">&ndash;</td><td data-sort="None">&ndash;</td><td data-sort="491">491</td></tr>
+<tr><td><code>nb_pro3_2k_4x4_span8_filter_pf_mean_diff</code></td><td data-sort="0">0</td><td data-sort="None">&ndash;</td><td data-sort="None">&ndash;</td><td data-sort="None">&ndash;</td><td data-sort="491">491</td></tr>
+<tr><td><code>nb_pro3_2k_4x4_span8_filter_pf_phash_max</code></td><td data-sort="0">0</td><td data-sort="None">&ndash;</td><td data-sort="None">&ndash;</td><td data-sort="None">&ndash;</td><td data-sort="491">491</td></tr>
+<tr><td><code>nb_pro3_2k_4x4_span8_filter_phash_ratio</code></td><td data-sort="0">0</td><td data-sort="None">&ndash;</td><td data-sort="None">&ndash;</td><td data-sort="None">&ndash;</td><td data-sort="491">491</td></tr>
+<tr><td><code>nb_pro3_2k_4x4_span8_grid_cols</code></td><td data-sort="0">0</td><td data-sort="None">&ndash;</td><td data-sort="None">&ndash;</td><td data-sort="None">&ndash;</td><td data-sort="491">491</td></tr>
+<tr><td><code>nb_pro3_2k_4x4_span8_grid_rows</code></td><td data-sort="0">0</td><td data-sort="None">&ndash;</td><td data-sort="None">&ndash;</td><td data-sort="None">&ndash;</td><td data-sort="491">491</td></tr>
+<tr><td><code>nb_pro3_2k_4x4_span8_num_source_frames</code></td><td data-sort="0">0</td><td data-sort="None">&ndash;</td><td data-sort="None">&ndash;</td><td data-sort="None">&ndash;</td><td data-sort="491">491</td></tr>
+<tr><td><code>nb_pro3_2k_4x4_span8_output_height</code></td><td data-sort="0">0</td><td data-sort="None">&ndash;</td><td data-sort="None">&ndash;</td><td data-sort="None">&ndash;</td><td data-sort="491">491</td></tr>
+<tr><td><code>nb_pro3_2k_4x4_span8_output_width</code></td><td data-sort="0">0</td><td data-sort="None">&ndash;</td><td data-sort="None">&ndash;</td><td data-sort="None">&ndash;</td><td data-sort="491">491</td></tr>
+<tr><td><code>siglip_std</code></td><td data-sort="2">2</td><td data-sort="None">&ndash;</td><td data-sort="None">&ndash;</td><td data-sort="None">&ndash;</td><td data-sort="800">800</td></tr>
+</tbody></table>
+<ul>
+<li>The perceptual-hash change metrics and <code>clip_std</code> predict first-6-s motion better than the RAFT flow we filtered on (about 0.74 versus 0.59).</li>
+<li>No metric predicts "real". There are only 6 negatives, too few to filter on.</li>
+<li><b>birdseye_score</b> is the mean percentile rank (over all 81,764 videos) of phash_std_change, phash_max_change and clip_std. Its AUC for "moving" is <b>0.758</b>. This is measured on the same 306 clips that we used to choose these three metrics, so it is optimistic.</li>
+<li>Among the audited clips, the top half by birdseye_score is 73% moving. The bottom half is 35%.</li>
+<li>Synthetic rate in the audit: 6 of 306 (2.0%).</li>
+</ul>
+</details>
+
+<details open><summary>What happens next</summary>
+<p>Whole-video flow does not predict the first 6 seconds well. So the clip cutter measures motion on its own 512&times;512 clip of the first 5.875 s. It then keeps the 10,000 most-moving clips. It ranks them by the average of its own motion rank and birdseye_score. It draws from the 10,000 train clips plus the 11,503 spare clips. The 20 validation clips are set aside.</p>
+</details>
+
+<details><summary>Adapter lineage</summary>
+<p>Final weights: W = W_H3 + a&middot;&Delta;_pexels + b&middot;&Delta;_imagegen + c&middot;&Delta;_graymagic. Each adapter is a LoRA trained on the model with all earlier adapters baked in.</p>
+<ol>
+<li><b>Stock H3</b>: no adapter.</li>
+<li><b>Pexels adapter (&Delta;_pexels)</b>: LoRA on stock H3. <b>Trained on this dataset</b>: 10,000 real Pexels clips, first 5.875 s, 512&times;512, with H3-style captions.</li>
+<li>Image-gen adapter: LoRA on H3 + &Delta;_pexels, trained on 7 frames per clip of the same clips.</li>
+<li>Gray magic adapter: LoRA on H3 + &Delta;_pexels + &Delta;_imagegen, trained on MAGICK images on 50% gray.</li>
+</ol>
+</details>
+
+<details><summary>Glossary</summary>
+<dl>
+<dt>AUC</dt><dd>Area under the ROC curve. The chance that a random moving clip scores higher than a random non-moving clip. 0.5 is chance, 1.0 is perfect.</dd>
+<dt>phash</dt><dd>Perceptual hash. A short fingerprint of a frame. phash_*_change metrics measure how much the fingerprint changes between frames, so they measure how much the picture changes.</dd>
+<dt>clip_std</dt><dd>Standard deviation over time of CLIP image embeddings of the frames. Large means the content changes.</dd>
+<dt>flow_mean_magnitude</dt><dd>Mean optical-flow length (RAFT, pixels at 256 px) over 25 frames of the whole video. A measure of motion, but of the whole video, not the first 6 seconds.</dd>
+<dt>contact sheet</dt><dd>One image that shows 6 frames of a clip side by side, at 0 to 5 s. The agents judged clips from these.</dd>
+<dt>spare</dt><dd>A real, checked clip that is not in train or val. The cutter uses spares to replace clips that move too little.</dd>
+<dt>validation (val)</dt><dd>20 clips used only to measure validation loss. Never trained on.</dd>
+<dt>birdseye_score</dt><dd>See the metric section. 0 is least motion, 1 is most.</dd>
+</dl>
+</details>
+<p class="note">Sources: BirdsEye pexels fields, the audit in <code>agents/.scratchpad/pexelspick/</code> (not in git), manifest section 22.</p>
+</main>
+<script>
+document.querySelectorAll("table.sortable").forEach(function (t) {
+  t.querySelectorAll("th").forEach(function (th, i) {
+    th.addEventListener("click", function () {
+      var rows = Array.from(t.tBodies[0].rows), dir = th.dataset.dir === "asc" ? -1 : 1;
+      th.dataset.dir = dir === 1 ? "asc" : "desc";
+      var key = function (r) { var c = r.cells[i], v = c.dataset.sort !== undefined ? c.dataset.sort : c.textContent; return isNaN(parseFloat(v)) ? v : parseFloat(v); };
+      rows.sort(function (a, b) { var x = key(a), y = key(b); return (x > y ? 1 : x < y ? -1 : 0) * dir; });
+      rows.forEach(function (r) { t.tBodies[0].appendChild(r); });
+    });
+  });
+});
+</script>
+</body>
+</html>
