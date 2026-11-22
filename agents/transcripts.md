@@ -1158,3 +1158,6 @@ Why don't you also make a journal entry for Pexels video selection?
 
 ## m00931 — 2026-11-22 ~03:31 PM ET
 Once you push that Pexels video selection journal entry, notify me once.
+
+## m00932 — 2026-11-22 ~03:31 PM ET
+I really hope it shows examples.
