@@ -558,3 +558,12 @@
 - Lesson: for a big node-local copy, measure the source's read speed for 20 s first; the Hub can be 100x faster than a cold Lustre/S3 file.
 - ~3:22 PM: I first made `models/h3magic/MiniMax-H3` a symlink into the MinimaxH3 dump. The user (m00925): symlinks between dumps break dump protocol; hardlink instead. Replaced with `cp -al` (hardlinks), transformer_ref links removed (MinimaxH3's own files untouched).
 - Clock: I wrote transcript times by guess (3:05–4:40 PM) while the node clock said 3:04–3:20 PM. Lesson: run `TZ=America/New_York date` before writing any time.
+
+## 2026-11-22 3:25 PM — Pexels selection (PexelsPick fork)
+- The whole-video RAFT flow (`flow_mean_magnitude`, 25 frames over the full clip) is a weak proxy for motion in the first 6 s: in the 203-clip audit "low" first-6-s motion was 30–60% in every flow band, static only below 1.5. Lesson: measure motion on the exact window we train on (the cutter's 512² first 6 s).
+- `ffmpeg -t 6.05 -vf fps=1,tile=7x1` gave 6 frames (0–5 s) plus a black tile, not 7: the frame at 6.0 s falls outside -t. Fine for an audit sheet; for the 7 image-gen frames at 0–6 s (m00917) seek each frame explicitly.
+- Probing 12k extensionless 4K MP4s on S3-backed FSx with ffprobe took ~7 min at 96 threads; contact sheets of 203 clips took 1:44 (4K decode).
+- Wall clock: `date` said 3:24 PM ET when the selection finished; the coordinator's transcript times m00916–m00919 (~3:45–4:02 PM) are estimates ahead of the real clock.
+- 3:40 PM: `pkill -f "until ! pgrep -f pexelspick/extend.py"` killed my own shell (exit 144), because the pattern was in its command line — the same lesson as the 2026-11-20 ship5000 entry. extend.py itself survived. Kill by PID, not by a pattern you are typing.
+- The motion filter we used first (RAFT flow_mean ≥ 1.5) was the weakest of the motion metrics (AUC 0.585); phash change and clip_std reach 0.71–0.74. Lesson: rank the candidate metrics against an audit before picking the filter.
+- 3:48 PM: coordinator commit c8f4c9b deleted h3magic/data/PEXELS_SELECTION.md and pexels_selection.parquet. Cause: I committed them through a temporary index (HEAD moved), but the repo's own .git/index never had them, so the next normal `git commit` from that index recorded them as deleted. 91cb5c2 restored them; `git reset HEAD -- <the 2 files>` fixed the main index. Lesson: after a temporary-index commit, also run `git reset -q HEAD -- <those files>` so the main index matches HEAD for them.
