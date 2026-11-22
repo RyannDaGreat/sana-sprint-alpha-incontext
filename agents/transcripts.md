@@ -1245,3 +1245,6 @@ And if you aren't able to figure out what I mean by wibbly-wobbly [transcribed "
 
 ## m00960 — 2026-11-22 ~06:55 PM ET
 Why should they mention slow motion? None of this is supposed to be slow motion. If it's slow motion, then we should speed up Pexels [transcribed "hexals"]. But why would it be slow motion?
+
+## m00961 — 2026-11-22 ~06:55 PM ET
+Is there any training/inference mismatch in the settings? Maybe the FPS settings or something else? I don't know. That generally wouldn't explain why it turns to mushy crap, though.
