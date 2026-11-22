@@ -1218,3 +1218,6 @@ Hell, we can probably even make training go faster, 'cause now you can use all 8
 
 ## m00951 — 2026-11-22 ~04:46 PM ET
 That way all 8 [transcribed "adb's"] can be just for training.
+
+## m00952 — 2026-11-22 ~05:03 PM ET
+v [a single letter; likely a stray keypress]
