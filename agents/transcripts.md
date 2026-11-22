@@ -1097,38 +1097,43 @@ Yeah, write all this down, create the to-do, transcribe me, and get going. You c
 
 [second paste:] My goal is to have something to show for this — hopefully get to the end, to the last adapter. We don't need perfection; this is just — I want to do this quickly. So you can monitor the results as it goes, like a chef tasting their food, and when you see that it plateaus, cut the training and move on to the next thing. Look at the losses, look at the images; when they plateau, you move on to the next thing. Yeah, I want to see something hopefully six hours from now. So if you can pace yourself — like, I want to see eventually that last video row that I asked for by like 9 PM Eastern time tonight. So if you can pace yourself and set up a schedule for yourself, and plan your notification points, your main points, ahead of time, that will be best. So do some planning work and then get going. For coding grunt work you can use Sonnet, and for things that are not grunt work but actually important, you can use Opus subagents. I leave it up to you.
 
-## m00913 — 2026-11-22 ~3:05 PM ET
+## m00913 — 2026-11-22 ~3:04 PM ET
 Make sure you dissect all of my instructions and make sure that everything that should be followed is followed. Dot your i's and cross your t's [transcribed "slash your t's"], but make sure that the schedule is followed the way I asked for.
 
-## m00914 — 2026-11-22 ~3:07 PM ET
+## m00914 — 2026-11-22 ~3:05 PM ET
 And again, up to 10 notifications total. You can notify me.
 
-## m00915 — 2026-11-22 ~3:35 PM ET
+## m00915 — 2026-11-22 ~3:08 PM ET
 By the way, each time you notify me, your name will be "h3magic". Make sure to declare your name every time you notify me and give context. Make them human-readable notifications. Assume that 1) I have very little time to read things, 2) don't invent jargon, because I won't understand it, and 3) again, read the human-readable-notification skill.
 
-## m00916 — 2026-11-22 ~3:45 PM ET
+## m00916 — 2026-11-22 ~3:09 PM ET
 By the way, I refreshed my Gemini credentials, in case you want to use them, if it turns out it's faster than Muse. Honestly, I think that Muse is gonna be way faster. So you have two options now: you can do whichever one you benchmark to be faster. Because it's only 10,000 samples, you don't need to do batching for Gemini; you can just do it as fast as possible. You want to get everything done. I don't care about cost in terms of Gemini. It's only 10,000 samples — well, then also 10,000 images, but whatever, it's close enough.
 
-## m00917 — 2026-11-22 ~3:55 PM ET
+## m00917 — 2026-11-22 ~3:10 PM ET
 For the image-gen adapter, by the way: for the sake of augmentation, instead of just the middle frame, we can take a frame at 1 second, 1 frame at 2 seconds, 1 frame at 3 seconds, 4 seconds, 5 seconds, and 6 seconds, so that for each 6-second clip, because of fence posting, we could actually get 7 different images evenly spaced throughout. And then, yeah, instead of 1 image per [clip]. This will probably make the image-gen adapter better, and I'm pretty sure encoding will be just as fast.
 
-## m00918 — 2026-11-22 ~4:00 PM ET
+## m00918 — 2026-11-22 ~3:11 PM ET
 Also remember to multitask, because BlueJay lets you do many things at once. Captioning shouldn't block GPU work or other types of processing.
 
-## m00919 — 2026-11-22 ~4:02 PM ET
+## m00919 — 2026-11-22 ~3:11 PM ET
 This is why you're in autopilot work mode. Stay in autopilot bulldog mode. [Second line:] Autopilot fork mode. Autopilot bulldog fork mode.
 
-## m00920 — 2026-11-22 ~4:15 PM ET
+## m00920 — 2026-11-22 ~3:13 PM ET
 And again, do remember it's okay to push to GitHub when you're doing journals. You don't have to ask permission for that.
 
-## m00921 — 2026-11-22 ~4:17 PM ET
+## m00921 — 2026-11-22 ~3:14 PM ET
 In fact, anything for this subproject, you don't need to ask for push. It's okay, just push.
 
-## m00922 — 2026-11-22 ~4:19 PM ET
+## m00922 — 2026-11-22 ~3:15 PM ET
 I pre-approve any commits related to this subdump for now. We can clean things up later.
 
-## m00923 — 2026-11-22 ~4:21 PM ET
+## m00923 — 2026-11-22 ~3:16 PM ET
 But in their commit titles, do [C:H3M] for H3Magick instead of just [C]. Those are the pre-approved ones.
 
-## m00924 — 2026-11-22 ~4:40 PM ET
+## m00924 — 2026-11-22 ~3:20 PM ET
 Also, before redownloading all the H3 weights, check — have an agent check my other dumps to see if you can symlink [transcribed "start link"] it from another one of my dumps. It might be in there somewhere.
+
+## m00925 — 2026-11-22 ~3:23 PM ET
+Because it's another dump you're copying it from, you shouldn't symlink to it. Dumps don't communicate. You can hardlink, though. Doing that, or any other symlink between dumps, will break dump protocol.
+
+[Note: the times of m00913–m00924 were first written as 3:05–4:40 PM; the node clock showed they all came between 3:04 and 3:20 PM. Corrected.]

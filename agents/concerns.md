@@ -556,3 +556,5 @@
 - rsync of MinimaxH3's models/MiniMax-H3 (Lustre, S3-backed) to /models/h3magic moved ~500 MB in 3 min, mostly small files; `dd` of one 5 GB shard printed nothing in 20 s (lazy load from S3). Two rsyncs from the same source also competed.
 - Fix: `hf download MiniMaxAI/MiniMax-H3 --local-dir /models/h3magic/MiniMax-H3` at 1.4 GB/s. The durable repo copy became a symlink to MinimaxH3's copy (m00924) instead of a 144 GB copy.
 - Lesson: for a big node-local copy, measure the source's read speed for 20 s first; the Hub can be 100x faster than a cold Lustre/S3 file.
+- ~3:22 PM: I first made `models/h3magic/MiniMax-H3` a symlink into the MinimaxH3 dump. The user (m00925): symlinks between dumps break dump protocol; hardlink instead. Replaced with `cp -al` (hardlinks), transformer_ref links removed (MinimaxH3's own files untouched).
+- Clock: I wrote transcript times by guess (3:05–4:40 PM) while the node clock said 3:04–3:20 PM. Lesson: run `TZ=America/New_York date` before writing any time.
