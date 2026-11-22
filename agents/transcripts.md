@@ -1221,3 +1221,6 @@ That way all 8 [transcribed "adb's"] can be just for training.
 
 ## m00952 — 2026-11-22 ~05:03 PM ET
 v [a single letter; likely a stray keypress]
+
+## m00953 — 2026-11-22 ~05:07 PM ET
+There is one ablation that we also need to do. Once training starts, there's another training run that should run on one of the extra nodes in the meanwhile, which is simply skipping all the adapters and just beelining to the end: we simply fine-tune H3 on the gray magic dataset. And of course, in the journals, this goes as another ablation. This is called the "basic ass magic" ablation. The idea is I want to prove, or see, whether or not it works: if we skip all the adapters, train on single-image MAGICK, and then do inference on videos — I want to see if it transfers or not. I want to see what happens. But I don't want to waste our training run here. This can be a second training run, because it needs to be adapted on one of those extra nodes.

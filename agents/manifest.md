@@ -878,6 +878,8 @@ Step 1000 live (after 351b011, one wasm thread for Memory64): fibo2_turbo_fibo2_
    - 5c "Pexels gray": a = 1, b = 0, c = 1 (for fun: maybe Pexels-like video on gray).
    Row 5c was due by 9 PM ET (m00912 second paste); **the deadline is now 11 PM ET 2026-11-22** (m00948). Training stops (plateau first, else these hard stops): Pexels 6:30 PM, image-gen 7:30 PM, gray magic 8:45 PM; rows 4 and 5a–5c on the remote nodes after that; journal final by 11 PM.
 
+6. **"Basic ass magic" ablation (m00953).** Skip every adapter: one LoRA trained directly on stock H3 on the gray magic dataset (MAGICK on gray, single-frame latents, the subject-only captions), on a remote node (never the main training GPUs). Then inference on the 20 prompts as images and as 6 s 512² videos: W = W_H3 + Δ_basicmagic. Question: does single-image gray training transfer to video when no Pexels / image-gen adapters come first? Its own journal rows, labeled as an ablation.
+
 **Not in scope now:** on-white / on-black channel concatenation (the user considered it, then chose on-gray first); the web UI (unchanged, m00912); audio (excluded everywhere: no audio captions, no audio latents, no audio in the prompt).
 
 **Data.**
