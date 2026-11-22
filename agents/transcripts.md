@@ -1140,3 +1140,12 @@ Because it's another dump you're copying it from, you shouldn't symlink to it. D
 
 ## m00926 — 2026-11-22 ~3:25 PM ET
 BirdsEye has many other scores, such as CLIP standard deviation and other things. Have your agents look at all these different metrics to see which ones help choose the best videos.
+
+## m00927 — 2026-11-22 ~03:26 PM ET
+If you're [message cut off]
+
+## m00927 — 2026-11-22 ~03:26 PM ET
+If you're [cut off; the next message followed]
+
+## m00928 — 2026-11-22 ~03:26 PM ET
+No reason to pause it. These things could be done in parallel, can't they? This is just to speed things up.
