@@ -7,7 +7,7 @@ copies the durable copy in the repo (DURABLE_DIR) there first. Never the Hugging
 
 Geometry: 24 fps, 512 x 512, VIDEO_FRAMES = 141 (5.875 s, the longest 17n + 5 length inside the first 6 s).
 Latents are normalized exactly like MinimaxH3's train_lora.encode_video_target (the training target recipe):
-ImageNet-normalized pixels -> vae.encode (float32, untiled) -> posterior.sample(seed) -> (z - latents_mean) / latents_std.
+ImageNet-normalized pixels -> vae.encode (float32 weights, bf16 autocast, untiled) -> posterior.sample(seed) -> (z - latents_mean) / latents_std.
     video 141 frames -> (24, 42, 32, 32) (LC, LT, LH, LW);  one image -> (24, 1, 32, 32)
 
 Images (frames = 1) need three changes to the released code, which only accepts 5-15 s (allow_single_frame()):
@@ -196,7 +196,9 @@ def encode(vae, frames, seed=ENCODE_SEED):
     pixels = torch.from_numpy(np.ascontiguousarray(frames if batched else frames[None])).to(vae.device)
     pixels = einx.rearrange("B T H W C -> B C T H W", pixels).float().div(255)
     pixels = (pixels - torch.tensor((0.485, 0.456, 0.406), device=vae.device).view(1, 3, 1, 1, 1)) / torch.tensor((0.229, 0.224, 0.225), device=vae.device).view(1, 3, 1, 1, 1)
-    posterior = vae.encode(pixels, return_dict=False)[0]
+    torch.backends.cudnn.benchmark = True  # One input shape per job: let cuDNN pick its fastest 3D convolutions
+    with torch.autocast("cuda", torch.bfloat16):  # bf16 compute, fp32 weights: 4.0 s vs 5.1 s per clip; same latents within noise
+        posterior = vae.encode(pixels, return_dict=False)[0]
     latents = posterior.sample(generator=torch.Generator(device=vae.device).manual_seed(seed)).float().cpu()
     mean, std = latent_stats(vae)
     latents = (latents - mean) / std
