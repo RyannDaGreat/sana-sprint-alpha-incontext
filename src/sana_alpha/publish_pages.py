@@ -50,6 +50,7 @@ REPO = "RyannDaGreat/sana-sprint-alpha-incontext"
 HF_REPO = "OneOverZero/sana-sprint-alpha-incontext"  # the one Hugging Face repo, for the models (m00727)
 HF_DIR = ROOT / "agents/.scratchpad/hf-repo"  # local mirror of HF_REPO: blobs/, web/ (publish_models)
 ASSET_BASE = f"https://raw.githubusercontent.com/{REPO}/{ASSETS_BRANCH}/"
+ASSET_SUFFIXES = (".png", ".mp4")  # published to journal-assets by content hash; everything else under assets/ goes to gh-pages
 DIGEST_CHARS = 16  # 64 bits of SHA-256: no collisions at this scale
 SHARD_CHARS = 2  # first hex chars as a folder, so no folder holds thousands of files
 HASH_PROCESSES = 8  # the training jobs need the CPUs
@@ -67,20 +68,22 @@ MODELS_PLACEHOLDER = {"versions": [], "note": f"On Pages the app reads models fr
                                                 "(web/); see src/sana_alpha/publish_models.py."}
 
 
-def asset_name(digest):
+def asset_name(digest, suffix=".png"):
     """
-    Pure function. Maps a PNG's SHA-256 hex digest to its path inside the journal-assets branch.
+    Pure function. Maps an asset's SHA-256 hex digest (and file suffix) to its path inside the journal-assets branch.
 
     Examples:
         >>> asset_name("ab" + "cd" * 31)
         'ab/abcdcdcdcdcdcdcd.png'
+        >>> asset_name("ab" + "cd" * 31, ".mp4")
+        'ab/abcdcdcdcdcdcdcd.mp4'
     """
-    return f"{digest[:SHARD_CHARS]}/{digest[:DIGEST_CHARS]}.png"
+    return f"{digest[:SHARD_CHARS]}/{digest[:DIGEST_CHARS]}{suffix}"
 
 
 def rewrite_asset_refs(text, urls):
     """
-    Pure function. Replaces every literal `assets/....png` path in HTML or JS with its absolute asset URL. Fails
+    Pure function. Replaces every literal `assets/....png` (or `.mp4`) path in HTML or JS with its absolute asset URL. Fails
     loudly (KeyError) on a path with no entry in `urls`. Prose says "PNG" in capitals, so it is left alone.
 
     Args:
@@ -90,8 +93,10 @@ def rewrite_asset_refs(text, urls):
     Examples:
         >>> rewrite_asset_refs('<img src="assets/a/b.png"> a 1024x1024 PNG', {"assets/a/b.png": "https://h/ab/cd.png"})
         '<img src="https://h/ab/cd.png"> a 1024x1024 PNG'
+        >>> rewrite_asset_refs('<video src="assets/a/b.mp4">', {"assets/a/b.mp4": "https://h/ab/cd.mp4"})
+        '<video src="https://h/ab/cd.mp4">'
     """
-    return re.sub(r"assets/[^\"'\s<>`]+?\.png\b", lambda match: urls[match.group(0)], text)
+    return re.sub(r"assets/[^\"'\s<>`]+?\.(?:png|mp4)\b", lambda match: urls[match.group(0)], text)
 
 
 def rewrite_eval_grid_js(text, urls):
@@ -334,24 +339,25 @@ def commit_all(path, message):
 
 def hash_all(pngs):
     """Query. SHA-256 of every PNG (parallel, HASH_PROCESSES); returns {path relative to journal/: digest}."""
-    print(f"hashing {len(pngs)} PNGs", flush=True)
+    print(f"hashing {len(pngs)} PNGs and MP4s", flush=True)
     with ProcessPoolExecutor(HASH_PROCESSES) as pool:
         digests = list(pool.map(png_digest, pngs, chunksize=32))
     return {p.relative_to(JOURNAL).as_posix(): digest for p, digest in zip(pngs, digests)}
 
 
-def sync_assets(digests, sources, do_push):
+def sync_assets(digests, do_push):
     """
-    Command. Copies the PNG of every digest not yet in the journal-assets worktree, committing (and pushing) in
-    batches of PUSH_BATCH_BYTES. Never deletes. Returns the number of files added.
+    Command. Copies every PNG/MP4 whose content-hashed name is not yet in the journal-assets worktree, committing
+    (and pushing) in batches of PUSH_BATCH_BYTES. Never deletes. Returns the number of files added.
     """
-    new = sorted(d for d in set(digests.values()) if not (ASSETS_DIR / asset_name(d)).exists())
-    print(f"journal-assets: {len(set(digests.values()))} unique images, {len(new)} new", flush=True)
+    files = {asset_name(d, Path(p).suffix): JOURNAL / p for p, d in digests.items()}
+    new = sorted(n for n in files if not (ASSETS_DIR / n).exists())
+    print(f"journal-assets: {len(files)} unique files, {len(new)} new", flush=True)
     batch_bytes = 0
-    for index, digest in enumerate(new):
-        destination = ASSETS_DIR / asset_name(digest)
+    for index, name in enumerate(new):
+        destination = ASSETS_DIR / name
         destination.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(sources[digest], destination)
+        shutil.copyfile(files[name], destination)
         batch_bytes += destination.stat().st_size
         if batch_bytes >= PUSH_BATCH_BYTES or index == len(new) - 1:
             commit_all(ASSETS_DIR, f"[C] Add {batch_bytes / 1e6:.0f} MB of journal images (up to #{index + 1}/{len(new)})")
@@ -401,7 +407,7 @@ def build_site(urls, build_web=False):
     (SITE / "models/web/index.json").write_text(json.dumps(MODELS_PLACEHOLDER, indent=1))
     (SITE / ".nojekyll").touch()
     write_pwa(SITE)
-    for source in (p for p in (JOURNAL / "assets").rglob("*") if p.is_file() and p.suffix != ".png"):
+    for source in (p for p in (JOURNAL / "assets").rglob("*") if p.is_file() and p.suffix not in ASSET_SUFFIXES):
         destination = SITE / source.relative_to(JOURNAL)
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source, destination)
@@ -416,13 +422,12 @@ def publish(push=True, build_web=False):
     """Command. Pushes new images to journal-assets, then builds and pushes gh-pages (assets first: no broken links)."""
     open_worktree(ASSETS_DIR, ASSETS_BRANCH)
     open_worktree(SITE, SITE_BRANCH)
-    pngs = sorted(p for p in (JOURNAL / "assets").rglob("*.png") if p.is_file())
-    digests = hash_all(pngs)
-    sources = {digest: JOURNAL / path for path, digest in digests.items()}
-    sync_assets(digests, sources, push)
+    assets = sorted(p for p in (JOURNAL / "assets").rglob("*") if p.is_file() and p.suffix in ASSET_SUFFIXES)
+    digests = hash_all(assets)
+    sync_assets(digests, push)
     if push:
         push_branch(ASSETS_DIR, ASSETS_BRANCH)  # also sends commits left unpushed by an earlier --push=False or failed run
-    urls = {path: ASSET_BASE + asset_name(digest) for path, digest in digests.items()}
+    urls = {path: ASSET_BASE + asset_name(digest, Path(path).suffix) for path, digest in digests.items()}
     build_site(urls, build_web)
     main_commit = git("rev-parse", "--short", "HEAD").strip()
     if not commit_all(SITE, f"[C] Publish journal and WebGPU app (main {main_commit})"):
