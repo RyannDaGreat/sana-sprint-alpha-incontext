@@ -1191,3 +1191,6 @@ Ford's assembly line [correction to m00940: "like Ford's assembly line"].
 
 ## m00942 — 2026-11-22 ~04:26 PM ET
 You can have an evolutionary — sorry, genetic — a genetic frenzy? What do we call it? A genetic frenzy, I think, to optimize the H3 decoder, to make it fast, and make sure that that process gets its own journal. You can use Sonnet agents commanding Sonnet agents for this. Just make it as good as you can. The quality is important, while being at least 30 times faster. Okay, there will actually be different tiers to win: one will be the tier of being 10 times faster, a prize for that; another prize for being 30 times faster; another prize for being 100 times faster, for the H3 decoder. And the journal should show examples. So get the best scores that you can for each one of these tiers, with that evolutionary frenzy that runs at the same time and uses GPUs opportunistically where it can. And whatever results you have now, put them on a journal now, and then notify me when the journal is up.
+
+## m00943 — 2026-11-22 ~04:30 PM ET
+PSST: to that genetic frenzy, I have something neat for them! Server started at http://100.113.41.151:43234 — this is an rp.web_evaluator instance running on another A100 cluster. Be careful: you'll have to figure out where it is and how to use it and how to read stuff from it, and research it... but it's free compute!
