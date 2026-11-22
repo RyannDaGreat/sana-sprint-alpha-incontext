@@ -792,16 +792,25 @@ def preempt(gpus, name):
         print(f"preempted low-priority pid {pid} on GPU {gpu}", flush=True)
 
 
+def claim(name, gpus="0,1,2,3,4,5"):
+    """
+    Command. Claims gpus for job `name` in agents/.scratchpad/h3train/GPUS.txt and preempts the low-priority jobs listed
+    on them (GPU policy, m00937). Returns the GPU list as "0,1,...".
+    """
+    gpus = ",".join(map(str, gpus)) if isinstance(gpus, (list, tuple)) else str(gpus)  # Fire turns "0,1" into a tuple
+    STATUS_DIR.mkdir(parents=True, exist_ok=True)
+    (STATUS_DIR / "GPUS.txt").write_text(f"H3Train {name}: GPUs {gpus} from {eastern_clock()} ET\n")
+    preempt([int(g) for g in gpus.split(",")], name)
+    return gpus
+
+
 def launch(name, gpus="0,1,2,3,4,5", **kwargs):
     """
     Command. Claims gpus in agents/.scratchpad/h3train/GPUS.txt, preempts low-priority jobs listed on them (GPU policy),
     then runs `train` under torchrun on gpus (default 0–5: GPUs 6–7 stay for inference, m00912), tee'd to
     agents/.scratchpad/logs/h3train_<name>.log.
     """
-    gpus = ",".join(map(str, gpus)) if isinstance(gpus, (list, tuple)) else str(gpus)  # Fire turns "0,1" into a tuple
-    STATUS_DIR.mkdir(parents=True, exist_ok=True)
-    (STATUS_DIR / "GPUS.txt").write_text(f"H3Train {name}: GPUs {gpus} from {eastern_clock()} ET\n")
-    preempt([int(g) for g in gpus.split(",")], name)
+    gpus = claim(name, gpus)
     args = [f"--{k}={','.join(map(str, v)) if isinstance(v, (list, tuple)) else v}" for k, v in kwargs.items()]
     log = ROOT / f"agents/.scratchpad/logs/h3train_{name}.log"
     command = (f"CUDA_VISIBLE_DEVICES={gpus} {sys.executable} -m torch.distributed.run --standalone "
@@ -898,4 +907,4 @@ def sign_probe(data="pexels", latent_column=COLUMNS["video"], embed_column=COLUM
 
 
 if __name__ == "__main__":
-    fire.Fire(dict(train=train, launch=launch, probe=probe, sign_probe=sign_probe))
+    fire.Fire(dict(train=train, launch=launch, claim=claim, probe=probe, sign_probe=sign_probe))
