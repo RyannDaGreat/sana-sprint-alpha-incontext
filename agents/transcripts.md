@@ -1343,3 +1343,6 @@ If it didn't, make sure they're more research-oriented. I'm not looking for dumb
 
 ## m00990 — 2026-11-23 ~02:37 AM ET
 Wow, that's a shitty frenzy. God damn. Well, reset the number of rounds then. This was a shit genetic frenzy that barely made any progress, because it didn't do any real research. It didn't do any kind of development or any serious experiments; it just probably tried to slam a round peg into a square hole. Stupid little creatures. No, that's not intelligent.
+
+## m00991 — 2026-11-23 ~02:37 AM ET
+I literally found this with a 5-second Google search. If you dig deeper, I'm sure there's a million different options you can find. Combining research papers from different fields, putting them together, doing something you actually think will work. Every idea should stand a good chance of survival. Any researcher knows: if you don't think it's going to work, it probably won't.
