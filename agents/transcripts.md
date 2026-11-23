@@ -1388,3 +1388,6 @@ I'm saying this preemptively because I'm going to sleep now. Keep an eye on it.
 
 ## m01005 — 2026-11-23 ~04:44 AM ET
 If we do horizontal concatenation, let's make it a square actually. 2x2, and the fourth one will be the grayscale alpha mask.
+
+## m01006 — 2026-11-23 ~04:44 AM ET
+The three colors will be used for decontamination and then the alpha will be used as the mask. In your journal, tell me how much they disagree on what the alpha value should be.
