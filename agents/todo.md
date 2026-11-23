@@ -23,10 +23,11 @@
 | H22 | Fix the mush (m00956–m00962): guidance-loss / de-distillation pilots, lr 1e-4; a better first (Pexels) adapter goes in the journal + notify; deadline still 11 PM even if the chain restarts | — | pilots being built |
 | H30 | Foreground-only test set (m00972): 20 more prompts with no background described; prompt sets in the eval; rows for the v2 models + ablation | — | starting |
 | H31 | Split adapter (m00972): one extra adapter giving gray / white / black (like FIBO2 §17), trained on top of the v2 chain AND on basic ass magic v2; ablations; RGBA by least squares | — | starting after training |
-| H33 | Alpha Video v2 (§23, m00983): prompt-only gray suffix search + journal; gray magic + split at 768 with gray-suffix captions; tests both/zero/split-only; journal entries as it trains; deadline 3 PM ET | — | suffix hex_medium chosen 2:25 AM (journal entry 1); 768 latents + suffix captions done; gray magic v3 training on node 2 since 2:28 AM; synthetic motion clips encoding locally (item 4); stock+suffix eval rows rendering locally |
+| H33 | Alpha Video v2 (§23, m00983): prompt-only gray suffix search + journal; gray magic + split at 768 with gray-suffix captions; tests both/zero/split-only; journal entries as it trains; deadline 3 PM ET | — | suffix hex_medium (entry 1, live); gray magic v3 done 3:02 AM step 282 (entry 2, live); split v3 training on node 2 since 3:02 AM; video readout (split_video.py on h3_motion_clips) launches on node 2 after split final; eval rows av2_* rendering locally (GPUs 0-5) |
 | H34 | Latent Compositor (§24, m00983): research sub-frenzy + genetic frenzy (≤ 7 rounds × 8), 1024² MAGICK-on-Pexels latents, baselines, metrics incl. FIBO latent distance, journal | — | starting (node 1) |
 | H35 | Encoder bottleneck study (m00992, §25): latent optimization through the frozen H3 decoder; if better, train a better encoder; deadline 6 PM ET | — | starting |
 | H36 | Extra journal entries (m00995, budget 3, used 1): (a) why the first adapters broke + the fix (h3magic_dedistill.html). Owed (not from the budget, m00934): image-gen dataset page, Alpha Video v2 dataset page | — | Sonnet agents writing (a) and the image-gen page; AlphaV2 the v3 dataset page |
+| H37 | Diffusion decoder for H3 latents (m01001, §26): research sub-frenzy (existing diffusion decoders, test + iterate) + mini genetic sub-frenzy (conv / tiling-transformer decoder diffusing in RGB or FIBO latent space, conditioned on the H3 latent; text conditioning as ablation); remote nodes first, up to 3 H100 Mako nodes (AISI Interpositive queue, 2 h jobs); BlueJay + own journal page; priority ahead of fast decoder | — | starting |
 | H15 | Journal: one dataset page per adapter (Pexels clips, image-gen frames, gray MAGICK), each with examples + captions and the adapter lineage (trained on top of which baked adapters) (m00934) | — | after each dataset is cut + captioned |
 
 ### Notifications sent (max 15: 10 + 3 (m00974) + 2 (m00977), signed h3magic); new budget from m00983: 10 for §23/§24
@@ -41,6 +42,7 @@
 - N9 11:15 PM: final results page complete (main + foreground-only); headline finding
 - N10 12:47 AM: split adapter page live
 - v2-N1 02:41 AM: gray-prompt suffix works (92%); new project budget 1 of 10
+- v2-N2 04:04 AM: encoder bottleneck page v1 (+4.1 dB from latent optimization) + Alpha Video v2 split v3 done (part 3); new project budget 2 of 10
 
 ### Schedule (ET, 2026-11-22; deadline 11 PM, m00948)
 - 3:00–4:40 plan, data, captions, encode, stock row (done 4:16), Pexels page (live 4:20)
