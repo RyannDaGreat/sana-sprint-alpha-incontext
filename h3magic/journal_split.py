@@ -48,8 +48,25 @@ INTRO = (
     "The copies start equal to the original (a zero-initialized difference &Delta;), and one new adapter (a LoRA plus that difference) learns to make them differ. "
     "All three share one denoising run: the model follows the gray image as before, and at the last step each copy gives its own clean image. "
     "&gamma; scales the whole split adapter: &gamma; = 0 is exactly the model without it.</p>"
-    "<p>It was trained twice: on top of the full adapter chain (Pexels + image-gen + gray magic, baked in), and on top of the \"basic ass magic\" ablation adapter. "
-    "Training data: the same 10,000 MAGICK images, composited on gray, white and black, all CFG-1 guidance-loss training. Every item is the 512&times;512 original.</p>")
+    "<p>It was trained twice: on top of the full adapter chain (Pexels + image-gen + gray magic, baked in; 269 steps), and on top of the \"basic ass magic\" ablation adapter (276 steps). "
+    "Training data: the same 10,000 MAGICK images, composited on gray, white and black. The gray head keeps the guidance loss of the other adapters (so it works at CFG 1); "
+    "the white and black heads learn the gray target plus their exact difference from gray. Every item is the 512&times;512 original.</p>")
+
+FINDINGS = (
+    "<ul>"
+    "<li><b>It splits.</b> On the subject-only prompts the white head draws the subject on pure white and the black head on black, "
+    "and the least-squares fit gives clean cut-outs: dancer, kite, hummingbird, dog, cat. This holds on both the full chain and the &quot;basic ass magic&quot; ablation.</li>"
+    "<li><b>&gamma; = 0 is exact.</b> With the split adapter at 0 the gray output is byte-identical to the base row (table below).</li>"
+    "<li><b>The gray head is not hurt.</b> Its validation loss stayed at or below its starting value (3.23 &rarr; 3.13 for the chain, 3.20 &rarr; 3.24 for the ablation, whose best was 3.20 at step 175).</li>"
+    "<li><b>What fails.</b> (1) A soft halo, about one 32-pixel patch wide, around subjects. "
+    "(2) White parts of white objects (a white cup or saucer) come out partly transparent: on white, a white object and the background look the same. "
+    "(3) With scene prompts (main set) the background is a real scene, so there is nothing to cut out. Yet the split still makes bright areas (sky, windows) partly transparent: it has partly learned &quot;bright = background&quot;.</li>"
+    "<li><b>Video: the split fades after the first frame.</b> The split adapter was trained on single images only. In video, frame 0 splits as cleanly as an image. "
+    "In later frames the white head's background drifts to light gray and the black head's to dark gray, so about 0.2&ndash;0.3 alpha is left in the background (it looks like a faint gray veil on the checkerboard). "
+    "The subject's matte stays good and follows the motion. Gray surfaces that are part of the scene (a road under a car) get partly cut out too.</li>"
+    "<li><b>One training fix was needed.</b> The first recipe (the guidance loss applied to every head) raised the gray head's loss from 3.23 to 4.50 in 50 steps. "
+    "Giving white and black the gray head's guided target plus their plain difference from gray, and a 10&times; learning rate for the head's &Delta;, fixed it (gray 3.27 at step 25 and back to 3.23 at step 50).</li>"
+    "</ul>")
 
 GLOSSARY = tuple((t, d) for t, d in j.GLOSSARY if t in ("H3", "Adapter / LoRA", "Bake", "MAGICK", "Gray magic")) + (
     ("Split adapter (&Delta;_split)", "The adapter on this page: a LoRA plus a difference &Delta; on H3's last layer that makes three outputs (gray, white, black background) instead of one."),
@@ -225,12 +242,14 @@ def build():
     found = export_split(models)
     fg_prompts = json.loads(FG_PROMPTS.read_text())
     sections = [section(title, by_tag.get(tag), found, prompts, open_) for title, tag, open_ in SECTIONS]
-    fg = [section(f"{title} (foreground-only prompts)", by_tag[tag + FG_SUFFIX], found, fg_prompts, open_)
+    fg = [section(f"{title} (subject-only prompts)", by_tag[tag + FG_SUFFIX], found, fg_prompts, open_)
           for title, tag, open_ in SECTIONS if tag + FG_SUFFIX in by_tag]
-    if fg:
-        sections.append('<details class="row" open><summary>Foreground-only prompts (f01&ndash;f20: no background described)</summary>'
-                        '<p class="note">The same 20 subjects with every background word removed from the prompt, so the background can only come from the adapters.</p>'
+    if fg:  # The subject-only prompts are the standard set (m00980): they come first
+        sections.insert(0, '<details class="row" open><summary>Subject-only prompts (f01&ndash;f20: no background described)</summary>'
+                        '<p class="note">The same 20 subjects with every background word removed from the prompt, so the background can only come from the adapters. '
+                        'These are the standard test prompts. The main prompts (with their scenes) follow below.</p>'
                         + "".join(fg) + "</details>")
+        sections.insert(1, '<h2>Main prompts (scenes described)</h2>')
     shown = {t for _, t, _ in SECTIONS} | {t + FG_SUFFIX for _, t, _ in SECTIONS} | {z for z, _ in GAMMA0}
     extra = [m for m in models if m["model_tag"] not in shown]
     if extra:  # tasting checkpoints and any other split rows
@@ -251,7 +270,8 @@ def build():
 <h1>H3 Magic: the split adapter (gray, white, black, alpha, RGBA)</h1>
 <p class="note">Same 20 prompts and fixed seeds as <a href="h3magic_final.html">the results page</a>. Every item is the unmodified 512&times;512 output; each section shows its weight equation.</p>
 {INTRO}
-<details open><summary>Sanity check: &gamma; = 0 gives the base model</summary><p class="note">With &gamma; = 0 the split adapter is off, so its gray output must be exactly the base row's.</p>{gamma0_check(by_tag, prompts)}</details>
+<details open><summary>Findings</summary>{FINDINGS}</details>
+<details><summary>Sanity check: &gamma; = 0 gives the base model</summary><p class="note">With &gamma; = 0 the split adapter is off, so its gray output must be exactly the base row's.</p>{gamma0_check(by_tag, prompts)}</details>
 {"".join(sections)}
 <details><summary>The 20 prompts (full text)</summary>{prompt_blocks}</details>
 <details><summary>Glossary</summary><dl>{glossary}</dl></details>
