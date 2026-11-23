@@ -24,7 +24,7 @@ LAST_STEP_NOTE = "step 500 of 544"
 # A second prompt set (BgFree): same stages, rows tagged <main tag> + suffix, prompts in their own file. Its overview shows only when a row has output.
 FG_SUFFIX = "_fg"
 FG_PROMPTS = j.ROOT / "h3magic/eval_prompts_fg.json"
-FG_TITLE = "Foreground-only prompts (no background described): 20 prompts &times; 7 stages"
+FG_TITLE = "Foreground-only prompts (no background described): 20 prompts &times; 7 stages + 2 ablation rows"
 
 # (key, column header in words, section title, model tags in order of preference, open by default, note when a fallback tag is used)
 STAGES = (
@@ -187,7 +187,7 @@ def build():
     """
     prompts = json.loads(j.PROMPTS.read_text())
     base_tags = {t for s in STAGES for t in s[3]}
-    wanted = base_tags | {t + FG_SUFFIX for t in base_tags} | {a[2] for a in ABLATION_STAGES}
+    wanted = base_tags | {t + FG_SUFFIX for t in base_tags} | {a[2] + s for a in ABLATION_STAGES for s in ("", FG_SUFFIX)}
     models = [m for m in j.load_models() if m["model_tag"] in wanted]
     by_tag = {m["model_tag"]: m for m in models}
     found = j.export_outputs(models)
@@ -199,6 +199,10 @@ def build():
     if any(found.get(t + FG_SUFFIX) for t in base_tags):
         fg_prompts = json.loads(FG_PROMPTS.read_text())
         fg_columns, fg_status = stage_columns(FG_SUFFIX, by_tag, found, fg_prompts)
+        for key, _, tag in ABLATION_STAGES:  # The ablation rows get columns here too: no prompt names the gray, so it must come from the LoRA
+            model = by_tag.get(tag + FG_SUFFIX)
+            fg_columns.append((f"{key}: basic ass magic ablation ({'images' if tag.startswith('basic_ass_magic_image') else 'video'})", model, found))
+            fg_status.append((key, model["model_tag"] if model else None, len(found.get(tag + FG_SUFFIX, {}))))
         overviews.append(f'<details open><summary>{FG_TITLE}</summary><p class="note">The same subjects, with the prompts rewritten so they never mention the background. Fills in as rows finish rendering.</p>{overview_html(fg_columns, fg_prompts)}</details>')
         status += [(k + FG_SUFFIX, t, n) for k, t, n in fg_status]
 
