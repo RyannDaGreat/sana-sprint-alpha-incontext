@@ -119,3 +119,31 @@ def moving_composites(rgba, matrices, size, levels=LEVELS):
         for k, level in enumerate(levels):
             out[k, t] = np.rint((f[..., :3] * f[..., 3:] + level * (1 - f[..., 3:])) * 255)
     return out
+
+
+def moving_grid(rgba, matrices, panel):
+    """
+    Pure function. The moving cut-out as split v3-grid frames: 2x2 panels of `panel` px, top left on 0.5 gray, top right
+    on white, bottom left on black, bottom right the alpha matte in grayscale (white = opaque), 8 bit.
+
+    Args:
+        rgba (np.ndarray): (S, S, 4) uint8 straight alpha
+        matrices (np.ndarray): (T, 2, 3) from affine_path(..., size=panel)
+        panel (int): panel side, e.g. 384
+
+    Returns:
+        np.ndarray: (T, 2·panel, 2·panel, 3) uint8
+
+    Examples:
+        >>> rgba = np.zeros((4, 4, 4), np.uint8); rgba[..., 1] = 255; rgba[..., 3] = 255
+        >>> g = moving_grid(rgba, np.array([[[1.0, 0, 2], [0, 1.0, 2]]]), 8)
+        >>> g.shape, g[0, 0, 0].tolist(), g[0, 0, 8].tolist(), g[0, 8, 0].tolist(), g[0, 12, 12].tolist(), g[0, 8, 8].tolist()
+        ((1, 16, 16, 3), [128, 128, 128], [255, 255, 255], [0, 0, 0], [255, 255, 255], [0, 0, 0])
+    """
+    out = np.empty((len(matrices), 2 * panel, 2 * panel, 3), np.uint8)
+    for t, m in enumerate(matrices):
+        f = warp_rgba(rgba, m, panel)
+        rgb, a = f[..., :3], f[..., 3:]
+        tiles = [np.rint((rgb * a + level * (1 - a)) * 255) for level in LEVELS] + [np.rint(np.repeat(a, 3, -1) * 255)]
+        out[t, :panel, :panel], out[t, :panel, panel:], out[t, panel:, :panel], out[t, panel:, panel:] = tiles
+    return out

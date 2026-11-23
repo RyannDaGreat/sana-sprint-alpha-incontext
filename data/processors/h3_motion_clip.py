@@ -10,6 +10,9 @@ The caption is the row's h3_magick_images.h3_text_embed_v3 (joined by page_id at
 
     h3_motion_clip.py WORKER WORKERS [--count 600]   (from data/; GPU = $CUDA_VISIBLE_DEVICES; ~45 s per clip, 44 GiB)
     h3_motion_clip.py import_files FOLDER            (CPU) commits clips made earlier as files by make_clips.py
+    h3_motion_clip.py grid WORKER WORKERS [--count 300]   split v3-grid clips: GRID_FRAMES frames of 2x2 panels of 384 (gray, white /
+                                                     black, alpha), tiled encode -> h3_motion_grid_768t (24, 12, 48, 48), plus the row's
+                                                     h3_caption_grid / h3_text_embed_grid / h3_text_grid_sha256 copied (train.py --data motion)
 """
 import os
 import sys
@@ -21,7 +24,7 @@ import torch
 
 sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
-from h3_blobs import read_png_rgba, tensors_bytes
+from h3_blobs import read_blob, read_png_rgba, tensors_bytes
 from h3magic import h3, synth_motion
 
 SIZE = 768
@@ -111,6 +114,36 @@ def main(worker, workers, count=600, only_split=None, tiled=True):
         print(f"{time.strftime('%I:%M:%S %p')} worker {worker}: {i + 1}/{len(rows)} {row['page_id']} ({row['split']}) {time.time() - t:.1f} s", flush=True)
 
 
+GRID_FRAMES = 39  # 17·2 + 5, the H3 length rule; 12 latent frames keep video training at 768² inside 80 GB
+GRID_PANEL = 384
+
+
+def main_grid(worker, workers, count=300):
+    """Command. Makes this worker's share of the grid clips (first `count` train rows + the val rows), val first."""
+    from bluejay import open_database
+    db = open_database("project.dtab")
+    caps = {r["page_id"]: r for r in db.query("SELECT page_id, h3_caption_grid, blob_info(h3_text_embed_grid) AS e, h3_text_grid_sha256 FROM h3_magick_images "
+                                               "WHERE h3_text_grid_sha256 = encode(sha256(h3_caption_grid), 'hex')").to_pylist()}
+    rows = [r for r in chosen_rows(db, count, "h3_motion_grid_768t") if stable_worker(r["page_id"], workers) == worker and r["page_id"] in caps]
+    rows.sort(key=lambda r: r["split"] != "val")
+    print(f"worker {worker}/{workers}: {len(rows)} grid clips to make", flush=True)
+    vae = h3.load_vae()
+    for i, row in enumerate(rows):
+        t = time.time()
+        rgba = read_png_rgba(row["rgba"])
+        params = path_of(row["page_id"])
+        frames = synth_motion.moving_grid(rgba, synth_motion.affine_path(params, GRID_FRAMES, rgba.shape[0], GRID_PANEL), GRID_PANEL)
+        with torch.inference_mode():
+            latent = tensors_bytes({"latent": h3.encode(vae, frames, tiled=True).to(torch.bfloat16)}, layout="LC, LT, LH, LW", seed=h3.ENCODE_SEED, tiled=True,
+                                   frames=GRID_FRAMES, panel=GRID_PANEL)
+        cap = caps[row["page_id"]]
+        db.commit("h3_motion_clips", ["h3_motion_grid_768t", "h3_caption_grid", "h3_text_embed_grid", "h3_text_grid_sha256", "split", *path_fields(params)],
+                  [{"page_id": row["page_id"], "h3_motion_grid_768t": latent, "h3_caption_grid": cap["h3_caption_grid"],
+                    "h3_text_embed_grid": read_blob(cap["e"]), "h3_text_grid_sha256": cap["h3_text_grid_sha256"], "split": row["split"], **path_fields(params)}],
+                  insert_missing=True)
+        print(f"{time.strftime('%I:%M:%S %p')} worker {worker}: {i + 1}/{len(rows)} {row['page_id']} ({row['split']}) {time.time() - t:.1f} s", flush=True)
+
+
 def import_files(folder):
     """Command. Commits the clips that make_clips.py wrote as files (same path seed, same recipe) into h3_motion_clips."""
     from pathlib import Path
@@ -130,4 +163,4 @@ def import_files(folder):
 
 
 if __name__ == "__main__":
-    fire.Fire({"work": main, "import_files": import_files})
+    fire.Fire({"work": main, "import_files": import_files, "grid": main_grid})

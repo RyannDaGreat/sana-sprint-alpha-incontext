@@ -89,8 +89,8 @@ EMA_DECAY = 0.98               # loss smoothing for STATUS
 PREFETCH = 4                   # batches read ahead by the loader thread
 COLUMNS = dict(video="h3_latent_video", frames="h3_latent_frames", image="h3_latent_512", embed="h3_text_embed")
 SPLIT_COLUMNS = ("h3_latent_white_512", "h3_latent_black_512")  # --split targets after the gray latent_column (SPLIT_BACKGROUNDS order)
-TABLES = dict(pexels="h3_pexels_clips", magick="h3_magick_images")
-KEYS = dict(pexels="pexels_id", magick="page_id")
+TABLES = dict(pexels="h3_pexels_clips", magick="h3_magick_images", motion="h3_motion_clips")  # motion: synthetic moving cut-outs (§23)
+KEYS = dict(pexels="pexels_id", magick="page_id", motion="page_id")
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -799,7 +799,7 @@ def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr
           latent_column=None, lance_dir=str(LANCE_DIR), refresh_every=50, stop_at="", resume="", guidance_scale=0.0,
           guidance_sigma_min=0.15, guidance_uncond=str(UNCOND_FILE), base_weights="", optimizer_name="adamw", muon_lr=0.02,
           split=False, split_target="guided", delta_lr_scale=1.0, split_columns=",".join(SPLIT_COLUMNS),
-          caption_column="h3_caption", sha_column="h3_text_sha256"):
+          caption_column="h3_caption", sha_column="h3_text_sha256", video_frames=VIDEO_FRAMES):
     """
     Command. Trains adapter `name` (run under torchrun; one process per GPU). Saves to models/h3magic/<name>/step_XXXXX/
     and models/h3magic/<name>/final/, logs log.csv, writes STATUS, and stops when STOP_<name> appears, at max_steps or at
@@ -838,6 +838,7 @@ def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr
         delta_lr_scale (float): the split head Δ's lr = lr × this (the LoRA keeps lr)
         split_columns (str): comma-separated white, black target columns (768²: h3_latent_white_768,h3_latent_black_768)
         caption_column, sha_column (str): the text embed_column embeds and its sha256 (freshness check, usable())
+        video_frames (int): frames of the video clips (sets the silent soundtrack's length), e.g. 39 for the split v3-grid clips
     """
     dist.init_process_group("nccl")
     rank_id, world = dist.get_rank(), dist.get_world_size()
@@ -853,7 +854,7 @@ def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr
     stop_at_file = STATUS_DIR / f"STOP_AT_{name}"
     meta = dict(name=name, mode=mode, data=data, baked=bakes, rank=rank, alpha=alpha, lr=lr, world=world,
                 optimizer=optimizer_name, muon_lr=muon_lr if optimizer_name == "muon" else None,
-                video_frames=VIDEO_FRAMES if mode == "video" else 1, guidance_scale=guidance_scale,
+                video_frames=video_frames if mode == "video" else 1, guidance_scale=guidance_scale,
                 guidance_sigma_min=guidance_sigma_min, training_only_base_weights=base_weights, latent_column=latent_column,
                 embed_column=embed_column, caption_column=caption_column,
                 split=dict(heads=list(splitter.SPLIT_BACKGROUNDS), backgrounds=list(splitter.SPLIT_BACKGROUNDS.values()),
@@ -866,7 +867,7 @@ def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr
         probe_text = load_file(str(ROOT / guidance_uncond))
         guide = dict(scale=float(guidance_scale), sigma_min=float(guidance_sigma_min), **probe_text)
 
-    audio = silent_audio(device, audio_latents_for(VIDEO_FRAMES) if mode == "video" else IMAGE_AUDIO_LATENTS)
+    audio = silent_audio(device, audio_latents_for(video_frames) if mode == "video" else IMAGE_AUDIO_LATENTS)
     # Stagger the 66 GB loads two ranks at a time: page cache + per-rank staging stays far from the RAM guard's 75%
     for turn in range(0, world, 2):
         if rank_id // 2 == turn // 2:
