@@ -7,7 +7,7 @@
 // Cross-origin isolation: GitHub Pages cannot send COOP/COEP headers, so this worker adds them to the app's pages
 // (COEP credentialless: cross-origin no-cors loads still work, without cookies), which makes crossOriginIsolated true
 // and lets ONNX Runtime's wasm use threads (SharedArrayBuffer).
-const VERSION = "9fb273dba172d2e7";
+const VERSION = "0c1ef026ae32b12c";
 const PRECACHE = ["", "index.html", "pwa/manifest.webmanifest", "pwa/register.js", "eval_grid.js", "eval_labels.js", "eval_grid.css", "webgpu/", "webgpu/assets/index-BbGOAu18.js", "webgpu/assets/index-wKsOFb5M.css", "webgpu/assets/inter-cyrillic-ext-wght-normal-BOeWTOD4.woff2", "webgpu/assets/inter-cyrillic-wght-normal-DqGufNeO.woff2", "webgpu/assets/inter-greek-ext-wght-normal-DlzME5K_.woff2", "webgpu/assets/inter-greek-wght-normal-CkhJZR-_.woff2", "webgpu/assets/inter-latin-ext-wght-normal-DO1Apj_S.woff2", "webgpu/assets/inter-latin-wght-normal-Dx4kXJAl.woff2", "webgpu/assets/inter-vietnamese-wght-normal-CBcvBZtf.woff2", "webgpu/assets/jost-cyrillic-wght-normal-CjwCQKo9.woff2", "webgpu/assets/jost-latin-ext-wght-normal-BDUtSsKd.woff2", "webgpu/assets/jost-latin-wght-normal-ObQm3Zd1.woff2", "webgpu/assets/ort-wasm-simd-threaded.asyncify-AkdHdxrx.wasm", "webgpu/assets/pipeline-BT2hJmQm.js", "webgpu/assets/pipeline-DYwTyzQi.js", "webgpu/assets/segment-i664Uxl9.js", "webgpu/assets/splitter-CYjV9PgM.js", "webgpu/index.html", "webgpu/ort-memory64/ort-wasm-simd-threaded.asyncify.mjs", "webgpu/ort-memory64/ort-wasm-simd-threaded.asyncify.wasm"];  // paths relative to this file
 const SHELL = `shell-${VERSION}`;
 const PAGES = 'pages';
