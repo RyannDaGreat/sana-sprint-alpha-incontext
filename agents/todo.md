@@ -43,6 +43,7 @@
 - N10 12:47 AM: split adapter page live
 - v2-N1 02:41 AM: gray-prompt suffix works (92%); new project budget 1 of 10
 - v2-N2 04:04 AM: encoder bottleneck page v1 (+4.1 dB from latent optimization) + Alpha Video v2 split v3 done (part 3); new project budget 2 of 10
+- v2-N3 05:57 AM: Alpha Video v2 drift fixed (part 5) + encoder study v2 (retrained encoder +2.3 dB images); new project budget 3 of 10
 
 ### Schedule (ET, 2026-11-22; deadline 11 PM, m00948)
 - 3:00–4:40 plan, data, captions, encode, stock row (done 4:16), Pexels page (live 4:20)
