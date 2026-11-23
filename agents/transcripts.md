@@ -1334,3 +1334,6 @@ Show me the gray suffix results on local ip.
 
 ## m00987 — 2026-11-23 ~02:30 AM ET
 Show me the fast decoder winners on local ip.
+
+## m00988 — 2026-11-23 ~02:35 AM ET
+Did your fast decoder frenzy try doing research? If it did, it should have stumbled on https://hanshengchen.com/dwd/ as a baseline.
