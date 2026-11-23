@@ -105,8 +105,9 @@ def readout_loss(delta_rows, x0_rows, subject_weight=0.0):
 
 def clip_records(split, limit=None, suffix=""):
     """
-    Query. The finished h3_motion_clips rows of one split, by page_id: (clip row id, h3_magick_images row id) pairs, the
-    second for the caption embedding h3_text_embed_v3 (only rows whose embedding matches h3_caption_v3).
+    Query. The page_ids of the finished h3_motion_clips rows of one split whose caption embedding h3_text_embed_v3 matches
+    h3_caption_v3, sorted. Page ids, not row ids: another worker may be committing to the table (row ids of an older
+    version can point at replaced fragments; load_clip looks them up in the version it reads).
     """
     import hashlib
     import lance
@@ -114,19 +115,25 @@ def clip_records(split, limit=None, suffix=""):
     magick = lance.dataset(str(T.LANCE_DIR / "h3_magick_images.lance"))
     done = clips.to_table(columns=["page_id"], filter=f"split = '{split}' AND h3_motion_black_768{suffix} IS NOT NULL", with_row_id=True).to_pylist()
     mag = magick.to_table(columns=["page_id", "h3_caption_v3", "h3_text_v3_sha256"], filter="h3_text_embed_v3 IS NOT NULL", with_row_id=True).to_pylist()
-    fresh = {r["page_id"]: r["_rowid"] for r in mag if r["h3_caption_v3"] and r["h3_text_v3_sha256"] == hashlib.sha256(r["h3_caption_v3"].encode()).hexdigest()}
-    pairs = sorted((r["page_id"], r["_rowid"], fresh[r["page_id"]]) for r in done if r["page_id"] in fresh)
-    return [(c, m) for _, c, m in pairs][:limit]
+    fresh = {r["page_id"] for r in mag if r["h3_caption_v3"] and r["h3_text_v3_sha256"] == hashlib.sha256(r["h3_caption_v3"].encode()).hexdigest()}
+    return sorted(r["page_id"] for r in done if r["page_id"] in fresh)[:limit]
 
 
-def load_clip(record, suffix=""):
-    """Query. One clip: latents (1, LC, LT, LH, LW) gray, targets (1, K, LC, LT, LH, LW), prompt_embeds (1, N, 5120), tags (N,)."""
+def take_one(dataset_path, page_id, columns):
+    """Query. The blobs of one row (by page_id) as bytes, row id and blobs read from the same dataset version."""
     import lance
+    ds = lance.dataset(str(dataset_path))
+    rows = ds.to_table(columns=["page_id"], filter=f"page_id = '{page_id}'", with_row_id=True).to_pylist()
+    assert len(rows) == 1, f"{dataset_path}: {len(rows)} rows for page_id {page_id}"
+    return [ds.take_blobs(c, ids=[rows[0]["_rowid"]])[0].read() for c in columns]
+
+
+def load_clip(page_id, suffix=""):
+    """Query. One clip: latents (1, LC, LT, LH, LW) gray, targets (1, K, LC, LT, LH, LW), prompt_embeds (1, N, 5120), tags (N,)."""
     import safetensors.torch
-    clip_id, magick_id = record
-    clips = lance.dataset(str(T.LANCE_DIR / "h3_motion_clips.lance"))
-    heads = [safetensors.torch.load(clips.take_blobs(c + suffix, ids=[clip_id])[0].read())["latent"].float() for c in CLIP_COLUMNS]  # suffix "t" = tiled
-    text = safetensors.torch.load(lance.dataset(str(T.LANCE_DIR / "h3_magick_images.lance")).take_blobs("h3_text_embed_v3", ids=[magick_id])[0].read())
+    blobs = take_one(T.LANCE_DIR / "h3_motion_clips.lance", page_id, [c + suffix for c in CLIP_COLUMNS])  # suffix "t" = tiled
+    heads = [safetensors.torch.load(b)["latent"].float() for b in blobs]
+    text = safetensors.torch.load(take_one(T.LANCE_DIR / "h3_magick_images.lance", page_id, ["h3_text_embed_v3"])[0])
     targets = torch.stack(heads)[None]
     return dict(latents=targets[:, 0], targets=targets, prompt_embeds=text["prompt_embeds"], text_token_tags=text["text_token_tags"])
 
