@@ -1164,6 +1164,13 @@ tables
 			,	model_tag av2_gm_s00050_image_fgray	mode image	graymagic_adapter models/h3magic/graymagic_v3/step_00050	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 1.0	prompt_set fgray	size 768
 			,	model_tag av2_gm_s00100_image_fgray	mode image	graymagic_adapter models/h3magic/graymagic_v3/step_00100	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 1.0	prompt_set fgray	size 768
 			,	model_tag av2_gm_s00200_image_fgray	mode image	graymagic_adapter models/h3magic/graymagic_v3/step_00200	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 1.0	prompt_set fgray	size 768
+			,	model_tag av2_gm_image_fgray	mode image	graymagic_adapter models/h3magic/graymagic_v3/final	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 1.0	prompt_set fgray	size 768
+			,	model_tag av2_gm_video_fgray	mode video	graymagic_adapter models/h3magic/graymagic_v3/final	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 1.0	prompt_set fgray	size 768
+			,	model_tag av2_split_s00050_image_fgray	mode image	graymagic_adapter models/h3magic/graymagic_v3/final	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 1.0	prompt_set fgray	split_adapter models/h3magic/split_v3/step_00050	size 768	g_split 1.0
+			,	model_tag av2_split_s00100_image_fgray	mode image	graymagic_adapter models/h3magic/graymagic_v3/final	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 1.0	prompt_set fgray	split_adapter models/h3magic/split_v3/step_00100	size 768	g_split 1.0
+			,	model_tag av2_split_s00150_image_fgray	mode image	graymagic_adapter models/h3magic/graymagic_v3/final	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 1.0	prompt_set fgray	split_adapter models/h3magic/split_v3/step_00150	size 768	g_split 1.0
+			,	model_tag av2_split_s00200_image_fgray	mode image	graymagic_adapter models/h3magic/graymagic_v3/final	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 1.0	prompt_set fgray	split_adapter models/h3magic/split_v3/step_00200	size 768	g_split 1.0
+			,	model_tag av2_split_s00250_image_fgray	mode image	graymagic_adapter models/h3magic/graymagic_v3/final	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 1.0	prompt_set fgray	split_adapter models/h3magic/split_v3/step_00250	size 768	g_split 1.0
 
 	h3_eval_generations
 		 One row per H3 model and eval prompt: what the model makes from the prompt and its seed
