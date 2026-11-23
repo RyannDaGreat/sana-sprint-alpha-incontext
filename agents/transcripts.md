@@ -1296,3 +1296,6 @@ To that clean final page, I want the 20 extra prompts which focus only on the es
 
 ## m00977 — 2026-11-22 ~10:30 PM ET
 Prioritize these extra prompts and renderings for the final page. In 20 minutes, give me an ETA via notification, then notify me again when done (+2 notification budget).
+
+## m00978 — 2026-11-22 ~10:42 PM ET
+All of this is through BlueJay, right?
