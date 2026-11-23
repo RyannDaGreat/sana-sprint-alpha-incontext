@@ -1391,3 +1391,6 @@ If we do horizontal concatenation, let's make it a square actually. 2x2, and the
 
 ## m01006 — 2026-11-23 ~04:44 AM ET
 The three colors will be used for decontamination and then the alpha will be used as the mask. In your journal, tell me how much they disagree on what the alpha value should be.
+
+## m01007 — 2026-11-23 ~05:10 AM ET
+what about that one that says it doesnt need a decoder
