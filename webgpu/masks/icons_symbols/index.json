@@ -1,0 +1,291 @@
+{
+ "items": [
+  {
+   "file": "arrow-in-circle.png",
+   "name": "Arrow in circle",
+   "source_url": "https://icon-sets.iconify.design/mdi/arrow-right-bold-circle/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "bent-arrow.png",
+   "name": "Bent arrow",
+   "source_url": "https://icon-sets.iconify.design/ph/arrow-bend-up-right-fill/",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "black-sword.png",
+   "name": "Black sword",
+   "source_url": "https://freesvg.org/black-sword-vector-graphics",
+   "license": "CC0",
+   "author": "Unknown (freesvg.org upload, CC0)"
+  },
+  {
+   "file": "celtic-cross.png",
+   "name": "Celtic cross",
+   "source_url": "https://freesvg.org/simple-celtic-cross-silhouette",
+   "license": "CC0",
+   "author": "Unknown (freesvg.org upload, CC0)"
+  },
+  {
+   "file": "celtic-knot.png",
+   "name": "Celtic knot",
+   "source_url": "https://freesvg.org/celtic-knot-black-silhouette",
+   "license": "CC0",
+   "author": "Unknown (freesvg.org upload, CC0)"
+  },
+  {
+   "file": "chess-king.png",
+   "name": "Chess king",
+   "source_url": "https://icon-sets.iconify.design/mdi/chess-king/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "chess-knight-icon.png",
+   "name": "Chess knight icon",
+   "source_url": "https://icon-sets.iconify.design/mdi/chess-knight/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "chess-knight.png",
+   "name": "Chess knight",
+   "source_url": "https://freesvg.org/chess-knight",
+   "license": "CC0",
+   "author": "Unknown (freesvg.org upload, CC0)"
+  },
+  {
+   "file": "chess-pawn.png",
+   "name": "Chess pawn",
+   "source_url": "https://icon-sets.iconify.design/mdi/chess-pawn/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "chess-queen-icon.png",
+   "name": "Chess queen icon",
+   "source_url": "https://icon-sets.iconify.design/mdi/chess-queen/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "chess-queen.png",
+   "name": "Chess queen",
+   "source_url": "https://freesvg.org/chess-queen",
+   "license": "CC0",
+   "author": "Unknown (freesvg.org upload, CC0)"
+  },
+  {
+   "file": "club.png",
+   "name": "Club suit",
+   "source_url": "https://icon-sets.iconify.design/ph/club-fill/",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "compass-rose-nautical.png",
+   "name": "Nautical compass rose",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Modern_nautical_compass_rose.svg",
+   "license": "Public domain",
+   "author": "Mysid"
+  },
+  {
+   "file": "compass-rose-silhouette.png",
+   "name": "Compass rose",
+   "source_url": "https://freesvg.org/compass-rose-silhouette",
+   "license": "CC0",
+   "author": "Unknown (freesvg.org upload, CC0)"
+  },
+  {
+   "file": "crown-silhouette.png",
+   "name": "Crown silhouette",
+   "source_url": "https://freesvg.org/crown-silhouette",
+   "license": "CC0",
+   "author": "Unknown (freesvg.org upload, CC0)"
+  },
+  {
+   "file": "crown.png",
+   "name": "Crown",
+   "source_url": "https://icon-sets.iconify.design/ph/crown-fill/",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "diamond.png",
+   "name": "Diamond suit",
+   "source_url": "https://icon-sets.iconify.design/ph/diamond-fill/",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "fist.png",
+   "name": "Fist",
+   "source_url": "https://icon-sets.iconify.design/ph/hand-fist-fill/",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "fleur-de-lis.png",
+   "name": "Fleur-de-lis",
+   "source_url": "https://freesvg.org/1533961979",
+   "license": "CC0",
+   "author": "Unknown (freesvg.org upload, CC0)"
+  },
+  {
+   "file": "flourish-heart.png",
+   "name": "Flourish heart",
+   "source_url": "https://freesvg.org/1543188377",
+   "license": "CC0",
+   "author": "Unknown (freesvg.org upload, CC0)"
+  },
+  {
+   "file": "gear.png",
+   "name": "Gear",
+   "source_url": "https://icon-sets.iconify.design/ph/gear-fill/",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "heart.png",
+   "name": "Heart",
+   "source_url": "https://icon-sets.iconify.design/ph/heart-fill/",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "heraldic-crown.png",
+   "name": "Heraldic crown",
+   "source_url": "https://freesvg.org/german-imperial-crown",
+   "license": "CC0",
+   "author": "Unknown (freesvg.org upload, CC0)"
+  },
+  {
+   "file": "key.png",
+   "name": "Key",
+   "source_url": "https://icon-sets.iconify.design/ph/key-fill/",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "lightning.png",
+   "name": "Lightning",
+   "source_url": "https://icon-sets.iconify.design/ph/lightning-fill/",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "lock.png",
+   "name": "Lock",
+   "source_url": "https://icon-sets.iconify.design/ph/lock-fill/",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "open-palm.png",
+   "name": "Open palm",
+   "source_url": "https://icon-sets.iconify.design/ph/hand-palm-fill/",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "ornate-key.png",
+   "name": "Ornate key",
+   "source_url": "https://freesvg.org/ornate-key",
+   "license": "CC0",
+   "author": "Unknown (freesvg.org upload, CC0)"
+  },
+  {
+   "file": "pointing-hand.png",
+   "name": "Pointing hand",
+   "source_url": "https://icon-sets.iconify.design/ph/hand-pointing-fill/",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "royal-crown.png",
+   "name": "Royal crown",
+   "source_url": "https://freesvg.org/royal-crown-silhouette",
+   "license": "CC0",
+   "author": "Unknown (freesvg.org upload, CC0)"
+  },
+  {
+   "file": "sad-face.png",
+   "name": "Sad face",
+   "source_url": "https://icon-sets.iconify.design/ph/smiley-sad-fill/",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "smiley.png",
+   "name": "Smiley face",
+   "source_url": "https://icon-sets.iconify.design/ph/smiley-fill/",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "spade.png",
+   "name": "Spade suit",
+   "source_url": "https://icon-sets.iconify.design/ph/spade-fill/",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "speech-bubble.png",
+   "name": "Speech bubble",
+   "source_url": "https://icon-sets.iconify.design/ph/chat-circle-fill/",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "star.png",
+   "name": "Star",
+   "source_url": "https://icon-sets.iconify.design/ph/star-fill/",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "thumbs-up.png",
+   "name": "Thumbs up",
+   "source_url": "https://icon-sets.iconify.design/ph/thumbs-up-fill/",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "waving-hand.png",
+   "name": "Waving hand",
+   "source_url": "https://icon-sets.iconify.design/ph/hand-waving-fill/",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "wink-face.png",
+   "name": "Wink face",
+   "source_url": "https://icon-sets.iconify.design/ph/smiley-wink-fill/",
+   "license": "MIT",
+   "author": "Phosphor Icons"
+  },
+  {
+   "file": "zodiac-aries.png",
+   "name": "Zodiac Aries",
+   "source_url": "https://icon-sets.iconify.design/mdi/zodiac-aries/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "zodiac-leo.png",
+   "name": "Zodiac Leo",
+   "source_url": "https://icon-sets.iconify.design/mdi/zodiac-leo/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  },
+  {
+   "file": "zodiac-libra.png",
+   "name": "Zodiac Libra",
+   "source_url": "https://icon-sets.iconify.design/mdi/zodiac-libra/",
+   "license": "Apache-2.0",
+   "author": "Pictogrammers (Material Design Icons)"
+  }
+ ]
+}

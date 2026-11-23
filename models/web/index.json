@@ -1,0 +1,4 @@
+{
+ "versions": [],
+ "note": "On Pages the app reads models from the Hugging Face repo OneOverZero/sana-sprint-alpha-incontext (web/); see src/sana_alpha/publish_models.py."
+}

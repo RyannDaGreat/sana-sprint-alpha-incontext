@@ -1,0 +1,109 @@
+{
+ "categories": [
+  {
+   "id": "magick",
+   "name": "Magick",
+   "count": 29
+  },
+  {
+   "id": "abstract_patterns",
+   "name": "Abstract patterns",
+   "count": 25
+  },
+  {
+   "id": "animals",
+   "name": "Animals",
+   "count": 220
+  },
+  {
+   "id": "birds",
+   "name": "Birds",
+   "count": 176
+  },
+  {
+   "id": "fantasy_creatures",
+   "name": "Fantasy creatures",
+   "count": 259
+  },
+  {
+   "id": "fashion",
+   "name": "Fashion",
+   "count": 124
+  },
+  {
+   "id": "heraldry",
+   "name": "Heraldry",
+   "count": 135
+  },
+  {
+   "id": "household",
+   "name": "Household",
+   "count": 320
+  },
+  {
+   "id": "icons_symbols",
+   "name": "Icons symbols",
+   "count": 41
+  },
+  {
+   "id": "insects_reptiles",
+   "name": "Insects reptiles",
+   "count": 153
+  },
+  {
+   "id": "instruments",
+   "name": "Instruments",
+   "count": 36
+  },
+  {
+   "id": "nature",
+   "name": "Nature",
+   "count": 170
+  },
+  {
+   "id": "objects_tools",
+   "name": "Objects tools",
+   "count": 262
+  },
+  {
+   "id": "ornaments",
+   "name": "Ornaments",
+   "count": 175
+  },
+  {
+   "id": "people_poses",
+   "name": "People poses",
+   "count": 332
+  },
+  {
+   "id": "plants_food",
+   "name": "Plants food",
+   "count": 188
+  },
+  {
+   "id": "professions",
+   "name": "Professions",
+   "count": 335
+  },
+  {
+   "id": "sea_life",
+   "name": "Sea life",
+   "count": 116
+  },
+  {
+   "id": "sports_action",
+   "name": "Sports action",
+   "count": 323
+  },
+  {
+   "id": "typography_ornaments",
+   "name": "Typography ornaments",
+   "count": 25
+  },
+  {
+   "id": "vehicles_architecture",
+   "name": "Vehicles architecture",
+   "count": 341
+  }
+ ]
+}
