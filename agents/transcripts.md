@@ -1370,3 +1370,6 @@ Just like all other experiments, the latent example renderings should be done on
 
 ## m00999 — 2026-11-23 ~02:54 AM ET
 Show me the encoder bottleneck results on local ip.
+
+## m01000 — 2026-11-23 ~03:01 AM ET
+Show me the split v3 results on local ip.
