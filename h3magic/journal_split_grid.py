@@ -25,7 +25,8 @@ import journal_split as js
 
 PAGE = j.ROOT / "journal/h3magic_split_grid.html"
 NOTES = j.ROOT / "h3magic/split_grid_notes.json"
-METRICS = j.ROOT / "h3magic/split_grid_metrics.json"  # agents/.scratchpad/alphav2/grid_missed.py: missed / extra / IoU per prompt
+METRICS = j.ROOT / "h3magic/split_grid_metrics.json"
+REGISTER = j.ROOT / "h3magic/split_grid_register.json"  # agents/.scratchpad/alphav2/grid_register.py: per-frame IoU + panel seams of video rows  # agents/.scratchpad/alphav2/grid_missed.py: missed / extra / IoU per prompt
 PROMPTS = j.ROOT / "h3magic/eval_prompts_fgrid.json"
 KINDS = (("frame", "the generated 2x2 frame"), ("rgba", "RGBA (colour from 3 panels, alpha = 4th panel)"), ("alpha", "4th panel = alpha"),
          ("alpha_ls", "alpha implied by the 3 backgrounds"), ("dalpha", "|Δα| (black 0, white ≥ 0.25)"))
@@ -110,7 +111,32 @@ def missed_block(tag, metrics, prompts, mode):
             f'<div class="wide"><table><tbody>' + "".join("<tr>" + "".join(js.cell(js.asset(tag, pid, k, mode), mode, k, short.get(pid, "")) for k in ("rgba", "alpha", "alpha_ls", "dalpha")) + f'<th class="label">{pid}: {html.escape(short.get(pid, ""))}</th></tr>' for pid in worst) + '</tbody></table></div></details>')
 
 
-def section(model, items, prompts, metrics=None):
+def register_block(tag, register, prompts):
+    """
+    Pure function. The registration table of one video row (per prompt: share of bad frames, mean / min IoU of the panel
+    alpha vs the three-background alpha, largest seam offset), or "" when there are no numbers.
+
+    Examples:
+        >>> register_block("t", {}, [])
+        ''
+    """
+    r = register.get(tag)
+    if not r:
+        return ""
+    short = {p["id"]: p["short"] for p in prompts}
+    per = r["per_prompt"]
+    rows = "".join(f'<tr><td>{pid}: {html.escape(short.get(pid, ""))}</td><td>{v["bad_share"]:.0%}</td><td>{v["iou_mean"]:.2f} / {v["iou_min"]:.2f}</td><td>{v["seam_off_max"]} px</td></tr>'
+                   for pid, v in sorted(per.items(), key=lambda kv: -kv[1]["bad_share"]))
+    clean = len(per) - len(r["failing"])
+    return (f'<details class="sub" open><summary>Registration check: {clean} of {len(per)} videos clean</summary>'
+            f'<p class="note">Every {r["stride"]}th frame: IoU at 0.5 of the 4th-panel alpha and the alpha implied by the three backgrounds (both cut at the fixed panel '
+            f'boundaries), and where the panel seams really are (largest gray-to-black step down the left half, gray-to-white step across the top). A frame is bad when '
+            f'IoU &lt; {r["iou_min"]} or a seam is more than {r["seam_tol"]} px off. A misplaced matte still has a clean background, so this is the check that catches it; '
+            f'low IoU with the seams in place usually means a coarse matte on smoke, splash or thin parts rather than a shifted layout.</p>'
+            f'<table class="scores"><thead><tr><th>prompt</th><th>bad frames</th><th>IoU mean / min</th><th>largest seam offset</th></tr></thead><tbody>{rows}</tbody></table></details>')
+
+
+def section(model, items, prompts, metrics=None, register=None):
     """Pure function. One <details>: the stats line, the missed-subject block and, per prompt, a row of the KINDS (video rows have no heat map)."""
     tag, mode = model["model_tag"], model["mode"]
     if not items:
@@ -128,9 +154,11 @@ def section(model, items, prompts, metrics=None):
         body.append(f'<tr><th class="label">{label}</th>' + "".join(js.cell(js.asset(tag, p["id"], k, mode), mode, k, p["short"]) for k, _ in kinds) + "</tr>")
     stats = (f'|Δα| over all pixels: mean {mean["mean"]:.3f}, median {mean["median"]:.3f}, 95th pct {mean["p95"]:.3f}; '
              f'edge band (0.02 &lt; α &lt; 0.98): mean {mean["edge_mean"]:.3f}, median {mean["edge_median"]:.3f}, 95th pct {mean["edge_p95"]:.3f} (means over prompts)')
-    eq = f"W_H3 + 1·Δ_graymagic_v3t + 1·Δ_{model['imagegen_adapter'].split('/')[-2]} ({model['imagegen_adapter'].split('/')[-1]}), CFG 1, 768²"
+    video_lora = f" + 1·Δ_{model['pexels_adapter'].split('/')[-2]} ({model['pexels_adapter'].split('/')[-1]})" if model.get("pexels_adapter") else ""
+    side = model.get("size") or 768
+    eq = f"W_H3 + 1·Δ_graymagic_v3t + 1·Δ_{model['imagegen_adapter'].split('/')[-2]} ({model['imagegen_adapter'].split('/')[-1]}){video_lora}, CFG 1, {side}²"
     return (f'<details class="row" open><summary>{html.escape(tag)} <span class="note">({len(items)}/{len(prompts)} prompts)</span></summary>'
-            f'<p class="eq">{html.escape(eq)}</p><p class="note">{stats}</p>{missed_block(tag, metrics or {}, prompts, mode) if mode == "image" else ""}'
+            f'<p class="eq">{html.escape(eq)}</p><p class="note">{stats}</p>{missed_block(tag, metrics or {}, prompts, mode) if mode == "image" else register_block(tag, register or {}, prompts)}'
             f'<div class="wide"><table><thead><tr><th></th>{head}</tr></thead><tbody>{"".join(body)}</tbody></table></div></details>')
 
 
@@ -142,7 +170,9 @@ def build():
     notes = json.loads(NOTES.read_text()) if NOTES.exists() else {}
     order = sorted(models, key=lambda m: (m["mode"] != "image", m["model_tag"]))
     metrics = json.loads(METRICS.read_text()) if METRICS.exists() else {}
-    sections = "".join(section(m, found.get(m["model_tag"], {}), prompts, metrics) for m in order)
+    register = json.loads(REGISTER.read_text()) if REGISTER.exists() else {}
+    vprompts = json.loads((j.ROOT / "h3magic/eval_prompts_vgrid.json").read_text())
+    sections = "".join(section(m, found.get(m["model_tag"], {}), vprompts if m.get("prompt_set") == "vgrid" else prompts, metrics, register) for m in order)
     page = f"""<!doctype html>
 <html lang="en">
 <head>
