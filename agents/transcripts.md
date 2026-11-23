@@ -1308,3 +1308,6 @@ Why did you not test on the subject-only prompts? That's the new standard everyw
 
 ## m00981 — 2026-11-22 ~11:43 PM ET
 Unless you did.
+
+## m00982 — 2026-11-22 ~11:50 PM ET
+What about split-only foreground prompts?
