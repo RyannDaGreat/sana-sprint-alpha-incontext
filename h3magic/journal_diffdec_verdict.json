@@ -1,0 +1,5 @@
+{"status": "Round 1 of 3 running (training on node 2 since 5:07 AM ET; first scores about 6:30 AM ET)",
+ "verdict": "No answer yet: round 1 is training. The baseline numbers below are measured.",
+ "numbers": ["H3's own decoder on 68 held-out 512² images: PSNR 30.42 dB, DISTS 0.070, LPIPS-vgg 0.159, 714 ms per image (A100)",
+             "§25 optimized latent through H3's decoder (12 images): PSNR 35.22 dB, DISTS 0.024: the regression upper bound",
+             "FLUX.2 VAE round trip of the source: PSNR 38.89 dB, DISTS 0.012: the ceiling of a decoder that ends in the FLUX.2 decoder"]}
