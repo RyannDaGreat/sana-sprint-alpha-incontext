@@ -364,7 +364,7 @@ class Judges:
 
 # ---------------------------------------------------------------- objectives
 
-OBJECTIVES = {  # name -> {loss term: weight}; terms: l2, l1 (pixels [0, 1]), lpips_vgg, lpips_alex, flux (FLUX.2 latent MSE)
+OBJECTIVES = {  # name -> {loss term: weight}; terms: l2, l1 (pixels [0, 1]), lpips_vgg, lpips_alex, flux (FLUX.2 latent MSE), tdiff (video)
     "l2": {"l2": 1.0},
     "l1": {"l1": 1.0},
     "lpips_vgg": {"lpips_vgg": 1.0},
@@ -372,6 +372,7 @@ OBJECTIVES = {  # name -> {loss term: weight}; terms: l2, l1 (pixels [0, 1]), lp
     "flux": {"flux": 1.0},
     "l1_vgg": {"l1": 1.0, "lpips_vgg": 0.1},  # the usual VAE recipe: pixels + a perceptual term
     "l1_vgg_flux": {"l1": 1.0, "lpips_vgg": 0.1, "flux": 0.01},
+    "l1_vgg_t": {"l1": 1.0, "lpips_vgg": 0.1, "tdiff": 1.0},  # video only: + L1 of frame-to-frame changes (against flicker)
 }
 
 
@@ -395,6 +396,8 @@ def objective_loss(judges, terms, pred, src, src_flux=None):
             value = (pred - src).abs().mean()
         elif term in ("lpips_vgg", "lpips_alex"):
             value = judges.lpips(term.split("_")[1], pred, src)
+        elif term == "tdiff":  # consecutive frames of one clip: (pred[t+1] - pred[t]) vs (src[t+1] - src[t])
+            value = ((pred[1:] - pred[:-1]) - (src[1:] - src[:-1])).abs().mean()
         elif term == "flux":
             value = (flux2_latent(judges.flux2, pred) - src_flux).pow(2).mean()
         else:

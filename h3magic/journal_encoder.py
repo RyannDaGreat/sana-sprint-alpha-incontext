@@ -247,8 +247,8 @@ svg text { fill: var(--fg); font: 12px system-ui, sans-serif; }
 """
 
 
-def main(max_image_examples=16):
-    """Command. Writes journal/h3magic_encoder.html and its assets from Bluejay (module docstring)."""
+def main(max_image_examples=16, max_other_videos=4):
+    """Command. Writes journal/h3magic_encoder.html and its assets from Bluejay (module docstring): every clip with an optimized latent, plus max_other_videos more."""
     from bluejay import open_database
     from h3_blobs import read_blob
     db = open_database("project.dtab")
@@ -303,7 +303,9 @@ def main(max_image_examples=16):
 
     # videos
     vblocks = ""
-    for sid in sorted({s for (rid, s), r in by.items() if r["kind"] == "video" and rid not in BASELINES}):
+    video_ids = sorted({s for (rid, s), r in by.items() if r["kind"] == "video" and rid not in BASELINES})
+    optimized = [s for s in video_ids if any(runs[rid]["method"] == "optimize" for (rid, sid) in by if sid == s)]
+    for sid in optimized + [s for s in video_ids if s not in optimized][:max_other_videos]:
         s = samples[sid]
         vids = [("SOURCE", write_blob(read_blob, s["mp4"], f"{sid}/source.mp4"))]
         frames = [("SOURCE (frame 70)", write_blob(read_blob, s["source"], f"{sid}/source_f070.png"), None)]
