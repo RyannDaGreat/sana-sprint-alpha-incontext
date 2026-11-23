@@ -1358,3 +1358,6 @@ That experiment is the encoder bottleneck, and all the information that we can g
 
 ## m00995 — 2026-11-23 ~02:42 AM ET
 [music stops] [sighs] Anything else that you think deserves a journal entry: I give you a budget of up to three journal entries (you don't have to use all three) for other experiments that I forgot to ask for. Basically, if you think I meant to ask for a journal entry but I forgot, you can do it, up to three times, with a minimum of zero.
+
+## m00996 — 2026-11-23 ~02:44 AM ET
+Show me the gray magic v3 results on local ip.
