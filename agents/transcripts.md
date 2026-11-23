@@ -1385,3 +1385,6 @@ If v3 split is not improving, then we're going to try a different type of v3 spl
 
 ## m01004 — 2026-11-23 ~04:42 AM ET
 I'm saying this preemptively because I'm going to sleep now. Keep an eye on it.
+
+## m01005 — 2026-11-23 ~04:44 AM ET
+If we do horizontal concatenation, let's make it a square actually. 2x2, and the fourth one will be the grayscale alpha mask.
