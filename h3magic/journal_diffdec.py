@@ -561,7 +561,7 @@ def ab_rows(ab_dir):
             wa, wb, ties, share = score["a_picked"], score["judged"] - score["a_picked"], 0, score["share_a"]
         else:
             raise KeyError(f"Unknown score.json format: {name}")
-        answers = [a for f in sorted((Path(ab_dir) / name).glob("answers_*.json")) for a in read_json(f).values()]
+        answers = [a["pick"] if isinstance(a, dict) else a for f in sorted((Path(ab_dir) / name).glob("answers_*.json")) for a in read_json(f).values()]  # Opus answers: {pick, reason}
         out.append({"name": name, "a": key["method_a"], "b": key["method_b"], "wins_a": wa, "wins_b": wb, "ties": ties, "share": share, "ci": score["ci95"],
                     "biased": name.endswith("_biased"), "key": key, "right_share": answers.count("B") / len(answers) if answers else None})
     return out
@@ -575,10 +575,11 @@ def ab_html(ab_dir):
         decided = r["wins_a"] + r["wins_b"]
         lo, hi = r["ci"]
         verdict = "above 50%" if lo > 0.5 else "below 50%" if hi < 0.5 else "includes 50%"
+        share_cell = "no consistent votes: the judges flip with the side (cannot tell them apart)" if r["share"] is None else f"{r['share']:.0%} [{lo:.0%}, {hi:.0%}]: {verdict}"
         right = "" if r["right_share"] is None else f"{r['right_share']:.0%}"
         note = " (first protocol, biased: a lesson, not a result)" if r["biased"] else ""
         body += (f"<tr><td>{html.escape(r['name'])}{note}</td><td>{html.escape(r['a'])}</td><td>{html.escape(r['b'])}</td><td>{r['wins_a']}</td><td>{r['wins_b']}</td>"
-                 f"<td>{r['ties']}</td><td data-sort='{r['share']}'>{r['share']:.0%} [{lo:.0%}, {hi:.0%}]: {verdict}</td><td data-sort='{r['right_share'] or ''}'>{right}</td></tr>")
+                 f"<td>{r['ties']}</td><td data-sort='{r['share'] if r['share'] is not None else ""}'>{share_cell}</td><td data-sort='{r['right_share'] or ''}'>{right}</td></tr>")
     table = (f"<div class='scroll'><table><tr><th>test</th><th>A (method)</th><th>B (baseline)</th><th>A wins</th><th>B wins</th><th>ties / inconsistent</th>"
              f"<th>share of decided votes for A [95% CI]</th><th>answers on the right side</th></tr>{body}</table></div>")
     figs = ""
