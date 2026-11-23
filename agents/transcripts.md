@@ -1293,3 +1293,6 @@ You should probably get processing those latents ahead of time, by the way: plan
 
 ## m00976 — 2026-11-22 ~10:23 PM ET
 To that clean final page, I want the 20 extra prompts which focus only on the essential components and not the background.
+
+## m00977 — 2026-11-22 ~10:30 PM ET
+Prioritize these extra prompts and renderings for the final page. In 20 minutes, give me an ETA via notification, then notify me again when done (+2 notification budget).
