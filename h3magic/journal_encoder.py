@@ -26,6 +26,8 @@ ZOOM_SIDE = 96  # side in source pixels of each zoom window (shown at ZOOM_SCALE
 ZOOM_SCALE = 3
 ZOOMS_PER_IMAGE = 2
 BASELINES = ("encoder_sample", "encoder_mode", "encoder_tiled")
+PANEL_SKIP = ("encoder_tiled",)  # in the tables only: its decode looks like the mode's
+SKIP_RUNS = ("smoke", "encft_smoke")  # code smoke tests
 BASELINE_LABEL = {"encoder_sample": "H3 encoder (pipeline latent: posterior sample)", "encoder_mode": "H3 encoder (posterior mode)",
                   "encoder_tiled": "H3 encoder, tiled encode (mode)"}
 METRICS = (("psnr", "PSNR dB", 1), ("ssim", "SSIM", 1), ("lpips_alex", "LPIPS alex", -1), ("lpips_vgg", "LPIPS vgg", -1), ("dists", "DISTS", -1),
@@ -256,11 +258,13 @@ def main(max_image_examples=16):
     runs = {r["run_id"]: r for r in db.query("SELECT run_id, method, objective, steps, lr, prior_weight FROM h3_enc_runs").to_pylist()}
     metric_cols = ", ".join(k for k, _, _ in METRICS)
     results = db.query(f"SELECT run_id, sample_id, {metric_cols}, seconds, curve, blob_info(image) AS image, blob_info(video) AS video, "
-                       "blob_info(frame_070) AS f070 FROM h3_enc_results WHERE run_id != 'smoke'").to_pylist()
+                       "blob_info(frame_070) AS f070 FROM h3_enc_results").to_pylist()
+    results = [r for r in results if r["run_id"] not in SKIP_RUNS]
     for r in results:
         r["kind"] = samples[r["sample_id"]]["kind"]
     by = {(r["run_id"], r["sample_id"]): r for r in results}
-    order = sorted((r for r in runs.values() if r["run_id"] != "smoke"), key=lambda r: (r["method"] not in BASELINES, r["method"] == "encoder_finetuned", r["run_id"]))
+    order = sorted((r for r in runs.values() if r["run_id"] not in SKIP_RUNS),
+                   key=lambda r: (BASELINES.index(r["method"]) if r["method"] in BASELINES else len(BASELINES), r["method"] == "encoder_finetuned", r["run_id"]))
     others = [r for r in order if r["method"] not in BASELINES]
 
     # tables: one per (kind, set of samples a run covered); baselines restricted to the same samples
@@ -289,7 +293,7 @@ def main(max_image_examples=16):
         panels = [("SOURCE (target)", src_rel, None)]
         for run in order:
             r = by.get((run["run_id"], sid))
-            if r and r["image"]:
+            if r and r["image"] and run["run_id"] not in PANEL_SKIP:
                 panels.append((run_label(run), write_blob(read_blob, r["image"], f"{sid}/{run['run_id']}.png"), r))
         rgb = cv2.cvtColor(cv2.imread(str(ASSETS / sid / "source.png")), cv2.COLOR_BGR2RGB)
         figs = "".join(f"<figure style='width:{side}px'><a href='{p}'><img src='{p}' width='{side}' height='{side}' alt='{html.escape(lab)}' loading='lazy'></a>"
@@ -306,7 +310,9 @@ def main(max_image_examples=16):
         rows = []
         for run in order:
             r = by.get((run["run_id"], sid))
-            if r and r["video"]:
+            if r and r["video"] and run["run_id"] in PANEL_SKIP:
+                rows.append((html.escape(run_label(run)), r))
+            elif r and r["video"]:
                 vids.append((run_label(run), write_blob(read_blob, r["video"], f"{sid}/{run['run_id']}.mp4")))
                 frames.append((run_label(run) + " (frame 70)", write_blob(read_blob, r["f070"], f"{sid}/{run['run_id']}_f070.png"), r))
                 rows.append((html.escape(run_label(run)), r))
@@ -344,7 +350,7 @@ def main(max_image_examples=16):
 <p>The question (m00992): does a latent exist that the <b>frozen</b> H3 decoder turns into a clearly better picture than the encoder's own latent? We find one by gradient descent on the latent itself, against the source pixels, with several objectives, and judge the result with metrics the optimizer did not see and by eye on zoomed details. If such latents are much better, the encoder (not the decoder) limits H3's reconstructions, and a better encoder could be trained with the decoder frozen.</p>
 {extra}
 <details open><summary>Image examples: source, H3's encoder, optimized latents (full resolution) and detail zooms</summary>
-<p class="note">Each block: the source, the decode of the encoder's latent as the pipeline makes it (a posterior sample), the posterior mode, the tiled encode, then the decode of each optimized latent (one per objective) and of each fine-tuned encoder. Below: the two most detailed {ZOOM_SIDE}&times;{ZOOM_SIDE} windows of the source, {ZOOM_SCALE}&times; in every panel.</p>
+<p class="note">Each block: the source, the decode of the encoder's latent as the pipeline makes it (a posterior sample), the posterior mode, then the decode of each optimized latent (one per objective) and of each fine-tuned encoder. Below: the two most detailed {ZOOM_SIDE}&times;{ZOOM_SIDE} windows of the source, {ZOOM_SCALE}&times; in every panel.</p>
 {blocks or "<p>No image results yet.</p>"}</details>
 <details open><summary>Videos (141 frames, 512&times;512)</summary>{vblocks or "<p>Video runs are in progress.</p>"}</details>
 <details open><summary>Optimization curves</summary>{curves}</details>
