@@ -1331,3 +1331,6 @@ You can have a batch swarm go over a bunch of samples to find intricate, tricky 
 
 ## m00986 — 2026-11-23 ~02:20 AM ET
 Show me the gray suffix results on local ip.
+
+## m00987 — 2026-11-23 ~02:30 AM ET
+Show me the fast decoder winners on local ip.
