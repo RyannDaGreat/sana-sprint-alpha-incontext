@@ -1406,3 +1406,6 @@ I think it's about time to start that concatenation based alpha thing please
 
 ## m01011 — 2026-11-23 ~08:16 AM ET
 I don't understand, why is alpha coming from least squares? I thought alpha was explicitly one of the output channels now because we can concatenate four things. I should look at your url.
+
+## m01012 — 2026-11-23 ~10:06 AM ET
+show me the grid videos on local ip
