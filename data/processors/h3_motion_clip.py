@@ -57,6 +57,18 @@ def path_fields(params, seed=PATH_SEED):
                 center_x_1=float(c[1, 0]), center_y_1=float(c[1, 1]), angle_0=float(a[0]), angle_1=float(a[1]))
 
 
+def stable_worker(page_id, workers):
+    """
+    Pure function. The worker that owns a row: sha256(page_id) mod workers (stable across restarts).
+
+    Examples:
+        >>> stable_worker("00FAQCWeYv", 4) == stable_worker("00FAQCWeYv", 4), 0 <= stable_worker("abc", 3) < 3
+        (True, True)
+    """
+    import hashlib
+    return int(hashlib.sha256(page_id.encode()).hexdigest(), 16) % workers
+
+
 def chosen_rows(db, count):
     """Query. The rows to make: the first `count` train rows by page_id and every val row, with a fresh v3 embedding, none made yet."""
     rows = db.query("SELECT h.page_id, h.split, blob_info(m.rgba) AS rgba FROM h3_magick_images h JOIN magick_samples m ON m.page_id = h.page_id "
@@ -66,18 +78,27 @@ def chosen_rows(db, count):
     return [r for r in train + [r for r in rows if r["split"] == "val"] if r["page_id"] not in done]
 
 
+def composites_of(row):
+    """Query (reads the RGBA blob). (path params, (3, T, 768, 768, 3) uint8 composites on gray, white, black) of one row."""
+    rgba = read_png_rgba(row["rgba"])
+    params = path_of(row["page_id"])
+    return params, synth_motion.moving_composites(rgba, synth_motion.affine_path(params, FRAMES, rgba.shape[0], SIZE), SIZE)
+
+
 def main(worker, workers, count=600):
-    """Command. Makes this worker's share of the chosen clips (rows dealt in turn), committing each as it is made."""
+    """Command. Makes this worker's share of the chosen clips (stable_worker), committing each as it is made."""
     from bluejay import open_database
     db = open_database("project.dtab")
-    rows = chosen_rows(db, count)[worker::workers]
+    rows = [r for r in chosen_rows(db, count) if stable_worker(r["page_id"], workers) == worker]
     print(f"worker {worker}/{workers}: {len(rows)} clips to make", flush=True)
     vae = h3.load_vae()
+    from concurrent.futures import ThreadPoolExecutor
+    pool = ThreadPoolExecutor(1)  # the next clip's composites (CPU, ~half the time) are built while the GPU encodes this one
+    pending = pool.submit(composites_of, rows[0]) if rows else None
     for i, row in enumerate(rows):
         t = time.time()
-        rgba = read_png_rgba(row["rgba"])
-        params = path_of(row["page_id"])
-        clips = synth_motion.moving_composites(rgba, synth_motion.affine_path(params, FRAMES, rgba.shape[0], SIZE), SIZE)  # (3, T, S, S, 3)
+        params, clips = pending.result()  # clips (3, T, S, S, 3)
+        pending = pool.submit(composites_of, rows[i + 1]) if i + 1 < len(rows) else None
         with torch.inference_mode():
             blobs = {c: tensors_bytes({"latent": h3.encode(vae, clip).to(torch.bfloat16)}, layout="LC, LT, LH, LW", background=level, seed=h3.ENCODE_SEED)
                      for c, clip, level in zip(COLUMNS, clips, synth_motion.LEVELS)}
