@@ -2806,10 +2806,11 @@ queries
 		    r.sharp_grad,
 		    r.flicker,
 		    r.z_dev_std
-		FROM h3_enc_results r                              -- Each decode of the encoder study,
-		JOIN h3_enc_samples s ON s.sample_id = r.sample_id -- with its source
-		JOIN h3_enc_runs    u ON u.run_id    = r.run_id    -- and its run,
-		ORDER BY s.kind, r.sample_id, u.method, r.run_id   -- sample by sample, the encoder first
+		FROM h3_enc_results r                                -- Each decode of the encoder study,
+		JOIN h3_enc_samples s ON s.sample_id = r.sample_id   -- with its source
+		JOIN h3_enc_runs    u ON u.run_id    = r.run_id      -- and its run,
+		WHERE r.run_id NOT IN ('smoke', 'encft_smoke')       -- that is not a code smoke test,
+		ORDER BY s.kind, r.sample_id, u.method, r.run_id     -- sample by sample, the encoder first
 
 
 	 FASTDEC GA (manifest §22, m00998)
