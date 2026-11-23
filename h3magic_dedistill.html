@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>H3 Magic: why our first adapters broke H3, and how we fixed it</title>
+<style>
+:root { --bg: #fdfdfb; --fg: #1d1d1f; --muted: #66666b; --rule: #dcdcd6; --accent: #2f5d8a; --box: #f0f0ea; --gutter: 16px; --measure: 1600px; --text: 860px; --font-body: 17px; --font-small: 14px; --pad: 8px; --hairline: 1px; --gap: 24px; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #18191b; --fg: #e8e8e6; --muted: #a0a0a5; --rule: #3a3b3e; --accent: #8ab4dc; --box: #232427; } }
+:root[data-theme="dark"] { --bg: #18191b; --fg: #e8e8e6; --muted: #a0a0a5; --rule: #3a3b3e; --accent: #8ab4dc; --box: #232427; }
+body { background: var(--bg); color: var(--fg); font: var(--font-body)/1.6 Georgia, serif; margin: 0; }
+main { max-width: var(--measure); margin: 0 auto; padding: 0 var(--gutter) var(--gap); }
+p, ul, ol, dl, .box, .note { max-width: var(--text); }
+a { color: var(--accent); }
+section { border-top: var(--hairline) solid var(--rule); margin-top: var(--gap); padding-top: var(--pad); }
+h2 { font: bold 1.25em system-ui, sans-serif; }
+.note { color: var(--muted); font: var(--font-small)/1.45 system-ui, sans-serif; }
+.box { background: var(--box); border: var(--hairline) solid var(--rule); padding: var(--pad) var(--gap); font-family: system-ui, sans-serif; }
+figure { margin: var(--gap) 0; }
+figure img { max-width: 100%; height: auto; display: block; background: #000; }
+figcaption { font: var(--font-small)/1.45 system-ui, sans-serif; margin-top: var(--pad); max-width: var(--text); }
+.pair { display: flex; flex-wrap: wrap; gap: var(--gap); }
+.pair figure { flex: 1 1 400px; margin: 0; }
+table { border-collapse: collapse; font: var(--font-small) system-ui, sans-serif; }
+th, td { padding: var(--pad) var(--gap) var(--pad) 0; text-align: right; border-bottom: var(--hairline) solid var(--rule); }
+th:first-child, td:first-child { text-align: left; }
+th { cursor: pointer; }
+dt { font-weight: bold; margin-top: var(--pad); }
+dd { margin-left: 0; }
+details { margin: var(--pad) 0; }
+summary { cursor: pointer; font: var(--font-small) system-ui, sans-serif; }
+</style>
+<link rel="manifest" href="pwa/manifest.webmanifest"><script src="pwa/register.js" defer></script></head>
+<body><p class="updated-stamp" style="margin:0.5em 1em;font:13px system-ui,sans-serif;opacity:0.75">Last updated Nov 23, 2026, 2:48 AM ET</p>
+<main>
+<h1>H3 Magic: why our first adapters broke H3, and how we fixed it</h1>
+<p class="note">2026-11-22 to 2026-11-23. Part of the <a href="h3magic.html">H3 Magic journal</a>; the working result is on <a href="h3magic_final.html">the final results page</a>. Images are shown at full resolution; click one to open the original file. Terms are explained in the glossary at the bottom.</p>
+
+<div class="box">
+<h2>Conclusions</h2>
+<ul>
+<li>H3 is CFG-distilled: its released weights already contain classifier-free guidance, so it is meant to run at CFG 1 (one pass per step).</li>
+<li>Plain flow-matching LoRA training undoes that. About 80% of the adapter's change points at H3's own unconditional prediction (cosine 0.93 at the highest noise level). The adapter moves H3 back toward an ordinary model that needs CFG.</li>
+<li>So quality falls as the adapter weight goes up: clean at weight 0 to 0.25, broken at 1. Our first adapters (Pexels, image-gen, gray magic) all had this problem.</li>
+<li>Using CFG 2 to 3 at generation repairs the old adapters. That costs two model passes per step.</li>
+<li>Retraining with a guidance loss (scale 4, learning rate 1e-4) keeps quality at CFG 1. In our pilots it beat the ostris training-adapter recipe and Muon. Every row on the final page is a retrained one.</li>
+<li>It was not a loading bug (byte-identical frames) and not slow-motion training data (0.6%).</li>
+</ul>
+</div>
+
+<section><h2>1. The symptom</h2>
+<p>After the first Pexels adapter (step 100) the videos looked wrong to the user: "wibbly-wobbly", with subjects that hover and blur. The user did not accept that adapter arithmetic was the cause (it had worked for other image models and other video models) and asked a fresh agent to judge original H3 against the Pexels generations.</p>
+<p>Below: stock H3 and the Pexels adapter at step 100, same prompts and seeds (skateboarder, dog with frisbee, steam train, wave on rocks; three frames each, stock row first). The Pexels rows are darker and flatter, and the dog and skater are smeared.</p>
+<figure><a href="https://raw.githubusercontent.com/RyannDaGreat/sana-sprint-alpha-incontext/journal-assets/6b/6b688875538fab5c.png"><img src="https://raw.githubusercontent.com/RyannDaGreat/sana-sprint-alpha-incontext/journal-assets/6b/6b688875538fab5c.png" alt="stock vs Pexels step 100"></a><figcaption>Stock row, then Pexels step 100 row, for four prompts.</figcaption></figure>
+<p>At step 250 the loss had flattened (val 0.1692 at step 100, 0.1625 at 150, 0.1603 at 200, 0.1600 at 250) and we stopped, but the look had not become clean. Rows per prompt: stock, step 100, step 250 (prompts p02, p07, p09, p12, p17). Step 100 lost the subject on 2 of 5 prompts; step 250 had them back; the dog stayed soft.</p>
+<figure><a href="https://raw.githubusercontent.com/RyannDaGreat/sana-sprint-alpha-incontext/journal-assets/01/017bb1ba2982b48d.png"><img src="https://raw.githubusercontent.com/RyannDaGreat/sana-sprint-alpha-incontext/journal-assets/01/017bb1ba2982b48d.png" alt="stock vs Pexels step 100 vs 250"></a><figcaption>Stock, Pexels step 100, Pexels step 250.</figcaption></figure>
+
+<h3>Blind A/B</h3>
+<p>A fresh Sonnet agent with no context saw two pairs: p03 basketball (A1 stock, B1 Pexels) and p07 dog (A2 Pexels, B2 stock; the key is in <code>agents/.scratchpad/blind_ab_key.txt</code>). It picked the Pexels video as worse both times. Basketball: tiny airborne player, fisheye tilt, hangs on the pole, mangled torso (frame 127), inverted and duplicated body (frame 140), body and background wobble (frames 100 to 107). Dog: smeared brown blob (frames 25 to 50), garbled paws, frisbee changes shape, dog changes size, muddy light. Stock: coherent dunk and a clean catch. This agreed with the user.</p>
+<details><summary>The four contact sheets the agent saw (A1 stock, B1 Pexels, A2 Pexels, B2 stock)</summary>
+<figure><a href="https://raw.githubusercontent.com/RyannDaGreat/sana-sprint-alpha-incontext/journal-assets/19/193066e42b78db3f.png"><img src="https://raw.githubusercontent.com/RyannDaGreat/sana-sprint-alpha-incontext/journal-assets/19/193066e42b78db3f.png" alt="A1, basketball, stock"></a><figcaption>A1: p03 basketball, stock.</figcaption></figure>
+<figure><a href="https://raw.githubusercontent.com/RyannDaGreat/sana-sprint-alpha-incontext/journal-assets/e2/e2446d73a03a3aed.png"><img src="https://raw.githubusercontent.com/RyannDaGreat/sana-sprint-alpha-incontext/journal-assets/e2/e2446d73a03a3aed.png" alt="B1, basketball, Pexels"></a><figcaption>B1: p03 basketball, Pexels adapter.</figcaption></figure>
+<figure><a href="https://raw.githubusercontent.com/RyannDaGreat/sana-sprint-alpha-incontext/journal-assets/c7/c7acb940ae097a76.png"><img src="https://raw.githubusercontent.com/RyannDaGreat/sana-sprint-alpha-incontext/journal-assets/c7/c7acb940ae097a76.png" alt="A2, dog, Pexels"></a><figcaption>A2: p07 dog, Pexels adapter.</figcaption></figure>
+<figure><a href="https://raw.githubusercontent.com/RyannDaGreat/sana-sprint-alpha-incontext/journal-assets/d3/d332a6921efa69a3.png"><img src="https://raw.githubusercontent.com/RyannDaGreat/sana-sprint-alpha-incontext/journal-assets/d3/d332a6921efa69a3.png" alt="B2, dog, stock"></a><figcaption>B2: p07 dog, stock.</figcaption></figure>
+</details>
+</section>
+
+<section><h2>2. Vision-model scores</h2>
+<p>A Sonnet reviewer scored 20 prompts, 8 frames per video, 1 to 5 on subject, detail, motion, temporal consistency and prompt adherence (subjective; stock was the reference, so it scored about 5 everywhere). Images: 9 of 20 prompts viewed. The basic ass magic ablation is a different experiment (one gray-only LoRA on stock H3), so its framing is not comparable.</p>
+<table class="sortable"><thead><tr><th>Video model (20 prompts)</th><th>Subject</th><th>Detail</th><th>Motion</th><th>Temporal</th><th>Adherence</th><th>Overall</th></tr></thead><tbody>
+<tr><td>Stock H3</td><td>5.00</td><td>5.00</td><td>4.85</td><td>5.00</td><td>4.90</td><td>4.95</td></tr>
+<tr><td>Pexels step 100</td><td>2.30</td><td>2.45</td><td>2.80</td><td>2.70</td><td>3.00</td><td>2.65</td></tr>
+<tr><td>Pexels step 250</td><td>2.90</td><td>2.90</td><td>3.20</td><td>3.10</td><td>3.35</td><td>3.09</td></tr>
+<tr><td>Pexels final (step 289)</td><td>2.95</td><td>3.25</td><td>3.00</td><td>3.20</td><td>3.25</td><td>3.13</td></tr>
+<tr><td>Basic ass magic ablation</td><td>3.80</td><td>3.90</td><td>3.65</td><td>3.80</td><td>3.80</td><td>3.79</td></tr>
+</tbody></table>
+<p></p>
+<table class="sortable"><thead><tr><th>Image model (9 prompts)</th><th>Subject</th><th>Detail</th><th>Motion</th><th>Temporal</th><th>Adherence</th><th>Overall</th></tr></thead><tbody>
+<tr><td>Stock H3</td><td>5.00</td><td>5.00</td><td>5.00</td><td>4.89</td><td>5.00</td><td>4.98</td></tr>
+<tr><td>Image-gen step 100</td><td>2.44</td><td>2.89</td><td>3.00</td><td>3.33</td><td>2.56</td><td>2.84</td></tr>
+<tr><td>Image-gen step 300</td><td>2.22</td><td>2.67</td><td>2.89</td><td>3.22</td><td>2.33</td><td>2.67</td></tr>
+<tr><td>Basic ass magic ablation</td><td>2.89</td><td>3.33</td><td>3.33</td><td>3.22</td><td>3.56</td><td>3.27</td></tr>
+</tbody></table>
+<p>Failure modes: shape collapse (elephant ghosted into a double exposure, the spinning top becomes a ball, the dog fused with a white blob in all trained image models), smeared detail, the basketball player hovering or hanging off the pole, subjects shrinking or leaving the frame, darker and softer scenes. The damage does not grow from step 100 to step 289 (2.65, 3.09, 3.13): it is there from the start.</p>
+</section>
+
+<section><h2>3. What we ruled out</h2>
+<ul>
+<li><b>A loading or inference bug.</b> The evaluation path (<code>h3_generate</code>) and a separate loader written by the diagnosing agent give byte-identical frames (PSNR = infinity on p02, p03, p07 for the Pexels final at weight 1). The adapter loaded at weight 0 equals stock (infinity on p02, p03, p07, p12; maximum absolute difference 0). The evaluation model and the training model differ by MSE 2e-5 to 6e-5, against an adapter effect of 0.016 to 2.33. One early claim, that the diagnosing agent's weight-1 dog looked better, came from 80-pixel thumbnails of the same pixels and was wrong.</li>
+<li><b>Slow-motion training data.</b> The research (fal) found that stock-footage sets can contain 50 to 60 fps clips conformed to 25 to 30 fps, which gives "dreamy, floaty" motion. We checked our Pexels training clips: 0.6% are slow motion. Not the cause.</li>
+<li><b>Training length.</b> The garbling is already there at step 100 and does not worsen.</li>
+</ul>
+<p>The learning rate was also higher than the model's published recipes (2e-4 against 1e-4 in musubi-tuner, DiffSynth and fal). The retrain uses 1e-4. We did not test it alone.</p>
+</section>
+
+<section><h2>4. The weight sweep</h2>
+<p>Same seed and prompt embedding; the Pexels final adapter at weight 0, 0.25, 0.5 and 1 (rows). Five frames per row. Weight 0 is stock. The basketball: clean at 0.25 (with the Pexels grading), a softer and oddly shaped but acceptable result at 0.5, and at 1 the player floats in frame 0 and is garbled at the end. A change that is fine at low weight and breaks at full weight is what de-distillation looks like. Another agent (MinimaxH3) saw the same: at step 100, weight 1 collapsed and 0.5 was clean.</p>
+<div class="pair">
+<figure><a href="https://raw.githubusercontent.com/RyannDaGreat/sana-sprint-alpha-incontext/journal-assets/c6/c633c465e4a7e6f1.png"><img src="https://raw.githubusercontent.com/RyannDaGreat/sana-sprint-alpha-incontext/journal-assets/c6/c633c465e4a7e6f1.png" alt="weight sweep, basketball"></a><figcaption>p03 basketball, weight 0 / 0.25 / 0.5 / 1.</figcaption></figure>
+<figure><a href="https://raw.githubusercontent.com/RyannDaGreat/sana-sprint-alpha-incontext/journal-assets/e4/e43b842bcd5910e2.png"><img src="https://raw.githubusercontent.com/RyannDaGreat/sana-sprint-alpha-incontext/journal-assets/e4/e43b842bcd5910e2.png" alt="weight sweep, dog"></a><figcaption>p07 dog with frisbee, weight 0 / 0.25 / 0.5 / 1. At 1 the dog is fuzzy, loses its retriever shape, and the frisbee shrinks.</figcaption></figure>
+</div>
+</section>
+
+<section><h2>5. The loss by noise level, and the direction</h2>
+<p>The research found the cause named in the model's own documentation: musubi-tuner's <code>docs/minimax_h3.md</code> says a LoRA trained on the plain flow-matching target "pulls the model out of" the guided space, video "washes out and loses prompt adherence", and image training "breaks structurally within about 50 steps"; plain flow training "is not offered as a recipe". DiffSynth-Studio issue 1585 says the same (it works with CFG on, poorly with CFG off). Our own earlier survey had reported "plain flow-matching LoRA training slowly undistills the model" and we did not act on it.</p>
+<p>We then measured it (8 held-out Pexels clips, fixed noise). The flow-matching loss against the data, by video noise level (sigma; higher is noisier), for stock H3, for H3's own unconditional prediction (the empty prompt " "), and for the Pexels final adapter:</p>
+<table class="sortable"><thead><tr><th>sigma</th><th>Stock H3</th><th>Unconditional (" ")</th><th>Pexels final</th></tr></thead><tbody>
+<tr><td data-sort="0.197">0.197</td><td>0.261</td><td>0.261</td><td>0.239</td></tr>
+<tr><td data-sort="0.800">0.800</td><td>0.128</td><td>0.126</td><td>0.100</td></tr>
+<tr><td data-sort="0.923">0.923</td><td>0.311</td><td>0.213</td><td>0.136</td></tr>
+<tr><td data-sort="0.973">0.973</td><td>0.888</td><td>0.352</td><td>0.206</td></tr>
+<tr><td data-sort="0.991">0.991</td><td>1.949</td><td>0.611</td><td>0.301</td></tr>
+</tbody></table>
+<p>Reading it: at high noise stock H3 is about 3 times worse than its own unconditional prediction (1.949 against 0.611). That is the signature of a guidance-distilled model scored against plain data: its output is the guided prediction, not the data average. The adapter's gain is almost all at high noise, where it learns to undo the guidance.</p>
+<p>Direction: the adapter's change in H3's prediction points at H3's unconditional prediction, with cosine 0.93, 0.88 and 0.75 at sigma 0.991, 0.973 and 0.923. A regression gives a coefficient of about 0.8, so about 80% of the change is "move toward the unconditional prediction". The un-distilled estimate (v_d + (w - 1) * v_u) / w fits the data best at w of about 4 to 5, so H3 behaves as if distilled at a guidance scale near 4 to 5. The guidance loss uses scale 4 to match.</p>
+</section>
+
+<section><h2>6. The repair: CFG at generation</h2>
+<p>We ran the Pexels final adapter at weight 1 through a separate Euler loop with classifier-free guidance, using H3's null prompt " ". CFG 1 in this loop reproduces the evaluation pipeline (37.2 dB), so the loop is valid. Rows: stock (pipeline), adapter at CFG 1, CFG 2, CFG 3, and stock at CFG 2 as a control.</p>
+<p>CFG 1 is what we had: fuzzy deformed dog, shrunken frisbee, floating player, garbled body. CFG 2 and 3: a clean golden retriever, a crisp frisbee, a coherent player who runs, jumps and dunks. The Pexels look stays. Control: stock H3 at CFG 2 is over-guided (oversaturated), which fits "H3 is distilled for CFG 1".</p>
+<div class="pair">
+<figure><a href="https://raw.githubusercontent.com/RyannDaGreat/sana-sprint-alpha-incontext/journal-assets/e9/e920c0a4ab8e4d1c.png"><img src="https://raw.githubusercontent.com/RyannDaGreat/sana-sprint-alpha-incontext/journal-assets/e9/e920c0a4ab8e4d1c.png" alt="CFG sheet, basketball"></a><figcaption>p03 basketball.</figcaption></figure>
+<figure><a href="https://raw.githubusercontent.com/RyannDaGreat/sana-sprint-alpha-incontext/journal-assets/49/499ac0309239767e.png"><img src="https://raw.githubusercontent.com/RyannDaGreat/sana-sprint-alpha-incontext/journal-assets/49/499ac0309239767e.png" alt="CFG sheet, dog"></a><figcaption>p07 dog with frisbee.</figcaption></figure>
+</div>
+<p>The same repair for the dog in the evaluation pipeline: stock, the Pexels adapter at CFG 1, and the Pexels adapter with CFG.</p>
+<figure><a href="https://raw.githubusercontent.com/RyannDaGreat/sana-sprint-alpha-incontext/journal-assets/47/47c2dc89861a59e6.png"><img src="https://raw.githubusercontent.com/RyannDaGreat/sana-sprint-alpha-incontext/journal-assets/47/47c2dc89861a59e6.png" alt="dog rows"></a><figcaption>p07: stock_video, pexels_video (CFG 1), pexels_cfg_video.</figcaption></figure>
+<p>Across prompts (rows per prompt: stock, adapter at CFG 1, adapter at CFG 2.5; prompts basketball, kite, elephant, spinning top):</p>
+<figure><a href="https://raw.githubusercontent.com/RyannDaGreat/sana-sprint-alpha-incontext/journal-assets/2a/2a251c4466456e6b.png"><img src="https://raw.githubusercontent.com/RyannDaGreat/sana-sprint-alpha-incontext/journal-assets/2a/2a251c4466456e6b.png" alt="CFG 2.5 repair across prompts"></a><figcaption>Stock / Pexels v1 at CFG 1 / Pexels v1 at CFG 2.5.</figcaption></figure>
+<p>This fixes the old adapters at twice the cost, but the adapters still need CFG, which complicates stacking and every later step. So we also retrained.</p>
+</section>
+
+<section><h2>7. The pilots: guidance loss, training adapter, Muon</h2>
+<p>The research (fal, musubi-tuner, DiffSynth) gave two fixes for training a distilled model: the guidance loss (re-anchor the flow target in the guided space using the model's own no-grad unconditional prediction; scale 3 to 4, sigma minimum 0.15, learning rate 1e-4), or a de-distillation "training adapter" merged only during training (ostris). We also tried the Muon optimizer at two learning rates. All pilots were short Pexels runs, judged at CFG 1.</p>
+<ul>
+<li>Guidance loss (scale 4, lr 1e-4, AdamW): crisp, closest to stock.</li>
+<li>Training adapter (ostris v3, step 100): more of the Pexels grading (darker, flatter), but blurrier and the dog smears.</li>
+<li>Muon, lr 0.02: diverged (val 4.22 to 14.71).</li>
+<li>Muon, lr 0.004: dark and smeary.</li>
+</ul>
+<p>Order at step 80: guidance loss, then training adapter, then Muon.</p>
+<figure><a href="https://raw.githubusercontent.com/RyannDaGreat/sana-sprint-alpha-incontext/journal-assets/bd/bdf637e02d845bf2.png"><img src="https://raw.githubusercontent.com/RyannDaGreat/sana-sprint-alpha-incontext/journal-assets/bd/bdf637e02d845bf2.png" alt="pilots at step 80"></a><figcaption>Step 80, five rows per prompt (dog, elephant, cyclist, spinning top): stock and the four pilots, four frames per row. Row 3 of each group, the crisp one closest to stock, is the guidance loss. The sheet's row order was not recorded on the image, so the other rows are not labelled here.</figcaption></figure>
+<p>The pick, with the old adapter for scale (rows per prompt: stock, Pexels v1 at CFG 2.5, guidance-loss pilot step 80, training adapter step 100; prompts p03, p07, p11, p14, p16; the retrained ones at CFG 1):</p>
+<figure><a href="https://raw.githubusercontent.com/RyannDaGreat/sana-sprint-alpha-incontext/journal-assets/77/7702deb49fdbf99b.png"><img src="https://raw.githubusercontent.com/RyannDaGreat/sana-sprint-alpha-incontext/journal-assets/77/7702deb49fdbf99b.png" alt="the pick"></a><figcaption>Both retrains are far better than v1 at CFG 1. The guidance-loss adapter is crisp and closest to stock on every prompt (dunk, dog, elephant, cyclist, top).</figcaption></figure>
+<p>Decision (2026-11-22, about 8:30 PM ET): the whole adapter chain continues with the guidance loss, scale 4, lr 1e-4, AdamW: Pexels, then image-gen, then gray magic, all generated at CFG 1.</p>
+</section>
+
+<section><h2>8. The retrained Pexels row</h2>
+<p>The final guidance-loss Pexels adapter (step 156), at CFG 1. Rows per prompt: stock, v1 at CFG 2.5, v2 (the retrain); prompts p03, p05, p10, p14, p16.</p>
+<figure><a href="https://raw.githubusercontent.com/RyannDaGreat/sana-sprint-alpha-incontext/journal-assets/a8/a86bb674e9b5261f.png"><img src="https://raw.githubusercontent.com/RyannDaGreat/sana-sprint-alpha-incontext/journal-assets/a8/a86bb674e9b5261f.png" alt="v2 Pexels row"></a><figcaption>v2 is crisp and close to stock on every prompt: a clean dunk, a coherent kite man with his kite, a sharp tabby cat with its toy, a cyclist with both arms, proper tops. It beats v1 at CFG 2.5 on the kite and the cat. Caveat: it also stays close to stock's look, so its Pexels look (handheld, flatter grading) is milder than v1's.</figcaption></figure>
+<p>All the later rows (image-gen, gray magic, the combined stages) were trained the same way. They are on <a href="h3magic_final.html">the final results page</a>.</p>
+</section>
+
+<section><h2>9. Lessons</h2>
+<ul>
+<li>Before training a distilled model, read the model's own fine-tuning docs first. Treat an "undistills" note as a blocker. The warning was in our own survey, and in musubi-tuner's docs, before we trained anything.</li>
+<li>Test the inference path with the adapter at weight 0: it must equal stock, byte for byte. Then sweep the weight; a bug does not show up as "fine at 0.25, broken at 1".</li>
+<li>Judge from full-size frames, not thumbnails: one wrong conclusion here came from 80-pixel thumbnails.</li>
+<li>Ask a fresh, blind agent to compare outputs before arguing about causes.</li>
+<li>Do not stop at "it probably is the data". Measure the loss by noise level and the direction of the change;.</li>
+<li>Long-lived workers keep old code. During this work a fix to the adapter cache key did nothing until the workers were restarted, and two rows (guidance-loss and training-adapter pilots at step 40) came out identical because one reused the other's weights. Hash the outputs to catch duplicates.</li>
+<li>Pilots first: short runs of each candidate, judged by eye at the setting you will ship (here CFG 1).</li>
+</ul>
+</section>
+
+<section><h2>Glossary</h2>
+<dl>
+<dt>CFG (classifier-free guidance)</dt><dd>At each step the model predicts twice, with the prompt and with an empty prompt, and the result is pushed away from the empty one by a scale. CFG 1 means no push: one pass per step. CFG 2 or 3 costs two passes.</dd>
+<dt>CFG-distilled</dt><dd>A model trained to produce the guided prediction in one pass, so it needs no CFG at generation. H3 is one, and it behaves as if distilled at a scale near 4 to 5.</dd>
+<dt>Flow matching</dt><dd>The training objective: mix clean data with noise and train the model to predict the direction from noise to data. "Plain" flow matching scores the output directly against that direction.</dd>
+<dt>Guidance loss</dt><dd>A training loss (musubi-tuner's) that moves the target to the guided space: unconditional prediction plus the scale times (plain target minus unconditional prediction). It keeps the model distilled, so the adapter works at CFG 1. Scale 4 here.</dd>
+<dt>Unconditional prediction</dt><dd>The model's output for the empty prompt (the single space " " for H3).</dd>
+<dt>LoRA weight</dt><dd>How much of the adapter's change is added to the model: 0 is stock, 1 is the adapter as trained.</dd>
+<dt>Training adapter</dt><dd>A LoRA (ostris) that temporarily de-distills the base model while you train your own LoRA on top. It is merged at training only; at generation you use your LoRA on the plain base.</dd>
+<dt>Muon</dt><dd>An optimizer that orthogonalizes the update of each weight matrix; we tried it in place of AdamW, at learning rates 0.02 and 0.004.</dd>
+<dt>Pexels adapter, image-gen, gray magic</dt><dd>The three adapters of the chain, trained one on top of the other: Pexels video clips, single frames, then our subjects on 50% gray. See the final results page.</dd>
+</dl>
+</section>
+</main>
+<script>
+document.querySelectorAll('table.sortable th').forEach((th, col) => th.onclick = () => {
+  const body = th.closest('table').tBodies[0];
+  const key = row => { const cell = row.cells[th.cellIndex]; return cell.dataset.sort ?? cell.textContent; };
+  const asc = th.dataset.asc !== '1';
+  th.dataset.asc = asc ? '1' : '0';
+  [...body.rows].sort((a, b) => {
+    const [x, y] = [key(a), key(b)];
+    const [nx, ny] = [parseFloat(x), parseFloat(y)];
+    return (asc ? 1 : -1) * (isNaN(nx) || isNaN(ny) ? x.localeCompare(y) : nx - ny);
+  }).forEach(row => body.appendChild(row));
+});
+</script>
+<footer style="margin:3em 0 1em;font-size:0.85em;opacity:0.7">Published images are the original PNG files (original resolution, lossless), hosted on the repo's journal-assets branch.</footer>
+</body>
+</html>
