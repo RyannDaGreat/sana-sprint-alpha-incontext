@@ -15,6 +15,7 @@ math, then bf16), and only its own fresh LoRA trains.
     pexels    --mode video  --data pexels                                   (on stock H3)
     imagegen  --mode image  --data pexels  --bake pexels                    (7 frames per clip at 0..6 s, m00917)
     graymagic --mode image  --data magick  --bake pexels,imagegen           (MAGICK on 0.5 gray, 512²)
+    split     --mode image  --data magick  --split True --bake ...          (gray / white / black heads, h3magic/split.py)
 
 Target and layout are MinimaxH3's verified ones (that dump's src/train_lora.py): H3's t = 1 is CLEAN,
 x_t = t·x_0 + (1 − t)·noise, target v = x_0 − noise; the packed sequence comes from diffusers'
@@ -53,6 +54,9 @@ import torch
 import torch.distributed as dist
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from h3magic import split as splitter  # noqa: E402  (the split adapter's head, shared with inference)
+
 MODEL_DIR = Path("/models/h3magic/MiniMax-H3")  # node-local copy (system-wide /models convention)
 LANCE_DIR = ROOT / "data/lance"
 ADAPTER_ROOT = ROOT / "models/h3magic"            # durable adapters (gitignored)
@@ -84,6 +88,7 @@ PROBE_SIGMAS = (0.2, 0.5, 0.8)  # video σ of the target-sign probe (MinimaxH3 p
 EMA_DECAY = 0.98               # loss smoothing for STATUS
 PREFETCH = 4                   # batches read ahead by the loader thread
 COLUMNS = dict(video="h3_latent_video", frames="h3_latent_frames", image="h3_latent_512", embed="h3_text_embed")
+SPLIT_COLUMNS = ("h3_latent_white_512", "h3_latent_black_512")  # --split targets after the gray latent_column (SPLIT_BACKGROUNDS order)
 TABLES = dict(pexels="h3_pexels_clips", magick="h3_magick_images")
 KEYS = dict(pexels="pexels_id", magick="page_id")
 
@@ -345,6 +350,23 @@ def audio_rows(latents):
     return einx.rearrange("C LC A -> (C A) LC", latents.float())
 
 
+def split_rows(targets):
+    """
+    Pure function. Patchified video rows of every head's target, heads last.
+
+    Args:
+        targets (Tensor): (B, K, LC, LT, LH, LW), e.g. (16, 3, 24, 1, 32, 32), heads in SPLIT_BACKGROUNDS order
+
+    Returns:
+        Tensor: (B, rows, K, LC·4) float32, e.g. (16, 256, 3, 96)
+
+    Examples:
+        >>> # split_rows(torch.zeros(2, 3, 24, 1, 32, 32)).shape == (2, 256, 3, 96)  (needs diffusers)
+    """
+    rows = video_rows(einx.rearrange("B K C T H W -> (B K) C T H W", targets))
+    return einx.rearrange("(B K) R C -> B R K C", rows, K=targets.shape[1])
+
+
 # ---------------------------------------------------------------------------------------------------------------------
 # Model
 # ---------------------------------------------------------------------------------------------------------------------
@@ -482,8 +504,9 @@ def silent_audio(device, num_latents):
 
 def save_adapter(transformer, folder, meta):
     """
-    Command. Writes pytorch_lora_weights.safetensors (peft keys, loadable by MiniMaxH3ModularPipeline.load_lora_weights)
-    and meta.json to folder, and copies both to the node-local mirror.
+    Command. Writes pytorch_lora_weights.safetensors (peft keys, loadable by MiniMaxH3ModularPipeline.load_lora_weights),
+    the split head's Δ (split.HEAD_FILE) when the transformer has one, and meta.json to folder, and copies them to the
+    node-local mirror.
     """
     from diffusers import MiniMaxH3ModularPipeline
     from peft.utils import get_peft_model_state_dict
@@ -492,10 +515,14 @@ def save_adapter(transformer, folder, meta):
     assert not [k for k in state if ".lora.down." in k or ".lora.up." in k], "legacy LoRA keys: the H3 loader drops them"
     folder.mkdir(parents=True, exist_ok=True)
     MiniMaxH3ModularPipeline.save_lora_weights(save_directory=str(folder), transformer_lora_layers=state)
+    names = ["pytorch_lora_weights.safetensors", "meta.json"]
+    if (head := splitter.splitter_of(transformer)) is not None:
+        splitter.save_head(head, folder)
+        names.append(splitter.HEAD_FILE)
     (folder / "meta.json").write_text(json.dumps({**meta, "layers": sum(".lora_A." in k for k in state)}, indent=1))
     local = LOCAL_ADAPTER_ROOT / folder.relative_to(ADAPTER_ROOT)
     local.mkdir(parents=True, exist_ok=True)
-    for name in ("pytorch_lora_weights.safetensors", "meta.json"):
+    for name in names:
         (local / name).write_bytes((folder / name).read_bytes())
 
 
@@ -544,7 +571,7 @@ class Records:
     image) or one (row, frame) pair (Pexels frames, m00917).
     """
 
-    def __init__(self, data, mode, split, rank, world, embed_column, latent_column, lance_dir=LANCE_DIR):
+    def __init__(self, data, mode, split, rank, world, embed_column, latent_column, lance_dir=LANCE_DIR, extra_columns=()):
         """
         Query. Reads the row list of TABLES[data] (rows with latent + embedding + the split) and this rank's share of it.
 
@@ -555,18 +582,20 @@ class Records:
             rank (int), world (int): this rank's share of the rows (all of them when world = 1)
             embed_column (str), latent_column (str): blob columns
             lance_dir (str | Path): the BlueJay lance folder
+            extra_columns (tuple[str]): more latent columns every row must have (the split heads' targets, SPLIT_COLUMNS);
+                batch() then also returns them as "targets"
         """
         import lance
 
         self.dataset = lance.dataset(str(Path(lance_dir) / f"{TABLES[data]}.lance"))
-        self.embed_column, self.latent_column = embed_column, latent_column
+        self.embed_column, self.latent_column, self.extra_columns = embed_column, latent_column, tuple(extra_columns)
         names = set(self.dataset.schema.names)
         columns = [KEYS[data], "split", "h3_caption", "h3_text_sha256"]
         rows = self.dataset.to_table(columns=columns, with_row_id=True).to_pandas()
-        for flag, column in (("has_latent", latent_column), ("has_embed", embed_column)):  # blob columns: test NULL in lance
+        for flag, column in (("has_latent", latent_column), *(("has_latent", c) for c in self.extra_columns), ("has_embed", embed_column)):
             have = set(self.dataset.to_table(columns=[KEYS[data]], filter=f"{column} IS NOT NULL")[KEYS[data]].to_pylist()) \
-                if column in names else set()
-            rows[flag] = rows[KEYS[data]].isin(have)
+                if column in names else set()  # blob columns: test NULL in lance
+            rows[flag] = rows[KEYS[data]].isin(have) & (rows[flag] if flag in rows and column != latent_column else True)
         table = rows[usable(rows, split)].sort_values(KEYS[data]).reset_index(drop=True)
         self.ready_rows = len(table)  # usable rows of the split, over all ranks
         self.split_rows = int((rows["split"] == split).sum())  # every row of the split, ready or not
@@ -591,7 +620,8 @@ class Records:
 
     def batch(self, rows):
         """
-        Query. One batch: latents (B, LC, LT, LH, LW), prompt_embeds (B, N, 5120), text_token_tags (N,), keys.
+        Query. One batch: latents (B, LC, LT, LH, LW), prompt_embeds (B, N, 5120), text_token_tags (N,), keys; with
+        extra_columns also targets (B, K, LC, LT, LH, LW) = [latent_column, *extra_columns].
         A pexels image batch is ONE row's 7 frames (they share the caption), so `rows` has one entry there.
         """
         ids = [self.row_ids[i] for i in rows]
@@ -606,7 +636,11 @@ class Records:
         tags = embeds[0]["text_token_tags"]
         assert all(torch.equal(e["text_token_tags"], tags) for e in embeds), "a batch must share its text layout"
         prompt = torch.cat([e["prompt_embeds"] for e in embeds])  # (B, N, 5120)
-        return dict(latents=latents, prompt_embeds=prompt, text_token_tags=tags, keys=[self.keys[i] for i in rows])
+        out = dict(latents=latents, prompt_embeds=prompt, text_token_tags=tags, keys=[self.keys[i] for i in rows])
+        if self.extra_columns:
+            extra = [torch.stack([b["latent"] for b in read_safetensors_blobs(self.dataset, c, ids)]) for c in self.extra_columns]
+            out["targets"] = torch.stack([latents, *extra], dim=1)  # (B, K, LC, LT, LH, LW)
+        return out
 
 
 def batch_plan(records, mode, data, batch_size, seed, length_cache):
@@ -640,6 +674,9 @@ def forward_loss(transformer, batch, audio, base, generator, device, layouts, gu
     Near-pure function (advances generator; runs the model). Video flow loss of one batch at one base noise level.
     With `guide` (the guidance loss, musubi-tuner's recipe for CFG-distilled H3) and base >= guide["sigma_min"], the
     target is guided_target(x_0 − noise, u, scale), u = the model's no-grad prediction for the uncond probe text.
+    With batch["targets"] (the split adapter, h3magic/split.py): x_t comes from the gray head's target, every head k
+    has the target x0_k − noise with the SAME noise, and the guidance applies per head with u_k = head k's uncond
+    prediction; the loss is then one MSE per head.
 
     Args:
         transformer (nn.Module)
@@ -652,35 +689,40 @@ def forward_loss(transformer, batch, audio, base, generator, device, layouts, gu
         guide (dict | None): scale, sigma_min, prompt_embeds (1, M, 5120), text_token_tags (M,)
 
     Returns:
-        Tensor: scalar video MSE (float32)
+        Tensor: video MSE (float32): a scalar, or (K,) one per head with batch["targets"]
     """
     latents = batch["latents"].to(device)
     lt, a = latents.shape[2], audio.shape[-1]
     video_sigma, audio_sigma = paired_sigmas(base)
     video_t, audio_t = 1.0 - video_sigma, 1.0 - audio_sigma
+    split = "targets" in batch
     x0 = video_rows(latents)                                                         # (B, rows, 96)
     a0 = einx.rearrange("R C -> B R C", audio_rows(audio).to(device), B=x0.shape[0])  # (B, C·A, 32)
     noise = torch.randn(x0.shape, generator=generator, device=device)
     audio_noise = torch.randn(a0.shape, generator=generator, device=device)
     noisy_video = noise_sample(x0, noise, video_t).to(DTYPE)
+    if split:  # every head's target, heads last: (B, rows, K, 96); head 0 is the gray x0 above
+        x0, noise = split_rows(batch["targets"].to(device)), einx.rearrange("B R C -> B R 1 C", noise)
     noisy_audio = noise_sample(a0, audio_noise, audio_t).to(DTYPE)
 
     def predict(text_token_tags, prompt_embeds):
-        """Near-pure function (runs the model). Video velocity (B, rows, 96) for one text layout."""
+        """Near-pure function (runs the model). Video velocity (B, rows, 96), or every head's (B, rows, K, 96) when split."""
         key = (int(text_token_tags.numel()), lt, a)
         if key not in layouts:
             layouts[key] = Layout(text_token_tags, lt, a, device)
         timestep, timestep_indices = layouts[key].row_timesteps(video_t, audio_t)
-        return transformer(hidden_states=noisy_video, audio_hidden_states=noisy_audio,
-                           encoder_hidden_states=prompt_embeds.to(device, DTYPE), timestep=timestep,
-                           timestep_indices=timestep_indices, return_dict=False, **layouts[key].tensors)[0]
+        video = transformer(hidden_states=noisy_video, audio_hidden_states=noisy_audio,
+                            encoder_hidden_states=prompt_embeds.to(device, DTYPE), timestep=timestep,
+                            timestep_indices=timestep_indices, return_dict=False, **layouts[key].tensors)[0]
+        return splitter.video_heads(splitter.splitter_of(transformer), layouts[key].tensors["video_indices"]) if split else video
 
     target = flow_target(x0, noise)
     if guide is not None and base >= guide["sigma_min"]:
         with torch.no_grad():  # LoRA stays on, as musubi does: u is the adapted model's own uncond prediction
             uncond = predict(guide["text_token_tags"], einx.rearrange("1 N C -> B N C", guide["prompt_embeds"], B=x0.shape[0]))
         target = guided_target(target, uncond.float(), guide["scale"])
-    return torch.nn.functional.mse_loss(predict(batch["text_token_tags"], batch["prompt_embeds"]).float(), target)
+    error = (predict(batch["text_token_tags"], batch["prompt_embeds"]).float() - target) ** 2
+    return einx.mean("B R K C -> K", error) if split else error.mean()
 
 
 def all_reduce_grads(params, world):
@@ -700,9 +742,10 @@ def all_reduce_grads(params, world):
 def validate(transformer, records, audio, device, layouts, world, guide=None):
     """
     Query (runs the model without gradients). Mean validation loss over this rank's val items at VAL_BASES with fixed
-    noise, averaged over ranks. Deterministic, so successive values are comparable.
+    noise, averaged over ranks (a list of one per head for split records). Deterministic, so successive values are comparable.
     """
-    total, count = torch.zeros((), device=device), torch.zeros((), device=device)
+    heads = len(splitter.SPLIT_BACKGROUNDS) if records.extra_columns else 1
+    total, count = torch.zeros(heads, device=device), torch.zeros((), device=device)
     with torch.no_grad():
         for i in range(len(records.row_ids)):
             batch = records.batch([i])
@@ -713,7 +756,8 @@ def validate(transformer, records, audio, device, layouts, world, guide=None):
     if world > 1:
         dist.all_reduce(total)
         dist.all_reduce(count)
-    return float(total / count.clamp(min=1))
+    per_head = (total / count.clamp(min=1)).tolist()
+    return float(np.mean(per_head)) if heads == 1 else per_head  # split: one value per head (gray, white, black)
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -744,7 +788,8 @@ def write_status(name, text):
 def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr=2e-4, weight_decay=0.01, grad_clip=1.0,
           batch_size=16, max_steps=100000, save_every=100, val_every=100, seed=0, embed_column=COLUMNS["embed"],
           latent_column=None, lance_dir=str(LANCE_DIR), refresh_every=50, stop_at="", resume="", guidance_scale=0.0,
-          guidance_sigma_min=0.15, guidance_uncond=str(UNCOND_FILE), base_weights="", optimizer_name="adamw", muon_lr=0.02):
+          guidance_sigma_min=0.15, guidance_uncond=str(UNCOND_FILE), base_weights="", optimizer_name="adamw", muon_lr=0.02,
+          split=False):
     """
     Command. Trains adapter `name` (run under torchrun; one process per GPU). Saves to models/h3magic/<name>/step_XXXXX/
     and models/h3magic/<name>/final/, logs log.csv, writes STATUS, and stops when STOP_<name> appears, at max_steps or at
@@ -776,12 +821,17 @@ def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr
         muon_lr (float): Muon's lr (Keller Jordan's usual 0.02, with torch's "original" shape scaling max(1, rows/cols)^0.5)
         resume (str): a saved step folder of this adapter, e.g. models/h3magic/pexels/step_00150: continue from its LoRA
             and step (and its AdamW state when optimizer_latest.pt holds that step; else a fresh AdamW with warmup)
+        split (bool): the split adapter (h3magic/split.py, m00972): proj_out gets K = 3 heads (gray, white, black; frozen
+            base + zero-init float32 Δ) trained with the fresh LoRA; targets latent_column + SPLIT_COLUMNS, shared noise.
+            Image mode on magick only
     """
     dist.init_process_group("nccl")
     rank_id, world = dist.get_rank(), dist.get_world_size()
     device = torch.device("cuda", int(os.environ["LOCAL_RANK"]))
     torch.cuda.set_device(device)
     latent_column = latent_column or COLUMNS["video" if mode == "video" else ("frames" if data == "pexels" else "image")]
+    extra_columns = SPLIT_COLUMNS if split else ()
+    assert not split or (mode, data) == ("image", "magick"), "--split trains on MAGICK images only (white/black composites)"
     bakes = list(bake_list) if isinstance(bake_list, (list, tuple)) else [b for b in str(bake_list).split(",") if b]  # Fire turns "a,b" into a tuple
     out = ADAPTER_ROOT / name
     stop_file = STATUS_DIR / f"STOP_{name}"
@@ -789,7 +839,9 @@ def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr
     meta = dict(name=name, mode=mode, data=data, baked=bakes, rank=rank, alpha=alpha, lr=lr, world=world,
                 optimizer=optimizer_name, muon_lr=muon_lr if optimizer_name == "muon" else None,
                 video_frames=VIDEO_FRAMES if mode == "video" else 1, guidance_scale=guidance_scale,
-                guidance_sigma_min=guidance_sigma_min, training_only_base_weights=base_weights)
+                guidance_sigma_min=guidance_sigma_min, training_only_base_weights=base_weights,
+                split=dict(heads=list(splitter.SPLIT_BACKGROUNDS), backgrounds=list(splitter.SPLIT_BACKGROUNDS.values()),
+                           targets=[latent_column, *SPLIT_COLUMNS], head_file=splitter.HEAD_FILE) if split else None)
     guide = None
     if guidance_scale > 0:
         from safetensors.torch import load_file
@@ -803,11 +855,15 @@ def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr
         if rank_id // 2 == turn // 2:
             transformer = build_transformer(device, bakes, rank, alpha, base_weights)
         dist.barrier()
+    if split:  # after peft injection (add_adapter), so the head's Δ is not frozen by it
+        splitter.attach_splitter(transformer)
     transformer.train()
     params = [p for p in transformer.parameters() if p.requires_grad]
     optimizer = make_optimizer(params, optimizer_name, lr, muon_lr, weight_decay)
     schedule = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda s: min(1.0, (s + 1) / WARMUP_STEPS))
     step = resume_from(transformer, optimizer, schedule, resume, out) if resume else 0
+    if resume and split:
+        splitter.load_head(splitter.splitter_of(transformer), ROOT / resume)
     generator = torch.Generator(device=device).manual_seed(seed * 1000 + rank_id + 7 * step)
     draws = np.random.default_rng(seed + step)  # same base noise level on every rank per step
     layouts, loss_ema, val_loss, lengths = {}, None, None, {}
@@ -819,7 +875,7 @@ def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr
     chunk, stop, last = 0, 0, time.time()
     while not stop:
         # Re-read the table every refresh_every steps: rows finished since then join (the encoders run alongside)
-        records = Records(data, mode, "train", rank_id, world, embed_column, latent_column, lance_dir)
+        records = Records(data, mode, "train", rank_id, world, embed_column, latent_column, lance_dir, extra_columns)
         plan = batch_plan(records, mode, data, batch_size, seed * 7919 + chunk, lengths)
         count = torch.tensor(len(plan), device=device)
         dist.all_reduce(count, op=dist.ReduceOp.MIN)  # every rank runs the same number of steps (matched collectives)
@@ -831,7 +887,8 @@ def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr
             continue
         for batch in prefetch(records, plan):
             base = float(draws.random())
-            loss = forward_loss(transformer, batch, audio, base, generator, device, layouts, guide)
+            losses = forward_loss(transformer, batch, audio, base, generator, device, layouts, guide)  # scalar, or (K,) split
+            loss = losses.mean()
             loss.backward()
             all_reduce_grads(params, world)
             grad_norm = float(torch.nn.utils.clip_grad_norm_(params, grad_clip))
@@ -844,10 +901,15 @@ def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr
             loss_ema = ema(loss_ema, value)
             step += 1
             if step % val_every == 0 or step == 1:
-                val_records = Records(data, mode, "val", rank_id, world, embed_column, latent_column, lance_dir)
+                val_records = Records(data, mode, "val", rank_id, world, embed_column, latent_column, lance_dir, extra_columns)
                 if val_records.ready_rows == val_records.split_rows:
                     transformer.eval()
-                    val_loss = validate(transformer, val_records, audio, device, layouts, world, guide)
+                    val_heads = validate(transformer, val_records, audio, device, layouts, world, guide)
+                    val_loss = float(np.mean(val_heads)) if split else val_heads
+                    if split and rank_id == 0:
+                        print(f"{name} step {step} val per head {dict(zip(splitter.SPLIT_BACKGROUNDS, val_heads))}", flush=True)
+                        with open(out / "val_heads.csv", "a") as f:
+                            f.write(f"{step},{','.join(f'{v:.5f}' for v in val_heads)}\n")
                     transformer.train()
             if rank_id == 0:
                 seconds, last = time.time() - last, time.time()  # this step's wall time
