@@ -1037,3 +1037,7 @@ Step 1000 live (after 351b011, one wasm thread for Memory64): fibo2_turbo_fibo2_
 **Method.** Genetic frenzy: up to 7 rounds × 8 Sonnet children (`claude -p --model sonnet`), child n on node 1 GPU n−1, ≤ 2 children per lineage, ≥ 1 wildcard per round; baselines first (round 0).
 **Journal.** journal/h3magic_latentcomp.html (built by h3magic/journal_latentcomp.py).
 **Notifications.** Up to 10 for §23 + §24 together (m00983), sent by main only, signed h3magic.
+
+## 25. Is H3's encoder the bottleneck? (m00992; deadline 6 PM ET 2026-11-23)
+
+**Question.** Does a latent exist that the FROZEN H3 decoder turns into a clearly better reconstruction than the encoder's own latent does? Find it by gradient descent on the latent (objectives: pixel L1/L2, LPIPS, FIBO's FLUX.2-VAE latent distance, and mixes), on held-out Pexels frames and 141-frame clips. If the optimized latents are significantly better on every metric AND visibly sharper (VLM zoom checks on significant regions), the encoder is a bottleneck, and a better encoder (decoder frozen) is worth training: then train one (e.g. fine-tune H3's encoder, or an encoder head/refiner, against the optimized latents or end-to-end through the frozen decoder) and measure how close to pixel-perfect H3 video can get. Results on the fast-decoder journal page (its quality section) or its own page.
