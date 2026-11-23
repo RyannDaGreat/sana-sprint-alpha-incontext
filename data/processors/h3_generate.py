@@ -1,8 +1,8 @@
 """
 Eval inference of the H3 Magic project (manifest §22), all through Bluejay so Sparrow shows every result (m00912).
 
-    plan                          (CPU) h3_eval_prompts rows from h3magic/eval_prompts.json, and one h3_eval_generations
-                                  row per (h3_eval_models row, prompt) that has none
+    plan                          (CPU) h3_eval_prompts rows from the prompt-set files (PROMPT_SETS), and one
+                                  h3_eval_generations row per (h3_eval_models row, prompt of its prompt_set) that has none
     work WORKER WORKERS           long-lived GPU worker: H3 loads ONCE (~77 GB), then generates this worker's rows, model
                                   by model; switching models only re-weights the LoRA adapters (h3magic/h3.py set_adapters)
 
@@ -33,6 +33,8 @@ from h3magic import h3
 
 ROOT = Path(__file__).resolve().parents[2]
 EVAL_PROMPTS = ROOT / "h3magic/eval_prompts.json"
+# prompt_set of h3_eval_prompts / h3_eval_models (NULL = main): fg = the same 20 subjects with no background described (m00972)
+PROMPT_SETS = {"main": EVAL_PROMPTS, "fg": ROOT / "h3magic/eval_prompts_fg.json"}
 VIDEO_CRF = 12  # Near-lossless H.264, as h3_cut_clip's clips
 ADAPTERS = (("pexels", "pexels_adapter", "a_pexels"), ("imagegen", "imagegen_adapter", "b_imagegen"), ("graymagic", "graymagic_adapter", "c_graymagic"))
 
@@ -57,22 +59,40 @@ def png_bytes(image):
     return data.tobytes()
 
 
+def planned_generations(models, prompts, done):
+    """
+    Pure function. The missing h3_eval_generations rows: one per (model, prompt) of the same prompt_set (NULL = main)
+    that is not in `done`.
+
+    Examples:
+        >>> models = [{"model_tag": "stock_video", "prompt_set": None}, {"model_tag": "stock_video_fg", "prompt_set": "fg"}]
+        >>> prompts = [{"prompt_id": "p01", "seed": 1001, "prompt_set": None}, {"prompt_id": "p02", "seed": 1002, "prompt_set": "main"},
+        ...            {"prompt_id": "f01", "seed": 1001, "prompt_set": "fg"}]
+        >>> planned_generations(models, prompts, done={("stock_video", "p01")})
+        [{'model_tag': 'stock_video', 'prompt_id': 'p02', 'seed': 1002}, {'model_tag': 'stock_video_fg', 'prompt_id': 'f01', 'seed': 1001}]
+    """
+    set_of = lambda row: row["prompt_set"] or "main"
+    return [{"model_tag": m["model_tag"], "prompt_id": p["prompt_id"], "seed": p["seed"]} for m in models for p in prompts
+            if set_of(m) == set_of(p) and (m["model_tag"], p["prompt_id"]) not in done]
+
+
 def plan():
-    """Command. Adds the h3_eval_prompts rows and every missing h3_eval_generations row. Idempotent."""
+    """Command. Adds the h3_eval_prompts rows of every prompt set and every missing h3_eval_generations row. Idempotent."""
     from bluejay import open_database
 
     db = open_database("project.dtab")
-    prompts = json.loads(EVAL_PROMPTS.read_text())
     have = {r["prompt_id"] for r in db.query("SELECT prompt_id FROM h3_eval_prompts").to_pylist()}
-    new = [{"prompt_id": p["id"], "short": p["short"], "prompt": p["prompt"], "seed": p["seed"]} for p in prompts if p["id"] not in have]
+    new = [{"prompt_id": p["id"], "short": p["short"], "prompt": p["prompt"], "seed": p["seed"], "prompt_set": name}
+           for name, path in PROMPT_SETS.items() for p in json.loads(path.read_text()) if p["id"] not in have]
     if new:
-        db.commit("h3_eval_prompts", ["short", "prompt", "seed"], new, insert_missing=True)
-    models = [r["model_tag"] for r in db.query("SELECT model_tag FROM h3_eval_models").to_pylist()]
+        db.commit("h3_eval_prompts", ["short", "prompt", "seed", "prompt_set"], new, insert_missing=True)
+    models = db.query("SELECT model_tag, prompt_set FROM h3_eval_models").to_pylist()
+    prompts = db.query("SELECT prompt_id, seed, prompt_set FROM h3_eval_prompts").to_pylist()
     done = {(r["model_tag"], r["prompt_id"]) for r in db.query("SELECT model_tag, prompt_id FROM h3_eval_generations").to_pylist()}
-    rows = [{"model_tag": m, "prompt_id": p["id"], "seed": p["seed"]} for m in models for p in prompts if (m, p["id"]) not in done]
+    rows = planned_generations(models, prompts, done)
     if rows:
         db.commit("h3_eval_generations", ["seed"], rows, insert_missing=True)
-    print(f"plan: {len(new)} new prompts, {len(rows)} new generations ({len(models)} models x {len(prompts)} prompts)", flush=True)
+    print(f"plan: {len(new)} new prompts, {len(rows)} new generations ({len(models)} models, {len(prompts)} prompts)", flush=True)
 
 
 def work_sql(worker, workers, only="%"):
