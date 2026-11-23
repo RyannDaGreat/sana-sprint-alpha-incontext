@@ -39,11 +39,13 @@ JOBS = {  # job: (table, key, blob columns read, output column, rows per query)
     "video": ("h3_pexels_clips", "pexels_id", ["clip_512"], "h3_latent_video", 16),
     "split": ("h3_magick_images", "page_id", ["rgba"], "h3_latent_black_512", 64),  # done column; rgba from magick_samples
     "v3": ("h3_magick_images", "page_id", ["rgba"], "h3_latent_black_768", 32),  # done column; rgba from magick_samples
+    "grid": ("h3_magick_images", "page_id", ["rgba"], "h3_latent_grid_768", 32),  # rgba from magick_samples
 }
 SPLIT_BACKGROUNDS = {"h3_latent_white_512": 1.0, "h3_latent_black_512": 0.0}  # split job: output column -> composite_on_gray level
 V3_BACKGROUNDS = {"h3_latent_gray_768": 0.5, "h3_latent_white_768": 1.0, "h3_latent_black_768": 0.0}  # v3 job: output column -> level
 V3_SIZE = 768  # Alpha Video v2 resolution (m00983: "512 is a little bit low")
-RGBA_JOBS = {"split": SPLIT_BACKGROUNDS, "v3": V3_BACKGROUNDS}  # jobs that composite magick_samples.rgba themselves
+RGBA_JOBS = {"split": SPLIT_BACKGROUNDS, "v3": V3_BACKGROUNDS, "grid": {"h3_latent_grid_768": None}}  # jobs that composite magick_samples.rgba themselves
+GRID_PANEL = 384  # split v3-grid: 2 x 384 = one 768² frame, the token count of the other 768² runs
 
 
 def job_sql(job, worker, workers, shards=None):
@@ -145,6 +147,29 @@ def v3_composites(rgba):
     return np.stack([area_resize(composite_on_gray(rgba, level), V3_SIZE) for level in V3_BACKGROUNDS.values()])
 
 
+def grid_image(rgba, panel=GRID_PANEL):
+    """
+    Pure function. The split v3-grid training image of one MAGICK RGBA: 2x2 panels, each composited at 1024 in 8 bit and
+    area-resized to `panel`: top left on 0.5 gray, top right on white, bottom left on black, bottom right the alpha matte
+    as a grayscale image (white = opaque).
+
+    Args:
+        rgba (np.ndarray): (1024, 1024, 4) uint8 straight alpha
+
+    Returns:
+        np.ndarray: (2·panel, 2·panel, 3) uint8, e.g. (768, 768, 3)
+
+    Examples:
+        >>> rgba = np.zeros((1024, 1024, 4), np.uint8); rgba[..., 0] = 255; rgba[:512, :, 3] = 255  # top opaque red, bottom clear
+        >>> g = grid_image(rgba)
+        >>> g.shape, g[0, 0].tolist(), g[383, 0].tolist(), g[383, 384].tolist(), g[767, 0].tolist(), g[384, 767].tolist(), g[767, 767].tolist()
+        ((768, 768, 3), [255, 0, 0], [128, 128, 128], [255, 255, 255], [0, 0, 0], [255, 255, 255], [0, 0, 0])
+    """
+    gray, white, black = (area_resize(composite_on_gray(rgba, level), panel) for level in (0.5, 1.0, 0.0))
+    alpha = area_resize(np.repeat(rgba[..., 3:], 3, -1), panel)
+    return np.concatenate([np.concatenate([gray, white], 1), np.concatenate([black, alpha], 1)], 0)
+
+
 def encode_rows(vae, pool, job, rows):
     """
     Query (reads Blob files, runs the VAE). The output blobs of each row of one job.
@@ -163,7 +188,7 @@ def encode_rows(vae, pool, job, rows):
             out.append({output: tensors_bytes({"latent": h3.encode(vae, clip).to(torch.bfloat16)}, layout="LC, LT, LH, LW", **metadata)})
         return out
     if job in RGBA_JOBS:
-        composites = split_composites if job == "split" else v3_composites
+        composites = {"split": split_composites, "v3": v3_composites, "grid": lambda rgba: grid_image(rgba)[None]}[job]
         images = np.stack(list(pool.map(lambda row: composites(read_png_rgba(row["rgba"])), rows)))  # (B, K, S, S, 3)
     else:
         images = np.stack(list(pool.map(lambda row: np.stack([read_png_rgb(row[c]) for c in blobs]), rows)))  # (B, K, H, W, 3)
@@ -171,7 +196,7 @@ def encode_rows(vae, pool, job, rows):
     latents = torch.cat([h3.encode(vae, flat[i:i + IMAGE_BATCH]) for i in range(0, len(flat), IMAGE_BATCH)])  # (B * K, LC, 1, LH, LW)
     latents = latents.view(len(rows), images.shape[1], *latents.shape[1:]).to(torch.bfloat16)
     if job in RGBA_JOBS:
-        return [{column: tensors_bytes({"latent": z[k]}, layout="LC, LT, LH, LW", background=level, **metadata)
+        return [{column: tensors_bytes({"latent": z[k]}, layout="LC, LT, LH, LW", background=str(level), **metadata)
                  for k, (column, level) in enumerate(RGBA_JOBS[job].items())} for z in latents]
     if job == "magick":
         return [{output: tensors_bytes({"latent": z[0]}, layout="LC, LT, LH, LW", **metadata)} for z in latents]

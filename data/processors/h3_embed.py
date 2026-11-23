@@ -29,6 +29,7 @@ TABLES = {  # task: (table, key, text column, rows per query, embed column, sha2
     "h3_pexels_clips": ("h3_pexels_clips", "pexels_id", "h3_caption", 256, "h3_text_embed", "h3_text_sha256"),
     "h3_magick_images": ("h3_magick_images", "page_id", "h3_caption", 256, "h3_text_embed", "h3_text_sha256"),
     "h3_magick_images_v3": ("h3_magick_images", "page_id", "h3_caption_v3", 256, "h3_text_embed_v3", "h3_text_v3_sha256"),
+    "h3_magick_images_grid": ("h3_magick_images", "page_id", "h3_caption_grid", 256, "h3_text_embed_grid", "h3_text_grid_sha256"),
 }
 
 

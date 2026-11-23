@@ -43,6 +43,9 @@ environ
 	 Latent Compositor (manifest §24): run_proc_latentcomp.fish imports its dataset and its scored candidates
 	LC_DIR agents/.scratchpad/latentcomp	 Its folder, relative to the repo root: data/ (shards, test_plan.json) and r<k>/<name>/ (one folder per candidate)
 
+	 DiffDec (manifest §26): run_proc_diffdec.fish imports its test set and its scored candidates
+	DD_DIR agents/.scratchpad/diffdec	 Its folder, relative to the repo root: data/test/ (samples.json, one folder per sample), CONTRACT.md and g<round>/<name>/ (one folder per candidate)
+
 database
 	backend bluejay.local_database.LocalLanceBackend
 	host 0.0.0.0
@@ -1022,6 +1025,14 @@ tables
 			h3_text_embed_v3 blob
 			h3_text_v3_sha256 string	 The sha256 (hex) of the h3_caption_v3 that h3_text_embed_v3 embeds
 
+			 Split v3-grid (manifest §23, m01003, m01005). Written by h3_encode's job grid: one 768 x 768 frame of 2 x 2 panels of 384 (each composited at 1024,
+			 area-resized): top left on 0.5 gray, top right on white, bottom left on black, bottom right the alpha matte in grayscale. H3 VAE latent (24, 1, 48, 48)
+			h3_latent_grid_768 blob
+			 Written by agents/.scratchpad/alphav2/set_captions_grid.py: h3_caption + the grid suffix. h3_embed embeds it into h3_text_embed_grid
+			h3_caption_grid string
+			h3_text_embed_grid blob
+			h3_text_grid_sha256 string	 The sha256 (hex) of the h3_caption_grid that h3_text_embed_grid embeds
+
 	h3_pexels_clips
 		 One row per Pexels clip of the H3 Magic project. The video stays where it is: source_path refers to it (m00912)
 		primary_key pexels_id
@@ -1171,6 +1182,16 @@ tables
 			,	model_tag av2_split_s00150_image_fgray	mode image	graymagic_adapter models/h3magic/graymagic_v3/final	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 1.0	prompt_set fgray	split_adapter models/h3magic/split_v3/step_00150	size 768	g_split 1.0
 			,	model_tag av2_split_s00200_image_fgray	mode image	graymagic_adapter models/h3magic/graymagic_v3/final	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 1.0	prompt_set fgray	split_adapter models/h3magic/split_v3/step_00200	size 768	g_split 1.0
 			,	model_tag av2_split_s00250_image_fgray	mode image	graymagic_adapter models/h3magic/graymagic_v3/final	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 1.0	prompt_set fgray	split_adapter models/h3magic/split_v3/step_00250	size 768	g_split 1.0
+			,	model_tag av2_both_image_fgray	mode image	graymagic_adapter models/h3magic/graymagic_v3/final	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 1.0	prompt_set fgray	split_adapter models/h3magic/split_v3/final	size 768	g_split 1.0
+			,	model_tag av2_both_video_fgray	mode video	graymagic_adapter models/h3magic/graymagic_v3/final	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 1.0	prompt_set fgray	split_adapter models/h3magic/split_v3/final	size 768	g_split 1.0
+			,	model_tag av2_split_image_fgray	mode image	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 0.0	prompt_set fgray	split_adapter models/h3magic/split_v3/final	size 768	g_split 1.0
+			,	model_tag av2_split_video_fgray	mode video	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 0.0	prompt_set fgray	split_adapter models/h3magic/split_v3/final	size 768	g_split 1.0
+			,	model_tag av2_both_image_mgray	mode image	graymagic_adapter models/h3magic/graymagic_v3/final	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 1.0	prompt_set mgray	split_adapter models/h3magic/split_v3/final	size 768	g_split 1.0
+			,	model_tag av2_both_video_mgray	mode video	graymagic_adapter models/h3magic/graymagic_v3/final	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 1.0	prompt_set mgray	split_adapter models/h3magic/split_v3/final	size 768	g_split 1.0
+			,	model_tag av2_bothv_s00050_video_vgray	mode video	graymagic_adapter models/h3magic/graymagic_v3/final	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 1.0	prompt_set vgray	split_adapter models/h3magic/split_v3_video/step_00050	size 768	g_split 1.0
+			,	model_tag av2_bothv_video_fgray	mode video	graymagic_adapter models/h3magic/graymagic_v3/final	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 1.0	prompt_set fgray	split_adapter models/h3magic/split_v3_video/final	size 768	g_split 1.0
+			,	model_tag av2_bothv_image_fgray	mode image	graymagic_adapter models/h3magic/graymagic_v3/final	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 1.0	prompt_set fgray	split_adapter models/h3magic/split_v3_video/final	size 768	g_split 1.0
+			,	model_tag av2_bothv_video_mgray	mode video	graymagic_adapter models/h3magic/graymagic_v3/final	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 1.0	prompt_set mgray	split_adapter models/h3magic/split_v3_video/final	size 768	g_split 1.0
 
 	h3_eval_generations
 		 One row per H3 model and eval prompt: what the model makes from the prompt and its seed
@@ -1418,6 +1439,80 @@ tables
 			error_png blob	 |decoded - true composite| x 4 per channel
 			psnr, ssim, lpips, flux2_mse float64	 From results.json's per_sample
 			latent_mse float64	 pred.safetensors (fp16) against the true composite's latent
+
+	 DIFFDEC (manifest §26, m01001, m00998: every experiment goes through BlueJay). Sampling decoders (diffusion / flow) conditioned on the frozen
+	 H3 latent, against H3's own decoder. Their files stay in DD_DIR (DD_DIR/CONTRACT.md has the formats): dd_find finds them, dd_import_samples
+	 and dd_import_renders import them. Run: fish data/run_proc_diffdec.fish. View: view_dd_methods, view_dd_compare, view_dd_renders, view_dd_samples
+
+	dd_jobs
+		 One seeded row. dd_find scans DD_DIR once per Claim, and dd_import_samples imports the test set once per Claim: run_proc_diffdec.fish
+		 unclaims dd_find before each run, and dd_import_samples when the test set is complete and not imported (its stamp is not imported_samples_stamp)
+		primary_key job_id
+		columns
+			job_id string
+
+			 Written by dd_find
+			samples_stamp string	 sha256 of DD_DIR/data/test/samples.json when every test sample has its 3 files, else null (nothing to import yet)
+
+			 Written by dd_import_samples
+			imported_samples_stamp string	 The samples_stamp that it imported
+		initial_rows
+			,	job_id find
+
+	dd_samples
+		 One row per test sample of DD_DIR/data/test (manifest §26: 20 pexels_val, 8 magick, 8 pexbg, 32 pexels_spare; 512 x 512 only in round 1).
+		 Every file is byte for byte the file of DD_DIR/data/test/<sample_id>/
+		primary_key sample_id
+		columns
+			sample_id string
+
+			 Written by dd_import_samples, from samples.json
+			origin, side, pexels_id, page_id, source_table string	 origin: pexels_val, magick, pexbg or pexels_spare. pexels_id or page_id is null for the other source
+			has_upper_bound bool	 The sample has an h3_enc_results row of run img_l1vgg: optimized_l1vgg scores it (12 samples)
+			source_png blob	 source.png: lossless 512 x 512 RGB, the truth that every score compares to
+			latent blob	 latent.safetensors: {"sample", "mode", "std"}, each (24, 1, 32, 32) float32: the normalized H3 posterior
+			flux2 blob	 flux2.safetensors: {"latent": (32, 64, 64) float32}: the FIBO2-normalized FLUX.2 latent of source.png
+
+	dd_methods
+		 One row per candidate folder DD_DIR/g<round>/<name>/ with a genome.json. A candidate that has no results.json yet is still training:
+		 status "training", only its genome. When results.json appears (DD_DIR/dd_eval.py), dd_find fills the scores and sets status "scored"
+		primary_key method_id
+		columns
+			method_id string
+
+			 Written by dd_find, from genome.json (the child writes it before training)
+			name, agent, kind, parents, paper, paper_url, idea, why_win, ablation_of, ablation_change string	 kind: reference, baseline, child, wildcard or ablation. parents: JSON list of method_ids
+			space, conditioning, how_to_load, verdict, why_held_or_failed, train_gpu_type string	 space: rgb, flux2, h3dec ... conditioning: concat, adagn, crossattn ... train_gpu_type: genome.json's gpu_type
+			round int64	 The round of the folder name g<round>
+			text_cond bool
+			steps, params int64	 steps: sampling steps at eval
+			train_gpu_hours float64
+
+			 Written by dd_find, from results.json. Means over the test samples, the latent kind in latent_kind
+			status string	 "training" (no results.json yet) or "scored"
+			psnr, ssim, lpips_alex, lpips_vgg, dists, de2000, flux_mse, sharp_grad, sharp_fft float64	 Of the seed 0 render against the source. psnr: dB. de2000: CIEDE2000
+			psnr_mean8, dists_mean8 float64	 Of the mean of 8 seeds (deterministic decoders: same as seed 0)
+			ms_per_image float64
+			gpu_type, latent_kind string	 gpu_type: of the eval. latent_kind: "sample" (the pipeline's latent) or "mode"
+			eval_steps, n_samples int64
+			folder string	 The candidate folder, relative to the repo root
+			results_sha256 string	 sha256 (hex) of results.json. When it is not renders_sha256, run_proc_diffdec.fish unclaims the candidate and dd_import_renders imports it again
+
+			 Written by dd_import_renders
+			renders_sha256 string
+			renders int64
+
+	dd_renders
+		 One row per scored candidate and test sample: the render (seed 0), the mean of 8 seeds, an error map, the scores
+		primary_key render_id
+		columns
+			render_id, method_id, sample_id string	 render_id = method_id|sample_id
+
+			 Written by dd_import_renders
+			render_png blob	 Byte for byte the candidate's renders/<sample_id>.png (seed 0)
+			mean8_png blob	 Byte for byte renders_mean8/<sample_id>.png, null when the candidate has none
+			error_png blob	 |render - source| x 4 per channel
+			psnr, ssim, lpips_alex, lpips_vgg, dists, de2000, flux_mse, sharp_grad, sharp_fft, psnr_mean8, dists_mean8 float64	 From results.json's per_sample
 
 processors
 
@@ -2296,6 +2391,131 @@ processors
 					renders_sha256 @	 ~str   The results_sha256 that it imported   "3f9a…"
 					renders @	          int   Renders imported                      96
 
+	dd_find	 Finds the test set and the candidates in DD_DIR: one dd_methods row per candidate folder with a genome.json, and the stamp of the test set. Reads small files only
+		query SELECT job_id FROM dd_jobs WHERE dd_find_claim IS NULL
+		claim	dd_find_claim dd_jobs
+		command bash
+			uv run --script processors/dd_find.py "$SAMPLE" .. $DD_DIR
+		materialize
+			input.json	           TYPE  DESCRIPTION        EXAMPLE
+				job_id @	 [Key]  str   The one find job   "find"
+		commit
+			dd_methods
+				methods.parquet	             TYPE    DESCRIPTION                                                          EXAMPLE
+					method_id @	       [Key]  str     g<round>/<folder name>                                               "g0/h3_decoder"
+					round @	                  int     The round of the folder name                                         0
+					name @	                  str     genome.json name, else the folder name                               "h3_decoder"
+					status @	              str     "training" (no results.json yet) or "scored"                         "scored"
+					agent @	                  str     The child that made it                                               "child_3"
+					parents @	              str     JSON list of parent method_ids                                       "[]"
+					kind @	                  str     reference, baseline, child, wildcard or ablation                     "reference"
+					paper @	                  str     The paper it takes its idea from                                     "DC-AE"
+					paper_url @	              str     Its link                                                             "https://arxiv.org/abs/2410.10733"
+					idea @	                  str     The idea in one line                                                 "H3's own decoder, 256-px tiles"
+					why_win @	              str     The prediction and its evidence, written before running              "FLUX.2 decoder fixes texture ..."
+					ablation_of @	          str     The method_id that it isolates, or ""                                ""
+					ablation_change @	      str     The one thing changed                                                ""
+					space @	                  str     rgb, flux2, h3dec ...                                                "rgb"
+					conditioning @	          str     concat, adagn, crossattn ...                                         "concat"
+					text_cond @	              bool    The decoder takes a text prompt                                      false
+					steps @	                  int     Sampling steps at eval                                               1
+					params @	              int     Parameters                                                           86000000
+					train_gpu_hours @	      float   GPU hours of training                                                0.0
+					train_gpu_type @	      str     genome.json gpu_type                                                 "A100"
+					how_to_load @	          str     How to load it                                                       "model.py load(device)"
+					verdict @	              str     The visual verdict                                                   "texture is sharper ..."
+					why_held_or_failed @	  str     Why it was held or failed                                            ""
+					psnr @	                  float   Seed 0 against the source, dB                                        29.84
+					ssim @	                  float   SSIM                                                                 0.912
+					lpips_alex @	          float   LPIPS (alex)                                                         0.061
+					lpips_vgg @	              float   LPIPS (vgg)                                                          0.093
+					dists @	                  float   DISTS                                                                0.071
+					de2000 @	              float   CIEDE2000                                                            2.41
+					flux_mse @	              float   FLUX.2 latent MSE                                                    0.0123
+					sharp_grad @	          float   Sharpness: mean gradient                                             14.2
+					sharp_fft @	              float   Sharpness: high-frequency energy                                     0.021
+					psnr_mean8 @	          float   PSNR of the mean of 8 seeds, dB                                      30.10
+					dists_mean8 @	          float   DISTS of the mean of 8 seeds                                         0.065
+					ms_per_image @	          float   Time per image                                                       21.0
+					gpu_type @	              str     GPU of the eval                                                      "A100"
+					eval_steps @	          int     Steps of the eval                                                    1
+					n_samples @	              int     Test samples scored                                                  68
+					latent_kind @	          str     "sample" or "mode"                                                   "sample"
+					folder @	              str     The candidate folder, from the repo root                             "agents/.scratchpad/diffdec/g0/h3_decoder"
+					results_sha256 @	      str     sha256 (hex) of results.json, null while it trains                   "3f9a…"
+			dd_jobs
+				result.json	   SUBFIELD  TYPE  DESCRIPTION                                                        EXAMPLE
+					samples_stamp @	      str   sha256 of samples.json, null while the test set is incomplete      "3f9a…"
+
+	dd_import_samples	 Imports the test set into dd_samples: the metadata and, byte for byte, the source, the H3 latent and the FLUX.2 latent of each sample. CPU only
+		query sql
+			SELECT job_id, samples_stamp FROM dd_jobs -- The job,
+			WHERE dd_import_samples_claim IS NULL     -- not yet claimed (the launcher unclaims a changed test set),
+			LIMIT 1                                   -- one at a time
+		claim	dd_import_samples_claim dd_jobs
+		command bash
+			uv run --script processors/dd_import_samples.py "$SAMPLE" .. $DD_DIR
+		materialize
+			input.json	           TYPE  DESCRIPTION                                            EXAMPLE
+				job_id @	 [Key]  str   The one job                                            "find"
+				samples_stamp @	    str   sha256 of samples.json, null: not complete yet         "3f9a…"
+		commit
+			dd_samples
+				rows.parquet	             TYPE    DESCRIPTION                                          EXAMPLE
+					sample_id @	       [Key]  str     The sample                                           "pexels_8620887_f070"
+					origin @	              str     pexels_val, magick, pexbg or pexels_spare            "pexels_val"
+					side @	                  str     The side of the test set                             "val"
+					pexels_id @	              str     Pexels clip, null for a MAGICK image                 "8620887"
+					page_id @	              str     MAGICK image ID, null for a Pexels clip              "Hcx82jcUpM"
+					source_table @	          str     The BlueJay table of the source                      "h3_enc_samples"
+					has_upper_bound @	      bool    optimized_l1vgg scores it                            true
+					source_png @	          blob    Byte for byte source.png                             1.0 MB .png
+					latent @	              blob    Byte for byte latent.safetensors                     200 KB .safetensors
+					flux2 @	                  blob    Byte for byte flux2.safetensors                      520 KB .safetensors
+			dd_jobs
+				result.json	                   SUBFIELD  TYPE  DESCRIPTION                              EXAMPLE
+					imported_samples_stamp @	          str   The samples_stamp that it imported       "3f9a…"
+
+	dd_import_renders	 Imports one scored candidate's renders of the test samples into dd_renders, with error maps and per-sample scores. CPU only
+		query sql
+			SELECT method_id, folder, results_sha256 FROM dd_methods -- Candidates,
+			WHERE dd_import_renders_claim IS NULL                    -- not yet claimed (the launcher unclaims a changed candidate),
+			AND results_sha256 IS NOT NULL                           -- that have scores (a candidate that trains has none),
+			ORDER BY dists                                           -- best DISTS first,
+			LIMIT 1                                                  -- one at a time
+		claim	dd_import_renders_claim dd_methods
+		command bash
+			uv run --script processors/dd_import_renders.py "$SAMPLE" ..
+		materialize
+			input.json	             TYPE  DESCRIPTION                        EXAMPLE
+				method_id @	   [Key]  str   The candidate                      "g0/h3_decoder"
+				folder @	          str   Its folder, from the repo root     "agents/.scratchpad/diffdec/g0/h3_decoder"
+				results_sha256 @	 ~str   sha256 (hex) of its results.json   "3f9a…"
+		commit
+			dd_renders
+				rows.parquet	                 TYPE    DESCRIPTION                                       EXAMPLE
+					render_id @	           [Key]  str     method_id|sample_id                               "g0/h3_decoder|pexels_8620887_f070"
+					method_id @	                  str     The candidate                                     "g0/h3_decoder"
+					sample_id @	                  str     The test sample                                   "pexels_8620887_f070"
+					render_png @	              blob    Byte for byte renders/<sample_id>.png             1.0 MB .png
+					mean8_png @	                  blob    Byte for byte renders_mean8/<sample_id>.png       1.0 MB .png
+					error_png @	                  blob    |render - source| x 4 per channel                 1.1 MB .png
+					psnr @	                      float   Seed 0 against the source, dB (per_sample)        27.31
+					ssim @	                      float   SSIM (per_sample)                                 0.894
+					lpips_alex @	              float   LPIPS alex (per_sample)                           0.072
+					lpips_vgg @	                  float   LPIPS vgg (per_sample)                            0.101
+					dists @	                      float   DISTS (per_sample)                                0.081
+					de2000 @	                  float   CIEDE2000 (per_sample)                            2.9
+					flux_mse @	                  float   FLUX.2 latent MSE (per_sample)                    0.0151
+					sharp_grad @	              float   Sharpness: mean gradient (per_sample)             13.8
+					sharp_fft @	                  float   Sharpness: high-frequency energy (per_sample)     0.020
+					psnr_mean8 @	              float   PSNR of the mean of 8 seeds (per_sample)          27.9
+					dists_mean8 @	              float   DISTS of the mean of 8 seeds (per_sample)         0.075
+			dd_methods
+				result.json	   SUBFIELD  TYPE  DESCRIPTION                           EXAMPLE
+					renders_sha256 @	 ~str   The results_sha256 that it imported   "3f9a…"
+					renders @	          int   Renders imported                      60
+
 functions
 	model_labels	 The journal's weight equation and sampler of eval_models rows: src/sana_alpha/journal_assets.py label_of. Lists, so one query starts one process
 		args
@@ -2712,6 +2932,120 @@ queries
 		FROM lc_samples      -- Latent Compositor samples,
 		WHERE split = 'test' -- of the test set,
 		ORDER BY position    -- in test order: the hardest of each subset first
+
+	 DIFFDEC (manifest §26)
+
+	view_dd_methods sql
+		-- The leaderboard: one row per candidate, best DISTS first (lower is better). A candidate that still trains has only its genome
+		SELECT
+		    m.method_id,
+		    m.round,
+		    m.name,
+		    m.kind,
+		    m.status,
+		    m.space,
+		    m.text_cond,
+		    m.steps,
+		    m.psnr,
+		    m.psnr_mean8,
+		    m.ssim,
+		    m.lpips_vgg,
+		    m.dists,
+		    m.flux_mse,
+		    m.sharp_fft,
+		    m.ms_per_image,
+		    m.params,
+		    m.paper,
+		    m.why_win,
+		    m.verdict
+		FROM dd_methods m                 -- Each candidate,
+		ORDER BY m.dists ASC NULLS LAST,  -- best DISTS first, the ones that train last,
+		         m.method_id              -- then by name
+
+	view_dd_compare sql
+		-- One row per test sample: the source, H3's own decoder (g0/h3_decoder), then the render of the 12 best candidates by DISTS
+		-- (without H3's decoder), best first, each captioned with its PSNR and DISTS. view_dd_renders shows every candidate
+		WITH FUNCTION shot(src, rank, caption, k) AS (struct(
+		    'image'                                      AS widget,
+		    first_value(src)     FILTER (WHERE rank = k) AS src,
+		    first_value(caption) FILTER (WHERE rank = k) AS caption
+		))
+		WITH ranked AS (
+		    SELECT method_id, row_number() OVER (ORDER BY dists, method_id) AS rank -- The DISTS rank
+		    FROM dd_methods                                                         -- of each candidate
+		    WHERE renders IS NOT NULL                                               -- that dd_import_renders did,
+		      AND method_id <> 'g0/h3_decoder'                                      -- except the baseline
+		), shots AS (
+		    SELECT r.sample_id, r.render_png, k.rank,                                                         -- The image and the rank,
+		           concat(k.rank, '. ', r.method_id, ' ', round(r.psnr, 2), ' dB, DISTS ', round(r.dists, 3)) AS caption -- a caption
+		    FROM dd_renders r                                                                                 -- of each render,
+		    JOIN ranked k ON k.method_id = r.method_id                                                        -- by its candidate's rank,
+		    WHERE k.rank <= 12                                                                                -- of the 12 best candidates
+		)
+		SELECT
+		    s.sample_id,
+		    s.origin,
+		    struct('image' AS widget, first_value(s.source_png) AS src, 'source' AS caption) AS source,
+		    struct('image' AS widget, first_value(h.render_png) AS src,
+		           concat('h3_decoder ', round(first_value(h.psnr), 2), ' dB, DISTS ', round(first_value(h.dists), 3)) AS caption) AS h3_decoder,
+		    shot(t.render_png, t.rank, t.caption,  1) AS rank_01,
+		    shot(t.render_png, t.rank, t.caption,  2) AS rank_02,
+		    shot(t.render_png, t.rank, t.caption,  3) AS rank_03,
+		    shot(t.render_png, t.rank, t.caption,  4) AS rank_04,
+		    shot(t.render_png, t.rank, t.caption,  5) AS rank_05,
+		    shot(t.render_png, t.rank, t.caption,  6) AS rank_06,
+		    shot(t.render_png, t.rank, t.caption,  7) AS rank_07,
+		    shot(t.render_png, t.rank, t.caption,  8) AS rank_08,
+		    shot(t.render_png, t.rank, t.caption,  9) AS rank_09,
+		    shot(t.render_png, t.rank, t.caption, 10) AS rank_10,
+		    shot(t.render_png, t.rank, t.caption, 11) AS rank_11,
+		    shot(t.render_png, t.rank, t.caption, 12) AS rank_12
+		FROM dd_samples s                                                       -- Each test sample,
+		LEFT JOIN dd_renders h ON h.sample_id = s.sample_id                     -- with H3's own decode of it, if it has one,
+		                      AND h.method_id = 'g0/h3_decoder'
+		LEFT JOIN shots t ON t.sample_id = s.sample_id                          -- and the renders of the top candidates,
+		GROUP BY s.sample_id, s.origin                                          -- one row per test sample,
+		ORDER BY s.origin, s.sample_id                                          -- grouped by origin
+
+	view_dd_renders sql
+		-- One row per render: every scored candidate's render of every test sample, sample by sample, best DISTS first
+		SELECT
+		    struct('image' AS widget, s.source_png AS src, s.sample_id                                            AS caption) AS source,
+		    struct('image' AS widget, r.render_png AS src, concat(r.method_id, ' ', round(r.psnr, 2), ' dB')      AS caption) AS render,
+		    struct('image' AS widget, r.mean8_png  AS src, concat('mean of 8 seeds ', round(r.psnr_mean8, 2), ' dB') AS caption) AS mean8,
+		    struct('image' AS widget, r.error_png  AS src, 'error x4'                                             AS caption) AS error,
+		    r.sample_id,
+		    r.method_id,
+		    r.psnr,
+		    r.ssim,
+		    r.lpips_alex,
+		    r.lpips_vgg,
+		    r.dists,
+		    r.de2000,
+		    r.flux_mse,
+		    r.sharp_grad,
+		    r.sharp_fft,
+		    r.psnr_mean8,
+		    r.dists_mean8,
+		    m.dists AS method_dists,
+		    s.origin
+		FROM dd_renders r                              -- Each render,
+		JOIN dd_methods m ON m.method_id = r.method_id -- with its candidate
+		JOIN dd_samples s ON s.sample_id = r.sample_id -- and its test sample,
+		ORDER BY s.origin, s.sample_id, m.dists        -- sample by sample, best DISTS first
+
+	view_dd_samples sql
+		SELECT
+		    struct('image' AS widget, source_png AS src, sample_id AS caption) AS source,
+		    sample_id,
+		    origin,
+		    side,
+		    pexels_id,
+		    page_id,
+		    source_table,
+		    has_upper_bound
+		FROM dd_samples       -- DiffDec test samples,
+		ORDER BY origin, sample_id
 
 sparrow
 	saves sparrow_saves
