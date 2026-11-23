@@ -1281,3 +1281,6 @@ Please make it in a new journal page, without broken crap. Showcase the things I
 
 ## m00972 — 2026-11-22 ~10:06 PM ET
 OK. The next thing I want, after you finish training, is to add those black/white/gray channels like in the FIBO one — all in one extra adapter this time, which is the split adapter — and train that on both the basic ass [magic] and the good one, and do appropriate ablations. Also, in your test, can you please have another 20 videos whose backgrounds are specifically absent from the prompt, so only the foregrounds are described (you can do that inference thing now).
+
+## m00973 — 2026-11-22 ~10:12 PM ET
+W_H3 + 0·Δ_pexels + 0·Δ_imagegen + 0·Δ_graymagic + 1·Δ_split, CFG 2.5 --> I wanna see that too.
