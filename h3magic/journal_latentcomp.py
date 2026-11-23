@@ -103,6 +103,8 @@ def shown_methods(rows):
     for rnd in sorted({r["round"] for r in rows if r["round"] >= 1}):
         best = sorted([r for r in rows if r["round"] == rnd], key=lambda r: -r["psnr"])[:TOP_PER_ROUND]
         ids += [r["id"] for r in best if r["id"] not in ids]
+    tiled = sorted([r for r in rows if r.get("psnr_tiled") is not None], key=lambda r: -r["psnr_tiled"])[:2 * TOP_PER_ROUND]
+    ids += [r["id"] for r in tiled if r["id"] not in ids]
     return ids
 
 
@@ -140,6 +142,16 @@ def build_examples(rows, meta_by_index):
             pos = str(meta["position"])
             ex["outputs"].append(dict(id=m, name=by_id[m]["name"], path=out, err=f"assets/h3magic_latentcomp/{safe}/{index}_err.png",
                                       psnr=res["psnr"].get(pos), lpips=res["lpips"].get(pos), ssim=res["ssim"].get(pos)))
+            tpng = LC / m / "decoded_testtiled" / f"{index}.png"
+            if tpng.exists():  # the same method on the TILED test latents (FITNESS.md "Tiled latents")
+                tout = copy_asset(tpng, f"{safe}/{index}_tiled.png")
+                terr = ASSETS / f"{safe}/{index}_tiled_err.png"
+                if not terr.exists() or terr.stat().st_mtime < tpng.stat().st_mtime:
+                    cv2.imwrite(str(terr), cv2.cvtColor(error_map(read_rgb(tpng), true), cv2.COLOR_RGB2BGR))
+                tres = json.loads((LC / m / "results_testtiled.json").read_text())["per_sample"]
+                ex["outputs"].append(dict(id=f"{m} (tiled)", name=by_id[m]["name"] + ", tiled latents", path=tout,
+                                          err=f"assets/h3magic_latentcomp/{safe}/{index}_tiled_err.png",
+                                          psnr=tres["psnr"].get(pos), lpips=tres["lpips"].get(pos), ssim=tres["ssim"].get(pos)))
         examples.append(ex)
     order = {"hard_soft": 0, "hard_contrast": 1, "random": 2}
     return sorted(examples, key=lambda e: (order[e["subset"]], -(e["rating"] or 0)))
@@ -285,7 +297,25 @@ def build():
         r = lead[track]
         return (f"<b>Track {track}</b>: {html.escape(r['id'])} ({html.escape(r['name'])}): {r['psnr']:.2f} dB on EVAL, {fmt(r['psnr_hard'], '.2f')} dB on the hard soft mattes, "
                 f"LPIPS {r['lpips']:.4f}; {fmt(r.get('params'), ',')} params, {fmt(r.get('ms_fwdbwd'), '.2f')} ms forward + backward." if r else f"<b>Track {track}</b>: no candidate yet.")
-    findings = "<ul>" + f"<li>{lead_text('L')}</li><li>{lead_text('H')}</li>" + (
+    tiled_ref = LC / "r0/dbe_gray_tiled/results_testtiled.json"
+    dbe_t = json.loads(tiled_ref.read_text())["decoded"] if tiled_ref.exists() else None
+    tiled_rows = [r for r in rows if r.get("psnr_tiled") is not None and r["track"] in ("L", "H")]
+
+    def tiled_lead(track, max_params=None):
+        """Pure function. One sentence on the best tiled candidate of a track (optionally under a parameter cap)."""
+        c = [r for r in tiled_rows if r["track"] == track and (max_params is None or (r.get("params") or 0) <= max_params)]
+        if not c:
+            return ""
+        r = max(c, key=lambda r: r["psnr_tiled"])
+        label = f"Track {track}" + (f" &le; {max_params // 1000} k params" if max_params else "")
+        return (f"<li><b>{label}, TILED latents</b>: {html.escape(r['id'])} ({html.escape(r['name'])}): <b>{r['psnr_tiled']:.2f} dB</b> "
+                f"(hard soft {fmt(r.get('psnr_hard_tiled'), '.2f')}, LPIPS {r['lpips_tiled']:.4f}, latent MSE {r['latent_mse_tiled']:.4f}); "
+                f"{fmt(r.get('params'), ',')} params, {fmt(r.get('ms_fwdbwd'), '.2f')} ms forward + backward.</li>")
+    tiled_findings = (tiled_lead("H") + tiled_lead("L") + tiled_lead("L", 250_000)
+                      + (f"<li><b>TILED references</b>: oracle {tiled_rows[0]['oracle_psnr_tiled']:.2f} dB; decode&rarr;blend&rarr;encode "
+                         f"{dbe_t['psnr']['all']:.2f} dB (LPIPS {dbe_t['lpips']['all']:.4f}).</li>" if tiled_rows and dbe_t else ""))
+    findings = ("<p><b>On TILED latents</b> (what H3 expects; the primary score from round 5):</p><ul>" + tiled_findings + "</ul>"
+                "<p><b>On the untiled latents</b> of rounds 0&ndash;4:</p>") + "<ul>" + f"<li>{lead_text('L')}</li><li>{lead_text('H')}</li>" + (
         f"<li><b>References:</b> decode&rarr;blend&rarr;encode {dbe['psnr']:.2f} dB at {fmt(dbe.get('ms_reference'), '.0f')} ms per sample; "
         f"oracle (the true composite latent, decoded) {oracle:.2f} dB: what a perfect compositor scores (PSNR can still be gamed by blurrier latents, see r0/taeh3_dbe; read LPIPS and latent MSE beside it).</li>" if dbe and oracle else "") + "</ul>"
     data = dict(examples=examples, rows=rows, oracle=oracle, dbe=dbe["psnr"] if dbe else None)
