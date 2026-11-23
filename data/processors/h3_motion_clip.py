@@ -85,11 +85,11 @@ def composites_of(row):
     return params, synth_motion.moving_composites(rgba, synth_motion.affine_path(params, FRAMES, rgba.shape[0], SIZE), SIZE)
 
 
-def main(worker, workers, count=600):
+def main(worker, workers, count=600, only_split=None):
     """Command. Makes this worker's share of the chosen clips (stable_worker), committing each as it is made."""
     from bluejay import open_database
     db = open_database("project.dtab")
-    rows = [r for r in chosen_rows(db, count) if stable_worker(r["page_id"], workers) == worker]
+    rows = [r for r in chosen_rows(db, count) if stable_worker(r["page_id"], workers) == worker and only_split in (None, r["split"])]
     print(f"worker {worker}/{workers}: {len(rows)} clips to make", flush=True)
     vae = h3.load_vae()
     from concurrent.futures import ThreadPoolExecutor

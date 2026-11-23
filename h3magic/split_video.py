@@ -197,6 +197,10 @@ def train(name, graymagic, split, lr=1e-3, max_steps=400, save_every=25, val_eve
     def validate():
         """Query (runs the model). Mean val loss per white / black head over this rank's val clips, all ranks averaged."""
         total, count = torch.zeros(2, device=device), torch.zeros((), device=device)
+        val_files = clip_records("val", val_clips)  # val clips made after the start join (the same list on every rank: sorted, then cut to the ranks' minimum)
+        n = torch.tensor(len(val_files), device=device)
+        dist.all_reduce(n, op=dist.ReduceOp.MIN)
+        val_files = val_files[:int(n)]
         with torch.no_grad():
             for i, path in enumerate(val_files[rank::world]):
                 batch = load_clip(path)

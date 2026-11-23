@@ -197,15 +197,34 @@ def prompt_id_for(model, number):
     return SET_LETTER[model.get("prompt_set")] + number
 
 
-def test_tables(models_by_tag):
-    """Command (copies outputs to journal/assets/h3magic/<tag>/). The comparison tables of TESTS, pending cells marked."""
-    used = {tag for _, _, _, cols in TESTS for _, tag, _ in cols if tag in models_by_tag}
+def tasting_tables(models_by_tag):
+    """
+    Pure function. The tasting tables (TESTS format) from the av2 checkpoint rows: gray magic v3 steps (gray output) and
+    split v3 steps (alpha and RGBA), images on the subject-only prompts + suffix, in step order.
+
+    Examples:
+        >>> rows = {"av2_gm_s00100_image_fgray": {}, "av2_split_s00050_image_fgray": {}, "av2_stock_image_fgray": {}}
+        >>> [(t[0][:22], [c[1] for c in t[3]]) for t in tasting_tables(rows)]
+        [('Tasting: gray magic v3', ['av2_stock_image_fgray', 'av2_gm_s00100_image_fgray']), ('Tasting: split v3 chec', ['av2_split_s00050_image_fgray', 'av2_split_s00050_image_fgray'])]
+    """
+    import re
+    steps = lambda kind: sorted(t for t in models_by_tag if re.fullmatch(f"av2_{kind}_s\\d{{5}}_image_fgray", t))
+    step = lambda tag: int(re.search(r"_s(\d{5})_", tag).group(1))
+    gm = [("zero adapters (stock + suffix)", "av2_stock_image_fgray", "gray")] + [(f"step {step(t)}", t, "gray") for t in steps("gm")]
+    split = [c for t in steps("split") for c in ((f"step {step(t)}: alpha", t, "alpha"), (f"step {step(t)}: RGBA", t, "rgba"))]
+    return (("Tasting: gray magic v3 checkpoints (images, g01&ndash;g20, 768&sup2;)", "image", "g", tuple(gm)),
+            ("Tasting: split v3 checkpoints (gray magic v3 + split step; images, g01&ndash;g20, 768&sup2;)", "image", "g", tuple(split)))
+
+
+def test_tables(models_by_tag, tables=TESTS):
+    """Command (copies outputs to journal/assets/h3magic/<tag>/). Comparison tables (TESTS format), pending cells marked."""
+    used = {tag for _, _, _, cols in tables for _, tag, _ in cols if tag in models_by_tag}
     plain = [models_by_tag[t] for t in used if not models_by_tag[t].get("split_adapter")]
     split = [models_by_tag[t] for t in used if models_by_tag[t].get("split_adapter")]
     found_plain, found_split = j.export_outputs(plain), js.export_split(split)
     sources = {"g": j.ROOT / "h3magic/eval_prompts_fgray.json", "m": j.ROOT / "h3magic/eval_prompts_mgray.json"}
     html_out = []
-    for title, mode, letter, cols in TESTS:
+    for title, mode, letter, cols in tables:
         prompts = json.loads(sources[letter].read_text())
         head = "".join(f"<th>{c}</th>" for c, _, _ in cols)
         eqs = []
@@ -240,6 +259,7 @@ def build():
         copy_asset(TASTE_DIR / name, ASSETS / "taste" / name)
     models_by_tag = {m["model_tag"]: m for m in j.load_models()}
     tests = f'<h2>Tests (subject-only prompts first)</h2>{NOTES.get("tests_finding", "")}{test_tables(models_by_tag)}'
+    tests += f'<h2>Tasting during training</h2>{NOTES.get("tasting_finding", "")}{test_tables(models_by_tag, tasting_tables(models_by_tag))}'
     sections = [suffix_section()] + entries + [tests]
     glossary = "".join(f"<dt>{t}</dt><dd>{d}</dd>" for t, d in GLOSSARY)
     css = js.CSS + ":root { --media: 384px; } tr.chosen td { font-weight: bold; } table.scores td { font: var(--font-small)/1.4 system-ui, sans-serif; padding: 4px 8px; border-bottom: 1px solid var(--rule); }"
