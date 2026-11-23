@@ -18,4 +18,5 @@ contains -- $argv[2] stats fmloss; and set script processors/h3_enc_fmloss.py
 set log ../agents/.scratchpad/logs
 set name h3_enc_$argv[2]
 test (count $argv) -ge 3; and not string match -q -- '-*' $argv[3]; and set name $name"_"$argv[3]  # the run name, when given
+contains -- --tiled $argv; and set name $name"_tiled"  # evaluate NAME --tiled must not overwrite the untiled log
 env CUDA_VISIBLE_DEVICES=$gpu $H3_ENV --with lpips --with DISTS_pytorch --with pytorch-msssim python $script $argv[2..] 2>&1 | tee $log/$name.log
