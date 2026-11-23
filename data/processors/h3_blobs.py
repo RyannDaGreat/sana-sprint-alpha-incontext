@@ -28,6 +28,14 @@ def read_png_rgb(info):
     return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
 
+def read_png_rgba(info):
+    """Query. One stored RGBA PNG (straight alpha) as uint8 (H, W, 4) RGBA."""
+    image = cv2.imdecode(np.frombuffer(read_blob(info), np.uint8), cv2.IMREAD_UNCHANGED)
+    if image is None or image.ndim != 3 or image.shape[2] != 4:
+        raise ValueError(f"Cannot decode an RGBA PNG at {info}")
+    return cv2.cvtColor(image, cv2.COLOR_BGRA2RGBA)
+
+
 def read_mp4_rgb(info):
     """Query. One stored MP4 as uint8 (T, H, W, 3) RGB, every frame."""
     return iio.imread(read_blob(info), extension=".mp4", plugin="pyav")

@@ -6,6 +6,8 @@ Each blob is safetensors {"latent": bfloat16}, normalized as h3magic/h3.py encod
     h3_magick_images  h3_latent_512     (24, 1, 32, 32)      (LC, LT, LH, LW) of image_512
     h3_pexels_clips   h3_latent_frames  (7, 24, 1, 32, 32)   (K, LC, LT, LH, LW) of frame_0s .. frame_6s (m00917)
     h3_pexels_clips   h3_latent_video   (24, 42, 32, 32)     (LC, LT, LH, LW) of clip_512 (141 frames)
+    h3_magick_images  h3_latent_white_512, h3_latent_black_512   (24, 1, 32, 32) of magick_samples.rgba composited on
+                      white and on black at 1024 and area-downsampled to 512 exactly as image_512 (the split adapter's targets)
 Only captioned rows are encoded (training needs the caption); each round does one query per job: images (cheap) and videos (~5 s each on an A100).
 
     h3_encode.py WORKER WORKERS [--jobs magick,frames,video] [--poll_seconds 120]   (from data/; GPU = $CUDA_VISIBLE_DEVICES)
@@ -21,7 +23,9 @@ import torch
 
 sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
-from h3_blobs import byte_shard_sql, read_mp4_rgb, read_png_rgb, round_robin, shard_range, shard_sql, tensors_bytes
+from h3_blobs import byte_shard_sql, read_mp4_rgb, read_png_rgb, read_png_rgba, round_robin, shard_range, shard_sql, tensors_bytes
+from h3_magick_image import area_downsample
+from split_alpha import composite_on_gray
 from h3magic import h3
 
 FRAME_COLUMNS = [f"frame_{s}s" for s in range(7)]  # The m00917 stills at 0..6 s
@@ -31,7 +35,9 @@ JOBS = {  # job: (table, key, blob columns read, output column, rows per query)
     "magick": ("h3_magick_images", "page_id", ["image_512"], "h3_latent_512", 256),
     "frames": ("h3_pexels_clips", "pexels_id", FRAME_COLUMNS, "h3_latent_frames", 64),
     "video": ("h3_pexels_clips", "pexels_id", ["clip_512"], "h3_latent_video", 16),
+    "split": ("h3_magick_images", "page_id", ["rgba"], "h3_latent_black_512", 64),  # done column; rgba from magick_samples
 }
+SPLIT_BACKGROUNDS = {"h3_latent_white_512": 1.0, "h3_latent_black_512": 0.0}  # split job: output column -> composite_on_gray level
 
 
 def job_sql(job, worker, workers, shards=None):
@@ -44,8 +50,14 @@ def job_sql(job, worker, workers, shards=None):
         True
         >>> "IN ('30', '31')" in job_sql("video", 0, 1, [48, 49])
         True
+        >>> "JOIN magick_samples" in job_sql("split", 0, 1, [7]) and "h.h3_latent_black_512 IS NULL" in job_sql("split", 0, 1, [7])
+        True
     """
     table, key, blobs, output, limit = JOBS[job]
+    if job == "split":  # The RGBA lives in magick_samples: join it (same page_id)
+        shard = shard_sql("h.page_id", worker, workers) if shards is None else byte_shard_sql("h.page_id", shards)
+        return (f"SELECT h.page_id, blob_info(m.rgba) AS rgba FROM h3_magick_images h JOIN magick_samples m ON m.page_id = h.page_id "
+                f"WHERE h.{output} IS NULL AND h.h3_caption IS NOT NULL AND m.rgba IS NOT NULL AND {shard} LIMIT {limit}")
     shard = shard_sql(key, worker, workers) if shards is None else byte_shard_sql(key, shards)
     infos = ", ".join(f"blob_info({c}) AS {c}" for c in blobs)
     ready = " AND ".join(f"{c} IS NOT NULL" for c in blobs)
@@ -65,14 +77,34 @@ def train_first(table):
     return "ORDER BY split = 'train' DESC, split = 'val' DESC, random()"
 
 
-def encode_rows(vae, pool, job, rows):
+def split_composites(rgba):
     """
-    Query (reads Blob files, runs the VAE). The output blob of each row of one job.
+    Pure function. The split job's images of one MAGICK RGBA: on white and on black (SPLIT_BACKGROUNDS order), each
+    composited at 1024 in 8 bit and area-downsampled to 512, the recipe of image_512 (= composite_on_gray(rgba, 0.5)).
+
+    Args:
+        rgba (np.ndarray): (1024, 1024, 4) uint8 straight alpha
 
     Returns:
-        list[bytes]: safetensors bytes, one per row
+        np.ndarray: (2, 512, 512, 3) uint8 RGB
+
+    Examples:
+        >>> rgba = np.zeros((1024, 1024, 4), np.uint8); rgba[..., 0] = 255; rgba[:512, :, 3] = 255  # top opaque red, bottom clear
+        >>> out = split_composites(rgba)
+        >>> out.shape, out[0, 0, 0].tolist(), out[0, -1, 0].tolist(), out[1, -1, 0].tolist()  # red; white; black
+        ((2, 512, 512, 3), [255, 0, 0], [255, 255, 255], [0, 0, 0])
     """
-    _, _, blobs, _, _ = JOBS[job]
+    return np.stack([area_downsample(composite_on_gray(rgba, level), h3.SIZE) for level in SPLIT_BACKGROUNDS.values()])
+
+
+def encode_rows(vae, pool, job, rows):
+    """
+    Query (reads Blob files, runs the VAE). The output blobs of each row of one job.
+
+    Returns:
+        list[dict[str, bytes]]: {output column: safetensors bytes}, one per row
+    """
+    _, _, blobs, output, _ = JOBS[job]
     metadata = dict(vae="MiniMax-H3 video VAE, untiled encode, sampled posterior", seed=h3.ENCODE_SEED, normalized="latents_mean/std")
     if job == "video":
         clips = list(pool.map(lambda row: read_mp4_rgb(row["clip_512"]), rows))
@@ -80,15 +112,21 @@ def encode_rows(vae, pool, job, rows):
         for clip in clips:
             if clip.shape != (h3.VIDEO_FRAMES, h3.SIZE, h3.SIZE, 3):
                 raise ValueError(f"clip_512 has shape {clip.shape}, expected {(h3.VIDEO_FRAMES, h3.SIZE, h3.SIZE, 3)}")
-            out.append(tensors_bytes({"latent": h3.encode(vae, clip).to(torch.bfloat16)}, layout="LC, LT, LH, LW", **metadata))
+            out.append({output: tensors_bytes({"latent": h3.encode(vae, clip).to(torch.bfloat16)}, layout="LC, LT, LH, LW", **metadata)})
         return out
-    images = np.stack(list(pool.map(lambda row: np.stack([read_png_rgb(row[c]) for c in blobs]), rows)))  # (B, K, H, W, 3)
+    if job == "split":
+        images = np.stack(list(pool.map(lambda row: split_composites(read_png_rgba(row["rgba"])), rows)))  # (B, 2, 512, 512, 3)
+    else:
+        images = np.stack(list(pool.map(lambda row: np.stack([read_png_rgb(row[c]) for c in blobs]), rows)))  # (B, K, H, W, 3)
     flat = images.reshape(-1, 1, *images.shape[2:])  # (B * K, 1, H, W, 3): one image per latent
     latents = torch.cat([h3.encode(vae, flat[i:i + IMAGE_BATCH]) for i in range(0, len(flat), IMAGE_BATCH)])  # (B * K, LC, 1, LH, LW)
-    latents = latents.view(len(rows), len(blobs), *latents.shape[1:]).to(torch.bfloat16)
+    latents = latents.view(len(rows), images.shape[1], *latents.shape[1:]).to(torch.bfloat16)
+    if job == "split":
+        return [{column: tensors_bytes({"latent": z[k]}, layout="LC, LT, LH, LW", background=level, **metadata)
+                 for k, (column, level) in enumerate(SPLIT_BACKGROUNDS.items())} for z in latents]
     if job == "magick":
-        return [tensors_bytes({"latent": z[0]}, layout="LC, LT, LH, LW", **metadata) for z in latents]
-    return [tensors_bytes({"latent": z}, layout="K, LC, LT, LH, LW; K = frames at 0..6 s", **metadata) for z in latents]
+        return [{output: tensors_bytes({"latent": z[0]}, layout="LC, LT, LH, LW", **metadata)} for z in latents]
+    return [{output: tensors_bytes({"latent": z}, layout="K, LC, LT, LH, LW; K = frames at 0..6 s", **metadata)} for z in latents]
 
 
 def main(worker, workers, jobs="magick,frames,video", poll_seconds=120, shard_lo=None, shard_hi=None):
@@ -118,7 +156,7 @@ def main(worker, workers, jobs="magick,frames,video", poll_seconds=120, shard_lo
 
         def handle(rows):
             blobs = encode_rows(vae, pool, job, rows)
-            db.commit(table, [output], [{key: row[key], output: blob} for row, blob in zip(rows, blobs)])
+            db.commit(table, list(blobs[0]), [{key: row[key], **blob} for row, blob in zip(rows, blobs)])
         return handle
 
     with torch.inference_mode():
