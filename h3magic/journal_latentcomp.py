@@ -157,7 +157,7 @@ def leaders(rows):
 def table_html(rows, caption=""):
     """Pure function. A sortable HTML table of candidates, best decoded PSNR first."""
     head = ("<tr><th>candidate</th><th>method</th><th>parents</th><th>track</th><th>PSNR</th><th>hard soft</th><th>hard contrast</th>"
-            "<th>random</th><th>SSIM</th><th>LPIPS</th><th>FLUX.2 MSE</th><th>latent MSE</th><th>params</th><th>ms fwd</th><th>ms fwd+bwd</th><th>verdict</th></tr>")
+            "<th>random</th><th>SSIM</th><th>LPIPS</th><th>FLUX.2 MSE</th><th>latent MSE</th><th>TILED PSNR</th><th>TILED LPIPS</th><th>TILED latent MSE</th><th>params</th><th>ms fwd</th><th>ms fwd+bwd</th><th>verdict</th></tr>")
     body = []
     for r in sorted(rows, key=lambda r: -r["psnr"]):
         ms_f = r.get("ms_fwd", r.get("ms_reference"))
@@ -165,7 +165,8 @@ def table_html(rows, caption=""):
             f"<tr><td>{html.escape(r['id'])}</td><td>{html.escape(r['name'])}<br><span class='note'>{html.escape(r['change'][:160])}</span></td>"
             f"<td>{html.escape(', '.join(r['parents']))}</td><td>{r['track']}{' (wildcard)' if r['wildcard'] else ''}</td>"
             + "".join(f"<td data-sort='{r[k] if r.get(k) is not None else -1}'>{fmt(r.get(k), s)}</td>" for k, s in
-                      (("psnr", ".2f"), ("psnr_hard", ".2f"), ("psnr_contrast", ".2f"), ("psnr_random", ".2f"), ("ssim", ".4f"), ("lpips", ".4f"), ("flux2", ".4f"), ("latent_mse", ".4f")))
+                      (("psnr", ".2f"), ("psnr_hard", ".2f"), ("psnr_contrast", ".2f"), ("psnr_random", ".2f"), ("ssim", ".4f"), ("lpips", ".4f"), ("flux2", ".4f"), ("latent_mse", ".4f"),
+                       ("psnr_tiled", ".2f"), ("lpips_tiled", ".4f"), ("latent_mse_tiled", ".4f")))
             + f"<td data-sort='{r.get('params', -1)}'>{fmt(r.get('params'), ',')}</td>"
             f"<td data-sort='{ms_f if ms_f is not None else -1}'>{fmt(ms_f, '.2f')}{' (reference)' if 'ms_reference' in r else ''}</td>"
             f"<td data-sort='{r.get('ms_fwdbwd', -1)}'>{fmt(r.get('ms_fwdbwd'), '.2f')}</td><td class='note'>{html.escape(r['verdict'][:220])}</td></tr>")
