@@ -1,5 +1,7 @@
-{"status": "Round 1 of 3 running (training on node 2 since 5:07 AM ET; first scores about 6:30 AM ET)",
- "verdict": "No answer yet: round 1 is training. The baseline numbers below are measured.",
- "numbers": ["H3's own decoder on 68 held-out 512² images: PSNR 30.42 dB, DISTS 0.070, LPIPS-vgg 0.159, 714 ms per image (A100)",
-             "§25 optimized latent through H3's decoder (12 images): PSNR 35.22 dB, DISTS 0.024: the regression upper bound",
-             "FLUX.2 VAE round trip of the source: PSNR 38.89 dB, DISTS 0.012: the ceiling of a decoder that ends in the FLUX.2 decoder"]}
+{"status": "Round 1 of 3: 4 of 8 runs scored (6:40 AM ET); the refiner, H3-decoder fine-tunes, text and DWD children are scored next",
+ "verdict": "Not yet. On single-image latents a small new decoder beats H3's decoder on every metric, but by eye H3's decoder still looks better, and no sampling decoder has won by eye yet.",
+ "numbers": ["H3's decoder (single-image path, 7 repeated latent frames): PSNR 30.42 dB, DISTS 0.070, LPIPS-vgg 0.159, 714 ms per 512² image",
+             "pixreg, a 68 M regression decoder trained 70 min on 1 A100: PSNR 32.14 dB, DISTS 0.051, LPIPS-vgg 0.111, 51 ms; but blind judges preferred H3's decoder 28 to 4 (pixreg is blurrier)",
+             "pixflow, the same network as a flow sampler: one sample PSNR 30.49 dB (= H3), sharper (sharp_fft 0.92 vs 0.83); blind judges 11 vs 18 for H3 (not significant). The mean of 8 samples (32.18 dB) only restates the regression result",
+             "Caveat: H3's decoder in VIDEO mode (whole clip latent) gets 33.3 dB on the same frames, so its single-image path is handicapped; the video-latent comparison is round 2",
+             "§25 optimized latent through H3's decoder (12 images): 35.22 dB, DISTS 0.024: the regression upper bound"]}
