@@ -139,7 +139,7 @@ def todo_sql(run, where):
     >>> "run_id = 'x'" in todo_sql("x", "kind = 'image'")
     True
     """
-    return ("SELECT sample_id, side, blob_info(source) AS src, blob_info(source_frames) AS frames FROM h3_enc_samples "
+    return ("SELECT sample_id, kind, side, blob_info(source) AS src, blob_info(source_frames) AS frames FROM h3_enc_samples "
             f"WHERE ({where}) AND sample_id NOT IN (SELECT sample_id FROM h3_enc_results WHERE run_id = '{run}') ORDER BY sample_id")
 
 

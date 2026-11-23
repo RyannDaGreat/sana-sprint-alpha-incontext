@@ -1221,10 +1221,14 @@ tables
 			run_id string
 
 			 Written by h3_enc_opt.py images and video
-			method string	             encoder_sample, encoder_mode, encoder_tiled or optimize (Adam on the latent from the posterior mode)
+			method string	             encoder_sample, encoder_mode, encoder_tiled, optimize (Adam on the latent from the posterior mode) or encoder_finetuned (h3_enc_train.py)
 			objective, terms string	     terms: JSON {loss term: weight} of h3_enc_lib.OBJECTIVES, e.g. {"l1": 1.0, "lpips_vgg": 0.1}
 			steps int64
-			lr, prior_weight float64	 prior_weight: weight of mean(((z - mode) / std)^2), the encoder's posterior as a prior (0 = none)
+			lr, prior_weight float64	 prior_weight: weight of mean(((z - mode) / std)^2), the encoder's posterior as a prior (0 = none); encoder_finetuned: the weight of mean((z - z_H3)^2)
+
+			 Written by h3_enc_train.py train (method encoder_finetuned)
+			checkpoint string	 The fine-tuned encoder: encoder.* and quant_conv.* weights, relative to the repo root
+			train_log string	 JSON list of {step, loss, rec, rec_h3, reg, seconds}: rec_h3 = the same loss with H3's own encoder
 
 	h3_enc_results
 		 One row per run and sample: the decode of that latent by the frozen H3 decoder and its scores vs the source
@@ -1232,7 +1236,7 @@ tables
 		columns
 			run_id, sample_id string
 
-			 Written by h3_enc_opt.py images and video: long-lived GPU workers committed with Bluejay's commit, not Bluejay runs
+			 Written by h3_enc_opt.py images and video, and h3_enc_train.py evaluate: long-lived GPU workers committed with Bluejay's commit, not Bluejay runs
 			 image: lossless PNG (kind image); video: H.264 CRF 12 MP4 + frames 0 / 70 / 140 as lossless PNGs (kind video); latent: {"latent": (24, T, LH, LW) float32} normalized
 			 Scores vs the source (fastdec_ga/score.py's functions): psnr dB, ssim, lpips_alex, lpips_vgg, dists, de2000, flux_mse (FIBO2's FLUX.2 VAE latents),
 			 sharp_grad, sharp_fft (decode / source), flicker (video). z_dev: mean |z - mode|; z_dev_std: the same in posterior std units
