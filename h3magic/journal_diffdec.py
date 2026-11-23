@@ -450,6 +450,205 @@ GLOSSARY = """
 """
 
 
+# ---------------------------------------------------------------- extra sections read from DD_DIR files
+
+SETTING_COLS = (("psnr", "PSNR dB", ".2f"), ("psnr_mean8", "mean-8 PSNR", ".2f"), ("dists", "DISTS", ".4f"), ("lpips_vgg", "LPIPS-vgg", ".4f"), ("sharp_fft", "sharp HF", ".3f"))
+SETTING_LABELS = {"": "default: the 68 test latents (posterior sample, untiled encode)", "tiled_sample": "latents of a TILED encode",
+                  "kodak": "Kodak-24 (out of distribution)", "video": "video"}
+TILED_H3 = "g0/h3_decoder_tiled"
+HYBRIDS = ("g2/fusion", "g2/refiner_tok", "g2/h3dec_tok")  # the DWD + decoder candidates of m01008
+DWD_IDS = ("g1/dittok", "g1/dittok_probe")
+AB_SAMPLE_ROWS = 2
+PENDING = "<td>pending</td>"
+SETTINGS_WHY = ("H3 expects TILED latents (its own pipeline encodes in overlapping tiles) and the generated latents of the video model match the tiled distribution, "
+                "so a decoder that only works on untiled posterior samples may fail where it matters. Each setting is compared with g0/h3_decoder in the SAME setting "
+                "(the small grey numbers are the difference to it: PSNR higher is better, DISTS lower is better).")
+AB_PROTOCOL = ("Protocol: 3 fresh Sonnet judges with no context see 24 windows of 96&times;96 pixels enlarged 3&times;, each window shown twice with the two sides swapped; "
+               "a vote counts only when a judge's two answers agree (the same decoder picked on both sides). Everything else is a tie or inconsistent. "
+               "The protocol exists because the judges showed a strong right-side bias: asked once, they pick the right-hand image most of the time whatever it is. "
+               "Share = wins of A over decided votes, with its 95% confidence interval; the headline test asks for a CI above 50%.")
+
+
+def read_json(path):
+    """Query. A JSON file of DD_DIR."""
+    return json.loads(Path(path).read_text())
+
+
+def results_files(folder):
+    """
+    Query. {suffix: path} of the results.json ('' key) and results_<suffix>.json files of a candidate folder.
+    """
+    out = {}
+    for f in sorted(Path(folder).glob("results*.json")):
+        name = f.stem
+        out["" if name == "results" else name[len("results_"):]] = f
+    return out
+
+
+def delta_span(value, ref, spec):
+    """
+    Pure function. A grey '(+0.12)' difference span; empty when either number is missing.
+
+    >>> delta_span(30.5, 30.0, ".2f")
+    " <span class='note'>(+0.50)</span>"
+    >>> delta_span(None, 30.0, ".2f")
+    ''
+    """
+    return "" if value is None or ref is None else f" <span class='note'>({value - ref:+{spec}})</span>"
+
+
+def settings_table(rows, suffixes, h3_means):
+    """
+    Pure function. Section "same decoders under other conditions": one row per method, one column group per setting.
+
+    Args:
+        rows: [(method label, {suffix: means dict})]
+        suffixes: the settings to show, in order
+        h3_means: {suffix: H3 decoder's means in that setting, or missing key}
+
+    >>> "pending" in settings_table([("m", {})], [""], {"": {"psnr": 1.0}})
+    True
+    """
+    head1 = "".join(f"<th colspan='{len(SETTING_COLS)}'>{html.escape(SETTING_LABELS.get(x, x))}</th>" for x in suffixes)
+    head2 = "".join(f"<th>{lab}</th>" for _ in suffixes for _, lab, _ in SETTING_COLS)
+    body = ""
+    for label, per in rows:
+        cells = ""
+        for x in suffixes:
+            m = per.get(x)
+            if m is None:
+                cells += PENDING * len(SETTING_COLS)
+                continue
+            for key, _, spec in SETTING_COLS:
+                ref = h3_means.get(x, {}).get(key)
+                cells += f"<td data-sort='{m[key]}'>{format(m[key], spec)}{'' if label == H3_ID else delta_span(m[key], ref, spec) if key in ('psnr', 'dists') else ''}</td>"
+        body += f"<tr><td>{html.escape(label)}</td>{cells}</tr>"
+    return f"<div class='scroll'><table><tr><th rowspan='2'>method</th>{head1}</tr><tr>{head2}</tr>{body}</table></div>"
+
+
+def settings_html():
+    """Query. The settings section from results*.json in DD_DIR (methods with at least one results_<suffix>.json, plus H3's decoder)."""
+    h3_files = results_files(DD_DIR / H3_ID)
+    per_method = {}
+    for folder in sorted(DD_DIR.glob("g*/*/")):
+        mid = f"{folder.parent.name}/{folder.name}"
+        files = results_files(folder)
+        if mid.endswith("_smoke") or mid == TILED_H3 or not any(x for x in files):
+            continue
+        per_method[mid] = {x: read_json(f)["means"] for x, f in files.items()}
+    per_method[H3_ID] = {x: read_json(f)["means"] for x, f in h3_files.items()}
+    if (DD_DIR / TILED_H3 / "results.json").exists():
+        per_method[H3_ID]["tiled_sample"] = read_json(DD_DIR / TILED_H3 / "results.json")["means"]
+    found = {x for per in per_method.values() for x in per}
+    suffixes = [x for x in SETTING_LABELS if x in found] + sorted(found - set(SETTING_LABELS))
+    rows = [(H3_ID, per_method.pop(H3_ID))] + sorted(per_method.items())
+    return f"<p>{html.escape(SETTINGS_WHY)}</p>" + settings_table(rows, suffixes, rows[0][1])
+
+
+def ab_rows(ab_dir):
+    """
+    Query. One summary dict per ab/<name>_KEY.json with a score.json: name, a, b, wins_a, wins_b, ties, decided, share, ci, biased, B-side answer share.
+    The first protocol's score.json (a_picked / judged / share_a) is normalized to the same fields.
+    """
+    out = []
+    for key_file in sorted(Path(ab_dir).glob("*_KEY.json")):
+        name = key_file.name[:-len("_KEY.json")]
+        score = read_json(Path(ab_dir) / name / "score.json")
+        key = read_json(key_file)
+        if "wins" in score:
+            wa, wb, ties, share = score["wins"][key["method_a"]], score["wins"][key["method_b"]], score["ties_or_inconsistent"], score["share_a_of_decided"]
+        elif "a_picked" in score:
+            wa, wb, ties, share = score["a_picked"], score["judged"] - score["a_picked"], 0, score["share_a"]
+        else:
+            raise KeyError(f"Unknown score.json format: {name}")
+        answers = [a for f in sorted((Path(ab_dir) / name).glob("answers_*.json")) for a in read_json(f).values()]
+        out.append({"name": name, "a": key["method_a"], "b": key["method_b"], "wins_a": wa, "wins_b": wb, "ties": ties, "share": share, "ci": score["ci95"],
+                    "biased": name.endswith("_biased"), "key": key, "right_share": answers.count("B") / len(answers) if answers else None})
+    return out
+
+
+def ab_html(ab_dir):
+    """Command. The blind A/B section; copies the first AB_SAMPLE_ROWS row PNGs of each non-biased test to ASSETS byte for byte."""
+    rows = ab_rows(ab_dir)
+    body = ""
+    for r in rows:
+        decided = r["wins_a"] + r["wins_b"]
+        lo, hi = r["ci"]
+        verdict = "above 50%" if lo > 0.5 else "below 50%" if hi < 0.5 else "includes 50%"
+        right = "" if r["right_share"] is None else f"{r['right_share']:.0%}"
+        note = " (first protocol, biased: a lesson, not a result)" if r["biased"] else ""
+        body += (f"<tr><td>{html.escape(r['name'])}{note}</td><td>{html.escape(r['a'])}</td><td>{html.escape(r['b'])}</td><td>{r['wins_a']}</td><td>{r['wins_b']}</td>"
+                 f"<td>{r['ties']}</td><td data-sort='{r['share']}'>{r['share']:.0%} [{lo:.0%}, {hi:.0%}]: {verdict}</td><td data-sort='{r['right_share'] or ''}'>{right}</td></tr>")
+    table = (f"<div class='scroll'><table><tr><th>test</th><th>A (method)</th><th>B (baseline)</th><th>A wins</th><th>B wins</th><th>ties / inconsistent</th>"
+             f"<th>share of decided votes for A [95% CI]</th><th>answers on the right side</th></tr>{body}</table></div>")
+    figs = ""
+    for r in rows:
+        if r["biased"]:
+            continue
+        items = []
+        for row_name in sorted(r["key"]["rows"])[:AB_SAMPLE_ROWS]:
+            info = r["key"]["rows"][row_name]
+            data = (Path(ab_dir) / r["name"] / row_name).read_bytes()
+            rel = write_asset(data, f"ab/{r['name']}/{row_name}")
+            width = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR).shape[1]
+            other = r["b"] if info["A_is"] == r["a"] else r["a"]
+            items.append(f"<figure style='width:{width}px'><a href='{rel}'><img src='{rel}' width='{width}' loading='lazy' alt='{html.escape(r['name'])} {row_name}'></a>"
+                         f"<figcaption>Key: the left half (A) is <b>{html.escape(info['A_is'])}</b>, the right half (B) is <b>{html.escape(other)}</b>; "
+                         f"window x={info['x']}, y={info['y']} of {html.escape(info['sample_id'])}.</figcaption></figure>")
+        figs += f"<details class='sub'><summary>{html.escape(r['name'])}: two sample rows, the key revealed</summary><div class='grid'>{''.join(items)}</div></details>"
+    return (f"<p>{AB_PROTOCOL}</p><p class='note'>ab/pixreg_vs_h3_v1_biased is the first protocol (every window once, no swap): shown only as the lesson that produced the swap protocol.</p>"
+            f"{table}{figs}")
+
+
+def probe_html(path):
+    """Query. The DWD probe table from probe_results.json and its one-sentence reading."""
+    probe = read_json(path)
+    body = ""
+    for name, r in probe["results"].items():
+        best = " (best)" if name == probe["best"] else ""
+        body += (f"<tr><td>{html.escape(name)}{best}</td><td data-sort='{r['heldout_psnr']}'>{r['heldout_psnr']:.2f}</td><td>{r['relative_lambda']:g}</td>"
+                 f"<td data-sort='{r['test_psnr']}'>{r['test_psnr']:.2f}</td></tr>")
+    return (f"<p><b>DWD's claim, that last-layer DiT tokens decode better than the latents, holds on H3 linearly.</b> A ridge (linear) head on the frozen DiT's last-layer tokens "
+            f"({html.escape(probe['best'])}) reaches {probe['results'][probe['best']]['test_psnr']:.2f} dB on the test set, against {probe['results']['z']['test_psnr']:.2f} dB for the same probe on the latent "
+            f"(z); H3's own decoder gets {probe['h3_decoder_test_psnr']:.2f} dB. Feature sets: dit = last-layer DiT tokens; x0hat / x0hat3 = the DiT's denoised latent (1 or 3 steps); "
+            f"xt = the noised input; z / z3 = the clean latent; @sigma = the noise level of the DiT input. Fitted on {next(iter(probe['results'].values()))['train_images']} train images, "
+            f"lambda chosen on {next(iter(probe['results'].values()))['heldout_images']} held-out train images, scored on the test set.</p>"
+            f"<div class='scroll'><table><caption>{probe['images']} images in all; PSNR in dB</caption><tr><th>feature set @ noise level</th><th>held-out-train PSNR</th><th>relative lambda</th><th>TEST PSNR</th></tr>{body}</table></div>"
+            f"<p class='note'>The probe candidate's first eval used the wrong noise level (kept in old_eval_sigma030/: 12.1 dB) and was fixed; the numbers above are the fixed ones.</p>")
+
+
+def threeway_html():
+    """Query. The user's 3-way table (m01008): H3's decoder, DWD, and the best DWD + decoder hybrid, pending where results are missing."""
+    def means(mid):
+        f = DD_DIR / mid / "results.json"
+        return read_json(f) if f.exists() else None
+
+    def pick(ids):
+        have = [(mid, means(mid)) for mid in ids if means(mid)]
+        return min(have, key=lambda t: t[1]["means"]["dists"]) if have else None
+    h3 = (H3_ID, means(H3_ID))
+    dwd = pick(DWD_IDS[:1]) or pick(DWD_IDS[1:])
+    hybrid = pick(HYBRIDS)
+    rows = ""
+    for title, found in (("H3 decoder", h3), ("DWD (decoding without a decoder)", dwd), ("best hybrid (DWD + a decoder, best DISTS)", hybrid)):
+        if found is None:
+            rows += f"<tr><td>{title}</td><td>pending</td>{PENDING * 5}</tr>"
+            continue
+        mid, r = found
+        m = r["means"]
+        rows += (f"<tr><td>{title}</td><td>{html.escape(mid)}</td>{num_cell(m['psnr'], '.2f')}{num_cell(m['dists'])}{num_cell(m['lpips_vgg'])}"
+                 f"{num_cell(m['sharp_fft'], '.3f')}{num_cell(r.get('ms_per_image'), '.0f')}</tr>")
+    probe_file = DD_DIR / "g1/dittok_probe/probe_results.json"
+    extra = ""
+    if dwd is None and probe_file.exists():
+        probe = read_json(probe_file)
+        extra = (f"<p class='note'>DWD's full result is pending; its linear probe (g1/dittok_probe) reaches {probe['results'][probe['best']]['test_psnr']:.2f} dB PSNR on the test set "
+                 f"(no DISTS, LPIPS or timing for it).</p>")
+    return (f"<p>The user's question (m01008): if you combine DWD with a decoder, can you get something better than either of them? Hybrids: {', '.join(HYBRIDS)}; "
+            f"the best one by DISTS is shown, from whichever has results.</p><div class='scroll'><table><tr><th></th><th>folder</th><th>PSNR dB</th><th>DISTS</th><th>LPIPS-vgg</th>"
+            f"<th>sharp HF</th><th>ms / 512&sup2; image</th></tr>{rows}</table></div>{extra}")
+
+
 # ---------------------------------------------------------------- data and build
 
 def read_blob(info):
@@ -588,6 +787,10 @@ def build(verdict_path=VERDICT):
 {verdict_box(verdict)}
 {section("Headline numbers, in plain words", headline)}
 {section("Leaderboard", leaderboard)}
+{section("Blind A/B by eye", ab_html(DD_DIR / "ab"))}
+{section("The 3-way table: H3 decoder, DWD, DWD + a decoder", threeway_html())}
+{section("The same decoders under other conditions", settings_html())}
+{section("DWD probe: do the DiT tokens hold more than the latent?", probe_html(DD_DIR / "g1/dittok_probe/probe_results.json"))}
 {section("Texture crops at 1:1", crops_block)}
 {section("Full images: all test samples", full_block, open_=False)}
 {genetic}
