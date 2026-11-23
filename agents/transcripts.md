@@ -1367,3 +1367,6 @@ Show me the latent compositor results on local ip.
 
 ## m00998 — 2026-11-23 ~02:53 AM ET
 Just like all other experiments, the latent example renderings should be done on BlueJay, so that we can see them in Sparrow some other time. All experiments we do should be done through BlueJay.
+
+## m00999 — 2026-11-23 ~02:54 AM ET
+Show me the encoder bottleneck results on local ip.
