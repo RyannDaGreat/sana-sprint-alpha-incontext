@@ -1394,3 +1394,6 @@ The three colors will be used for decontamination and then the alpha will be use
 
 ## m01007 — 2026-11-23 ~05:10 AM ET
 what about that one that says it doesnt need a decoder
+
+## m01008 — 2026-11-23 ~05:20 AM ET
+Then a natural question would be if you combine DWD with a decoder can you get something better than either of them?
