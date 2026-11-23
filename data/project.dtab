@@ -40,6 +40,9 @@ environ
 	H3_PROVISIONAL_SHARE 0.40	    Train share of the cut clips while cutting (the final share is 10,000 / 21,503 = 0.46): a margin for clips that drop out
 	H3_CHOOSE_FINAL false	        h3_choose_loop.fish sets env H3_CHOOSE_FINAL=true for the last run, after every clip is cut: exactly H3_PEXELS_TRAIN train
 
+	 Latent Compositor (manifest §24): run_proc_latentcomp.fish imports its dataset and its scored candidates
+	LC_DIR agents/.scratchpad/latentcomp	 Its folder, relative to the repo root: data/ (shards, test_plan.json) and r<k>/<name>/ (one folder per candidate)
+
 database
 	backend bluejay.local_database.LocalLanceBackend
 	host 0.0.0.0
@@ -1239,6 +1242,87 @@ tables
 			gpu int64
 
 
+	 LATENT COMPOSITOR (manifest §24, m00998: every experiment goes through BlueJay). A small network in H3 latent space: the latents of a matte,
+	 a foreground and a background in, the latent of their composite out. Its files stay in LC_DIR: lc_find finds them, lc_import_shard and
+	 lc_import_renders import them. Run: fish data/run_proc_latentcomp.fish. View: view_lc_methods, view_lc_compare, view_lc_renders, view_lc_samples
+
+	lc_jobs
+		 One seeded row. lc_find scans LC_DIR once per Claim: run_proc_latentcomp.fish unclaims it before each run, so new candidates are found
+		primary_key job_id
+		columns
+			job_id string
+		initial_rows
+			,	job_id find
+
+	lc_shards
+		 One row per dataset shard of LC_DIR/data: <split>_<k>.safetensors (latents), <split>_<k>_pixels.safetensors and <split>_<k>.json, 100 samples
+		primary_key shard
+		columns
+			shard string
+
+			 Written by lc_find
+			split string
+			files_stamp string	 size:mtime_ns of the 3 files. When it is not imported_stamp, run_proc_latentcomp.fish unclaims the shard and lc_import_shard imports it again
+
+			 Written by lc_import_shard
+			imported_stamp string
+			samples int64
+
+	lc_samples
+		 One row per Latent Compositor sample: 300 test (the curated test set, LC_DIR/data/test_plan.json) and 8,000 train.
+		 Train rows hold only metadata and latents. Their pixels stay in the shards (LC_DIR/data/train_<k>_pixels.safetensors, 734 MB per 100 samples)
+		primary_key sample_id
+		columns
+			sample_id string
+
+			 Written by lc_import_shard
+			split, subset, page_id, pexels_id, shard string
+			position int64	 The place in its split. For a test sample, the key of its scores in results.json's per_sample (0..299)
+			rating int64	 Test only: the Sonnet swarm's rating of how tricky the matte is to composite, 1-5
+			tags string	 Test only: JSON list of the swarm's tags
+			placement, background string	 JSON: the foreground's scale, x, y and flip; the background frame's time t (s) and flip
+			alpha_mean float64
+			latents blob	 safetensors {"latents": (6, 24, 64, 64) float16}: normalized H3 posterior modes in LC_DIR/lc.py KEYS order
+			 Test only: lossless 1024 x 1024 PNGs of the matte (gray), the straight RGBA foreground, the background, the true composite,
+			 and the oracle (the H3 decode of the true composite's latent: the ceiling of every candidate)
+			alpha_png, fg_rgba_png, bg_png, comp_png, oracle_png blob
+
+	lc_methods
+		 One row per scored candidate: a folder LC_DIR/r<k>/<name>/ with results.json (LC_DIR/evaluate.py). Image metrics are means over EVAL:
+		 96 test samples, the hardest 48 hard_soft, 24 hard_contrast and 24 random
+		primary_key method_id
+		columns
+			method_id string
+
+			 Written by lc_find, from the candidate's genome.json, results.json and cost_clean.json (a clean re-timing: used before the time in results.json)
+			name, what, how, fg_key, verdict string	 fg_key: the foreground latent it takes (fg_straight, fg_premult or fg_gray)
+			parents, cites string	 JSON lists, from genome.json
+			track string	 From the measured cost: L (<= 10 ms forward + backward, <= 5 M params), H (<= 100 ms, <= 50 M), none, or ref (no cost: not a module)
+			wildcard bool
+			round, params int64
+			ms_fwd, ms_fwdbwd float64	 fp32, batch 1, one 1024 x 1024 sample on an A100: the forward, and the forward + backward to the inputs
+			psnr, psnr_hard_soft, psnr_hard_contrast, psnr_random, ssim, lpips, flux2_mse float64	 The decoded composite against the true composite. psnr (dB) is the fitness
+			latent_mse float64	 Against the true composite's latent, all 300 test samples
+			oracle_psnr float64	 The decode of the true latent: the ceiling
+			folder string	 The candidate folder, relative to the repo root
+			results_sha256 string	 sha256 (hex) of results.json. When it is not renders_sha256, run_proc_latentcomp.fish unclaims the candidate and lc_import_renders imports it again
+
+			 Written by lc_import_renders
+			renders_sha256 string
+			renders int64
+
+	lc_renders
+		 One row per scored candidate and decoded test sample (each EVAL sample; all 300 for a finalist): the decoded composite, its error map, its scores
+		primary_key render_id
+		columns
+			render_id, method_id, sample_id string	 render_id = method_id|sample_id
+
+			 Written by lc_import_renders
+			decoded_png blob	 Byte for byte the candidate's decoded/<index>.png (or showcase/<index>.png): the H3 decode (bf16) of its predicted latent
+			error_png blob	 |decoded - true composite| x 4 per channel
+			psnr, ssim, lpips, flux2_mse float64	 From results.json's per_sample
+			latent_mse float64	 pred.safetensors (fp16) against the true composite's latent
+
 processors
 
 	import_index	 Downloads magick_index.tsv (16 MB) and adds one magick_samples row per image. No image yet
@@ -1866,6 +1950,124 @@ processors
 					h3_caption_seconds @	     float  Wall time of the Gemini calls, rewrites included                     38.0
 
 
+	 LATENT COMPOSITOR (manifest §24). Run: fish data/run_proc_latentcomp.fish (CPU only). It runs lc_find every time, then imports each new
+	 or changed shard and candidate. lc_shards and lc_methods rows are claimed one at a time ($SAMPLE)
+
+	lc_find	 Finds the dataset shards and the scored candidates in LC_DIR: one lc_shards row per shard, one lc_methods row per candidate. Reads small files only
+		query SELECT job_id FROM lc_jobs WHERE lc_find_claim IS NULL
+		claim	lc_find_claim lc_jobs
+		command bash
+			uv run --script processors/lc_find.py "$SAMPLE" .. $LC_DIR
+		materialize
+			input.json	           TYPE  DESCRIPTION        EXAMPLE
+				job_id @	 [Key]  str   The one find job   "find"
+		commit
+			lc_shards
+				shards.parquet	     TYPE  DESCRIPTION                    EXAMPLE
+					shard @	   [Key]  str   <split>_<k>                    "train_017"
+					split @	          str   "test" or "train"              "train"
+					files_stamp @	  str   size:mtime_ns of its 3 files   "117964960:1763899...,734003456:...,44839:..."
+			lc_methods
+				methods.parquet	             TYPE    DESCRIPTION                                         EXAMPLE
+					method_id @	       [Key]  str     r<k>/<folder name>                                  "r0/lsq_gray_k3"
+					round @	                  int     The genetic frenzy round. 0 = the baselines         0
+					name @	                  str     genome.json name, else the folder name              "lsq_gray_k3"
+					parents @	              str     JSON list of parent method_ids                      "[]"
+					what @	                  str     The method in one line                              "ridge regression over 3x3 cells ..."
+					how @	                  str     How it was fit or trained                           "closed form on 2000 train samples"
+					cites @	                  str     JSON list: the papers or repos it took ideas from   "[\"DecFormer ...\"]"
+					fg_key @	              str     fg_straight, fg_premult or fg_gray                  "fg_gray"
+					track @	                  str     L, H, none or ref, from the measured cost           "L"
+					wildcard @	              bool    A wildcard child of its round                       false
+					params @	              int     Parameters                                          13824
+					ms_fwd @	              float   Forward ms                                          0.41
+					ms_fwdbwd @	              float   Forward + backward ms                               1.32
+					psnr @	                  float   Fitness: decoded PSNR on EVAL, dB                   29.84
+					psnr_hard_soft @	      float   On the hard_soft samples of EVAL                    27.10
+					psnr_hard_contrast @	  float   On the hard_contrast samples of EVAL                28.32
+					psnr_random @	          float   On the random samples of EVAL                       33.90
+					ssim @	                  float   SSIM on EVAL                                        0.912
+					lpips @	                  float   LPIPS (alex) on EVAL                                0.061
+					flux2_mse @	              float   FLUX.2 VAE latent MSE on EVAL                       0.0123
+					latent_mse @	          float   Latent MSE, all 300 test samples                    0.0310
+					oracle_psnr @	          float   Decoded PSNR of the true latent on EVAL             32.71
+					verdict @	              str     The child's visual verdict                          "halo on hair ..."
+					folder @	              str     The candidate folder, from the repo root            "agents/.scratchpad/latentcomp/r0/lsq_gray_k3"
+					results_sha256 @	      str     sha256 (hex) of results.json                        "3f9a…"
+
+	lc_import_shard	 Imports one dataset shard into lc_samples: its 100 rows with their metadata and latents; test rows also with 5 lossless PNGs. CPU only
+		query sql
+			SELECT shard, split, files_stamp FROM lc_shards -- Dataset shards,
+			WHERE lc_import_shard_claim IS NULL             -- not yet claimed (the launcher unclaims a changed shard),
+			ORDER BY split, shard                           -- test first,
+			LIMIT 1                                         -- one at a time
+		claim	lc_import_shard_claim lc_shards
+		command bash
+			uv run --script processors/lc_import_shard.py "$SAMPLE" ../$LC_DIR
+		materialize
+			input.json	         TYPE  DESCRIPTION                         EXAMPLE
+				shard @	   [Key]  str   The shard                           "test_000"
+				split @	          str   "test" (adds the PNGs) or "train"   "test"
+				files_stamp @	 ~str   size:mtime_ns of its 3 files        "117964960:1763899...,..."
+		commit
+			lc_samples
+				rows.parquet	       TYPE    DESCRIPTION                                                              EXAMPLE
+					sample_id @	 [Key]  str     split_index: the index in LC_DIR's seeded shuffle; test from 1,000,000   "test_1000000"
+					split @	            str     "test" or "train"                                                        "test"
+					subset @	        str     hard_soft, hard_contrast, random (test) or "train"                       "hard_soft"
+					page_id @	        str     MAGICK image ID of the foreground                                        "pvJRWxke8Y"
+					pexels_id @	        str     Pexels clip of the background frame                                      "5592592"
+					shard @	            str     Its shard                                                                "test_000"
+					position @	        int     Its place in the split: the key of results.json's per_sample             0
+					rating @	        int     Test only: tricky-to-composite rating, 1-5                               5
+					tags @	            str     Test only: JSON list of the swarm's tags                                 "[\"thin\", \"holes\"]"
+					placement @	        str     JSON: foreground scale, x, y, flip                                       "{\"scale\": 1.0, \"x\": 0, ...}"
+					background @	    str     JSON: background frame time t (s) and flip                               "{\"t\": 0.70, \"flip\": true}"
+					alpha_mean @	    float   Mean alpha                                                               0.083
+					latents @	        blob    {"latents": (6, 24, 64, 64) float16}, KEYS order                         1.2 MB .safetensors
+					alpha_png @	        blob    Test only: the matte, gray                                               250 KB .png
+					fg_rgba_png @	    blob    Test only: the foreground, straight RGBA                                 1.6 MB .png
+					bg_png @	        blob    Test only: the background, RGB                                           1.0 MB .png
+					comp_png @	        blob    Test only: the true composite (lc.py composite)                          1.3 MB .png
+					oracle_png @	    blob    Test only: the oracle, when evaluate.py made it                          1.5 MB .png
+			lc_shards
+				result.json	   SUBFIELD  TYPE  DESCRIPTION                        EXAMPLE
+					imported_stamp @	 ~str   The files_stamp that it imported   "117964960:1763899...,..."
+					samples @	          int   Rows imported                      100
+
+	lc_import_renders	 Imports one scored candidate's decoded test samples into lc_renders, with error maps and per-sample scores. CPU only
+		query sql
+			SELECT method_id, folder, results_sha256 FROM lc_methods -- Scored candidates,
+			WHERE lc_import_renders_claim IS NULL                    -- not yet claimed (the launcher unclaims a changed candidate),
+			ORDER BY psnr DESC                                       -- best fitness first,
+			LIMIT 1                                                  -- one at a time
+		claim	lc_import_renders_claim lc_methods
+		command bash
+			uv run --script processors/lc_import_renders.py "$SAMPLE" ..
+		materialize
+			input.json	             TYPE  DESCRIPTION                        EXAMPLE
+				method_id @	   [Key]  str   The candidate                      "r0/lsq_gray_k3"
+				folder @	          str   Its folder, from the repo root     "agents/.scratchpad/latentcomp/r0/lsq_gray_k3"
+				results_sha256 @	 ~str   sha256 (hex) of its results.json   "3f9a…"
+		commit
+			lc_renders
+				children/	                 TYPE    DESCRIPTION                                  EXAMPLE
+					decoded_png decoded.png	  blob    Byte for byte decoded/<index>.png            1.5 MB .png
+					error_png error.png	      blob    |decoded - true composite| x 4 per channel   1.6 MB .png
+					fields.json	   SUBFIELD  TYPE    DESCRIPTION                                  EXAMPLE
+						render_id @	   [Key]  str     method_id|sample_id                          "r0/lsq_gray_k3|test_1000000"
+						method_id @	          str     The candidate                                "r0/lsq_gray_k3"
+						sample_id @	          str     The test sample                              "test_1000000"
+						psnr @	              float   Decoded PSNR, dB (results.json per_sample)   27.31
+						ssim @	              float   SSIM (per_sample)                            0.894
+						lpips @	              float   LPIPS alex (per_sample)                      0.072
+						flux2_mse @	          float   FLUX.2 VAE latent MSE (per_sample)           0.0151
+						latent_mse @	      float   pred.safetensors vs the true latent          0.0342
+			lc_methods
+				result.json	   SUBFIELD  TYPE  DESCRIPTION                           EXAMPLE
+					renders_sha256 @	 ~str   The results_sha256 that it imported   "3f9a…"
+					renders @	          int   Renders imported                      96
+
 functions
 	model_labels	 The journal's weight equation and sampler of eval_models rows: src/sana_alpha/journal_assets.py label_of. Lists, so one query starts one process
 		args
@@ -2109,6 +2311,146 @@ queries
 		JOIN h3_enc_runs    u ON u.run_id    = r.run_id    -- and its run,
 		ORDER BY s.kind, r.sample_id, u.method, r.run_id   -- sample by sample, the encoder first
 
+
+	 LATENT COMPOSITOR (manifest §24)
+
+	view_lc_methods sql
+		-- The leaderboard: one row per scored candidate, best fitness (decoded PSNR on EVAL) first, with its render of the first test sample
+		SELECT
+		    struct('image' AS widget, r.decoded_png AS src, concat(m.method_id, ' ', round(r.psnr, 2), ' dB') AS caption) AS test_1000000,
+		    m.method_id,
+		    m.name,
+		    m.track,
+		    m.psnr,
+		    m.psnr_hard_soft,
+		    m.psnr_hard_contrast,
+		    m.psnr_random,
+		    m.ssim,
+		    m.lpips,
+		    m.flux2_mse,
+		    m.latent_mse,
+		    m.oracle_psnr,
+		    m.params,
+		    m.ms_fwd,
+		    m.ms_fwdbwd,
+		    m.fg_key,
+		    m.round,
+		    m.wildcard,
+		    m.parents,
+		    m.what,
+		    m.how,
+		    m.cites,
+		    m.verdict,
+		    m.renders,
+		    m.folder
+		FROM lc_methods m                                                                    -- Each scored candidate,
+		LEFT JOIN lc_renders r ON r.method_id = m.method_id AND r.sample_id = 'test_1000000' -- with its render of the first (hardest) test sample, if it has one,
+		ORDER BY m.psnr DESC                                                                 -- best fitness first
+
+	view_lc_compare sql
+		-- One row per decoded test sample: its matte, foreground, background, true composite and oracle, then the decode and the error map
+		-- (|decoded - true| x 4) of the 12 best candidates by fitness (decoded PSNR on EVAL), best first. view_lc_renders shows every candidate
+		WITH FUNCTION shot(src, rank, caption, k) AS (struct(
+		    'image'                                      AS widget,
+		    first_value(src)     FILTER (WHERE rank = k) AS src,
+		    first_value(caption) FILTER (WHERE rank = k) AS caption
+		))
+		WITH ranked AS (
+		    SELECT method_id, row_number() OVER (ORDER BY psnr DESC, method_id) AS rank -- The fitness rank
+		    FROM lc_methods                                                             -- of each scored candidate
+		    WHERE renders IS NOT NULL                                                   -- that lc_import_renders did
+		), shots AS (
+		    SELECT r.sample_id, r.decoded_png, r.error_png, k.rank,                                -- The images and the rank,
+		           concat(k.rank, '. ', r.method_id, ' ', round(r.psnr, 2), ' dB') AS caption,     -- a caption
+		           concat('error x4 ', r.method_id)                               AS error_caption -- and an error map caption
+		    FROM lc_renders r                                                                      -- of each render,
+		    JOIN ranked k ON k.method_id = r.method_id                                             -- by its candidate's rank,
+		    WHERE k.rank <= 12                                                                     -- of the 12 best candidates
+		)
+		SELECT
+		    s.sample_id,
+		    s.subset,
+		    s.rating,
+		    s.tags,
+		    struct('image' AS widget, first_value(s.comp_png)    AS src, 'true composite' AS caption) AS true_composite,
+		    struct('image' AS widget, first_value(s.oracle_png)  AS src, 'oracle'         AS caption) AS oracle,
+		    struct('image' AS widget, first_value(s.alpha_png)   AS src, 'alpha'          AS caption) AS alpha,
+		    struct('image' AS widget, first_value(s.fg_rgba_png) AS src, 'fg (RGBA)'      AS caption) AS fg,
+		    struct('image' AS widget, first_value(s.bg_png)      AS src, 'bg'             AS caption) AS bg,
+		    shot(t.decoded_png, t.rank, t.caption,        1) AS rank_01,
+		    shot(t.error_png,   t.rank, t.error_caption,  1) AS error_01,
+		    shot(t.decoded_png, t.rank, t.caption,        2) AS rank_02,
+		    shot(t.error_png,   t.rank, t.error_caption,  2) AS error_02,
+		    shot(t.decoded_png, t.rank, t.caption,        3) AS rank_03,
+		    shot(t.error_png,   t.rank, t.error_caption,  3) AS error_03,
+		    shot(t.decoded_png, t.rank, t.caption,        4) AS rank_04,
+		    shot(t.error_png,   t.rank, t.error_caption,  4) AS error_04,
+		    shot(t.decoded_png, t.rank, t.caption,        5) AS rank_05,
+		    shot(t.error_png,   t.rank, t.error_caption,  5) AS error_05,
+		    shot(t.decoded_png, t.rank, t.caption,        6) AS rank_06,
+		    shot(t.error_png,   t.rank, t.error_caption,  6) AS error_06,
+		    shot(t.decoded_png, t.rank, t.caption,        7) AS rank_07,
+		    shot(t.error_png,   t.rank, t.error_caption,  7) AS error_07,
+		    shot(t.decoded_png, t.rank, t.caption,        8) AS rank_08,
+		    shot(t.error_png,   t.rank, t.error_caption,  8) AS error_08,
+		    shot(t.decoded_png, t.rank, t.caption,        9) AS rank_09,
+		    shot(t.error_png,   t.rank, t.error_caption,  9) AS error_09,
+		    shot(t.decoded_png, t.rank, t.caption,       10) AS rank_10,
+		    shot(t.error_png,   t.rank, t.error_caption, 10) AS error_10,
+		    shot(t.decoded_png, t.rank, t.caption,       11) AS rank_11,
+		    shot(t.error_png,   t.rank, t.error_caption, 11) AS error_11,
+		    shot(t.decoded_png, t.rank, t.caption,       12) AS rank_12,
+		    shot(t.error_png,   t.rank, t.error_caption, 12) AS error_12
+		FROM shots t                                                 -- Each render of a top candidate,
+		JOIN lc_samples s ON s.sample_id = t.sample_id               -- with its test sample,
+		GROUP BY s.sample_id, s.subset, s.rating, s.tags, s.position -- one row per test sample,
+		ORDER BY s.position                                          -- in test order: the hardest of each subset first
+
+	view_lc_renders sql
+		-- One row per render: every scored candidate's decode of every decoded test sample, sample by sample, best fitness first
+		SELECT
+		    struct('image' AS widget, s.comp_png    AS src, s.sample_id                             AS caption) AS true_composite,
+		    struct('image' AS widget, r.decoded_png AS src, concat(r.method_id, ' ', round(r.psnr, 2), ' dB') AS caption) AS decoded,
+		    struct('image' AS widget, r.error_png   AS src, 'error x4'                              AS caption) AS error,
+		    struct('image' AS widget, s.oracle_png  AS src, 'oracle'                                AS caption) AS oracle,
+		    struct('image' AS widget, s.alpha_png   AS src, 'alpha'                                 AS caption) AS alpha,
+		    struct('image' AS widget, s.fg_rgba_png AS src, 'fg (RGBA)'                             AS caption) AS fg,
+		    struct('image' AS widget, s.bg_png      AS src, 'bg'                                    AS caption) AS bg,
+		    r.sample_id,
+		    r.method_id,
+		    r.psnr,
+		    m.psnr AS method_psnr,
+		    r.ssim,
+		    r.lpips,
+		    r.flux2_mse,
+		    r.latent_mse,
+		    s.subset,
+		    s.rating,
+		    s.tags
+		FROM lc_renders r                              -- Each render,
+		JOIN lc_methods m ON m.method_id = r.method_id -- with its candidate
+		JOIN lc_samples s ON s.sample_id = r.sample_id -- and its test sample,
+		ORDER BY s.position, m.psnr DESC               -- sample by sample, best fitness first
+
+	view_lc_samples sql
+		SELECT
+		    struct('image' AS widget, comp_png    AS src, sample_id      AS caption) AS true_composite,
+		    struct('image' AS widget, oracle_png  AS src, 'oracle'       AS caption) AS oracle,
+		    struct('image' AS widget, alpha_png   AS src, 'alpha'        AS caption) AS alpha,
+		    struct('image' AS widget, fg_rgba_png AS src, 'fg (RGBA)'    AS caption) AS fg,
+		    struct('image' AS widget, bg_png      AS src, 'bg'           AS caption) AS bg,
+		    sample_id,
+		    subset,
+		    rating,
+		    tags,
+		    page_id,
+		    pexels_id,
+		    alpha_mean,
+		    placement,
+		    background
+		FROM lc_samples      -- Latent Compositor samples,
+		WHERE split = 'test' -- of the test set,
+		ORDER BY position    -- in test order: the hardest of each subset first
 
 sparrow
 	saves sparrow_saves
