@@ -1197,6 +1197,47 @@ tables
 			path_seed int64	 The path's seed with page_id (h3_motion_clip.path_of)
 			scale_0, scale_1, center_x_0, center_y_0, center_x_1, center_y_1, angle_0, angle_1 float64
 
+	h3_enc_samples
+		 Is H3's encoder the bottleneck? (manifest §25, m00992): one row per held-out image or clip whose latent is optimized through the frozen H3 decoder
+		primary_key sample_id
+		columns
+			sample_id string
+
+			 Written by h3_enc_opt.py register (CPU, once). origin: pexels_val = a frame or clip of the 20 held-out clips of the decoder frenzy
+			 (agents/.scratchpad/fastdec_h3/data/val_*.npz, the source of BASELINE.json); magick = a Latent Compositor test foreground over 50% gray; pexbg = its Pexels background
+			kind, origin, pexels_id string	 kind: image (1 frame) or video (141 frames, 24 fps)
+			side, frame int64	             frame: the clip frame of a pexels_val image
+			source blob	                   The lossless PNG: the image, or frame 70 of a video
+			source_frames blob	             video only: {"frames": (141, 512, 512, 3) uint8} safetensors, lossless (what the scores compare to)
+			source_mp4 blob	               video only: H.264 CRF 12, to view
+
+	h3_enc_runs
+		 One row per kind of latent: the encoder baselines (encoder_sample = the pipeline's latent, encoder_mode, encoder_tiled) and each optimization run
+		primary_key run_id
+		columns
+			run_id string
+
+			 Written by h3_enc_opt.py images and video
+			method string	             encoder_sample, encoder_mode, encoder_tiled or optimize (Adam on the latent from the posterior mode)
+			objective, terms string	     terms: JSON {loss term: weight} of h3_enc_lib.OBJECTIVES, e.g. {"l1": 1.0, "lpips_vgg": 0.1}
+			steps int64
+			lr, prior_weight float64	 prior_weight: weight of mean(((z - mode) / std)^2), the encoder's posterior as a prior (0 = none)
+
+	h3_enc_results
+		 One row per run and sample: the decode of that latent by the frozen H3 decoder and its scores vs the source
+		primary_key run_id,sample_id
+		columns
+			run_id, sample_id string
+
+			 Written by h3_enc_opt.py images and video: long-lived GPU workers committed with Bluejay's commit, not Bluejay runs
+			 image: lossless PNG (kind image); video: H.264 CRF 12 MP4 + frames 0 / 70 / 140 as lossless PNGs (kind video); latent: {"latent": (24, T, LH, LW) float32} normalized
+			 Scores vs the source (fastdec_ga/score.py's functions): psnr dB, ssim, lpips_alex, lpips_vgg, dists, de2000, flux_mse (FIBO2's FLUX.2 VAE latents),
+			 sharp_grad, sharp_fft (decode / source), flicker (video). z_dev: mean |z - mode|; z_dev_std: the same in posterior std units
+			image, video, frame_000, frame_070, frame_140, latent blob
+			psnr, ssim, lpips_alex, lpips_vgg, dists, de2000, flux_mse, sharp_grad, sharp_fft, flicker, z_dev, z_dev_std, seconds float64
+			curve string	 JSON list of {step, loss, psnr, lpips_alex, dists, z_dev} during the optimization
+			gpu int64
+
 
 processors
 
@@ -2040,6 +2081,33 @@ queries
 		FROM h3_pexels_clips                                -- H3 Magic Pexels clips
 		WHERE clip_512 IS NOT NULL                          -- that h3_cut_clip did,
 		ORDER BY coalesce(h3_use, split), motion_512 DESC   -- by use, most motion first
+
+	view_h3_encoder sql
+		SELECT
+		    struct('image' AS widget, coalesce(r.image, r.frame_070) AS src, r.run_id  AS caption) AS decode,
+		    struct('image' AS widget, s.source                       AS src, 'source'  AS caption) AS source,
+		    struct('video' AS widget, r.video                        AS src, r.run_id  AS caption) AS video,
+		    r.sample_id,
+		    r.run_id,
+		    u.method,
+		    u.objective,
+		    u.prior_weight,
+		    s.kind,
+		    s.origin,
+		    r.psnr,
+		    r.ssim,
+		    r.lpips_alex,
+		    r.lpips_vgg,
+		    r.dists,
+		    r.flux_mse,
+		    r.de2000,
+		    r.sharp_grad,
+		    r.flicker,
+		    r.z_dev_std
+		FROM h3_enc_results r                              -- Each decode of the encoder study,
+		JOIN h3_enc_samples s ON s.sample_id = r.sample_id -- with its source
+		JOIN h3_enc_runs    u ON u.run_id    = r.run_id    -- and its run,
+		ORDER BY s.kind, r.sample_id, u.method, r.run_id   -- sample by sample, the encoder first
 
 
 sparrow
