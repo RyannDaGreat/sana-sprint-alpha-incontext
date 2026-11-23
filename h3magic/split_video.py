@@ -103,7 +103,7 @@ def readout_loss(delta_rows, x0_rows, subject_weight=0.0):
     return einx.sum("B R K -> K", error * weight[..., None]) / weight.sum()
 
 
-def clip_records(split, limit=None):
+def clip_records(split, limit=None, suffix=""):
     """
     Query. The finished h3_motion_clips rows of one split, by page_id: (clip row id, h3_magick_images row id) pairs, the
     second for the caption embedding h3_text_embed_v3 (only rows whose embedding matches h3_caption_v3).
@@ -112,20 +112,20 @@ def clip_records(split, limit=None):
     import lance
     clips = lance.dataset(str(T.LANCE_DIR / "h3_motion_clips.lance"))
     magick = lance.dataset(str(T.LANCE_DIR / "h3_magick_images.lance"))
-    done = clips.to_table(columns=["page_id"], filter=f"split = '{split}' AND h3_motion_black_768 IS NOT NULL", with_row_id=True).to_pylist()
+    done = clips.to_table(columns=["page_id"], filter=f"split = '{split}' AND h3_motion_black_768{suffix} IS NOT NULL", with_row_id=True).to_pylist()
     mag = magick.to_table(columns=["page_id", "h3_caption_v3", "h3_text_v3_sha256"], filter="h3_text_embed_v3 IS NOT NULL", with_row_id=True).to_pylist()
     fresh = {r["page_id"]: r["_rowid"] for r in mag if r["h3_caption_v3"] and r["h3_text_v3_sha256"] == hashlib.sha256(r["h3_caption_v3"].encode()).hexdigest()}
     pairs = sorted((r["page_id"], r["_rowid"], fresh[r["page_id"]]) for r in done if r["page_id"] in fresh)
     return [(c, m) for _, c, m in pairs][:limit]
 
 
-def load_clip(record):
+def load_clip(record, suffix=""):
     """Query. One clip: latents (1, LC, LT, LH, LW) gray, targets (1, K, LC, LT, LH, LW), prompt_embeds (1, N, 5120), tags (N,)."""
     import lance
     import safetensors.torch
     clip_id, magick_id = record
     clips = lance.dataset(str(T.LANCE_DIR / "h3_motion_clips.lance"))
-    heads = [safetensors.torch.load(clips.take_blobs(c, ids=[clip_id])[0].read())["latent"].float() for c in CLIP_COLUMNS]
+    heads = [safetensors.torch.load(clips.take_blobs(c + suffix, ids=[clip_id])[0].read())["latent"].float() for c in CLIP_COLUMNS]  # suffix "t" = tiled
     text = safetensors.torch.load(lance.dataset(str(T.LANCE_DIR / "h3_magick_images.lance")).take_blobs("h3_text_embed_v3", ids=[magick_id])[0].read())
     targets = torch.stack(heads)[None]
     return dict(latents=targets[:, 0], targets=targets, prompt_embeds=text["prompt_embeds"], text_token_tags=text["text_token_tags"])
@@ -176,7 +176,7 @@ def save(head, folder, split_folder, meta):
 
 
 def train(name, graymagic, split, lr=1e-3, max_steps=400, save_every=25, val_every=25, seed=0, stop_at="", val_clips=VAL_CLIPS,
-          subject_weight=0.0):
+          subject_weight=0.0, clip_suffix=""):
     """
     Command (torchrun, one process per GPU, one clip per GPU per step). Trains the split head's Δ on the motion clips.
 
@@ -189,6 +189,7 @@ def train(name, graymagic, split, lr=1e-3, max_steps=400, save_every=25, val_eve
         stop_at (str): "HH:MM" Eastern hard stop; agents/.scratchpad/h3train/STOP_<name> stops early
         val_clips (int): at most this many val clips (h3_motion_clips split val)
         subject_weight (float): training loss weight added on subject rows (solidity); validation stays unweighted
+        clip_suffix (str): "" = the untiled clip columns, "t" = the tiled ones (h3_motion_*_768t, §25)
     """
     dist.init_process_group("nccl")
     rank, world = dist.get_rank(), dist.get_world_size()
@@ -210,11 +211,11 @@ def train(name, graymagic, split, lr=1e-3, max_steps=400, save_every=25, val_eve
     head.gamma = 1.0
     params = list(head.delta.parameters())
     optimizer = torch.optim.AdamW(params, lr=lr, betas=T.ADAM_BETAS, eps=T.ADAM_EPS, weight_decay=0.0)
-    train_files, val_files = clip_records("train"), clip_records("val", val_clips)
+    train_files, val_files = clip_records("train", None, clip_suffix), clip_records("val", val_clips, clip_suffix)
     draws = np.random.default_rng(seed)
     generator = torch.Generator(device=device).manual_seed(seed * 1000 + rank)
     layouts = {}
-    meta = dict(name=name, graymagic=graymagic, split=split, lr=lr, subject_weight=subject_weight, world=world, base_range=[BASE_LO, BASE_HI], clips=len(train_files),
+    meta = dict(name=name, graymagic=graymagic, split=split, lr=lr, subject_weight=subject_weight, clip_suffix=clip_suffix, world=world, base_range=[BASE_LO, BASE_HI], clips=len(train_files),
                 val_clips=len(val_files), frames=FRAMES, loss="(Δ_k − sg(Δ_0)) vs (x0_k − x0_gray), k = white, black; trunk frozen")
     if rank == 0:
         out.mkdir(parents=True, exist_ok=True)
@@ -225,13 +226,13 @@ def train(name, graymagic, split, lr=1e-3, max_steps=400, save_every=25, val_eve
     def validate():
         """Query (runs the model). Mean val loss per white / black head over this rank's val clips, all ranks averaged."""
         total, count = torch.zeros(2, device=device), torch.zeros((), device=device)
-        val_files = clip_records("val", val_clips)  # val clips made after the start join (the same list on every rank: sorted, then cut to the ranks' minimum)
+        val_files = clip_records("val", val_clips, clip_suffix)  # val clips made after the start join (the same list on every rank: sorted, then cut to the ranks' minimum)
         n = torch.tensor(len(val_files), device=device)
         dist.all_reduce(n, op=dist.ReduceOp.MIN)
         val_files = val_files[:int(n)]
         with torch.no_grad():
             for i, path in enumerate(val_files[rank::world]):
-                batch = load_clip(path)
+                batch = load_clip(path, clip_suffix)
                 for k, base in enumerate(VAL_BASES):
                     total += readout_forward(transformer, head, batch, audio, base, torch.Generator(device=device).manual_seed(1000 * i + k + 17 * rank), device, layouts)
                     count += 1
@@ -245,7 +246,7 @@ def train(name, graymagic, split, lr=1e-3, max_steps=400, save_every=25, val_eve
         log.write(f"0,,,,{val[0]:.5f},{val[1]:.5f},,{time.time():.0f}\n")
     step, last = 0, time.time()
     while True:
-        train_files = clip_records("train")  # clips the h3_motion_clip workers finished since the last pass join
+        train_files = clip_records("train", None, clip_suffix)  # clips the h3_motion_clip workers finished since the last pass join
         count = torch.tensor(len(train_files), device=device)
         dist.all_reduce(count, op=dist.ReduceOp.MIN)  # every rank sees the same list length
         train_files = train_files[:int(count)]
@@ -253,7 +254,7 @@ def train(name, graymagic, split, lr=1e-3, max_steps=400, save_every=25, val_eve
         for i in range(0, len(order) - world + 1, world):
             path = train_files[order[i + rank]]
             base = float(draws.uniform(BASE_LO, BASE_HI))
-            losses = readout_forward(transformer, head, load_clip(path), audio, base, generator, device, layouts, subject_weight)
+            losses = readout_forward(transformer, head, load_clip(path, clip_suffix), audio, base, generator, device, layouts, subject_weight)
             losses.mean().backward()
             T.all_reduce_grads(params, world)
             optimizer.step()

@@ -40,11 +40,13 @@ JOBS = {  # job: (table, key, blob columns read, output column, rows per query)
     "split": ("h3_magick_images", "page_id", ["rgba"], "h3_latent_black_512", 64),  # done column; rgba from magick_samples
     "v3": ("h3_magick_images", "page_id", ["rgba"], "h3_latent_black_768", 32),  # done column; rgba from magick_samples
     "grid": ("h3_magick_images", "page_id", ["rgba"], "h3_latent_grid_768", 32),  # rgba from magick_samples
+    "v3t": ("h3_magick_images", "page_id", ["rgba"], "h3_latent_black_768t", 32),  # v3 again, tiled encode (§25); done column
 }
 SPLIT_BACKGROUNDS = {"h3_latent_white_512": 1.0, "h3_latent_black_512": 0.0}  # split job: output column -> composite_on_gray level
 V3_BACKGROUNDS = {"h3_latent_gray_768": 0.5, "h3_latent_white_768": 1.0, "h3_latent_black_768": 0.0}  # v3 job: output column -> level
 V3_SIZE = 768  # Alpha Video v2 resolution (m00983: "512 is a little bit low")
-RGBA_JOBS = {"split": SPLIT_BACKGROUNDS, "v3": V3_BACKGROUNDS, "grid": {"h3_latent_grid_768": None}}  # jobs that composite magick_samples.rgba themselves
+V3T_BACKGROUNDS = {c + "t": level for c, level in V3_BACKGROUNDS.items()}  # the tiled-encode columns of job v3t
+RGBA_JOBS = {"split": SPLIT_BACKGROUNDS, "v3": V3_BACKGROUNDS, "grid": {"h3_latent_grid_768": None}, "v3t": V3T_BACKGROUNDS}  # jobs that composite magick_samples.rgba themselves
 GRID_PANEL = 384  # split v3-grid: 2 x 384 = one 768² frame, the token count of the other 768² runs
 
 
@@ -178,7 +180,7 @@ def encode_rows(vae, pool, job, rows):
         list[dict[str, bytes]]: {output column: safetensors bytes}, one per row
     """
     _, _, blobs, output, _ = JOBS[job]
-    metadata = dict(vae="MiniMax-H3 video VAE, untiled encode, sampled posterior", seed=h3.ENCODE_SEED, normalized="latents_mean/std")
+    metadata = dict(vae="MiniMax-H3 video VAE, tiled encode (256 px), sampled posterior", seed=h3.ENCODE_SEED, normalized="latents_mean/std")
     if job == "video":
         clips = list(pool.map(lambda row: read_mp4_rgb(row["clip_512"]), rows))
         out = []
@@ -188,7 +190,7 @@ def encode_rows(vae, pool, job, rows):
             out.append({output: tensors_bytes({"latent": h3.encode(vae, clip).to(torch.bfloat16)}, layout="LC, LT, LH, LW", **metadata)})
         return out
     if job in RGBA_JOBS:
-        composites = {"split": split_composites, "v3": v3_composites, "grid": lambda rgba: grid_image(rgba)[None]}[job]
+        composites = {"split": split_composites, "v3": v3_composites, "v3t": v3_composites, "grid": lambda rgba: grid_image(rgba)[None]}[job]
         images = np.stack(list(pool.map(lambda row: composites(read_png_rgba(row["rgba"])), rows)))  # (B, K, S, S, 3)
     else:
         images = np.stack(list(pool.map(lambda row: np.stack([read_png_rgb(row[c]) for c in blobs]), rows)))  # (B, K, H, W, 3)

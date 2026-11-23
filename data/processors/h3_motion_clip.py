@@ -3,7 +3,8 @@ Synthetic moving cut-out clips of Alpha Video v2 (manifest §23 item 4), a long-
 database's commit (the h3_encode pattern). For each chosen MAGICK row (the first COUNT train rows by page_id, plus every
 val row): a random smooth path (h3magic/synth_motion.py, seeded by (PATH_SEED, page_id)), 141 frames at 768² on 0.5 gray,
 white and black, H3-VAE-encoded as video latents (h3magic/h3.py encode). One h3_motion_clips row per page_id:
-    h3_motion_gray_768, h3_motion_white_768, h3_motion_black_768   {"latent": (24, 42, 48, 48) bfloat16} (LC, LT, LH, LW)
+    h3_motion_gray_768, h3_motion_white_768, h3_motion_black_768   {"latent": (24, 42, 48, 48) bfloat16} (LC, LT, LH, LW), untiled encode
+    h3_motion_gray_768t, h3_motion_white_768t, h3_motion_black_768t   the same, tiled encode (default since §25: H3's latent statistics)
     split, path_seed, scale_0, scale_1, center_x_0, center_y_0, center_x_1, center_y_1, angle_0, angle_1
 The caption is the row's h3_magick_images.h3_text_embed_v3 (joined by page_id at training, h3magic/split_video.py).
 
@@ -27,7 +28,8 @@ SIZE = 768
 FRAMES = 141  # = h3.VIDEO_FRAMES: the inference length, so every latent frame position is trained
 PATH_SEED = 0
 HEADS = ("gray", "white", "black")  # synth_motion.LEVELS order
-COLUMNS = [f"h3_motion_{h}_768" for h in HEADS]
+COLUMNS = [f"h3_motion_{h}_768" for h in HEADS]  # untiled (the first 517 clips)
+TILED_COLUMNS = [c + "t" for c in COLUMNS]  # tiled encode (§25)
 
 
 def path_of(page_id, seed=PATH_SEED):
@@ -69,11 +71,11 @@ def stable_worker(page_id, workers):
     return int(hashlib.sha256(page_id.encode()).hexdigest(), 16) % workers
 
 
-def chosen_rows(db, count):
+def chosen_rows(db, count, done_column="h3_motion_black_768t"):
     """Query. The rows to make: the first `count` train rows by page_id and every val row, with a fresh v3 embedding, none made yet."""
     rows = db.query("SELECT h.page_id, h.split, blob_info(m.rgba) AS rgba FROM h3_magick_images h JOIN magick_samples m ON m.page_id = h.page_id "
                     "WHERE h.h3_text_v3_sha256 = encode(sha256(h.h3_caption_v3), 'hex') ORDER BY h.page_id").to_pylist()
-    done = {r["page_id"] for r in db.query("SELECT page_id FROM h3_motion_clips WHERE h3_motion_black_768 IS NOT NULL").to_pylist()}
+    done = {r["page_id"] for r in db.query(f"SELECT page_id FROM h3_motion_clips WHERE {done_column} IS NOT NULL").to_pylist()}
     train = [r for r in rows if r["split"] == "train"][:count]
     return [r for r in train + [r for r in rows if r["split"] == "val"] if r["page_id"] not in done]
 
@@ -85,11 +87,12 @@ def composites_of(row):
     return params, synth_motion.moving_composites(rgba, synth_motion.affine_path(params, FRAMES, rgba.shape[0], SIZE), SIZE)
 
 
-def main(worker, workers, count=600, only_split=None):
+def main(worker, workers, count=600, only_split=None, tiled=True):
     """Command. Makes this worker's share of the chosen clips (stable_worker), committing each as it is made."""
     from bluejay import open_database
     db = open_database("project.dtab")
-    rows = [r for r in chosen_rows(db, count) if stable_worker(r["page_id"], workers) == worker and only_split in (None, r["split"])]
+    columns = TILED_COLUMNS if tiled else COLUMNS
+    rows = [r for r in chosen_rows(db, count, columns[2]) if stable_worker(r["page_id"], workers) == worker and only_split in (None, r["split"])]
     print(f"worker {worker}/{workers}: {len(rows)} clips to make", flush=True)
     vae = h3.load_vae()
     from concurrent.futures import ThreadPoolExecutor
@@ -100,9 +103,10 @@ def main(worker, workers, count=600, only_split=None):
         params, clips = pending.result()  # clips (3, T, S, S, 3)
         pending = pool.submit(composites_of, rows[i + 1]) if i + 1 < len(rows) else None
         with torch.inference_mode():
-            blobs = {c: tensors_bytes({"latent": h3.encode(vae, clip).to(torch.bfloat16)}, layout="LC, LT, LH, LW", background=level, seed=h3.ENCODE_SEED)
-                     for c, clip, level in zip(COLUMNS, clips, synth_motion.LEVELS)}
-        db.commit("h3_motion_clips", [*COLUMNS, "split", *path_fields(params)], [{"page_id": row["page_id"], **blobs, "split": row["split"], **path_fields(params)}],
+            blobs = {c: tensors_bytes({"latent": h3.encode(vae, clip, tiled=tiled).to(torch.bfloat16)}, layout="LC, LT, LH, LW", background=level,
+                                      seed=h3.ENCODE_SEED, tiled=tiled)
+                     for c, clip, level in zip(columns, clips, synth_motion.LEVELS)}
+        db.commit("h3_motion_clips", [*columns, "split", *path_fields(params)], [{"page_id": row["page_id"], **blobs, "split": row["split"], **path_fields(params)}],
                   insert_missing=True)
         print(f"{time.strftime('%I:%M:%S %p')} worker {worker}: {i + 1}/{len(rows)} {row['page_id']} ({row['split']}) {time.time() - t:.1f} s", flush=True)
 

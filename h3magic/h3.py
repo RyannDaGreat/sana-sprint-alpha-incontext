@@ -179,7 +179,7 @@ def latent_stats(vae):
 
 
 @torch.no_grad()
-def encode(vae, frames, seed=ENCODE_SEED):
+def encode(vae, frames, seed=ENCODE_SEED, tiled=True):
     """
     Query (runs the GPU model). Normalized H3 latents of a clip or of single images, the training-target recipe.
 
@@ -187,13 +187,16 @@ def encode(vae, frames, seed=ENCODE_SEED):
         vae (AutoencoderKLMiniMaxH3): From load_vae
         frames (np.ndarray): uint8 RGB. (T, H, W, 3) one clip, T = 17n + 5 (141) or 1; or (B, 1, H, W, 3) B single images
         seed (int): Posterior sampling seed
+        tiled (bool): the VAE's 256-px spatial tiles (diffusers default overlap). True since 2026-11-23 (EncBottleneck,
+            manifest §25): H3's latents_mean/std match TILED encodes; untiled ones give channels 16-23 a spread of ~0.7
+            and stock H3's flow loss is ~10% higher on them. Columns written before that are untiled
 
     Returns:
         torch.Tensor: float32 CPU. (LC, LT, LH, LW): a clip of 141 frames at 512² -> (24, 42, 32, 32), 1 frame -> (24, 1, 32, 32);
         for (B, 1, H, W, 3) input: (B, LC, 1, LH, LW)
     """
     import einx
-    vae.use_tiling = False  # Encode untiled: 5.1 s per 141-frame clip vs 14.7 s tiled; 36.3 vs 38.1 dB after a tiled decode (A100)
+    vae.use_tiling = tiled  # untiled is ~3x faster (5.1 vs 14.7 s per 512² clip) but off H3's latent distribution (§25)
     batched = frames.ndim == 5
     pixels = torch.from_numpy(np.ascontiguousarray(frames if batched else frames[None])).to(vae.device)
     pixels = einx.rearrange("B T H W C -> B C T H W", pixels).float().div(255)

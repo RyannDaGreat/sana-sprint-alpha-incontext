@@ -1020,6 +1020,8 @@ tables
 			 Alpha Video v2 (manifest §23). Written by h3_encode's job v3: magick_samples.rgba composited on 0.5 gray, white and black at 1024,
 			 area-resized to 768, H3 VAE latents (24, 1, 48, 48). h3_latent_black_768 is the done column
 			h3_latent_gray_768, h3_latent_white_768, h3_latent_black_768 blob
+			 The same, TILED encode (256-px tiles; H3's latent statistics, manifest §25). Written by h3_encode's job v3t; h3_latent_black_768t is the done column
+			h3_latent_gray_768t, h3_latent_white_768t, h3_latent_black_768t blob
 			 Written by agents/.scratchpad/alphav2/set_captions_v3.py: h3_caption + the gray suffix of §23. h3_embed embeds it into h3_text_embed_v3
 			h3_caption_v3 string
 			h3_text_embed_v3 blob
@@ -1192,6 +1194,7 @@ tables
 			,	model_tag av2_bothv_video_fgray	mode video	graymagic_adapter models/h3magic/graymagic_v3/final	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 1.0	prompt_set fgray	split_adapter models/h3magic/split_v3_video/final	size 768	g_split 1.0
 			,	model_tag av2_bothv_image_fgray	mode image	graymagic_adapter models/h3magic/graymagic_v3/final	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 1.0	prompt_set fgray	split_adapter models/h3magic/split_v3_video/final	size 768	g_split 1.0
 			,	model_tag av2_bothv_video_mgray	mode video	graymagic_adapter models/h3magic/graymagic_v3/final	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 1.0	prompt_set mgray	split_adapter models/h3magic/split_v3_video/final	size 768	g_split 1.0
+			,	model_tag av2_bothv_s00100_video_vgray	mode video	graymagic_adapter models/h3magic/graymagic_v3/final	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 1.0	prompt_set vgray	split_adapter models/h3magic/split_v3_video/step_00100	size 768	g_split 1.0
 
 	h3_eval_generations
 		 One row per H3 model and eval prompt: what the model makes from the prompt and its seed
@@ -1224,6 +1227,8 @@ tables
 			 Written by h3_motion_clip (data/processors/h3_motion_clip.py): a long-lived per-GPU worker committed with Bluejay's commit, not a Bluejay run
 			 The latents: {"latent": (24, 42, 48, 48) bfloat16}, H3 VAE video latents, normalized (h3magic/h3.py encode). The caption: h3_magick_images.h3_text_embed_v3
 			h3_motion_gray_768, h3_motion_white_768, h3_motion_black_768 blob
+			 The same clips, TILED encode (256-px tiles, manifest §25; h3_motion_clip's default since 2026-11-23 7 AM)
+			h3_motion_gray_768t, h3_motion_white_768t, h3_motion_black_768t blob
 			split string	 train or val, from h3_magick_images
 			path_seed int64	 The path's seed with page_id (h3_motion_clip.path_of)
 			scale_0, scale_1, center_x_0, center_y_0, center_x_1, center_y_1, angle_0, angle_1 float64
@@ -1272,6 +1277,22 @@ tables
 			psnr, ssim, lpips_alex, lpips_vgg, dists, de2000, flux_mse, sharp_grad, sharp_fft, flicker, z_dev, z_dev_std, seconds float64
 			curve string	 JSON list of {step, loss, psnr, lpips_alex, dists, z_dev} during the optimization
 			gpu int64
+
+			 Written by h3_enc_fmloss.py fmloss (runs fm_untiled, fm_tiled: the project's latent recipe, untiled or tiled): stock H3's flow-matching loss
+			 on this latent (its caption, CFG off, fixed noise shared by both runs). fm_loss: the mean over FM_SIGMAS; fm_loss_by_sigma: JSON {sigma: loss}
+			fm_loss float64
+			fm_loss_by_sigma string
+
+	h3_enc_stats
+		 Per-channel statistics of a set of normalized H3 latents (manifest §25): do the project's latents match H3's latents_mean / latents_std?
+		primary_key stat_id
+		columns
+			stat_id string
+
+			 Written by h3_enc_fmloss.py stats (stored project latents) and fmloss (re-encodes of the same clips, untiled / tiled / other tile sizes)
+			source, recipe string	  source: the table and column, or the clips; recipe: e.g. untiled sample, tiled 256 / 64
+			count int64	              latents in the set
+			channel_mean, channel_std list_(float64())	 24 values each: 0 and 1 = H3's own normalization
 
 
 	 FASTDEC GA (manifest §22, m00998: every experiment goes through BlueJay). The genetic search for a fast replacement of the H3 VAE decoder.
