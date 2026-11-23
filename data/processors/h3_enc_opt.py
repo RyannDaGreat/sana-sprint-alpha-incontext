@@ -361,7 +361,7 @@ def video(run, objective="l1_vgg", where="kind = 'video'", steps=60, lr=0.01, pr
 
 # ---------------------------------------------------------------- baselines alone
 
-def baselines(where="kind IN ('image', 'video')"):
+def baselines(where="kind IN ('image', 'video') AND origin != 'pexels_train'"):
     """Command. Commits the three encoder baselines of every matching sample that lacks them (no optimization)."""
     from bluejay import open_database
     db = open_database("project.dtab")

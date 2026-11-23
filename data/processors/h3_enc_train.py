@@ -123,27 +123,27 @@ def load_training_data(db, clips, images, exclude):
     return videos, pics
 
 
-def training_batch(videos, pics, rng):
+def training_batch(videos, pics, rng, video_windows=VIDEO_WINDOWS, image_crops=IMAGE_CROPS):
     """
     Near-pure function (advances rng). One step's crops.
 
     Returns:
-        tuple[np.ndarray, np.ndarray]: windows (VIDEO_WINDOWS, 34, 256, 256, 3), images (IMAGE_CROPS, 1, 256, 256, 3) uint8;
+        list[np.ndarray]: the non-empty of windows (video_windows, 34, 256, 256, 3) and images (image_crops, 1, 256, 256, 3) uint8;
         half of the image crops are MAGICK images, half single clip frames
     """
     windows = []
-    for _ in range(VIDEO_WINDOWS):
+    for _ in range(video_windows):
         v = videos[int(rng.integers(len(videos)))]
         start = CLIP_LENGTH * int(rng.integers(0, (len(v) - WINDOW) // CLIP_LENGTH + 1))
         windows.append(random_crop(v[start:start + WINDOW], rng))
     singles = []
-    for k in range(IMAGE_CROPS):
+    for k in range(image_crops):
         if k % 2 == 0:
             singles.append(random_crop(pics[int(rng.integers(len(pics)))][None], rng))
         else:
             v = videos[int(rng.integers(len(videos)))]
             singles.append(random_crop(v[int(rng.integers(len(v)))][None], rng))
-    return np.stack(windows), np.stack(singles)
+    return [np.stack(group) for group in (windows, singles) if group]
 
 
 def decode_tile(vae, z):
@@ -156,8 +156,8 @@ def decode_tile(vae, z):
     return L.from_imagenet(vae.decode(z * std[None] + mean[None], return_dict=False)[0].float())
 
 
-def train(name, steps=600, lr=1e-5, reg_weight=1.0, clips=160, images=2000, seed=0):
-    """Command. Fine-tunes the encoder (module docstring), saves it, commits its run row with the training log."""
+def train(name, steps=600, lr=1e-5, reg_weight=1.0, clips=160, images=2000, seed=0, video_windows=VIDEO_WINDOWS, image_crops=IMAGE_CROPS):
+    """Command. Fine-tunes the encoder (module docstring), saves it, commits its run row with the training log. image_crops 0 = video windows only."""
     from bluejay import open_database
     from safetensors.torch import save_file
     db = open_database("project.dtab")
@@ -175,10 +175,11 @@ def train(name, steps=600, lr=1e-5, reg_weight=1.0, clips=160, images=2000, seed
     out.mkdir(parents=True, exist_ok=True)
     log, t0 = [], time.time()
     for step in range(1, steps + 1):
-        windows, singles = training_batch(videos, pics, rng)
+        groups = training_batch(videos, pics, rng, video_windows, image_crops)
         total = {"loss": 0.0, "rec": 0.0, "reg": 0.0, "rec_h3": 0.0}
         opt.zero_grad(set_to_none=True)
-        for frames, keep in ((windows, DECODE_LATENTS), (singles, 1)):
+        for frames in groups:
+            keep = DECODE_LATENTS if frames.shape[1] > 1 else 1
             x = to_input(frames, "cuda")
             src = x.new_tensor(frames[:, :DECODE_FRAMES if keep > 1 else 1]).float().div(255)  # (B, T, H, W, 3)
             src = src.permute(0, 1, 4, 2, 3).flatten(0, 1)  # (B·T, 3, H, W)
@@ -189,15 +190,15 @@ def train(name, steps=600, lr=1e-5, reg_weight=1.0, clips=160, images=2000, seed
             pred = decode_tile(vae, z)[:, :, :src.shape[0] // len(frames)].permute(0, 2, 1, 3, 4).flatten(0, 1)
             rec = L.objective_loss(judges, TERMS, pred, src)
             reg = (z - z_h3).pow(2).mean()
-            loss = (rec + reg_weight * reg) / 2  # the two halves (video windows, single frames) weigh the same
+            loss = (rec + reg_weight * reg) / len(groups)  # the groups (video windows, single frames) weigh the same
             loss.backward()
             if step % LOG_EVERY == 0:
                 with torch.no_grad():
                     rec_h3 = L.objective_loss(judges, TERMS, decode_tile(vae, z_h3)[:, :, :src.shape[0] // len(frames)].permute(0, 2, 1, 3, 4).flatten(0, 1), src)
-                total["rec_h3"] += float(rec_h3) / 2
+                total["rec_h3"] += float(rec_h3) / len(groups)
             total["loss"] += float(loss.detach())
-            total["rec"] += float(rec.detach()) / 2
-            total["reg"] += float(reg.detach()) / 2
+            total["rec"] += float(rec.detach()) / len(groups)
+            total["reg"] += float(reg.detach()) / len(groups)
         torch.nn.utils.clip_grad_norm_(params, 1.0)
         opt.step()
         sched.step()
@@ -218,7 +219,7 @@ def train(name, steps=600, lr=1e-5, reg_weight=1.0, clips=160, images=2000, seed
     print(f"{name}: saved {out / 'encoder.safetensors'}", flush=True)
 
 
-def evaluate(name, where="kind IN ('image', 'video')", tiled=False):
+def evaluate(name, where="kind IN ('image', 'video') AND origin != 'pexels_train'", tiled=False):
     """
     Command. Scores the fine-tuned encoder's latents on held-out samples; commits run encft_<name> rows to h3_enc_results.
     tiled: encode in the VAE's 256-px spatial tiles (the crop size the encoder was fine-tuned on), run encft_<name>_tiled.
