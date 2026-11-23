@@ -1272,3 +1272,6 @@ What's your ETA? Are you on schedule?
 
 ## m00969 — 2026-11-22 ~09:41 PM ET
 How's it going?
+
+## m00970 — 2026-11-22 ~09:42 PM ET
+Two nodes have 0 GPU usage.
