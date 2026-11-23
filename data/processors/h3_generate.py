@@ -75,7 +75,7 @@ def plan():
     print(f"plan: {len(new)} new prompts, {len(rows)} new generations ({len(models)} models x {len(prompts)} prompts)", flush=True)
 
 
-def work_sql(worker, workers):
+def work_sql(worker, workers, only="%"):
     """
     Pure function. The query of this worker's next generations: rows with no output whose prompt has an embedding,
     one model at a time; worker k takes the prompts whose number is k mod workers (an even split of 20 prompts).
@@ -83,13 +83,15 @@ def work_sql(worker, workers):
     Examples:
         >>> "% 2 = 1" in work_sql(1, 2)
         True
+        >>> "g.model_tag LIKE 'pexels_video_v2'" in work_sql(0, 7, only="pexels_video_v2")  # one model only (a second node's workers)
+        True
     """
     return ("SELECT g.model_tag, g.prompt_id, g.seed, m.mode, m.steps, m.a_pexels, m.b_imagegen, m.c_graymagic, "
             "m.pexels_adapter, m.imagegen_adapter, m.graymagic_adapter, m.cfg, blob_info(p.h3_text_embed) AS embed "
             "FROM h3_eval_generations g JOIN h3_eval_models m ON m.model_tag = g.model_tag "
             "JOIN h3_eval_prompts p ON p.prompt_id = g.prompt_id "
             "WHERE g.video IS NULL AND g.image IS NULL AND p.h3_text_embed IS NOT NULL "
-            f"AND CAST(substr(g.prompt_id, 2) AS INT) % {workers} = {worker} "
+            f"AND CAST(substr(g.prompt_id, 2) AS INT) % {workers} = {worker} AND g.model_tag LIKE '{only}' "
             "ORDER BY g.model_tag, g.prompt_id LIMIT 1")
 
 
@@ -116,10 +118,11 @@ def guidance(row):
     return float(row["cfg"]) if row["cfg"] is not None else 1.0
 
 
-def work(worker, workers, poll_seconds=60):
+def work(worker, workers, poll_seconds=60, only="%"):
     """
     Command. Loads H3 once on this GPU and generates this worker's h3_eval_generations rows until none is left twice
-    `poll_seconds` apart; commits each result (video or image, seconds, gpu) at once.
+    `poll_seconds` apart; commits each result (video or image, seconds, gpu) at once. `only` (SQL LIKE on model_tag) limits it
+    to some models, so a second node can take one model without sharing prompt slices with the first node's workers.
     """
     from bluejay import open_database
 
@@ -143,7 +146,7 @@ def work(worker, workers, poll_seconds=60):
             print(f"worker {worker}: {row['model_tag']} {row['prompt_id']} {seconds:.1f} s", flush=True)
 
     with torch.inference_mode():
-        round_robin(db, [(work_sql(worker, workers), handle, f"generate worker {worker}")], poll_seconds)
+        round_robin(db, [(work_sql(worker, workers, only), handle, f"generate worker {worker}")], poll_seconds)
     print(f"worker {worker}: done", flush=True)
 
 
