@@ -37,6 +37,8 @@ SECTIONS = (
     ("Ablation: split adapter on \"basic ass magic\" v2, images", "split_bam_image", True),
     ("Ablation: split adapter on \"basic ass magic\" v2, video", "split_bam_video", True),
 )
+FG_SUFFIX = "_fg"  # The same rows on the foreground-only prompt set (prompt_set fg): no prompt describes a background
+FG_PROMPTS = j.ROOT / "h3magic/eval_prompts_fg.json"
 GAMMA0 = (("split_v2_g0_image", "graymagic_image_v2"), ("split_v2_g0_video", "all_video_v2"))  # (γ = 0 row, its base row)
 
 INTRO = (
@@ -114,7 +116,7 @@ def split_equation(row):
         chain = f"W_H3 + {row['c_graymagic']:g}·Δ_{row['graymagic_adapter'].split('/')[-2]}"
     else:
         chain = j.weight_equation({**row, "model_tag": "", "cfg": 1})
-    name = "split" if "split_v2" in (row.get("split_adapter") or "") else row["split_adapter"].split("/")[-2]
+    name = "split" if "split_v2" in row["split_adapter"] else "split_bam" if "split_bam" in row["split_adapter"] else row["split_adapter"].split("/")[-2]
     return f"{chain} + {row['g_split'] or 0:g}·Δ_{name}{cfg}"
 
 
@@ -221,8 +223,16 @@ def build():
     models = [m for m in j.load_models() if m.get("split_adapter")]
     by_tag = {m["model_tag"]: m for m in models}
     found = export_split(models)
+    fg_prompts = json.loads(FG_PROMPTS.read_text())
     sections = [section(title, by_tag.get(tag), found, prompts, open_) for title, tag, open_ in SECTIONS]
-    extra = [m for m in models if m["model_tag"] not in {t for _, t, _ in SECTIONS} | {z for z, _ in GAMMA0}]
+    fg = [section(f"{title} (foreground-only prompts)", by_tag[tag + FG_SUFFIX], found, fg_prompts, open_)
+          for title, tag, open_ in SECTIONS if tag + FG_SUFFIX in by_tag]
+    if fg:
+        sections.append('<details class="row" open><summary>Foreground-only prompts (f01&ndash;f20: no background described)</summary>'
+                        '<p class="note">The same 20 subjects with every background word removed from the prompt, so the background can only come from the adapters.</p>'
+                        + "".join(fg) + "</details>")
+    shown = {t for _, t, _ in SECTIONS} | {t + FG_SUFFIX for _, t, _ in SECTIONS} | {z for z, _ in GAMMA0}
+    extra = [m for m in models if m["model_tag"] not in shown]
     if extra:  # tasting checkpoints and any other split rows
         inner = "".join(section(f"{m['model_tag']}", m, found, prompts, False) for m in extra)
         sections.append(f'<details class="row"><summary>Training checkpoints and other rows</summary>{inner}</details>')
