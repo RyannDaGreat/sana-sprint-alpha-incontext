@@ -56,7 +56,30 @@ FRAMES = 141
 HEAD_KEYS = ("gray", "white", "black")  # = splitter.SPLIT_BACKGROUNDS order
 
 
-def readout_loss(delta_rows, x0_rows):
+SUBJECT_FRACTION = 0.15  # a row is "subject" when its white-black latent difference is below this share of the 90th percentile (background rows differ most)
+
+
+def subject_rows(x0_rows, fraction=SUBJECT_FRACTION):
+    """
+    Pure function. Mask of the subject rows: mean |x0_white − x0_black| over channels below `fraction` of its 90th
+    percentile (on white and on black only the background differs).
+
+    Args:
+        x0_rows (Tensor): (B, R, K, C) clean targets, heads gray, white, black
+
+    Returns:
+        Tensor: (B, R) bool
+
+    Examples:
+        >>> x0 = torch.zeros(1, 10, 3, 2); x0[0, 5:, 1] = 1.0; x0[0, 5:, 2] = -1.0  # rows 5-9 background, 0-4 subject
+        >>> subject_rows(x0).int().tolist()
+        [[1, 1, 1, 1, 1, 0, 0, 0, 0, 0]]
+    """
+    d = (x0_rows[..., 1, :] - x0_rows[..., 2, :]).abs().mean(-1)  # (B, R)
+    return d < fraction * torch.quantile(d.float().flatten(), 0.9)
+
+
+def readout_loss(delta_rows, x0_rows, subject_weight=0.0):
     """
     Pure function. Per-head loss of the video readout: mean over rows of (Δ_k − sg(Δ_0) − (x0_k − x0_0))² for k ≥ 1.
 
@@ -65,7 +88,8 @@ def readout_loss(delta_rows, x0_rows):
         x0_rows (Tensor): (B, R, K, C) clean targets per head, head 0 = gray
 
     Returns:
-        Tensor: (K − 1,) one MSE per white / black head
+        Tensor: (K − 1,) one MSE per white / black head; with subject_weight > 0, subject rows (subject_rows) weigh
+        1 + subject_weight (a weighted mean)
 
     Examples:
         >>> x0 = torch.tensor([[[[0.0], [1.0], [-1.0]]]])          # (1, 1, 3, 1): gray 0, white 1, black -1
@@ -74,7 +98,9 @@ def readout_loss(delta_rows, x0_rows):
         ([0.0, 0.0], [1.0, 1.0])
     """
     difference = delta_rows[..., 1:, :] - delta_rows[..., :1, :].detach()
-    return einx.mean("B R K C -> K", (difference - (x0_rows[..., 1:, :] - x0_rows[..., :1, :])) ** 2)
+    error = einx.mean("B R K C -> B R K", (difference - (x0_rows[..., 1:, :] - x0_rows[..., :1, :])) ** 2)
+    weight = 1.0 + subject_weight * subject_rows(x0_rows).float() if subject_weight else torch.ones(error.shape[:2], device=error.device)
+    return einx.sum("B R K -> K", error * weight[..., None]) / weight.sum()
 
 
 def clip_records(split, limit=None):
@@ -105,7 +131,7 @@ def load_clip(record):
     return dict(latents=targets[:, 0], targets=targets, prompt_embeds=text["prompt_embeds"], text_token_tags=text["text_token_tags"])
 
 
-def readout_forward(transformer, head, batch, audio, base, generator, device, layouts):
+def readout_forward(transformer, head, batch, audio, base, generator, device, layouts, subject_weight=0.0):
     """
     Near-pure function (advances generator; runs the frozen model without gradients, then Δ with gradients). Per-head
     readout loss (K − 1,) of one clip at one base noise level.
@@ -133,7 +159,7 @@ def readout_forward(transformer, head, batch, audio, base, generator, device, la
         hook.remove()
     x = captured["x"].index_select(1, layouts[key].tensors["video_indices"]).float()  # (1, R, 5120), no grad
     delta = einx.rearrange("B R (K C) -> B R K C", head.gamma * head.delta(x), K=head.heads)
-    return readout_loss(delta, T.split_rows(batch["targets"].to(device)))
+    return readout_loss(delta, T.split_rows(batch["targets"].to(device)), subject_weight)
 
 
 def save(head, folder, split_folder, meta):
@@ -149,7 +175,8 @@ def save(head, folder, split_folder, meta):
         shutil.copyfile(folder / name, local / name)
 
 
-def train(name, graymagic, split, lr=1e-3, max_steps=400, save_every=25, val_every=25, seed=0, stop_at="", val_clips=VAL_CLIPS):
+def train(name, graymagic, split, lr=1e-3, max_steps=400, save_every=25, val_every=25, seed=0, stop_at="", val_clips=VAL_CLIPS,
+          subject_weight=0.0):
     """
     Command (torchrun, one process per GPU, one clip per GPU per step). Trains the split head's Δ on the motion clips.
 
@@ -161,6 +188,7 @@ def train(name, graymagic, split, lr=1e-3, max_steps=400, save_every=25, val_eve
         max_steps, save_every, val_every, seed (int)
         stop_at (str): "HH:MM" Eastern hard stop; agents/.scratchpad/h3train/STOP_<name> stops early
         val_clips (int): at most this many val clips (h3_motion_clips split val)
+        subject_weight (float): training loss weight added on subject rows (solidity); validation stays unweighted
     """
     dist.init_process_group("nccl")
     rank, world = dist.get_rank(), dist.get_world_size()
@@ -186,7 +214,7 @@ def train(name, graymagic, split, lr=1e-3, max_steps=400, save_every=25, val_eve
     draws = np.random.default_rng(seed)
     generator = torch.Generator(device=device).manual_seed(seed * 1000 + rank)
     layouts = {}
-    meta = dict(name=name, graymagic=graymagic, split=split, lr=lr, world=world, base_range=[BASE_LO, BASE_HI], clips=len(train_files),
+    meta = dict(name=name, graymagic=graymagic, split=split, lr=lr, subject_weight=subject_weight, world=world, base_range=[BASE_LO, BASE_HI], clips=len(train_files),
                 val_clips=len(val_files), frames=FRAMES, loss="(Δ_k − sg(Δ_0)) vs (x0_k − x0_gray), k = white, black; trunk frozen")
     if rank == 0:
         out.mkdir(parents=True, exist_ok=True)
@@ -225,7 +253,7 @@ def train(name, graymagic, split, lr=1e-3, max_steps=400, save_every=25, val_eve
         for i in range(0, len(order) - world + 1, world):
             path = train_files[order[i + rank]]
             base = float(draws.uniform(BASE_LO, BASE_HI))
-            losses = readout_forward(transformer, head, load_clip(path), audio, base, generator, device, layouts)
+            losses = readout_forward(transformer, head, load_clip(path), audio, base, generator, device, layouts, subject_weight)
             losses.mean().backward()
             T.all_reduce_grads(params, world)
             optimizer.step()
