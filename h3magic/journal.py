@@ -80,11 +80,13 @@ FINDINGS = (
     "warn of exactly this. Measured: about 80% of the Pexels adapter's change points toward H3's unconditional prediction, and its "
     "quality falls steadily with the adapter weight.</p>"
     "<p>Two fixes, both shown below: (1) <b>CFG 2.5 at generation</b> with the same adapters repairs them (rows marked "
-    "\"generated with CFG 2.5\"; 2&times; the generation time). (2) <b>Retraining the normal way</b>: the ostris v3 training adapter "
-    "is used only during training, learning rate 1e-4, then generation on plain H3 at CFG 1 (rows marked \"v2\").</p>")
+    "\"generated with CFG 2.5\"; 2&times; the generation time). (2) <b>Retraining with a guidance loss</b> (musubi-tuner's method): the training "
+    "target is re-anchored with H3's own unconditional prediction (scale 4), learning rate 1e-4, then generation on plain H3 at "
+    "CFG 1 (rows marked \"v2\"). It beat the ostris training-adapter recipe in our pilots (crisper, closer to stock), whose "
+    "Pexels run is shown as a tasting row (pexels2_s00225_video).</p>")
 
 VARIANTS = (("", ""), ("c", " — same adapters, generated with CFG 2.5 (repairs the lost guidance distillation)"),
-            ("v2", " — retrained with the ostris v3 training adapter (the normal H3 recipe), CFG 1"))
+            ("v2", " — retrained with the guidance loss (keeps H3's built-in guidance; scale 4, lr 1e-4), CFG 1"))
 
 
 def variant_suffix(tag):
