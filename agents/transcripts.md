@@ -1275,3 +1275,6 @@ How's it going?
 
 ## m00970 — 2026-11-22 ~09:42 PM ET
 Two nodes have 0 GPU usage.
+
+## m00971 — 2026-11-22 ~10:00 PM ET
+Please make it in a new journal page, without broken crap. Showcase the things I want to see. I can't tell what to look at: there are so many videos right now in the journal page.
