@@ -288,6 +288,9 @@ def build():
         f"<li><b>References:</b> decode&rarr;blend&rarr;encode {dbe['psnr']:.2f} dB at {fmt(dbe.get('ms_reference'), '.0f')} ms per sample; "
         f"oracle (the true composite latent, decoded) {oracle:.2f} dB: what a perfect compositor scores (PSNR can still be gamed by blurrier latents, see r0/taeh3_dbe; read LPIPS and latent MSE beside it).</li>" if dbe and oracle else "") + "</ul>"
     data = dict(examples=examples, rows=rows, oracle=oracle, dbe=dbe["psnr"] if dbe else None)
+    notes_path = LC / "round_notes.json"
+    notes = json.loads(notes_path.read_text()) if notes_path.exists() else []
+    lessons = "".join(f"<li><b>Round {n['round']}.</b> {n['html']}</li>" for n in notes)
     page = f"""<!doctype html>
 <html lang="en">
 <head>
@@ -308,6 +311,7 @@ It has to be precise (it will be used inside training losses) and cheap to backp
 <svg id="scatter" width="100%" style="max-width:720px" role="img" aria-label="PSNR against cost"></svg>
 <p class="note">Each dot is one candidate (color = round; hover for details). Higher is better, left is cheaper.</p>
 {headline}</details>
+<details open><summary>What each round taught</summary><ul>{lessons}</ul></details>
 <details open><summary>Examples (hardest first): true composite vs each method, error maps, soft-edge zoom</summary>
 <p class="note">Drag across the image to move the divider (left: the TRUE composite, right: the chosen method). "Error" shows |output &minus; truth| &times; {ERROR_GAIN}. The zoom row cuts the 256&times;256 window with the most semi-transparent pixels out of each full-resolution PNG and shows it at 2&times; (nearest neighbor), for every method at once.</p>
 <div class="controls"><label>example <select id="ex"></select></label><label>method <select id="method"></select></label>
