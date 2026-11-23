@@ -1400,3 +1400,9 @@ Then a natural question would be if you combine DWD with a decoder can you get s
 
 ## m01009 — 2026-11-23 ~08:04 AM ET
 anything new?
+
+## m01010 — 2026-11-23 ~08:13 AM ET
+I think it's about time to start that concatenation based alpha thing please
+
+## m01011 — 2026-11-23 ~08:16 AM ET
+I don't understand, why is alpha coming from least squares? I thought alpha was explicitly one of the output channels now because we can concatenate four things. I should look at your url.
