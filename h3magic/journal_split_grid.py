@@ -157,7 +157,8 @@ def section(model, items, prompts, metrics=None, register=None):
     video_lora = f" + 1·Δ_{model['pexels_adapter'].split('/')[-2]} ({model['pexels_adapter'].split('/')[-1]})" if model.get("pexels_adapter") else ""
     side = model.get("size") or 768
     eq = f"W_H3 + 1·Δ_graymagic_v3t + 1·Δ_{model['imagegen_adapter'].split('/')[-2]} ({model['imagegen_adapter'].split('/')[-1]}){video_lora}, CFG 1, {side}²"
-    return (f'<details class="row" open><summary>{html.escape(tag)} <span class="note">({len(items)}/{len(prompts)} prompts)</span></summary>'
+    label = "UNREQUESTED VARIANT, alpha = max(4th panel, three-background alpha above 0.1): " if model.get("layout") == "grid2x2mix" else ""
+    return (f'<details class="row" open><summary>{label}{html.escape(tag)} <span class="note">({len(items)}/{len(prompts)} prompts)</span></summary>'
             f'<p class="eq">{html.escape(eq)}</p><p class="note">{stats}</p>{missed_block(tag, metrics or {}, prompts, mode) if mode == "image" else register_block(tag, register or {}, prompts)}'
             f'<div class="wide"><table><thead><tr><th></th>{head}</tr></thead><tbody>{"".join(body)}</tbody></table></div></details>')
 
@@ -165,14 +166,15 @@ def section(model, items, prompts, metrics=None, register=None):
 def build():
     """Command. Writes journal/h3magic_split_grid.html."""
     prompts = json.loads(PROMPTS.read_text())
-    models = [m for m in j.load_models() if m.get("layout") == "grid2x2"]
+    models = [m for m in j.load_models() if m.get("layout") in ("grid2x2", "grid2x2mix")]
     found = export(models)
     notes = json.loads(NOTES.read_text()) if NOTES.exists() else {}
     order = sorted(models, key=lambda m: (m["mode"] != "image", m["model_tag"]))
     metrics = json.loads(METRICS.read_text()) if METRICS.exists() else {}
     register = json.loads(REGISTER.read_text()) if REGISTER.exists() else {}
     vprompts = json.loads((j.ROOT / "h3magic/eval_prompts_vgrid.json").read_text())
-    sections = "".join(section(m, found.get(m["model_tag"], {}), vprompts if m.get("prompt_set") == "vgrid" else prompts, metrics, register) for m in order)
+    mprompts = json.loads((j.ROOT / "h3magic/eval_prompts_mgrid.json").read_text())
+    sections = "".join(section(m, found.get(m["model_tag"], {}), {"vgrid": vprompts, "mgrid": mprompts}.get(m.get("prompt_set"), prompts), metrics, register) for m in order)
     page = f"""<!doctype html>
 <html lang="en">
 <head>
