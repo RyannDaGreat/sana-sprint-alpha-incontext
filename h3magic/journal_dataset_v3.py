@@ -94,7 +94,7 @@ table td, table th { padding: 4px 10px; border-bottom: var(--hairline) solid var
 <div class="lineage">
 <div class="box"><b>Stock H3</b><br>MiniMax H3, no adapter. With the gray suffix in the prompt it already draws most subjects on flat gray (entry 1 of the Alpha Video v2 page).</div>
 <div class="arrow">&rarr;</div>
-<div class="box"><b>Gray magic v3</b> (&Delta;_graymagic_v3)<br>A LoRA on stock H3, trained on the <b>gray</b> images below with their captions. Since the captions already ask for gray, it mostly learns MAGICK's look and an exact flat 50% gray.</div>
+<div class="box"><b>Gray magic v3</b> (&Delta;_graymagic_v3)<br>A LoRA on stock H3, trained on the <b>gray</b> images below with their captions. Since the captions already ask for gray, it mostly learns MAGICK's look and a flatter, darker gray (tasting: border level 122, i.e. 0.48, vs 144 from the words alone).</div>
 <div class="arrow">&rarr;</div>
 <div class="box"><b>Split v3</b> (&Delta;_split_v3)<br>Trained with gray magic v3 baked in: a LoRA plus three output heads, taught the <b>gray</b>, <b>white</b> and <b>black</b> images of the same row at once. From the three, least squares gives the cut-out (RGBA).</div>
 </div>
