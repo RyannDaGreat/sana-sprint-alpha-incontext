@@ -21,6 +21,10 @@ import journal as j
 PAGE = j.ROOT / "journal/h3magic_final.html"
 OVERVIEW_PX = 200  # display width of an overview cell; the files are the 512x512 originals
 LAST_STEP_NOTE = "step 500 of 544"
+# A second prompt set (BgFree): same stages, rows tagged <main tag> + suffix, prompts in their own file. Its overview shows only when a row has output.
+FG_SUFFIX = "_fg"
+FG_PROMPTS = j.ROOT / "h3magic/eval_prompts_fg.json"
+FG_TITLE = "Foreground-only prompts (no background described): 20 prompts &times; 7 stages"
 
 # (key, column header in words, section title, model tags in order of preference, open by default, note when a fallback tag is used)
 STAGES = (
@@ -140,21 +144,25 @@ def found_of(model, found):
     return found[model["model_tag"]]
 
 
-def build():
+def stage_columns(suffix, by_tag, found, prompts):
     """
-    Command. Exports the shown rows' outputs byte for byte to journal/assets/h3magic/<model_tag>/ and writes journal/h3magic_final.html.
-    Rows that are not complete yet get a "rendering" note; run again when they are done.
+    Pure function. The overview columns of one prompt set: [(header, model or None, found)] and the stage status
+    [(key, model_tag or None, outputs)], using the rows tagged <stage tag> + suffix.
     """
-    prompts = json.loads(j.PROMPTS.read_text())
-    wanted = {t for s in STAGES for t in s[3]} | {a[2] for a in ABLATION_STAGES}
-    models = [m for m in j.load_models() if m["model_tag"] in wanted]
-    by_tag = {m["model_tag"]: m for m in models}
-    found = j.export_outputs(models)
+    suffixed = lambda tags: tuple(t + suffix for t in tags)
+    columns, status = [], []
+    for key, header, _, tags, _, fallback_note in STAGES:
+        model, fallback = pick_model(suffixed(tags), by_tag, found, prompts)
+        columns.append((header + (f" ({fallback_note})" if fallback else ""), model, found))
+        status.append((key, model["model_tag"] if model else None, len(found[model["model_tag"]]) if model else 0))
+    return columns, status
 
-    columns, sections, status = [], [], []
+
+def stage_sections(by_tag, found, prompts):
+    """Pure function. The full-size <details> section of every stage and ablation row of the main prompt set."""
+    sections = []
     for key, header, title, tags, open_, fallback_note in STAGES:
         model, fallback = pick_model(tags, by_tag, found, prompts)
-        columns.append((header + (f" ({fallback_note})" if fallback else ""), model, found))
         if model:
             note = f'<p class="note">Showing {html.escape(model["model_tag"])} ({fallback_note}); the final checkpoint is still rendering, the page updates when done.</p>' if fallback else ""
             if len(found[model["model_tag"]]) < len(prompts):
@@ -162,15 +170,37 @@ def build():
             sections.append(j.section_html(title, [model], found, prompts, open_=open_).replace("</summary>", f"</summary>{note}", 1))
         else:
             sections.append(f'<details class="row"{" open" if open_ else ""}><summary>{html.escape(title)}</summary><p class="note">Rendering, the page updates when done.</p></details>')
-        status.append((key, model["model_tag"] if model else None, len(found[model["model_tag"]]) if model else 0))
     for key, title, tag in ABLATION_STAGES:
         model = by_tag.get(tag)
-        done = len(found.get(tag, {}))
-        if model and done:
+        if model and found.get(tag):
             sections.append(j.section_html(title, [model], found, prompts, open_=True))
         else:
             sections.append(f'<details class="row" open><summary>{html.escape(title)}</summary><p class="note">Rendering, the page updates when done.</p></details>')
-        status.append((key, tag if done else None, done))
+    return sections
+
+
+def build():
+    """
+    Command. Exports the shown rows' outputs byte for byte to journal/assets/h3magic/<model_tag>/ and writes journal/h3magic_final.html.
+    Rows that are not complete yet get a "rendering" note; run again when they are done. The foreground-only overview is added
+    when at least one <tag>_fg row has output.
+    """
+    prompts = json.loads(j.PROMPTS.read_text())
+    base_tags = {t for s in STAGES for t in s[3]}
+    wanted = base_tags | {t + FG_SUFFIX for t in base_tags} | {a[2] for a in ABLATION_STAGES}
+    models = [m for m in j.load_models() if m["model_tag"] in wanted]
+    by_tag = {m["model_tag"]: m for m in models}
+    found = j.export_outputs(models)
+
+    columns, status = stage_columns("", by_tag, found, prompts)
+    sections = stage_sections(by_tag, found, prompts)
+    status += [(key, tag if found.get(tag) else None, len(found.get(tag, {}))) for key, _, tag in ABLATION_STAGES]
+    overviews = [f'<details open><summary>Overview: 20 prompts &times; 7 stages</summary><p class="note">Shown at {OVERVIEW_PX} px wide; click a cell for the 512&times;512 original. Videos play when scrolled into view.</p>{overview_html(columns, prompts)}</details>']
+    if any(found.get(t + FG_SUFFIX) for t in base_tags):
+        fg_prompts = json.loads(FG_PROMPTS.read_text())
+        fg_columns, fg_status = stage_columns(FG_SUFFIX, by_tag, found, fg_prompts)
+        overviews.append(f'<details open><summary>{FG_TITLE}</summary><p class="note">The same subjects, with the prompts rewritten so they never mention the background. Fills in as rows finish rendering.</p>{overview_html(fg_columns, fg_prompts)}</details>')
+        status += [(k + FG_SUFFIX, t, n) for k, t, n in fg_status]
 
     glossary = "".join(f"<dt>{t}</dt><dd>{d}</dd>" for t, d in GLOSSARY)
     page = f"""<!doctype html>
@@ -185,7 +215,7 @@ def build():
 <main>
 <h1>H3 Magic: final results</h1>
 {INTRO}
-<details open><summary>Overview: 20 prompts &times; 7 stages</summary><p class="note">Shown at {OVERVIEW_PX} px wide; click a cell for the 512&times;512 original. Videos play when scrolled into view.</p>{overview_html(columns, prompts)}</details>
+{"".join(overviews)}
 {"".join(sections)}
 <details><summary>Glossary</summary><dl>{glossary}</dl></details>
 </main>
