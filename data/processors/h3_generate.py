@@ -39,7 +39,8 @@ EVAL_PROMPTS = ROOT / "h3magic/eval_prompts.json"
 # prompt_set of h3_eval_prompts / h3_eval_models (NULL = main): fg = the same 20 subjects with no background described (m00972)
 PROMPT_SETS = {"main": EVAL_PROMPTS, "fg": ROOT / "h3magic/eval_prompts_fg.json",
                # Alpha Video v2 (manifest §23): the fg (g01-g20) and main (m01-m20) prompts + the gray suffix
-               "fgray": ROOT / "h3magic/eval_prompts_fgray.json", "mgray": ROOT / "h3magic/eval_prompts_mgray.json"}
+               "fgray": ROOT / "h3magic/eval_prompts_fgray.json", "mgray": ROOT / "h3magic/eval_prompts_mgray.json",
+               "vgray": ROOT / "h3magic/eval_prompts_vgray.json"}  # 4 fgray prompts (v02, v08, v10, v17): quick video tastings
 VIDEO_CRF = 12  # Near-lossless H.264, as h3_cut_clip's clips
 ADAPTERS = (("pexels", "pexels_adapter", "a_pexels"), ("imagegen", "imagegen_adapter", "b_imagegen"), ("graymagic", "graymagic_adapter", "c_graymagic"),
             ("split", "split_adapter", "g_split"))  # the split adapter's LoRA at γ (its head: h3.set_splitter)

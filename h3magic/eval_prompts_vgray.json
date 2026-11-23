@@ -1,0 +1,26 @@
+[
+ {
+  "id": "v02",
+  "short": "Dancer spinning in red dress",
+  "seed": 1002,
+  "prompt": "integrated_multimodal_description: [Shot 1] Live-action, cinematic, a full shot frames a barefoot woman with long dark curly hair in a flowing red dress with thin straps and a long pleated skirt. The camera holds a static shot as she raises both arms above her head and begins to spin on the ball of one foot. The skirt of the dress lifts and flares out into a wide circle around her legs, and her hair swings outward with each turn. After three fast turns she slows, lowers her arms in a smooth arc and stops facing the camera, her chest rising and falling as the dress settles around her knees. The subject is isolated on a plain flat medium-gray (#808080) background, like a cut-out on an empty gray canvas."
+ },
+ {
+  "id": "v08",
+  "short": "Horse galloping",
+  "seed": 1008,
+  "prompt": "integrated_multimodal_description: [Shot 1] Live-action, cinematic, a wide shot frames a chestnut horse with a pale flowing mane, a white blaze down its face and white socks on its back legs, galloping alone with no saddle or rider. The camera trucks right at fast speed alongside the horse, keeping it in the center of the frame. Its legs reach out and fold in a steady rhythm, its hooves striking down hard with each stride, and the muscles of its shoulders and flanks bunch and stretch under its glossy coat. Its mane and tail stream back, its nostrils flare and its ears point forward as it runs. The subject is isolated on a plain flat medium-gray (#808080) background, like a cut-out on an empty gray canvas."
+ },
+ {
+  "id": "v10",
+  "short": "Cat pouncing on toy",
+  "seed": 1010,
+  "prompt": "integrated_multimodal_description: [Shot 1] Live-action, a medium close-up frames a gray tabby cat with green eyes, white whiskers and a striped tail crouching low, its eyes fixed on a feather toy with blue and purple feathers on a short wand that twitches just in front of it. The camera holds a static shot as the cat wiggles its hindquarters and its tail tip flicks back and forth. It springs forward with both front paws stretched out and pins the feathers down, then rolls onto its side, wraps its front legs around the toy and kicks at it with its back legs, its ears flattening. The subject is isolated on a plain flat medium-gray (#808080) background, like a cut-out on an empty gray canvas."
+ },
+ {
+  "id": "v17",
+  "short": "Coffee pouring into a cup",
+  "seed": 1017,
+  "prompt": "integrated_multimodal_description: [Shot 1] Live-action, a close-up frames a clean white ceramic cup with a thin rounded handle on a matching white saucer. The camera arcs around the cup with small amplitude at slow speed as a stream of dark hot coffee pours into it from the curved spout of a silver pot held just above the frame. The coffee swirls and rises in the cup, a light brown foam forms and spins on its surface, and thin wisps of steam curl up from it. The stream thins and stops, and a last drop falls from the spout and sends a small ring across the full cup. The subject is isolated on a plain flat medium-gray (#808080) background, like a cut-out on an empty gray canvas."
+ }
+]

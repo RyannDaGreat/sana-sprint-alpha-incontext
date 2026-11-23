@@ -152,7 +152,7 @@ TESTS = (
         ("gray magic v3 + split v3: RGBA", "av2_both_image_mgray", "rgba"),
         (AV1_I + ": RGBA", "split_v2_image", "rgba"))),
 )
-SET_LETTER = {"fg": "f", "fgray": "g", "mgray": "m", None: "p", "main": "p"}  # prompt_set -> prompt id letter
+SET_LETTER = {"fg": "f", "fgray": "g", "mgray": "m", "vgray": "v", None: "p", "main": "p"}  # prompt_set -> prompt id letter
 
 
 def adapter_name(folder):
