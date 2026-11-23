@@ -744,7 +744,7 @@ def write_status(name, text):
 def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr=2e-4, weight_decay=0.01, grad_clip=1.0,
           batch_size=16, max_steps=100000, save_every=100, val_every=100, seed=0, embed_column=COLUMNS["embed"],
           latent_column=None, lance_dir=str(LANCE_DIR), refresh_every=50, stop_at="", resume="", guidance_scale=0.0,
-          guidance_sigma_min=0.15, guidance_uncond=str(UNCOND_FILE), base_weights=""):
+          guidance_sigma_min=0.15, guidance_uncond=str(UNCOND_FILE), base_weights="", optimizer_name="adamw", muon_lr=0.02):
     """
     Command. Trains adapter `name` (run under torchrun; one process per GPU). Saves to models/h3magic/<name>/step_XXXXX/
     and models/h3magic/<name>/final/, logs log.csv, writes STATUS, and stops when STOP_<name> appears, at max_steps or at
@@ -772,6 +772,8 @@ def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr
         guidance_uncond (str): safetensors of the uncond probe's text embedding (" ", h3magic/h3.py embed)
         base_weights (str): a de-distillation LoRA in any H3 LoRA layout (e.g. ostris' training adapter v2) merged into
             the base for TRAINING only; the trained adapter is used on the plain base at inference (musubi's --base_weights)
+        optimizer_name (str): adamw (lr) | muon (torch.optim.Muon on the 2D LoRA matrices, muon_lr, m00963)
+        muon_lr (float): Muon's lr (Keller Jordan's usual 0.02, with torch's "original" shape scaling max(1, rows/cols)^0.5)
         resume (str): a saved step folder of this adapter, e.g. models/h3magic/pexels/step_00150: continue from its LoRA
             and step (and its AdamW state when optimizer_latest.pt holds that step; else a fresh AdamW with warmup)
     """
@@ -785,6 +787,7 @@ def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr
     stop_file = STATUS_DIR / f"STOP_{name}"
     stop_at_file = STATUS_DIR / f"STOP_AT_{name}"
     meta = dict(name=name, mode=mode, data=data, baked=bakes, rank=rank, alpha=alpha, lr=lr, world=world,
+                optimizer=optimizer_name, muon_lr=muon_lr if optimizer_name == "muon" else None,
                 video_frames=VIDEO_FRAMES if mode == "video" else 1, guidance_scale=guidance_scale,
                 guidance_sigma_min=guidance_sigma_min, training_only_base_weights=base_weights)
     guide = None
@@ -802,7 +805,7 @@ def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr
         dist.barrier()
     transformer.train()
     params = [p for p in transformer.parameters() if p.requires_grad]
-    optimizer = torch.optim.AdamW(params, lr=lr, betas=ADAM_BETAS, eps=ADAM_EPS, weight_decay=weight_decay)
+    optimizer = make_optimizer(params, optimizer_name, lr, muon_lr, weight_decay)
     schedule = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda s: min(1.0, (s + 1) / WARMUP_STEPS))
     step = resume_from(transformer, optimizer, schedule, resume, out) if resume else 0
     generator = torch.Generator(device=device).manual_seed(seed * 1000 + rank_id + 7 * step)
@@ -871,6 +874,21 @@ def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr
         write_status(name, f"FINISHED at step {step}, val {val_loss}, saved {out / 'final'}")
         print(f"{name}: saved final adapter at step {step} to {out / 'final'}", flush=True)
     dist.destroy_process_group()
+
+
+def make_optimizer(params, name, lr, muon_lr, weight_decay):
+    """
+    Command (allocates optimizer state). AdamW (lr, betas (0.9, 0.99)) or torch.optim.Muon (muon_lr, momentum 0.95,
+    Nesterov, 5 Newton-Schulz steps, adjust_lr_fn "original" = Keller Jordan's max(1, rows/cols)^0.5) over params.
+    Muon only takes 2D matrices; every LoRA parameter here is one (lora_A (r, in), lora_B (out, r)), and anything else
+    raises rather than silently going to another optimizer.
+    """
+    if name == "adamw":
+        return torch.optim.AdamW(params, lr=lr, betas=ADAM_BETAS, eps=ADAM_EPS, weight_decay=weight_decay)
+    assert name == "muon", f"unknown optimizer {name!r}: adamw | muon"
+    shapes = {tuple(p.shape) for p in params if p.ndim != 2}
+    assert not shapes, f"Muon takes 2D matrices only; trainable non-2D shapes: {sorted(shapes)[:4]}"
+    return torch.optim.Muon(params, lr=muon_lr, weight_decay=weight_decay, momentum=0.95, nesterov=True, adjust_lr_fn="original")
 
 
 def resume_from(transformer, optimizer, schedule, folder, out):
