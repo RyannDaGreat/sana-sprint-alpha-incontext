@@ -101,7 +101,7 @@ def shown_methods(rows):
     """Pure function. Candidate ids for the image explorer: the references, then the best TOP_PER_ROUND of every round ≥ 1."""
     ids = [r for r in REFERENCES if any(row["id"] == r for row in rows)]
     for rnd in sorted({r["round"] for r in rows if r["round"] >= 1}):
-        best = sorted([r for r in rows if r["round"] == rnd], key=lambda r: -r["psnr"])[:TOP_PER_ROUND]
+        best = sorted([r for r in rows if r["round"] == rnd and r["psnr"] is not None], key=lambda r: -r["psnr"])[:TOP_PER_ROUND]
         ids += [r["id"] for r in best if r["id"] not in ids]
     tiled = sorted([r for r in rows if r.get("psnr_tiled") is not None], key=lambda r: -r["psnr_tiled"])[:2 * TOP_PER_ROUND]
     ids += [r["id"] for r in tiled if r["id"] not in ids]
@@ -122,7 +122,7 @@ def build_examples(rows, meta_by_index):
         stem = LC / "test_view" / str(index)
         alpha = cv2.imread(f"{stem}_alpha.png", cv2.IMREAD_GRAYSCALE)
         true = read_rgb(f"{stem}_comp.png")
-        ex = dict(index=index, subset=meta["subset"], rating=meta.get("rating"), tags=meta.get("tags") or [], window=soft_window(alpha),
+        ex = dict(index=index, position=meta["position"], subset=meta["subset"], rating=meta.get("rating"), tags=meta.get("tags") or [], window=soft_window(alpha),
                   inputs={k: copy_asset(Path(f"{stem}_{k}.png"), f"test/{index}_{k}.png") for k, _ in INPUTS}, outputs=[])
         oracle = read_rgb(f"{stem}_oracle.png")
         err_path = ASSETS / f"test/{index}_oracle_err.png"
@@ -161,7 +161,7 @@ def leaders(rows):
     """Pure function. The best row of track L and of track H (or None)."""
     out = {}
     for track in ("L", "H"):
-        best = [r for r in rows if r["track"] == track]
+        best = [r for r in rows if r["track"] == track and r["psnr"] is not None]
         out[track] = max(best, key=lambda r: r["psnr"]) if best else None
     return out
 
@@ -171,7 +171,7 @@ def table_html(rows, caption=""):
     head = ("<tr><th>candidate</th><th>method</th><th>parents</th><th>track</th><th>PSNR</th><th>hard soft</th><th>hard contrast</th>"
             "<th>random</th><th>SSIM</th><th>LPIPS</th><th>FLUX.2 MSE</th><th>latent MSE</th><th>TILED PSNR</th><th>TILED LPIPS</th><th>TILED latent MSE</th><th>params</th><th>ms fwd</th><th>ms fwd+bwd</th><th>verdict</th></tr>")
     body = []
-    for r in sorted(rows, key=lambda r: -r["psnr"]):
+    for r in sorted(rows, key=lambda r: -(r.get("psnr_tiled") or r["psnr"] or -1)):
         ms_f = r.get("ms_fwd", r.get("ms_reference"))
         body.append(
             f"<tr><td>{html.escape(r['id'])}</td><td>{html.escape(r['name'])}<br><span class='note'>{html.escape(r['change'][:160])}</span></td>"
@@ -184,6 +184,82 @@ def table_html(rows, caption=""):
             f"<td data-sort='{r.get('ms_fwdbwd', -1)}'>{fmt(r.get('ms_fwdbwd'), '.2f')}</td><td class='note'>{html.escape(r['verdict'][:220])}</td></tr>")
     return f"<div class='scroll'><table class='sortable'><caption>{caption}</caption>{head}{''.join(body)}</table></div>"
 
+
+
+FINAL_NAMES = {  # what each finalist is, in words (rounds 5–6, tiled)
+    "r6/ensemble_final_h": "track H winner: ensemble of the U-Net and the windowed transformer (both pixel-stage, tiled)",
+    "r6/agent_2/variants/control": "best single track-H model: DecFormer-lite NAFNet U-Net + decoded-pixel stage, tiled",
+    "r6/ensemble_final_l": "track L winner: ensemble of the latent deep guided filter and the 1.27 M gated ResNet",
+    "r6/agent_3/ema": "best single track-L model: latent deep guided filter (pixel + LPL), tiled",
+    "r6/agent_5/ema": "tiny 188 k-parameter per-cell MLP + depthwise mixing (pixel + LPL), tiled",
+    "r0/dbe_gray_tiled": "reference: decode→blend→encode with the H3 VAE (tiled)",
+}
+
+
+def final_table():
+    """Query (reads results_testtiled_full.json and cost_clean.json). The full-300 tiled table (HTML), or '' if none yet."""
+    rows = []
+    for path in sorted(LC.glob("r*/**/results_testtiled_full.json")):
+        folder = path.parent
+        rel = str(folder.relative_to(LC))
+        res = json.loads(path.read_text())
+        cost = json.loads((folder / "cost_clean.json").read_text()) if (folder / "cost_clean.json").exists() else {}
+        rows.append((rel, res, cost))
+    if not rows:
+        return ""
+    d0 = rows[0][1]["oracle"]
+    head = ("<tr><th>candidate</th><th>what</th><th>PSNR</th><th>hard soft</th><th>hard contrast</th><th>random</th><th>SSIM</th><th>LPIPS</th>"
+            "<th>FLUX.2 MSE</th><th>latent MSE</th><th>params</th><th>ms fwd</th><th>ms fwd+bwd</th></tr>")
+    body = []
+    for rel, res, cost in sorted(rows, key=lambda t: -t[1]["decoded"]["psnr"]["all"]):
+        d = res["decoded"]
+        ms = (cost.get("ms_fwd"), cost.get("ms_fwdbwd")) if cost else (None, None)
+        ref = "r0/dbe" in rel
+        body.append(f"<tr><td>{html.escape(rel)}</td><td class='note'>{html.escape(FINAL_NAMES.get(rel, ''))}</td>"
+                    + "".join(f"<td data-sort='{v}'>{fmt(v, s)}</td>" for v, s in ((d["psnr"]["all"], ".2f"), (d["psnr"].get("hard_soft"), ".2f"),
+                              (d["psnr"].get("hard_contrast"), ".2f"), (d["psnr"].get("random"), ".2f"), (d["ssim"]["all"], ".4f"), (d["lpips"]["all"], ".4f"),
+                              (d["flux2_mse"]["all"], ".4f"), (res["latent_mse"]["all"], ".4f")))
+                    + f"<td>{fmt(cost.get('params') if cost else None, ',')}</td><td>{'6,600 (one sample, untiled clean run)' if ref else fmt(ms[0], '.2f')}</td><td>{fmt(ms[1], '.2f')}</td></tr>")
+    body.append(f"<tr><td>oracle</td><td class='note'>the true composite, tiled-encoded and decoded: the ceiling of latent fidelity</td>"
+                f"<td>{d0['psnr']['all']:.2f}</td><td>{fmt(d0['psnr'].get('hard_soft'), '.2f')}</td><td>{fmt(d0['psnr'].get('hard_contrast'), '.2f')}</td>"
+                f"<td>{fmt(d0['psnr'].get('random'), '.2f')}</td><td>{d0['ssim']['all']:.4f}</td><td>{d0['lpips']['all']:.4f}</td><td>{d0['flux2_mse']['all']:.4f}</td>"
+                f"<td>0</td><td></td><td></td><td></td></tr>")
+    return (f"<details open><summary>Final: all 300 tiled test samples</summary><p class='note'>Every finalist decoded on all 300 curated test samples "
+            f"(150 hard soft, 75 hard contrast, 75 random), tiled latents in and out. Costs re-measured on an idle A100 (fp32, batch 1, one 1024&sup2; sample; "
+            f"fwd+bwd = gradients to the three inputs).</p><div class='scroll'><table class='sortable'>{head}{''.join(body)}</table></div></details>")
+
+
+GALLERY = ("r6/ensemble_final_h", "r6/agent_2/variants/control", "r6/ensemble_final_l", "r6/agent_5/ema", "r0/dbe_gray_tiled")
+GALLERY_N = 4  # hardest examples shown at full resolution
+
+
+def hardest_gallery(examples):
+    """Command (copies PNGs, writes error maps). The finalists' TILED decodes of the hardest examples, full resolution."""
+    blocks = []
+    for ex in examples[:GALLERY_N]:
+        index = ex["index"]
+        true = read_rgb(LC / "test_view" / f"{index}_comp.png")
+        figs = [f"<figure><a href='{ex['inputs'][k]}'><img src='{ex['inputs'][k]}' loading='lazy' alt='{k}'></a><figcaption>{lab}</figcaption></figure>"
+                for k, lab in (("alpha", "alpha matte"), ("comp", "TRUE composite"))]
+        for m in GALLERY:
+            png = LC / m / "decoded_testtiled" / f"{index}.png"
+            if not png.exists():
+                continue
+            safe = m.replace("/", "_")
+            out = copy_asset(png, f"{safe}/{index}_tiled.png")
+            err = ASSETS / f"{safe}/{index}_tiled_err.png"
+            if not err.exists() or err.stat().st_mtime < png.stat().st_mtime:
+                cv2.imwrite(str(err), cv2.cvtColor(error_map(read_rgb(png), true), cv2.COLOR_RGB2BGR))
+            res = json.loads((LC / m / "results_testtiled.json").read_text())["per_sample"]
+            meta_pos = str(ex.get("position", ""))
+            score = res["psnr"].get(meta_pos)
+            errp = f"assets/h3magic_latentcomp/{safe}/{index}_tiled_err.png"
+            figs.append(f"<figure><a href='{out}'><img src='{out}' loading='lazy' alt='{m}'></a><figcaption>{html.escape(m)}"
+                        f"{f' &middot; {score:.2f} dB' if score else ''} &middot; <a href='{errp}'>error &times;{ERROR_GAIN}</a></figcaption></figure>")
+        blocks.append(f"<details class='sub' open><summary>#{index} &middot; {ex['subset']} &middot; rating {ex['rating']} &middot; {html.escape(', '.join(ex['tags']))}</summary>"
+                      f"<div class='grid'>{''.join(figs)}</div></details>")
+    return ("<details open><summary>The hardest samples at full resolution (finalists, tiled latents)</summary><p class='note'>Click any image for the "
+            "original 1024&times;1024 PNG; each method links its error map (|output &minus; truth| &times; 4).</p>" + "".join(blocks) + "</details>")
 
 CSS = """
 :root { --bg: #fdfdfb; --fg: #1d1d1f; --muted: #66666b; --rule: #dcdcd6; --accent: #2f5d8a; --box: #f0f0ea; --good: #2e7d32; --bad: #b3261e;
@@ -220,6 +296,7 @@ select, button { font: var(--font-small) system-ui, sans-serif; max-width: 100%;
 .zcap { font: var(--font-small)/1.3 system-ui, sans-serif; }
 svg text { fill: var(--fg); font: 12px system-ui, sans-serif; }
 .big { font: bold 1.1em system-ui, sans-serif; }
+.box-conclusions { background: var(--box); border: var(--hairline) solid var(--rule); padding: var(--pad) var(--gap); margin: var(--gap) 0; }
 """
 
 JS = """
@@ -258,9 +335,9 @@ exSel.onchange = () => { fillMethods(); render(); }; mSel.onchange = render; vie
 fillMethods(); if (D.examples.length) { const best = D.examples[0].outputs.slice(-1)[0]; if (best) mSel.value = best.id; render(); }
 // scatter: PSNR vs ms fwd+bwd (log x)
 (function scatter() {
-  const pts = D.rows.filter(r => r.ms_fwdbwd), W = 720, H = 360, m = 48, svg = $('scatter');
-  if (!pts.length) return;
-  const xs = pts.map(r => Math.log10(r.ms_fwdbwd)), ys = pts.map(r => r.psnr);
+  const pts = D.rows.filter(r => r.ms_fwdbwd && r.psnr != null), tpts = D.rows.filter(r => r.ms_fwdbwd && r.psnr_tiled != null), W = 720, H = 360, m = 48, svg = $('scatter');
+  if (!pts.length && !tpts.length) return;
+  const xs = pts.concat(tpts).map(r => Math.log10(r.ms_fwdbwd)), ys = pts.map(r => r.psnr).concat(tpts.map(r => r.psnr_tiled));
   const x0 = Math.min(...xs, 0) - 0.1, x1 = Math.max(...xs, 2) + 0.1, y0 = Math.min(...ys) - 0.3, y1 = Math.max(...ys, D.oracle || 0) + 0.3;
   const X = v => m + (v - x0) / (x1 - x0) * (W - 2 * m), Y = v => H - m - (v - y0) / (y1 - y0) * (H - 2 * m);
   let s = `<line x1="${m}" y1="${H - m}" x2="${W - m}" y2="${H - m}" stroke="currentColor"/><line x1="${m}" y1="${m}" x2="${m}" y2="${H - m}" stroke="currentColor"/>`;
@@ -269,6 +346,7 @@ fillMethods(); if (D.examples.length) { const best = D.examples[0].outputs.slice
   if (D.dbe) s += `<line x1="${m}" y1="${Y(D.dbe)}" x2="${W - m}" y2="${Y(D.dbe)}" stroke="gray" stroke-dasharray="2"/><text x="${W - m - 210}" y="${Y(D.dbe) + 14}">decode→blend→encode ${D.dbe.toFixed(2)} dB</text>`;
   const hue = r => `hsl(${(r.round * 53) % 360} 60% 50%)`;
   pts.forEach(r => s += `<circle cx="${X(Math.log10(r.ms_fwdbwd))}" cy="${Y(r.psnr)}" r="5" fill="${hue(r)}"><title>${r.id} ${r.name}\\nPSNR ${r.psnr.toFixed(2)} dB, hard soft ${r.psnr_hard?.toFixed(2)}\\n${r.ms_fwdbwd.toFixed(2)} ms fwd+bwd, ${r.params?.toLocaleString()} params</title></circle>`);
+  tpts.forEach(r => s += `<rect x="${X(Math.log10(r.ms_fwdbwd)) - 5}" y="${Y(r.psnr_tiled) - 5}" width="10" height="10" fill="none" stroke="${hue(r)}" stroke-width="2"><title>${r.id} ${r.name} (TILED latents)\\nPSNR ${r.psnr_tiled.toFixed(2)} dB\\n${r.ms_fwdbwd.toFixed(2)} ms fwd+bwd</title></rect>`);
   s += `<text x="${W / 2 - 80}" y="${H - 10}">ms forward + backward (log)</text><text x="4" y="${m - 10}">decoded PSNR on EVAL (dB)</text>`;
   [0, 0.5, 1].forEach(f => { const v = y0 + f * (y1 - y0); s += `<text x="4" y="${Y(v) + 4}">${v.toFixed(1)}</text>`; });
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.innerHTML = s;
@@ -284,7 +362,7 @@ def build():
     examples = build_examples(rows, meta_by_index) if rows else []
     lead = leaders(rows)
     by_id = {r["id"]: r for r in rows}
-    oracle = rows[0]["oracle_psnr"] if rows else None
+    oracle = next((r["oracle_psnr"] for r in rows if r["oracle_psnr"]), None)
     dbe = by_id.get("r0/dbe_gray")
     rounds = sorted({r["round"] for r in rows})
     status = f"Rounds scored so far: {', '.join(map(str, rounds))} (of up to 7: round 0 = baselines)." if rows else "Round 0 (baselines) is running."
@@ -338,10 +416,13 @@ def build():
 can a small network output the latent of the composite <i>&alpha;&middot;fg + (1&minus;&alpha;)&middot;bg</i> directly, without decoding the three latents, blending the pixels and encoding again?
 It has to be precise (it will be used inside training losses) and cheap to backpropagate through. Decode&rarr;blend&rarr;encode is the reference to beat on cost and the precision yardstick, never the method.</p>
 <p>Why it is hard: one latent cell stands for a 16&times;16 pixel patch. A hair strand, a soft edge or a semi-transparent veil lives <i>inside</i> a cell, and the composite is a product (&alpha;&middot;fg), not a sum, so a plain weighted average of latents is wrong exactly where it matters.</p>
+{(LC / "conclusions.html").read_text() if (LC / "conclusions.html").exists() else ""}
+{final_table()}
 <details open><summary>Findings</summary>{findings}
 <svg id="scatter" width="100%" style="max-width:720px" role="img" aria-label="PSNR against cost"></svg>
-<p class="note">Each dot is one candidate (color = round; hover for details). Higher is better, left is cheaper.</p>
+<p class="note">Circles: decoded PSNR on the untiled test latents; open squares: on the TILED test latents (round 5 on). Color = round; hover for details. Higher is better, left is cheaper. The oracle line is the untiled one (the tiled oracle is 30.10 dB).</p>
 {headline}</details>
+{hardest_gallery(examples)}
 <details open><summary>What each round taught</summary><ul>{lessons}</ul></details>
 <details open><summary>Examples (hardest first): true composite vs each method, error maps, soft-edge zoom</summary>
 <p class="note">Drag across the image to move the divider (left: the TRUE composite, right: the chosen method). "Error" shows |output &minus; truth| &times; {ERROR_GAIN}. The zoom row cuts the 256&times;256 window with the most semi-transparent pixels out of each full-resolution PNG and shows it at 2&times; (nearest neighbor), for every method at once.</p>
