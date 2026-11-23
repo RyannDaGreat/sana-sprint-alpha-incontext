@@ -40,7 +40,8 @@ EVAL_PROMPTS = ROOT / "h3magic/eval_prompts.json"
 PROMPT_SETS = {"main": EVAL_PROMPTS, "fg": ROOT / "h3magic/eval_prompts_fg.json",
                # Alpha Video v2 (manifest §23): the fg (g01-g20) and main (m01-m20) prompts + the gray suffix
                "fgray": ROOT / "h3magic/eval_prompts_fgray.json", "mgray": ROOT / "h3magic/eval_prompts_mgray.json",
-               "vgray": ROOT / "h3magic/eval_prompts_vgray.json"}  # 4 fgray prompts (v02, v08, v10, v17): quick video tastings
+               "vgray": ROOT / "h3magic/eval_prompts_vgray.json",  # 4 fgray prompts (v02, v08, v10, v17): quick video tastings
+               "fgrid": ROOT / "h3magic/eval_prompts_fgrid.json"}  # q01-q20: f01-f20 + the 2x2 grid suffix (split v3-grid)
 VIDEO_CRF = 12  # Near-lossless H.264, as h3_cut_clip's clips
 ADAPTERS = (("pexels", "pexels_adapter", "a_pexels"), ("imagegen", "imagegen_adapter", "b_imagegen"), ("graymagic", "graymagic_adapter", "c_graymagic"),
             ("split", "split_adapter", "g_split"))  # the split adapter's LoRA at γ (its head: h3.set_splitter)
@@ -166,6 +167,36 @@ def split_outputs(heads, mode, pool):
             "image_alpha": png_bytes(alpha8[0]), "image_rgba": png_rgba_bytes(np.rint(rgba[0] * 255).astype(np.uint8))}
 
 
+def grid_outputs(frames, mode, pool):
+    """
+    Query (runs the fit in pool, ffmpeg for videos). The h3_eval_generations columns of one grid generation
+    (h3magic/grid.py): white / black = the top-right / bottom-left panels, alpha = the 4th panel (the mask), alpha_ls = the
+    least-squares alpha of the three background panels, rgba = colour decontaminated with the panel alpha + the panel alpha,
+    split_residual = the fit's mean residual, grid_dalpha_* = |panel alpha − least-squares alpha| statistics.
+
+    Args:
+        frames (np.ndarray): (T, 768, 768, 3) uint8 grid frames
+        mode (str): video | image
+        pool (Executor): processes for fit_rgba
+    """
+    import numpy as np
+    from h3magic import grid
+    composites, alpha = grid.panels(frames)  # (3, T, P, P, 3) uint8, (T, P, P)
+    chunks = [composites[:, t:t + ILS_FRAMES_PER_TASK] for t in range(0, composites.shape[1], ILS_FRAMES_PER_TASK)]
+    fits = list(pool.map(fit_rgba, chunks))
+    alpha_ls, residual = np.concatenate([f[0] for f in fits])[..., 3], np.concatenate([f[1] for f in fits])
+    color = grid.decontaminate(composites.astype(np.float32) / 255, alpha)
+    rgba = np.concatenate([color, alpha[..., None]], -1)  # (T, P, P, 4)
+    gray8 = lambda a: np.repeat(np.rint(a[..., None] * 255).astype(np.uint8), 3, -1)
+    d = grid.disagreement(alpha, alpha_ls)
+    out = dict(split_residual=float(residual.mean()), **{f"grid_dalpha_{k}": v for k, v in d.items() if k != "edge_share"})
+    if mode == "video":
+        return {**out, "video_white": mp4_bytes(composites[1]), "video_black": mp4_bytes(composites[2]), "video_alpha": mp4_bytes(gray8(alpha)),
+                "video_alpha_ls": mp4_bytes(gray8(alpha_ls)), "video_rgba": mp4_bytes(over_checkerboard(rgba))}
+    return {**out, "image_white": png_bytes(composites[1][0]), "image_black": png_bytes(composites[2][0]), "image_alpha": png_bytes(gray8(alpha)[0]),
+            "image_alpha_ls": png_bytes(gray8(alpha_ls)[0]), "image_rgba": png_rgba_bytes(np.rint(rgba[0] * 255).astype(np.uint8))}
+
+
 def plan():
     """Command. Adds the h3_eval_prompts rows of every prompt set and every missing h3_eval_generations row. Idempotent."""
     from bluejay import open_database
@@ -197,7 +228,7 @@ def work_sql(worker, workers, only="%"):
         True
     """
     return ("SELECT g.model_tag, g.prompt_id, g.seed, m.mode, m.steps, m.a_pexels, m.b_imagegen, m.c_graymagic, "
-            "m.pexels_adapter, m.imagegen_adapter, m.graymagic_adapter, m.cfg, m.split_adapter, m.g_split, m.size, "
+            "m.pexels_adapter, m.imagegen_adapter, m.graymagic_adapter, m.cfg, m.split_adapter, m.g_split, m.size, m.layout, "
             "blob_info(p.h3_text_embed) AS embed "
             "FROM h3_eval_generations g JOIN h3_eval_models m ON m.model_tag = g.model_tag "
             "JOIN h3_eval_prompts p ON p.prompt_id = g.prompt_id "
@@ -261,6 +292,8 @@ def work(worker, workers, poll_seconds=60, only="%"):
             output = {"video": mp4_bytes(frames)} if row["mode"] == "video" else {"image": png_bytes(frames[0])}
             if row["split_adapter"]:
                 output.update(split_outputs(result, row["mode"], pool))
+            elif row["layout"] == "grid2x2":
+                output.update(grid_outputs(frames, row["mode"], pool))
             db.commit("h3_eval_generations", [*output, "seconds", "gpu"],
                       [{"model_tag": row["model_tag"], "prompt_id": row["prompt_id"], **output, "seconds": seconds, "gpu": gpu}])
             print(f"worker {worker}: {row['model_tag']} {row['prompt_id']} {seconds:.1f} s", flush=True)
