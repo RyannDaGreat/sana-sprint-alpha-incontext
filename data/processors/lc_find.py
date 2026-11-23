@@ -181,7 +181,8 @@ def read_json_if_exists(path):
 
 def method_rows(root, lc_dir):
     """
-    Query (reads the candidate folders). One lc_methods row per LC_DIR/r<k>/<name>/results.json, sorted.
+    Query (reads the candidate folders). One lc_methods row per LC_DIR/r<k>/**/results.json with a pred.safetensors
+    beside it (method_id = the folder under LC_DIR, e.g. "r3/agent_6/control"), sorted; others are reported and skipped.
 
     Args:
         root (Path): The repo root
@@ -191,10 +192,14 @@ def method_rows(root, lc_dir):
         list[dict]
     """
     rows = []
-    for results_path in sorted((root / lc_dir).glob("r[0-9]*/*/results.json")):
+    for results_path in sorted((root / lc_dir).glob("r[0-9]*/**/results.json")):  # children's variants/ and control/ count too
         folder = results_path.parent
+        if not (folder / "pred.safetensors").exists():  # a results.json copied without its predictions cannot be rendered
+            print(f"lc_find: skipping {folder} (no pred.safetensors)", flush=True)
+            continue
         data = results_path.read_bytes()
-        rows.append(method_row(f"{folder.parent.name}/{folder.name}", f"{lc_dir}/{folder.parent.name}/{folder.name}",
+        rel = folder.relative_to(root / lc_dir).as_posix()
+        rows.append(method_row(rel, f"{lc_dir}/{rel}",
                                read_json_if_exists(folder / "genome.json"), json.loads(data),
                                read_json_if_exists(folder / "cost_clean.json"), hashlib.sha256(data).hexdigest()))
     return rows

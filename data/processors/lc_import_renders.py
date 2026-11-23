@@ -10,6 +10,7 @@ metrics from results.json, and its latent MSE from pred.safetensors). result.jso
 """
 import io
 import json
+import re
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -138,7 +139,8 @@ def main(sample, root):
     sample, root = Path(sample), Path(root)
     job = json.loads((sample / "input.json").read_text())
     folder = root / job["folder"]
-    data_dir = folder.parents[1] / "data"  # LC_DIR/data: a candidate is LC_DIR/r<k>/<name>
+    round_dir = next(p for p in [folder, *folder.parents] if re.fullmatch(r"r[0-9]+", p.name))  # LC_DIR/r<k>/<name>[/variants/<v>]
+    data_dir = round_dir.parent / "data"  # LC_DIR/data
     per_sample = json.loads((folder / "results.json").read_text())["per_sample"]
     metas, target, pixels = test_split(data_dir)
     position = {m["index"]: i for i, m in enumerate(metas)}
