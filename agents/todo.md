@@ -26,6 +26,7 @@
 | H33 | Alpha Video v2 (§23, m00983): prompt-only gray suffix search + journal; gray magic + split at 768 with gray-suffix captions; tests both/zero/split-only; journal entries as it trains; deadline 3 PM ET | — | suffix hex_medium chosen 2:25 AM (journal entry 1); 768 latents + suffix captions done; gray magic v3 training on node 2 since 2:28 AM; synthetic motion clips encoding locally (item 4); stock+suffix eval rows rendering locally |
 | H34 | Latent Compositor (§24, m00983): research sub-frenzy + genetic frenzy (≤ 7 rounds × 8), 1024² MAGICK-on-Pexels latents, baselines, metrics incl. FIBO latent distance, journal | — | starting (node 1) |
 | H35 | Encoder bottleneck study (m00992, §25): latent optimization through the frozen H3 decoder; if better, train a better encoder; deadline 6 PM ET | — | starting |
+| H36 | Extra journal entries (m00995, budget 3, used 1): (a) why the first adapters broke + the fix (h3magic_dedistill.html). Owed (not from the budget, m00934): image-gen dataset page, Alpha Video v2 dataset page | — | Sonnet agents writing (a) and the image-gen page; AlphaV2 the v3 dataset page |
 | H15 | Journal: one dataset page per adapter (Pexels clips, image-gen frames, gray MAGICK), each with examples + captions and the adapter lineage (trained on top of which baked adapters) (m00934) | — | after each dataset is cut + captioned |
 
 ### Notifications sent (max 15: 10 + 3 (m00974) + 2 (m00977), signed h3magic); new budget from m00983: 10 for §23/§24
