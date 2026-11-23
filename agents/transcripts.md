@@ -1278,3 +1278,6 @@ Two nodes have 0 GPU usage.
 
 ## m00971 — 2026-11-22 ~10:00 PM ET
 Please make it in a new journal page, without broken crap. Showcase the things I want to see. I can't tell what to look at: there are so many videos right now in the journal page.
+
+## m00972 — 2026-11-22 ~10:06 PM ET
+OK. The next thing I want, after you finish training, is to add those black/white/gray channels like in the FIBO one — all in one extra adapter this time, which is the split adapter — and train that on both the basic ass [magic] and the good one, and do appropriate ablations. Also, in your test, can you please have another 20 videos whose backgrounds are specifically absent from the prompt, so only the foregrounds are described (you can do that inference thing now).
