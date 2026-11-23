@@ -110,3 +110,19 @@ def disagreement(alpha_panel, alpha_ls, edge=EDGE):
     return dict(mean=float(d.mean()), median=float(np.median(d)), p95=float(np.percentile(d, 95)),
                 edge_mean=stat(e, np.mean), edge_median=stat(e, np.median), edge_p95=stat(e, lambda x: np.percentile(x, 95)),
                 edge_share=float(band.mean()))
+
+
+LS_FLOOR = 0.1  # below this the three-background alpha is treated as fit noise (background)
+
+
+def mix_alpha(alpha_panel, alpha_ls, floor=LS_FLOOR):
+    """
+    Pure function. The mixed alpha of layout grid2x2mix: the 4th-panel alpha, raised to the three-background alpha where
+    that one sees more (thin, semi-transparent parts the panel leaves out: steam, stream, flying pieces), ignoring the
+    three-background alpha below `floor` (fit noise in the background).
+
+    Examples:
+        >>> np.round(mix_alpha(np.array([1.0, 0.0, 0.0, 0.5]), np.array([0.2, 0.6, 0.05, 0.3])).astype(float), 6).tolist()
+        [1.0, 0.6, 0.0, 0.5]
+    """
+    return np.maximum(alpha_panel, np.where(alpha_ls >= floor, alpha_ls, 0)).astype(np.float32)

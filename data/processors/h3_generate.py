@@ -169,7 +169,7 @@ def split_outputs(heads, mode, pool):
             "image_alpha": png_bytes(alpha8[0]), "image_rgba": png_rgba_bytes(np.rint(rgba[0] * 255).astype(np.uint8))}
 
 
-def grid_outputs(frames, mode, pool):
+def grid_outputs(frames, mode, pool, mix=False):
     """
     Query (runs the fit in pool, ffmpeg for videos). The h3_eval_generations columns of one grid generation
     (h3magic/grid.py): white / black = the top-right / bottom-left panels, alpha = the 4th panel (the mask), alpha_ls = the
@@ -180,6 +180,7 @@ def grid_outputs(frames, mode, pool):
         frames (np.ndarray): (T, 768, 768, 3) uint8 grid frames
         mode (str): video | image
         pool (Executor): processes for fit_rgba
+        mix (bool): layout grid2x2mix: the alpha (and the decontamination) is grid.mix_alpha(panel, least squares) instead of the panel's
     """
     import numpy as np
     from h3magic import grid
@@ -187,6 +188,7 @@ def grid_outputs(frames, mode, pool):
     chunks = [composites[:, t:t + ILS_FRAMES_PER_TASK] for t in range(0, composites.shape[1], ILS_FRAMES_PER_TASK)]
     fits = list(pool.map(fit_rgba, chunks))
     alpha_ls, residual = np.concatenate([f[0] for f in fits])[..., 3], np.concatenate([f[1] for f in fits])
+    alpha = grid.mix_alpha(alpha, alpha_ls) if mix else alpha
     color = grid.decontaminate(composites.astype(np.float32) / 255, alpha)
     rgba = np.concatenate([color, alpha[..., None]], -1)  # (T, P, P, 4)
     gray8 = lambda a: np.repeat(np.rint(a[..., None] * 255).astype(np.uint8), 3, -1)
@@ -200,10 +202,12 @@ def grid_outputs(frames, mode, pool):
             "image_alpha_ls": png_bytes(gray8(alpha_ls)[0]), "image_rgba": png_rgba_bytes(np.rint(rgba[0] * 255).astype(np.uint8))}
 
 
-def regrid(*tags):
+def regrid(*tags, source=None):
     """
-    Command. Recomputes the grid post-processing (grid_outputs: colour, alpha, |Δα|, panel spread) of grid2x2 rows from
-    their stored frames, e.g. after a change to h3magic/grid.py, and commits it. No GPU.
+    Command. Recomputes the grid post-processing (grid_outputs: colour, alpha, |Δα|, panel spread) of grid rows from
+    their stored frames, e.g. after a change to h3magic/grid.py, and commits it. No GPU. With source (one tag), the frames
+    are read from that tag's rows and committed, with their outputs, under the tag (same prompts and seeds): a variant
+    of the post-processing (layout grid2x2mix) without rendering again.
     """
     import multiprocessing
     import tempfile
@@ -215,8 +219,9 @@ def regrid(*tags):
     db = open_database("project.dtab")
     pool = ProcessPoolExecutor(ILS_PROCESSES, mp_context=multiprocessing.get_context("spawn"))
     for tag in tags:
-        mode = db.query(f"SELECT mode FROM h3_eval_models WHERE model_tag = '{tag}'").to_pylist()[0]["mode"]
-        rows = db.query(f"SELECT prompt_id, blob_info({mode}) AS f FROM h3_eval_generations WHERE model_tag = '{tag}' AND {mode} IS NOT NULL").to_pylist()
+        model = db.query(f"SELECT mode, layout FROM h3_eval_models WHERE model_tag = '{tag}'").to_pylist()[0]
+        mode, mix = model["mode"], model["layout"] == "grid2x2mix"
+        rows = db.query(f"SELECT prompt_id, seconds, gpu, blob_info({mode}) AS f FROM h3_eval_generations WHERE model_tag = '{source or tag}' AND {mode} IS NOT NULL").to_pylist()
         for row in rows:
             data = read_blob(row["f"])
             if mode == "image":
@@ -226,7 +231,9 @@ def regrid(*tags):
                     f.write(data)
                     f.flush()
                     frames = iio.imread(f.name, plugin="pyav")
-            out = grid_outputs(frames, mode, pool)
+            out = grid_outputs(frames, mode, pool, mix=mix)
+            if source:
+                out.update({mode: data, "seconds": row["seconds"], "gpu": row["gpu"]})
             db.commit("h3_eval_generations", list(out), [{"model_tag": tag, "prompt_id": row["prompt_id"], **out}])
             print(f"regrid {tag} {row['prompt_id']}: spread {out['grid_fspread']:.3f}", flush=True)
 
@@ -326,8 +333,8 @@ def work(worker, workers, poll_seconds=60, only="%"):
             output = {"video": mp4_bytes(frames)} if row["mode"] == "video" else {"image": png_bytes(frames[0])}
             if row["split_adapter"]:
                 output.update(split_outputs(result, row["mode"], pool))
-            elif row["layout"] == "grid2x2":
-                output.update(grid_outputs(frames, row["mode"], pool))
+            elif row["layout"] in ("grid2x2", "grid2x2mix"):
+                output.update(grid_outputs(frames, row["mode"], pool, mix=row["layout"] == "grid2x2mix"))
             db.commit("h3_eval_generations", [*output, "seconds", "gpu"],
                       [{"model_tag": row["model_tag"], "prompt_id": row["prompt_id"], **output, "seconds": seconds, "gpu": gpu}])
             print(f"worker {worker}: {row['model_tag']} {row['prompt_id']} {seconds:.1f} s", flush=True)

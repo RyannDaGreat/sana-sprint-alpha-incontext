@@ -1093,7 +1093,7 @@ tables
 			prompt_set string	 The h3_eval_prompts set it runs on (empty = main); plan pairs a model only with the prompts of its set (m00972)
 			split_adapter string	 The split adapter's step folder (h3magic/split.py: its LoRA + splitter_head.safetensors), empty = none (m00972)
 			size int64	 The side in pixels (empty = 512); Alpha Video v2 rows (manifest §23) use 768
-			layout string	 grid2x2 = split v3-grid: the frame is 2 x 2 panels (gray, white / black, alpha), post-processed by h3magic/grid.py; empty = one image
+			layout string	 grid2x2 = split v3-grid, 2 x 2 panels (gray, white / black, alpha) post-processed by h3magic/grid.py; grid2x2mix = alpha max(panel, three-background); empty = one image
 			g_split float64	 γ: the split LoRA's weight and the scale of its head's Δ (0 = the model without it, three equal heads)
 		initial_rows
 			,	model_tag stock_video	mode video	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 0.0
@@ -1213,6 +1213,14 @@ tables
 			,	model_tag av2_gridv_s00100_video_vgrid	mode video	pexels_adapter models/h3magic/split_grid_video/step_00100	imagegen_adapter models/h3magic/split_grid/final	graymagic_adapter models/h3magic/graymagic_v3t/final	steps 30	a_pexels 1.0	b_imagegen 1.0	c_graymagic 1.0	prompt_set vgrid	size 768	layout grid2x2
 			,	model_tag av2_gridv_s00150_video_fgrid	mode video	pexels_adapter models/h3magic/split_grid_video/step_00150	imagegen_adapter models/h3magic/split_grid/final	graymagic_adapter models/h3magic/graymagic_v3t/final	steps 30	a_pexels 1.0	b_imagegen 1.0	c_graymagic 1.0	prompt_set fgrid	size 768	layout grid2x2
 			,	model_tag av2_gridv_s00200_video_vgrid	mode video	pexels_adapter models/h3magic/split_grid_video/step_00200	imagegen_adapter models/h3magic/split_grid/final	graymagic_adapter models/h3magic/graymagic_v3t/final	steps 30	a_pexels 1.0	b_imagegen 1.0	c_graymagic 1.0	prompt_set vgrid	size 768	layout grid2x2
+			,	model_tag av2_gridv_video_fgrid	mode video	pexels_adapter models/h3magic/split_grid_video/final	imagegen_adapter models/h3magic/split_grid/final	graymagic_adapter models/h3magic/graymagic_v3t/final	steps 30	a_pexels 1.0	b_imagegen 1.0	c_graymagic 1.0	prompt_set fgrid	size 768	layout grid2x2
+			,	model_tag av2_grid1024_s00100_image_fgrid	mode image	imagegen_adapter models/h3magic/split_grid1024/step_00100	graymagic_adapter models/h3magic/graymagic_v3t/final	steps 30	a_pexels 0.0	b_imagegen 1.0	c_graymagic 1.0	prompt_set fgrid	size 1024	layout grid2x2
+			,	model_tag av2_grid1024_s00200_image_fgrid	mode image	imagegen_adapter models/h3magic/split_grid1024/step_00200	graymagic_adapter models/h3magic/graymagic_v3t/final	steps 30	a_pexels 0.0	b_imagegen 1.0	c_graymagic 1.0	prompt_set fgrid	size 1024	layout grid2x2
+			,	model_tag av2_gridv_image_fgrid	mode image	pexels_adapter models/h3magic/split_grid_video/final	imagegen_adapter models/h3magic/split_grid/final	graymagic_adapter models/h3magic/graymagic_v3t/final	steps 30	a_pexels 1.0	b_imagegen 1.0	c_graymagic 1.0	prompt_set fgrid	size 768	layout grid2x2
+			,	model_tag av2_gridv_image_mgrid	mode image	pexels_adapter models/h3magic/split_grid_video/final	imagegen_adapter models/h3magic/split_grid/final	graymagic_adapter models/h3magic/graymagic_v3t/final	steps 30	a_pexels 1.0	b_imagegen 1.0	c_graymagic 1.0	prompt_set mgrid	size 768	layout grid2x2
+			,	model_tag av2_gridv_video_mgrid	mode video	pexels_adapter models/h3magic/split_grid_video/final	imagegen_adapter models/h3magic/split_grid/final	graymagic_adapter models/h3magic/graymagic_v3t/final	steps 30	a_pexels 1.0	b_imagegen 1.0	c_graymagic 1.0	prompt_set mgrid	size 768	layout grid2x2
+			,	model_tag av2_gridvmix_image_fgrid	mode image	pexels_adapter models/h3magic/split_grid_video/final	imagegen_adapter models/h3magic/split_grid/final	graymagic_adapter models/h3magic/graymagic_v3t/final	steps 30	a_pexels 1.0	b_imagegen 1.0	c_graymagic 1.0	prompt_set fgrid	size 768	layout grid2x2mix
+			,	model_tag av2_gridvmix_video_fgrid	mode video	pexels_adapter models/h3magic/split_grid_video/final	imagegen_adapter models/h3magic/split_grid/final	graymagic_adapter models/h3magic/graymagic_v3t/final	steps 30	a_pexels 1.0	b_imagegen 1.0	c_graymagic 1.0	prompt_set fgrid	size 768	layout grid2x2mix
 
 	h3_eval_generations
 		 One row per H3 model and eval prompt: what the model makes from the prompt and its seed
