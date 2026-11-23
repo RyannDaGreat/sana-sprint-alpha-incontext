@@ -1077,6 +1077,7 @@ tables
 			,	model_tag pexels_cfg_video	mode video	pexels_adapter models/h3magic/pexels/final	imagegen_adapter models/h3magic/imagegen/final	graymagic_adapter models/h3magic/graymagic/final	steps 30	a_pexels 1.0	b_imagegen 0.0	c_graymagic 0.0	cfg 2.5
 			,	model_tag pexels_gl_s00080_video	mode video	pexels_adapter models/h3magic/pexels_gl/step_00080	steps 30	a_pexels 1.0	b_imagegen 0.0	c_graymagic 0.0
 			,	model_tag pexels_dd_s00080_video	mode video	pexels_adapter models/h3magic/pexels_dd/step_00080	steps 30	a_pexels 1.0	b_imagegen 0.0	c_graymagic 0.0
+			,	model_tag pexels_muon2_s00040_video	mode video	pexels_adapter models/h3magic/pexels_muon2/step_00040	steps 30	a_pexels 1.0	b_imagegen 0.0	c_graymagic 0.0
 
 	h3_eval_generations
 		 One row per H3 model and eval prompt: what the model makes from the prompt and its seed
