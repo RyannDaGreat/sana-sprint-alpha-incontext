@@ -190,12 +190,44 @@ def grid_outputs(frames, mode, pool):
     rgba = np.concatenate([color, alpha[..., None]], -1)  # (T, P, P, 4)
     gray8 = lambda a: np.repeat(np.rint(a[..., None] * 255).astype(np.uint8), 3, -1)
     d = grid.disagreement(alpha, alpha_ls)
-    out = dict(split_residual=float(residual.mean()), **{f"grid_dalpha_{k}": v for k, v in d.items() if k != "edge_share"})
+    out = dict(split_residual=float(residual.mean()), grid_fspread=grid.panel_spread(composites.astype(np.float32) / 255, alpha),
+               **{f"grid_dalpha_{k}": v for k, v in d.items() if k != "edge_share"})
     if mode == "video":
         return {**out, "video_white": mp4_bytes(composites[1]), "video_black": mp4_bytes(composites[2]), "video_alpha": mp4_bytes(gray8(alpha)),
                 "video_alpha_ls": mp4_bytes(gray8(alpha_ls)), "video_rgba": mp4_bytes(over_checkerboard(rgba))}
     return {**out, "image_white": png_bytes(composites[1][0]), "image_black": png_bytes(composites[2][0]), "image_alpha": png_bytes(gray8(alpha)[0]),
             "image_alpha_ls": png_bytes(gray8(alpha_ls)[0]), "image_rgba": png_rgba_bytes(np.rint(rgba[0] * 255).astype(np.uint8))}
+
+
+def regrid(*tags):
+    """
+    Command. Recomputes the grid post-processing (grid_outputs: colour, alpha, |Δα|, panel spread) of grid2x2 rows from
+    their stored frames, e.g. after a change to h3magic/grid.py, and commits it. No GPU.
+    """
+    import multiprocessing
+    import tempfile
+    from concurrent.futures import ProcessPoolExecutor
+    import cv2
+    import imageio.v3 as iio
+    import numpy as np
+    from bluejay import open_database
+    db = open_database("project.dtab")
+    pool = ProcessPoolExecutor(ILS_PROCESSES, mp_context=multiprocessing.get_context("spawn"))
+    for tag in tags:
+        mode = db.query(f"SELECT mode FROM h3_eval_models WHERE model_tag = '{tag}'").to_pylist()[0]["mode"]
+        rows = db.query(f"SELECT prompt_id, blob_info({mode}) AS f FROM h3_eval_generations WHERE model_tag = '{tag}' AND {mode} IS NOT NULL").to_pylist()
+        for row in rows:
+            data = read_blob(row["f"])
+            if mode == "image":
+                frames = cv2.cvtColor(cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR), cv2.COLOR_BGR2RGB)[None]
+            else:
+                with tempfile.NamedTemporaryFile(suffix=".mp4") as f:
+                    f.write(data)
+                    f.flush()
+                    frames = iio.imread(f.name, plugin="pyav")
+            out = grid_outputs(frames, mode, pool)
+            db.commit("h3_eval_generations", list(out), [{"model_tag": tag, "prompt_id": row["prompt_id"], **out}])
+            print(f"regrid {tag} {row['prompt_id']}: spread {out['grid_fspread']:.3f}", flush=True)
 
 
 def plan():
@@ -305,4 +337,4 @@ def work(worker, workers, poll_seconds=60, only="%"):
 
 
 if __name__ == "__main__":
-    fire.Fire({"plan": plan, "work": work})
+    fire.Fire({"plan": plan, "work": work, "regrid": regrid})

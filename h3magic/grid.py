@@ -38,8 +38,9 @@ def panels(frames):
 
 def decontaminate(composites, alpha, backgrounds=BACKGROUNDS, eps=ALPHA_EPS):
     """
-    Pure function. The foreground colour given the alpha: per background k, F_k = (C_k − (1 − α)·b_k) / α, averaged over
-    the backgrounds and clipped to [0, 1]; 0 where α < eps.
+    Pure function. The foreground colour given the alpha: per background k, F_k = (C_k − (1 − α)·b_k) / α, the per-pixel
+    MEDIAN over the three backgrounds (one inconsistent panel cannot wash the colour out; coordinator 9:45 AM), clipped to
+    [0, 1]; 0 where α < eps.
 
     Args:
         composites (np.ndarray): (K, ..., 3) float in [0, 1], C_k = α·F + (1 − α)·b_k
@@ -57,7 +58,33 @@ def decontaminate(composites, alpha, backgrounds=BACKGROUNDS, eps=ALPHA_EPS):
     b = np.asarray(backgrounds, np.float32).reshape((-1,) + (1,) * alpha.ndim + (1,))
     a = alpha[None, ..., None]
     fg = (composites - (1 - a) * b) / np.maximum(a, eps)
-    return np.where(alpha[..., None] >= eps, np.clip(fg.mean(0), 0, 1), 0).astype(np.float32)
+    return np.where(alpha[..., None] >= eps, np.clip(np.median(fg, 0), 0, 1), 0).astype(np.float32)
+
+
+def panel_spread(composites, alpha, backgrounds=BACKGROUNDS, eps=ALPHA_EPS):
+    """
+    Pure function. How much the three panels disagree on the colour: per pixel, the largest spread (max − min over the
+    backgrounds, mean over RGB) of the foreground estimates F_k, averaged over the subject (alpha > 0.5). 0 = consistent.
+
+    Args:
+        composites (np.ndarray): (K, ..., 3) float in [0, 1]
+        alpha (np.ndarray): (...) float in [0, 1]
+
+    Returns:
+        float (nan without subject pixels)
+
+    Examples:
+        >>> F, a = np.array([0.8, 0.2, 0.1]), np.ones((1,))
+        >>> C = np.stack([a[..., None] * F + (1 - a[..., None]) * b for b in BACKGROUNDS])
+        >>> panel_spread(C, a), round(panel_spread(C + np.array([0.0, 0.3, 0.0]).reshape(3, 1, 1), a), 3)
+        (0.0, 0.267)
+    """
+    b = np.asarray(backgrounds, np.float32).reshape((-1,) + (1,) * alpha.ndim + (1,))
+    a = alpha[None, ..., None]
+    fg = np.clip((composites - (1 - a) * b) / np.maximum(a, eps), 0, 1)
+    spread = (fg.max(0) - fg.min(0)).mean(-1)
+    mask = alpha > 0.5
+    return float(spread[mask].mean()) if mask.any() else float("nan")
 
 
 def disagreement(alpha_panel, alpha_ls, edge=EDGE):

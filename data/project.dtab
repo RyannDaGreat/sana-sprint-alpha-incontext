@@ -1205,6 +1205,12 @@ tables
 			,	model_tag av2_grid_s00150_image_fgrid	mode image	imagegen_adapter models/h3magic/split_grid/step_00150	graymagic_adapter models/h3magic/graymagic_v3t/final	steps 30	a_pexels 0.0	b_imagegen 1.0	c_graymagic 1.0	prompt_set fgrid	size 768	layout grid2x2
 			,	model_tag av2_grid_s00200_image_fgrid	mode image	imagegen_adapter models/h3magic/split_grid/step_00200	graymagic_adapter models/h3magic/graymagic_v3t/final	steps 30	a_pexels 0.0	b_imagegen 1.0	c_graymagic 1.0	prompt_set fgrid	size 768	layout grid2x2
 			,	model_tag av2_grid_s00300_image_fgrid	mode image	imagegen_adapter models/h3magic/split_grid/step_00300	graymagic_adapter models/h3magic/graymagic_v3t/final	steps 30	a_pexels 0.0	b_imagegen 1.0	c_graymagic 1.0	prompt_set fgrid	size 768	layout grid2x2
+			,	model_tag av2_grid_image_fgrid	mode image	imagegen_adapter models/h3magic/split_grid/final	graymagic_adapter models/h3magic/graymagic_v3t/final	steps 30	a_pexels 0.0	b_imagegen 1.0	c_graymagic 1.0	prompt_set fgrid	size 768	layout grid2x2
+			,	model_tag av2_grid_video_fgrid	mode video	imagegen_adapter models/h3magic/split_grid/final	graymagic_adapter models/h3magic/graymagic_v3t/final	steps 30	a_pexels 0.0	b_imagegen 1.0	c_graymagic 1.0	prompt_set fgrid	size 768	layout grid2x2
+			,	model_tag av2_gridv_s00050_video_vgrid	mode video	pexels_adapter models/h3magic/split_grid_video/step_00050	imagegen_adapter models/h3magic/split_grid/final	graymagic_adapter models/h3magic/graymagic_v3t/final	steps 30	a_pexels 1.0	b_imagegen 1.0	c_graymagic 1.0	prompt_set vgrid	size 768	layout grid2x2
+			,	model_tag av2_gridv_s00100_video_vgrid	mode video	pexels_adapter models/h3magic/split_grid_video/step_00100	imagegen_adapter models/h3magic/split_grid/final	graymagic_adapter models/h3magic/graymagic_v3t/final	steps 30	a_pexels 1.0	b_imagegen 1.0	c_graymagic 1.0	prompt_set vgrid	size 768	layout grid2x2
+			,	model_tag av2_gridv_s00150_video_fgrid	mode video	pexels_adapter models/h3magic/split_grid_video/step_00150	imagegen_adapter models/h3magic/split_grid/final	graymagic_adapter models/h3magic/graymagic_v3t/final	steps 30	a_pexels 1.0	b_imagegen 1.0	c_graymagic 1.0	prompt_set fgrid	size 768	layout grid2x2
+			,	model_tag av2_gridv_s00200_video_vgrid	mode video	pexels_adapter models/h3magic/split_grid_video/step_00200	imagegen_adapter models/h3magic/split_grid/final	graymagic_adapter models/h3magic/graymagic_v3t/final	steps 30	a_pexels 1.0	b_imagegen 1.0	c_graymagic 1.0	prompt_set vgrid	size 768	layout grid2x2
 
 	h3_eval_generations
 		 One row per H3 model and eval prompt: what the model makes from the prompt and its seed
@@ -1232,6 +1238,7 @@ tables
 			 statistics over all pixels and over the edge band (0.02 < alpha < 0.98)
 			video_alpha_ls, image_alpha_ls blob
 			grid_dalpha_mean, grid_dalpha_median, grid_dalpha_p95, grid_dalpha_edge_mean, grid_dalpha_edge_median, grid_dalpha_edge_p95 float64
+			grid_fspread float64	 Panel colour consistency: mean over the subject of the per-pixel spread (max − min) of the three foreground estimates F_k
 
 	h3_motion_clips
 		 Alpha Video v2 (manifest §23 item 4): one synthetic moving cut-out per chosen MAGICK row (the first train rows by page_id + every val row).
