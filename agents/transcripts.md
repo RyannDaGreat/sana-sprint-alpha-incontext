@@ -1361,3 +1361,6 @@ That experiment is the encoder bottleneck, and all the information that we can g
 
 ## m00996 — 2026-11-23 ~02:44 AM ET
 Show me the gray magic v3 results on local ip.
+
+## m00997 — 2026-11-23 ~02:52 AM ET
+Show me the latent compositor results on local ip.
