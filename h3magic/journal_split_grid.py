@@ -25,6 +25,7 @@ import journal_split as js
 
 PAGE = j.ROOT / "journal/h3magic_split_grid.html"
 NOTES = j.ROOT / "h3magic/split_grid_notes.json"
+METRICS = j.ROOT / "h3magic/split_grid_metrics.json"  # agents/.scratchpad/alphav2/grid_missed.py: missed / extra / IoU per prompt
 PROMPTS = j.ROOT / "h3magic/eval_prompts_fgrid.json"
 KINDS = (("frame", "the generated 2x2 frame"), ("rgba", "RGBA (colour from 3 panels, alpha = 4th panel)"), ("alpha", "4th panel = alpha"),
          ("alpha_ls", "alpha implied by the 3 backgrounds"), ("dalpha", "|Δα| (black 0, white ≥ 0.25)"))
@@ -83,8 +84,34 @@ def export(models):
     return found
 
 
-def section(model, items, prompts):
-    """Pure function. One <details>: the stats line and, per prompt, a row of the KINDS (video rows have no heat map)."""
+def missed_block(tag, metrics, prompts, mode):
+    """
+    Pure function. The missed-subject table of one row (per prompt: missed, extra, IoU) and its worst 5 prompts' alpha
+    panels side by side, or "" when the row has no numbers yet.
+
+    Examples:
+        >>> missed_block("t", {}, [], "image")
+        ''
+    """
+    m = metrics.get(tag)
+    if not m:
+        return ""
+    short = {p["id"]: p["short"] for p in prompts}
+    per = m["per_prompt"]
+    rows = "".join(f'<tr><td>{pid}: {html.escape(short.get(pid, ""))}</td><td>{v["missed"]:.2%}</td><td>{v["extra"]:.2%}</td><td>{v["iou"]:.3f}</td></tr>'
+                   for pid, v in sorted(per.items(), key=lambda kv: -kv[1]["missed"]))
+    worst = sorted(per, key=lambda pid: -per[pid]["missed"])[:5]
+    mean = m["mean"]
+    return (f'<details class="sub"><summary>Missed subject, per prompt (mean: missed {mean["missed"]:.2%}, extra {mean["extra"]:.2%}, IoU {mean["iou"]:.3f})</summary>'
+            f'<p class="note">missed = share of pixels the three backgrounds call solid (alpha ≥ 0.9) but the 4th panel calls clear (&lt; 0.5); extra = the reverse; '
+            f'IoU of the two masks at 0.5. Caveat: on the black panel a dark object (the wok) looks like the background, so the three-background alpha can miss it too.</p>'
+            f'<table class="scores"><thead><tr><th>prompt</th><th>missed</th><th>extra</th><th>IoU</th></tr></thead><tbody>{rows}</tbody></table>'
+            f'<p class="note">The worst 5 by "missed": RGBA | 4th-panel alpha | three-background alpha | |Δα|.</p>'
+            f'<div class="wide"><table><tbody>' + "".join("<tr>" + "".join(js.cell(js.asset(tag, pid, k, mode), mode, k, short.get(pid, "")) for k in ("rgba", "alpha", "alpha_ls", "dalpha")) + f'<th class="label">{pid}: {html.escape(short.get(pid, ""))}</th></tr>' for pid in worst) + '</tbody></table></div></details>')
+
+
+def section(model, items, prompts, metrics=None):
+    """Pure function. One <details>: the stats line, the missed-subject block and, per prompt, a row of the KINDS (video rows have no heat map)."""
     tag, mode = model["model_tag"], model["mode"]
     if not items:
         return f'<details class="row"><summary>{html.escape(tag)} <span class="note">(rendering)</span></summary></details>'
@@ -103,7 +130,7 @@ def section(model, items, prompts):
              f'edge band (0.02 &lt; α &lt; 0.98): mean {mean["edge_mean"]:.3f}, median {mean["edge_median"]:.3f}, 95th pct {mean["edge_p95"]:.3f} (means over prompts)')
     eq = f"W_H3 + 1·Δ_graymagic_v3t + 1·Δ_{model['imagegen_adapter'].split('/')[-2]} ({model['imagegen_adapter'].split('/')[-1]}), CFG 1, 768²"
     return (f'<details class="row" open><summary>{html.escape(tag)} <span class="note">({len(items)}/{len(prompts)} prompts)</span></summary>'
-            f'<p class="eq">{html.escape(eq)}</p><p class="note">{stats}</p>'
+            f'<p class="eq">{html.escape(eq)}</p><p class="note">{stats}</p>{missed_block(tag, metrics or {}, prompts, mode) if mode == "image" else ""}'
             f'<div class="wide"><table><thead><tr><th></th>{head}</tr></thead><tbody>{"".join(body)}</tbody></table></div></details>')
 
 
@@ -114,7 +141,8 @@ def build():
     found = export(models)
     notes = json.loads(NOTES.read_text()) if NOTES.exists() else {}
     order = sorted(models, key=lambda m: (m["mode"] != "image", m["model_tag"]))
-    sections = "".join(section(m, found.get(m["model_tag"], {}), prompts) for m in order)
+    metrics = json.loads(METRICS.read_text()) if METRICS.exists() else {}
+    sections = "".join(section(m, found.get(m["model_tag"], {}), prompts, metrics) for m in order)
     page = f"""<!doctype html>
 <html lang="en">
 <head>
