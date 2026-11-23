@@ -1065,6 +1065,8 @@ tables
 			a_pexels, b_imagegen, c_graymagic float64
 			cfg float64	 classifier-free guidance scale over the null prompt (empty = 1 = H3's released sampler); adapters de-distill H3, so adapter rows use > 1
 			prompt_set string	 The h3_eval_prompts set it runs on (empty = main); plan pairs a model only with the prompts of its set (m00972)
+			split_adapter string	 The split adapter's step folder (h3magic/split.py: its LoRA + splitter_head.safetensors), empty = none (m00972)
+			g_split float64	 γ: the split LoRA's weight and the scale of its head's Δ (0 = the model without it, three equal heads)
 		initial_rows
 			,	model_tag stock_video	mode video	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 0.0
 			,	model_tag stock_image	mode image	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 0.0
@@ -1132,6 +1134,12 @@ tables
 			video, image blob
 			seconds float64
 			gpu int64
+
+			 Written by h3_generate.py work for a model with split_adapter: video / image above are its gray head; these are its white and black heads,
+			 the alpha (gray, white = opaque) and RGBA of the three by iterative least squares (manifest §17), video_rgba over a checkerboard, image_rgba a straight-alpha PNG.
+			 split_residual: the fit's mean RMS residual. split_x0_psnr: head 0 through the x0 path vs the pipeline's gray (dB, a check)
+			video_white, video_black, video_alpha, video_rgba, image_white, image_black, image_alpha, image_rgba blob
+			split_residual, split_x0_psnr float64
 
 
 processors

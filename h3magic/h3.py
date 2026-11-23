@@ -401,3 +401,116 @@ def to_uint8_frames(video):
         return np.stack([np.asarray(frame.convert("RGB")) for frame in video])
     array = video.cpu().numpy() if hasattr(video, "cpu") else np.asarray(video)
     return array if array.dtype == np.uint8 else (np.clip(array, 0, 1) * 255).round().astype(np.uint8)
+
+
+def set_splitter(pipe, folder, gamma=1.0):
+    """
+    Command. Gives the transformer the split adapter's head (h3magic/split.py) with the Δ of `folder` at γ = gamma, or
+    puts the plain proj_out back when folder is None. The split adapter's LoRA goes through set_adapters (role "split",
+    weight γ). Each folder's Δ is read once per process (path-keyed, like the adapters).
+
+    Args:
+        pipe (MiniMaxH3ModularPipeline): From load_pipeline
+        folder (str | None): A split step folder relative to the repo root, e.g. "models/h3magic/split_v2/final"
+        gamma (float): γ, "how much it splits": 0 = the base model's three equal heads
+    """
+    from h3magic import split
+    if folder is None:
+        split.detach_splitter(pipe.transformer)
+        return
+    head = split.splitter_of(pipe.transformer) or split.attach_splitter(pipe.transformer)
+    head.delta.requires_grad_(False)
+    if getattr(head, "folder", None) != str(folder):
+        split.load_head(head, ROOT / folder)
+        head.folder = str(folder)
+    head.gamma = float(gamma)
+
+
+def unpatchify_rows(rows, latent_frames, side, channels=24):
+    """
+    Pure function. Video rows back to a latent, the inverse of the pipeline's patchify (MiniMaxH3AfterDenoiseStep):
+    rows are frame-major, then row-major, each row (C, 1, 2, 2).
+
+    Args:
+        rows (Tensor): (LT·LH/2·LW/2, C·4), e.g. (256, 96) for one image
+        latent_frames (int): LT, 1 for an image, 42 for 141 frames
+        side (int): LH = LW, 32 at 512²
+
+    Returns:
+        Tensor: (C, LT, LH, LW), e.g. (24, 1, 32, 32)
+
+    Examples:
+        >>> z = torch.arange(24 * 1 * 4 * 4.).reshape(24, 1, 4, 4)
+        >>> rows = z.reshape(24, 1, 2, 2, 2, 2).permute(1, 2, 4, 0, 3, 5).reshape(4, 96)  # the pipeline's row order
+        >>> torch.equal(unpatchify_rows(rows, 1, 4), z)
+        True
+    """
+    import einx
+    return einx.rearrange("(T H W) (C PT PH PW) -> C (T PT) (H PH) (W PW)", rows, T=latent_frames, H=side // 2, W=side // 2,
+                          C=channels, PT=1, PH=2, PW=2)
+
+
+@torch.no_grad()
+def decode_like_pipeline(pipe, latents):
+    """
+    Query (runs the VAE). The pipeline's own decode of a normalized latent (MiniMaxH3VideoDecodeStep): denormalize,
+    vae.decode, revert the ImageNet normalization, clamp, postprocess to np, to uint8.
+
+    Args:
+        latents (Tensor): (C, LT, LH, LW) normalized, e.g. (24, 1, 32, 32)
+
+    Returns:
+        np.ndarray: uint8 (T, H, W, 3)
+    """
+    device = pipe._execution_device
+    mean = torch.tensor(pipe.vae.config.latents_mean, device=device).view(1, -1, 1, 1, 1)
+    std = torch.tensor(pipe.vae.config.latents_std, device=device).view(1, -1, 1, 1, 1)
+    video = pipe.vae.decode(latents[None].to(device, pipe.vae.dtype) * std + mean, return_dict=False)[0]
+    pixel_mean = torch.tensor(pipe.pixel_mean, device=device).view(1, -1, 1, 1, 1)
+    pixel_std = torch.tensor(pipe.pixel_std, device=device).view(1, -1, 1, 1, 1)
+    video = (video.float() * pixel_std + pixel_mean).clamp(0, 1)
+    return to_uint8_frames(pipe.video_processor.postprocess_video(video, output_type="np")[0])
+
+
+@torch.no_grad()
+def generate_split(pipe, text, seed, frames=VIDEO_FRAMES, steps=30, size=SIZE, cfg=1.0):
+    """
+    Command (runs the GPU model). generate() with the split head attached (set_splitter): the gray ODE runs exactly as
+    usual, and from the last step every head's clean estimate x0_k = x_t − t·v_gray + v_k (h3magic/split.py; with CFG,
+    v_k = guided(u_k, c_k, cfg) per head) is decoded like the pipeline decodes.
+
+    Returns:
+        dict: gray (the pipeline's own output, = generate()), gray_x0, white, black: uint8 (frames, size, size, 3) each.
+        gray_x0 is head 0 through this path, a check that it matches gray
+    """
+    from h3magic import split
+    from diffusers.modular_pipelines.minimax_h3 import before_denoise
+    head = split.splitter_of(pipe.transformer)
+    assert head is not None, "generate_split needs set_splitter first"
+    calls = []
+
+    def capture_input(module, args, kwargs):
+        """Command. Keeps the state (a copy: the scheduler steps it in place) and t of each transformer call."""
+        timestep, indices, video = kwargs["timestep"], kwargs["timestep_indices"], kwargs["video_indices"]
+        calls.append(dict(x_t=kwargs["hidden_states"][0].float().clone(), t=float(timestep[indices[video[0]]]), video=video))
+        del calls[:-2]  # the last step's cond (+ uncond) calls are all that is used
+
+    def capture_output(module, args, kwargs, output):
+        """Command. Keeps every head's velocity at the video rows of the call."""
+        calls[-1]["heads"] = split.video_heads(head, calls[-1]["video"])[0]  # (rows, K, 96)
+
+    hooks = [pipe.transformer.register_forward_pre_hook(capture_input, with_kwargs=True),
+             pipe.transformer.register_forward_hook(capture_output, with_kwargs=True)]
+    try:
+        gray = generate(pipe, text, seed, frames, steps, size, cfg)
+    finally:
+        for hook in hooks:
+            hook.remove()
+    last = calls[-2:] if cfg != 1 else calls[-1:]
+    velocities = guided(last[1]["heads"], last[0]["heads"], cfg) if cfg != 1 else last[0]["heads"]
+    assert torch.equal(last[0]["x_t"], last[-1]["x_t"]), "cond and uncond calls must see the same state"
+    x0 = split.x0_heads(last[0]["x_t"], last[0]["t"], velocities)  # (rows, K, 96)
+    latent_frames = before_denoise.video_latent_num_frames(frames, pipe.vae_frames_per_chunk, pipe.vae_latents_per_chunk)
+    side = size // pipe.vae_spatial_compression_ratio
+    images = [decode_like_pipeline(pipe, unpatchify_rows(x0[:, k], latent_frames, side)) for k in range(x0.shape[1])]
+    return dict(gray=gray, **dict(zip(["gray_x0", *list(split.SPLIT_BACKGROUNDS)[1:]], images)))
