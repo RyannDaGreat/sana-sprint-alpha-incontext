@@ -94,7 +94,7 @@ def missed_block(tag, metrics, prompts, mode):
         ''
     """
     m = metrics.get(tag)
-    if not m:
+    if not m or not m.get("per_prompt"):
         return ""
     short = {p["id"]: p["short"] for p in prompts}
     per = m["per_prompt"]
