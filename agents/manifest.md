@@ -929,7 +929,7 @@ Step 1000 live (after 351b011, one wasm thread for Memory64): fibo2_turbo_fibo2_
 
 **Remote nodes (m00943, m00944, m00945, m00947).** Two extra 8×A100 nodes run rp's web evaluator (not a terminal): node 1 `http://100.113.41.151:43234`, node 2 `http://100.112.174.249:43234`. Both see the same /fsx_scanline. The main results come first (m00947): both nodes serve the H3 Magic pipeline (encode, eval inference) through the same BlueJay server (this node, port 23947), which makes concurrent processing safe; the fast-decoder genetic frenzy waits for spare capacity. Then (m00950): training takes all 8 local GPUs; node 2 does all encoding + text embeddings; node 1 does eval inference and, in its gaps, the genetic frenzy. No training across nodes (slow links between them).
 
-**GPU priority (m00937).** Training > encode/embeddings > eval inference > the H3 fast decoder (lowest). The fast decoder takes any idle GPU, lists each such job in `agents/.scratchpad/fastdec_h3/GPUS.txt`, checkpoints often; any higher-priority agent may kill a listed pid when it needs the GPU (rules in `agents/.scratchpad/GPU_POLICY.md`).
+**GPU priority (m00937, m00975).** Training > encode/embeddings (latents for the next training are made ahead of time, m00975) > eval inference > the H3 fast decoder (lowest). The fast decoder takes any idle GPU, lists each such job in `agents/.scratchpad/fastdec_h3/GPUS.txt`, checkpoints often; any higher-priority agent may kill a listed pid when it needs the GPU (rules in `agents/.scratchpad/GPU_POLICY.md`).
 
 **Training rule (m00912 second paste): taste like a chef.** Watch losses and sample images during training; when they plateau, stop and move on. Perfection is not required; reaching the last row by 9 PM is.
 
