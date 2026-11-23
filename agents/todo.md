@@ -11,11 +11,11 @@
 | H6 | 20 curated eval prompts | 0 (data) | `7b025b6` pushed |
 | H7 | Captions (Gemini, H3 style, no audio): 10,020 clips + 10,020 MAGICK (subject only, m00939) | not measured | done 5:04 PM; Gemini ~43,500 images/h vs Muse's logged 2,400 clips/h on 8 GPUs |
 | H8 | Row 1: stock H3 video + image, 20 prompts | not measured | done 4:16 PM; live on journal/h3magic.html |
-| H9 | Pexels adapter, taste + stop at plateau (hard stop 6:30 PM); row 2 | not measured | training since 4:42 PM; 8 GPUs from step 100 |
-| H10 | Image-gen adapter on baked Pexels, 7 frames per clip at 0–6 s (m00917); row 3 (images) | — | pending |
-| H11 | Gray magic adapter on baked Pexels + image-gen; row 4 (images) | — | pending |
-| H12 | Video rows 5a (all on), 5b (gray magic only), 5c (Pexels + gray magic) | — | pending; due 9:00 PM |
-| H13 | Journal page journal/h3magic.html (`h3magic/journal.py build`), published per row | not measured | row 1 live (`ec18a1c`) |
+| H9 | Pexels adapter | not measured | v1 (plain loss) broken; v2 = guidance loss (pexels_gl, step 156) live as row 2 |
+| H10 | Image-gen adapter | not measured | v2 (guidance loss, step 544) live as row 3 |
+| H11 | Gray magic adapter | not measured | v2 (guidance loss, step 301) live as row 4 |
+| H12 | Video rows 5a, 5b, 5c | not measured | v2 live on journal/h3magic_final.html (main + foreground-only prompts) |
+| H13 | Journal: h3magic.html (full history) + h3magic_final.html (clean, working rows only) | not measured (`journal.py`, `journal_final.py`) | both live; final complete 11:10 PM |
 | H14 | Journal: Pexels selection page + 50 clips + captions | not measured | live (`73a07d9`); N3 sent |
 | H16 | Fast decoder for H3 (m00935): explain the shipped r5a3_long + how the genetic search found it (one readable notification), then adapt to H3's VAE on one spare GPU until training needs it | — | Opus agent FastDecH3 running |
 | H17 | H3 fast decoder genetic frenzy (m00942, m00954): tiers ≥10×, ≥30×, ≥100× faster, + a pure quality prize (≤ 2× the original decode time; holistically better than the original vs the source: every score incl. LPIPS and a visual check, not a blurry PSNR win, m00955); 7–8 Sonnet children per round (m00955) than the full H3 VAE decoder, best quality per tier; Sonnet agents commanding Sonnet agents; opportunistic GPUs; own journal page with examples; page with current results now + notify when up | — | Sonnet coordinator running |
