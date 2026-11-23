@@ -1302,3 +1302,9 @@ All of this is through BlueJay, right?
 
 ## m00979 — 2026-11-22 ~11:39 PM ET
 Show me the split results side by side on local ip.
+
+## m00980 — 2026-11-22 ~11:43 PM ET
+Why did you not test on the subject-only prompts? That's the new standard everywhere.
+
+## m00981 — 2026-11-22 ~11:43 PM ET
+Unless you did.
