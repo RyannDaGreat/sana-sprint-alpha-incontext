@@ -1030,6 +1030,8 @@ tables
 			 Split v3-grid (manifest §23, m01003, m01005). Written by h3_encode's job grid: one 768 x 768 frame of 2 x 2 panels of 384 (each composited at 1024,
 			 area-resized): top left on 0.5 gray, top right on white, bottom left on black, bottom right the alpha matte in grayscale. H3 VAE latent (24, 1, 48, 48)
 			h3_latent_grid_768 blob
+			 The same grid with 512-pixel panels (a 1024 x 1024 frame; h3_encode job grid1024, tiled): the panel-size test
+			h3_latent_grid_1024 blob
 			 Written by agents/.scratchpad/alphav2/set_captions_grid.py: h3_caption + the grid suffix. h3_embed embeds it into h3_text_embed_grid
 			h3_caption_grid string
 			h3_text_embed_grid blob
