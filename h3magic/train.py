@@ -76,7 +76,7 @@ AUDIO_LATENTS_PER_SECOND = 40
 FPS = 24
 VIDEO_FRAMES = 141  # 17·8 + 5: the longest legal H3 length inside the first 6 s (5.875 s)
 IMAGE_AUDIO_LATENTS = 2  # round(1 frame / 24 fps · 40 latents/s): the soundtrack of a one-frame "video"
-LATENT_SIDE = 32         # 512 / 16
+LATENT_SIDE = 32         # 512 / 16: the default side; a batch's own latent side wins (768² -> 48, Alpha Video v2)
 LATENT_CHANNELS = 24
 TEXT_DIM = 5120
 TARGET_SUFFIXES = ("attn.to_q", "attn.to_k", "attn.to_v", "attn.to_out.0", "ff.net.0.proj", "ff.net.2")
@@ -287,7 +287,7 @@ def ema(previous, value, decay=EMA_DECAY):
 class Layout:
     """The packed [text | audio | video] sequence of one (text length, latent shape), shared by a batch, on a device."""
 
-    def __init__(self, text_token_tags, latent_frames, num_audio_latents, device):
+    def __init__(self, text_token_tags, latent_frames, num_audio_latents, device, side=LATENT_SIDE):
         """
         Command. Builds the layout tensors on device with diffusers' own inference builders.
 
@@ -296,12 +296,13 @@ class Layout:
             latent_frames (int): LT, 42 for a 141-frame clip, 1 for an image
             num_audio_latents (int): audio latents per channel (235 for a clip, IMAGE_AUDIO_LATENTS for an image)
             device (torch.device)
+            side (int): LH = LW, 32 at 512², 48 at 768²
         """
         from diffusers.modular_pipelines.minimax_h3.before_denoise import MiniMaxH3PrepareLayoutStep
 
         (position_ids, token_tags, video_indices, audio_indices, text_indices, cond_video, cond_audio
          ) = MiniMaxH3PrepareLayoutStep.build_packed_sequence(
-            text_token_tags.cpu(), latent_frames, LATENT_SIDE, LATENT_SIDE, num_audio_latents, PATCH_SIZE, AUDIO_CHANNELS,
+            text_token_tags.cpu(), latent_frames, side, side, num_audio_latents, PATCH_SIZE, AUDIO_CHANNELS,
             AUDIO_TAG, VIDEO_TAG, keyframe_anchors=())
         assert cond_video == 0 and cond_audio == 0, f"t2va layout has conditioning rows: {cond_video}, {cond_audio}"
         self.tensors = dict(position_ids=position_ids.to(device), token_tags=token_tags.to(device),
@@ -537,7 +538,7 @@ def read_safetensors_blobs(dataset, column, row_ids):
     return [safetensors.torch.load(blob.read()) for blob in dataset.take_blobs(column, ids=row_ids)]
 
 
-def usable(rows, split):
+def usable(rows, split, caption_column="h3_caption", sha_column="h3_text_sha256"):
     """
     Pure function. Mask of the rows of one split that training may use: the row is in `split` (h3_choose_clip keeps it
     current while clips are cut; h3_use only says provisional / final), it has a latent and an embedding, and the
@@ -546,6 +547,8 @@ def usable(rows, split):
     Args:
         rows (pd.DataFrame): split, h3_caption, h3_text_sha256, has_latent, has_embed
         split (str): train | val
+        caption_column, sha_column (str): the text the embedding must embed and its sha256 column (Alpha Video v2:
+            h3_caption_v3, h3_text_v3_sha256)
 
     Returns:
         pd.Series[bool]
@@ -561,7 +564,7 @@ def usable(rows, split):
     """
     import hashlib
 
-    fresh = rows["h3_text_sha256"] == rows["h3_caption"].map(lambda t: hashlib.sha256(t.encode("utf-8")).hexdigest() if isinstance(t, str) else None)
+    fresh = rows[sha_column] == rows[caption_column].map(lambda t: hashlib.sha256(t.encode("utf-8")).hexdigest() if isinstance(t, str) else None)
     return (rows["split"] == split) & rows["has_latent"] & rows["has_embed"] & fresh
 
 
@@ -571,7 +574,8 @@ class Records:
     image) or one (row, frame) pair (Pexels frames, m00917).
     """
 
-    def __init__(self, data, mode, split, rank, world, embed_column, latent_column, lance_dir=LANCE_DIR, extra_columns=()):
+    def __init__(self, data, mode, split, rank, world, embed_column, latent_column, lance_dir=LANCE_DIR, extra_columns=(),
+                 caption_column="h3_caption", sha_column="h3_text_sha256"):
         """
         Query. Reads the row list of TABLES[data] (rows with latent + embedding + the split) and this rank's share of it.
 
@@ -584,19 +588,20 @@ class Records:
             lance_dir (str | Path): the BlueJay lance folder
             extra_columns (tuple[str]): more latent columns every row must have (the split heads' targets, SPLIT_COLUMNS);
                 batch() then also returns them as "targets"
+            caption_column, sha_column (str): see usable()
         """
         import lance
 
         self.dataset = lance.dataset(str(Path(lance_dir) / f"{TABLES[data]}.lance"))
         self.embed_column, self.latent_column, self.extra_columns = embed_column, latent_column, tuple(extra_columns)
         names = set(self.dataset.schema.names)
-        columns = [KEYS[data], "split", "h3_caption", "h3_text_sha256"]
+        columns = [KEYS[data], "split", caption_column, sha_column]
         rows = self.dataset.to_table(columns=columns, with_row_id=True).to_pandas()
         for flag, column in (("has_latent", latent_column), *(("has_latent", c) for c in self.extra_columns), ("has_embed", embed_column)):
             have = set(self.dataset.to_table(columns=[KEYS[data]], filter=f"{column} IS NOT NULL")[KEYS[data]].to_pylist()) \
                 if column in names else set()  # blob columns: test NULL in lance
             rows[flag] = rows[KEYS[data]].isin(have) & (rows[flag] if flag in rows and column != latent_column else True)
-        table = rows[usable(rows, split)].sort_values(KEYS[data]).reset_index(drop=True)
+        table = rows[usable(rows, split, caption_column, sha_column)].sort_values(KEYS[data]).reset_index(drop=True)
         self.ready_rows = len(table)  # usable rows of the split, over all ranks
         self.split_rows = int((rows["split"] == split).sum())  # every row of the split, ready or not
         order = np.random.default_rng(0).permutation(len(table))[rank::world]
@@ -709,9 +714,9 @@ def forward_loss(transformer, batch, audio, base, generator, device, layouts, gu
 
     def predict(text_token_tags, prompt_embeds):
         """Near-pure function (runs the model). Video velocity (B, rows, 96), or every head's (B, rows, K, 96) when split."""
-        key = (int(text_token_tags.numel()), lt, a)
+        key = (int(text_token_tags.numel()), lt, a, latents.shape[-1])
         if key not in layouts:
-            layouts[key] = Layout(text_token_tags, lt, a, device)
+            layouts[key] = Layout(text_token_tags, lt, a, device, side=latents.shape[-1])
         timestep, timestep_indices = layouts[key].row_timesteps(video_t, audio_t)
         video = transformer(hidden_states=noisy_video, audio_hidden_states=noisy_audio,
                             encoder_hidden_states=prompt_embeds.to(device, DTYPE), timestep=timestep,
@@ -793,7 +798,8 @@ def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr
           batch_size=16, max_steps=100000, save_every=100, val_every=100, seed=0, embed_column=COLUMNS["embed"],
           latent_column=None, lance_dir=str(LANCE_DIR), refresh_every=50, stop_at="", resume="", guidance_scale=0.0,
           guidance_sigma_min=0.15, guidance_uncond=str(UNCOND_FILE), base_weights="", optimizer_name="adamw", muon_lr=0.02,
-          split=False, split_target="guided", delta_lr_scale=1.0):
+          split=False, split_target="guided", delta_lr_scale=1.0, split_columns=",".join(SPLIT_COLUMNS),
+          caption_column="h3_caption", sha_column="h3_text_sha256"):
     """
     Command. Trains adapter `name` (run under torchrun; one process per GPU). Saves to models/h3magic/<name>/step_XXXXX/
     and models/h3magic/<name>/final/, logs log.csv, writes STATUS, and stops when STOP_<name> appears, at max_steps or at
@@ -830,13 +836,16 @@ def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr
             Image mode on magick only
         split_target (str): guided (guidance loss per head) | difference (guided gray + plain x0_k − x0_gray), see forward_loss
         delta_lr_scale (float): the split head Δ's lr = lr × this (the LoRA keeps lr)
+        split_columns (str): comma-separated white, black target columns (768²: h3_latent_white_768,h3_latent_black_768)
+        caption_column, sha_column (str): the text embed_column embeds and its sha256 (freshness check, usable())
     """
     dist.init_process_group("nccl")
     rank_id, world = dist.get_rank(), dist.get_world_size()
     device = torch.device("cuda", int(os.environ["LOCAL_RANK"]))
     torch.cuda.set_device(device)
     latent_column = latent_column or COLUMNS["video" if mode == "video" else ("frames" if data == "pexels" else "image")]
-    extra_columns = SPLIT_COLUMNS if split else ()
+    split_columns = tuple(split_columns) if isinstance(split_columns, (list, tuple)) else tuple(c for c in split_columns.split(",") if c)
+    extra_columns = split_columns if split else ()
     assert not split or (mode, data) == ("image", "magick"), "--split trains on MAGICK images only (white/black composites)"
     bakes = list(bake_list) if isinstance(bake_list, (list, tuple)) else [b for b in str(bake_list).split(",") if b]  # Fire turns "a,b" into a tuple
     out = ADAPTER_ROOT / name
@@ -845,9 +854,10 @@ def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr
     meta = dict(name=name, mode=mode, data=data, baked=bakes, rank=rank, alpha=alpha, lr=lr, world=world,
                 optimizer=optimizer_name, muon_lr=muon_lr if optimizer_name == "muon" else None,
                 video_frames=VIDEO_FRAMES if mode == "video" else 1, guidance_scale=guidance_scale,
-                guidance_sigma_min=guidance_sigma_min, training_only_base_weights=base_weights,
+                guidance_sigma_min=guidance_sigma_min, training_only_base_weights=base_weights, latent_column=latent_column,
+                embed_column=embed_column, caption_column=caption_column,
                 split=dict(heads=list(splitter.SPLIT_BACKGROUNDS), backgrounds=list(splitter.SPLIT_BACKGROUNDS.values()),
-                           targets=[latent_column, *SPLIT_COLUMNS], head_file=splitter.HEAD_FILE, target=split_target,
+                           targets=[latent_column, *split_columns], head_file=splitter.HEAD_FILE, target=split_target,
                            delta_lr_scale=delta_lr_scale) if split else None)
     guide = None
     if guidance_scale > 0:
@@ -889,7 +899,7 @@ def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr
     chunk, stop, last = 0, 0, time.time()
     while not stop:
         # Re-read the table every refresh_every steps: rows finished since then join (the encoders run alongside)
-        records = Records(data, mode, "train", rank_id, world, embed_column, latent_column, lance_dir, extra_columns)
+        records = Records(data, mode, "train", rank_id, world, embed_column, latent_column, lance_dir, extra_columns, caption_column, sha_column)
         plan = batch_plan(records, mode, data, batch_size, seed * 7919 + chunk, lengths)
         count = torch.tensor(len(plan), device=device)
         dist.all_reduce(count, op=dist.ReduceOp.MIN)  # every rank runs the same number of steps (matched collectives)
@@ -915,7 +925,7 @@ def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr
             loss_ema = ema(loss_ema, value)
             step += 1
             if step % val_every == 0 or step == 1:
-                val_records = Records(data, mode, "val", rank_id, world, embed_column, latent_column, lance_dir, extra_columns)
+                val_records = Records(data, mode, "val", rank_id, world, embed_column, latent_column, lance_dir, extra_columns, caption_column, sha_column)
                 if val_records.ready_rows == val_records.split_rows:
                     transformer.eval()
                     val_heads = validate(transformer, val_records, audio, device, layouts, world, guide, split_target)
@@ -1137,8 +1147,8 @@ def sign_probe(data="pexels", latent_column=COLUMNS["video"], embed_column=COLUM
         x0 = video_rows(latents)
         generator = torch.Generator(device=device).manual_seed(0)
         noise = torch.randn(x0.shape, generator=generator, device=device)
-        key = (int(batch["text_token_tags"].numel()), latents.shape[2], audio.shape[-1])
-        layouts.setdefault(key, Layout(batch["text_token_tags"], latents.shape[2], audio.shape[-1], device))
+        key = (int(batch["text_token_tags"].numel()), latents.shape[2], audio.shape[-1], latents.shape[-1])
+        layouts.setdefault(key, Layout(batch["text_token_tags"], latents.shape[2], audio.shape[-1], device, side=latents.shape[-1]))
         layout = layouts[key]
         video_sigma, audio_sigma = paired_sigmas(base)
         a0 = einx.rearrange("R C -> B R C", audio_rows(audio).to(device), B=x0.shape[0])

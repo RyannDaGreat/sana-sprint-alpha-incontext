@@ -1,0 +1,122 @@
+[
+ {
+  "id": "m01",
+  "short": "Skateboarder kickflip in park",
+  "seed": 1001,
+  "prompt": "integrated_multimodal_description: [Shot 1] Live-action, a medium-wide shot frames a young man in a white T-shirt, loose gray jeans and a black cap rolling toward the camera on a skateboard across a sunlit concrete skate park. The camera tracks backward with small amplitude as he bends his knees, pops the tail of the board and flicks it with his front foot. The board spins one full turn beneath him while he hangs in the air, then he lands on it with both feet, his arms swinging out for balance. He rolls on past the camera to the left as his cap shadow slides across the pale concrete, and the low afternoon sun flares behind him. The subject is isolated on a plain flat medium-gray (#808080) background, like a cut-out on an empty gray canvas."
+ },
+ {
+  "id": "m02",
+  "short": "Dancer spinning in red dress",
+  "seed": 1002,
+  "prompt": "integrated_multimodal_description: [Shot 1] Live-action, cinematic, a full shot frames a woman with long dark curly hair in a flowing red dress standing barefoot in the middle of an empty wooden studio floor with tall bright windows behind her. The camera holds a static shot as she raises both arms above her head and begins to spin on the ball of one foot. The skirt of the dress lifts and flares out into a wide circle around her legs, and her hair swings outward with each turn. After three fast turns she slows, lowers her arms in a smooth arc and stops facing the camera, her chest rising and falling as the dress settles around her knees. The subject is isolated on a plain flat medium-gray (#808080) background, like a cut-out on an empty gray canvas."
+ },
+ {
+  "id": "m03",
+  "short": "Basketball player dunks",
+  "seed": 1003,
+  "prompt": "integrated_multimodal_description: [Shot 1] Live-action, a medium-wide low-angle shot frames a tall young man in a sleeveless blue jersey and black shorts dribbling a basketball toward an outdoor hoop on a cracked asphalt court under a clear evening sky. The camera tilts up with large amplitude at fast speed as he takes two long strides, jumps and drives the ball through the orange rim with one hand. The net snaps downward and he hangs from the rim for a moment, his legs swinging forward, then drops back to the ground and lands in a crouch as the ball bounces away to the right of the frame. The subject is isolated on a plain flat medium-gray (#808080) background, like a cut-out on an empty gray canvas."
+ },
+ {
+  "id": "m04",
+  "short": "Chef tossing vegetables in wok",
+  "seed": 1004,
+  "prompt": "integrated_multimodal_description: [Shot 1] Live-action, a medium close-up frames a middle-aged chef in a white jacket and a black apron standing behind a steel stove in a busy restaurant kitchen, holding a black wok over a tall blue gas flame. The camera pushes in with small amplitude at slow speed as he jerks the wok forward and up, and sliced red peppers, green onions and strips of chicken fly into the air above the pan and fall back in. A burst of orange flame leaps up from the edge of the wok and lights his face for a moment. He tosses the food twice more, then tilts the wok and slides the stir fry onto a white plate on the counter. The subject is isolated on a plain flat medium-gray (#808080) background, like a cut-out on an empty gray canvas."
+ },
+ {
+  "id": "m05",
+  "short": "Elderly man flying a kite",
+  "seed": 1005,
+  "prompt": "integrated_multimodal_description: [Shot 1] Live-action, a medium shot frames an elderly man with a short white beard, a tan flat cap and a green windbreaker standing on a grassy hilltop on a windy, partly cloudy day, holding a kite string in both hands. The camera pans up with small amplitude at slow speed, following the taut white string to a bright yellow and red diamond kite that swoops left and then climbs high against the moving clouds. The camera pans back down as the man laughs, pulls the string hand over hand and takes two steps backward while his jacket ripples and flaps in the strong wind. The subject is isolated on a plain flat medium-gray (#808080) background, like a cut-out on an empty gray canvas."
+ },
+ {
+  "id": "m06",
+  "short": "Child jumping into a pool",
+  "seed": 1006,
+  "prompt": "integrated_multimodal_description: [Shot 1] Live-action, a full shot frames a young girl of about eight in a striped blue swimsuit and orange swimming goggles standing at the edge of a bright outdoor swimming pool under strong midday sun. The camera holds a static shot as she bends her knees, swings her arms back and jumps forward, pulling her knees to her chest in the air. She hits the turquoise water in a cannonball, and a tall white splash bursts up and outward, throwing drops that sparkle in the sunlight. Ripples spread across the pool as she comes back up to the surface, pushes her wet hair from her face and swims toward the steps. The subject is isolated on a plain flat medium-gray (#808080) background, like a cut-out on an empty gray canvas."
+ },
+ {
+  "id": "m07",
+  "short": "Golden retriever catching frisbee",
+  "seed": 1007,
+  "prompt": "integrated_multimodal_description: [Shot 1] Live-action, a medium-wide shot frames a golden retriever with a red collar sprinting across a green park lawn in warm late-afternoon light, its ears flapping and its long fur rippling as it runs. The camera tracks the dog from right to left at fast speed as an orange frisbee glides into the frame from above. The dog leaps off its back legs, twists its body in the air and snaps the frisbee in its mouth, then lands on all four paws, skids slightly on the grass and turns, trotting back toward the camera with the frisbee held proudly in its jaws and its tail wagging. The subject is isolated on a plain flat medium-gray (#808080) background, like a cut-out on an empty gray canvas."
+ },
+ {
+  "id": "m08",
+  "short": "Horse galloping on beach",
+  "seed": 1008,
+  "prompt": "integrated_multimodal_description: [Shot 1] Live-action, cinematic, a wide shot frames a chestnut horse with a pale mane galloping alone along the wet sand at the edge of the sea at sunrise, small waves rolling in behind it. The camera trucks right at fast speed alongside the horse, keeping it in the center of the frame. Its legs reach out and fold in a steady rhythm, each hoof striking the shallow water and throwing up bright sprays of droplets and clumps of wet sand. Its mane and tail stream back in the wind, its nostrils flare, and the low orange sun glints on its sweating coat as it runs. The subject is isolated on a plain flat medium-gray (#808080) background, like a cut-out on an empty gray canvas."
+ },
+ {
+  "id": "m09",
+  "short": "Hummingbird at a flower",
+  "seed": 1009,
+  "prompt": "integrated_multimodal_description: [Shot 1] Live-action, a close-up frames a small green hummingbird with an iridescent ruby throat hovering in front of a cluster of bright pink fuchsia flowers in a garden, the background softly out of focus. The camera holds a static shot as the bird's wings beat so fast that they blur into a soft haze on each side of its body. It darts forward and pushes its long thin beak into one hanging flower, the blossom swaying under the touch, then backs away, shifts a little to the left, and hovers in place again, its head turning in quick small jerks. The subject is isolated on a plain flat medium-gray (#808080) background, like a cut-out on an empty gray canvas."
+ },
+ {
+  "id": "m10",
+  "short": "Cat pouncing on toy",
+  "seed": 1010,
+  "prompt": "integrated_multimodal_description: [Shot 1] Live-action, a medium close-up at floor level frames a gray tabby cat with green eyes crouching low on a light wooden floor in a sunny living room, its eyes fixed on a feather toy that twitches just in front of it. The camera holds a static shot as the cat wiggles its hindquarters and its tail tip flicks back and forth. It springs forward with both front paws stretched out, pins the feathers to the floor, then rolls onto its side and kicks at the toy with its back legs, its fur glowing in a beam of afternoon sunlight from a window. The subject is isolated on a plain flat medium-gray (#808080) background, like a cut-out on an empty gray canvas."
+ },
+ {
+  "id": "m11",
+  "short": "Elephant spraying water",
+  "seed": 1011,
+  "prompt": "integrated_multimodal_description: [Shot 1] Live-action, a medium-wide shot frames a large African elephant with wrinkled gray skin and short curved tusks standing knee-deep in a muddy brown watering hole on a dry savanna under a hazy afternoon sky. The camera pushes in with small amplitude at slow speed as the elephant dips its trunk into the water, curls it up and sprays a wide arc of water over its back. The water splashes off its skin in sparkling sheets and runs down its sides. It flaps its big ears, takes one slow step forward and lowers its trunk to the water again. The subject is isolated on a plain flat medium-gray (#808080) background, like a cut-out on an empty gray canvas."
+ },
+ {
+  "id": "m12",
+  "short": "Red sports car on mountain road",
+  "seed": 1012,
+  "prompt": "integrated_multimodal_description: [Shot 1] Live-action, cinematic, a wide aerial shot frames a red sports car driving fast along a winding two-lane road that cuts through green mountains in bright morning light. The camera tracks the car from above and behind at fast speed as it leans into a sharp left curve, its headlights on and its glossy paint flashing in the sun. The road unrolls ahead between pine trees and a low stone wall, the car accelerates out of the bend onto a short straight, and its long shadow slides across the gray asphalt beside it. The subject is isolated on a plain flat medium-gray (#808080) background, like a cut-out on an empty gray canvas."
+ },
+ {
+  "id": "m13",
+  "short": "Steam train crossing a bridge",
+  "seed": 1013,
+  "prompt": "integrated_multimodal_description: [Shot 1] Live-action, a wide shot frames a black vintage steam locomotive pulling a line of maroon passenger carriages across a tall stone arch bridge over a forested valley in autumn. The camera pans left with large amplitude at slow speed, following the train as it moves across the frame. Thick white and gray smoke pours from the locomotive's chimney, rolls back over the carriages in billowing clouds and drifts slowly above the orange and yellow trees. The wheels and connecting rods turn steadily, and the carriage windows flash as they pass through a band of sunlight. The subject is isolated on a plain flat medium-gray (#808080) background, like a cut-out on an empty gray canvas."
+ },
+ {
+  "id": "m14",
+  "short": "Cyclist racing downhill",
+  "seed": 1014,
+  "prompt": "integrated_multimodal_description: [Shot 1] Live-action, a medium shot frames a road cyclist in a yellow jersey, black shorts and a white helmet riding a carbon racing bicycle down a steep forest road, crouched low over the handlebars. The camera tracks backward in front of the rider at fast speed, keeping her centered as trees and patches of sunlight stream past on both sides. She leans the bicycle into a curve, her knee pointing toward the road, then straightens up and pedals hard out of the turn, the spokes of the wheels flashing and fallen leaves swirling up behind her. The subject is isolated on a plain flat medium-gray (#808080) background, like a cut-out on an empty gray canvas."
+ },
+ {
+  "id": "m15",
+  "short": "Honey pouring onto pancakes",
+  "seed": 1015,
+  "prompt": "integrated_multimodal_description: [Shot 1] Live-action, a close-up frames a tall stack of golden pancakes on a white plate on a rustic wooden table, topped with a pat of butter and a few fresh blueberries, lit by soft morning window light. The camera pushes in with small amplitude at slow speed as a wooden honey dipper enters the top of the frame and a thick ribbon of amber honey pours down onto the stack. The honey folds over itself on top of the butter, spreads across the pancakes and slowly runs down their edges in glossy drips that gather on the plate. The subject is isolated on a plain flat medium-gray (#808080) background, like a cut-out on an empty gray canvas."
+ },
+ {
+  "id": "m16",
+  "short": "Spinning top on a table",
+  "seed": 1016,
+  "prompt": "integrated_multimodal_description: [Shot 1] Live-action, a close-up frames a polished wooden spinning top with red and blue painted stripes standing still on a dark slate table. The camera holds a static shot as a hand enters from the right, twists the top's handle between thumb and finger and lets go. The top whirls fast, its stripes blurring into soft purple rings, and it wanders in small circles across the slate. As it slows it begins to wobble, tilting further with each turn, until its edge touches the table, it rolls in a short arc and comes to rest on its side. The subject is isolated on a plain flat medium-gray (#808080) background, like a cut-out on an empty gray canvas."
+ },
+ {
+  "id": "m17",
+  "short": "Coffee pouring into a cup",
+  "seed": 1017,
+  "prompt": "integrated_multimodal_description: [Shot 1] Live-action, a close-up frames an empty white ceramic cup on a saucer on a marble caf\u00e9 counter, with blurred warm lights behind it. The camera arcs around the cup with small amplitude at slow speed as a stream of dark hot coffee pours into it from a silver pot held just above the frame. The coffee swirls and rises in the cup, a light brown foam forms and spins on its surface, and thin wisps of steam curl up into the light. The stream thins and stops, and a last drop falls and sends a small ring across the full cup. The subject is isolated on a plain flat medium-gray (#808080) background, like a cut-out on an empty gray canvas."
+ },
+ {
+  "id": "m18",
+  "short": "Sunflower swaying in wind",
+  "seed": 1018,
+  "prompt": "integrated_multimodal_description: [Shot 1] Live-action, a medium close-up frames a single tall sunflower with a broad yellow head and a dark brown center standing in front of a field of other sunflowers under a bright blue summer sky with fast-moving white clouds. The camera pedestals up with small amplitude at slow speed from its green leaves to its face. A strong gust of wind pushes the flower head to the left, and its petals flutter and bend while its large leaves twist and flap. The stem bows, springs back upright, and the flower rocks gently as the wind keeps blowing across the field. The subject is isolated on a plain flat medium-gray (#808080) background, like a cut-out on an empty gray canvas."
+ },
+ {
+  "id": "m19",
+  "short": "Wave crashing on rocks",
+  "seed": 1019,
+  "prompt": "integrated_multimodal_description: [Shot 1] Live-action, cinematic, a medium-wide shot frames a large dark volcanic rock standing at the edge of a rough sea on an overcast day. The camera holds a static shot as a tall green-blue wave rolls in, curls over and slams into the rock. White foam explodes upward in a huge burst, spray hangs in the air and then falls back in heavy sheets over the rock's surface. The water drains back off the rock in many small white streams, leaving its surface glistening, while the next wave begins to build behind it. The subject is isolated on a plain flat medium-gray (#808080) background, like a cut-out on an empty gray canvas."
+ },
+ {
+  "id": "m20",
+  "short": "Candle flame flickering",
+  "seed": 1020,
+  "prompt": "integrated_multimodal_description: [Shot 1] Live-action, a close-up frames a single tall white wax candle burning on a brass holder in a dark room, its warm light glowing on the soft background. The camera pushes in with small amplitude at slow speed toward the flame. The flame stretches tall and thin, then bends and flickers sideways as a gentle draft passes, and a thin line of gray smoke rises and twists above it. A drop of melted wax slides down the side of the candle and hardens near the base as the flame steadies and burns upright again. The subject is isolated on a plain flat medium-gray (#808080) background, like a cut-out on an empty gray canvas."
+ }
+]

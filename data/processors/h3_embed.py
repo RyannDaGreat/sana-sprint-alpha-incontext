@@ -6,6 +6,7 @@ Each blob is safetensors {"prompt_embeds": (1, N, 5120) bfloat16, "text_token_ta
 t2va text encoder, exactly what H3's denoiser takes (h3magic/h3.py embed). h3_text_sha256 = sha256 of the text it embeds:
 a reader must use h3_text_embed only when h3_text_sha256 = encode(sha256(text), 'hex') (m00939: recaptions). Tables:
     h3_pexels_clips   (h3_caption)     h3_magick_images  (h3_caption)     h3_eval_prompts  (prompt)
+    h3_magick_images  (h3_caption_v3 -> h3_text_embed_v3, h3_text_v3_sha256: the gray-suffix captions of Alpha Video v2, §23)
 
     h3_embed.py WORKER WORKERS [--poll_seconds 120]   (from data/; GPU = $CUDA_VISIBLE_DEVICES)
 """
@@ -23,10 +24,11 @@ from h3_blobs import round_robin, shard_sql, tensors_bytes
 from h3_encode import train_first
 from h3magic import h3
 
-TABLES = {  # table: (key, text column, rows per query)
-    "h3_eval_prompts": ("prompt_id", "prompt", 64),
-    "h3_pexels_clips": ("pexels_id", "h3_caption", 256),
-    "h3_magick_images": ("page_id", "h3_caption", 256),
+TABLES = {  # task: (table, key, text column, rows per query, embed column, sha256 column)
+    "h3_eval_prompts": ("h3_eval_prompts", "prompt_id", "prompt", 64, "h3_text_embed", "h3_text_sha256"),
+    "h3_pexels_clips": ("h3_pexels_clips", "pexels_id", "h3_caption", 256, "h3_text_embed", "h3_text_sha256"),
+    "h3_magick_images": ("h3_magick_images", "page_id", "h3_caption", 256, "h3_text_embed", "h3_text_sha256"),
+    "h3_magick_images_v3": ("h3_magick_images", "page_id", "h3_caption_v3", 256, "h3_text_embed_v3", "h3_text_v3_sha256"),
 }
 
 
@@ -42,19 +44,21 @@ def text_sha256(text):
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-def table_sql(table, worker, workers):
+def table_sql(task, worker, workers):
     """
-    Pure function. The query of one table's texts whose embedding is missing or stale (h3_text_sha256 is not the
+    Pure function. The query of one task's texts whose embedding is missing or stale (the sha256 column is not the
     sha256 of the current text, e.g. after a recaption, m00939), of this worker.
 
     Examples:
         >>> sql = table_sql("h3_magick_images", 0, 1)
         >>> sql.startswith("SELECT page_id, h3_caption AS text FROM h3_magick_images") and "h3_text_sha256 <> encode(sha256(h3_caption), 'hex')" in sql
         True
+        >>> "h3_text_embed_v3 IS NULL OR h3_text_v3_sha256 IS NULL" in table_sql("h3_magick_images_v3", 0, 1)
+        True
     """
-    key, text, limit = TABLES[table]
+    table, key, text, limit, embed_column, sha_column = TABLES[task]
     return (f"SELECT {key}, {text} AS text FROM {table} WHERE {text} IS NOT NULL "
-            f"AND (h3_text_embed IS NULL OR h3_text_sha256 IS NULL OR h3_text_sha256 <> encode(sha256({text}), 'hex')) "
+            f"AND ({embed_column} IS NULL OR {sha_column} IS NULL OR {sha_column} <> encode(sha256({text}), 'hex')) "
             f"AND {shard_sql(key, worker, workers)} {'' if table == 'h3_eval_prompts' else train_first(table)} LIMIT {limit}")
 
 
@@ -73,13 +77,13 @@ def main(worker, workers, poll_seconds=120, idle_encode_seconds=0, shard_lo=None
     encoder = h3.load_text_encoder()
     vae, pool = None, None
 
-    def handler(table):
-        key = TABLES[table][0]
+    def handler(task):
+        table, key, _, _, embed_column, sha_column = TABLES[task]
 
         def handle(rows):
-            db.commit(table, ["h3_text_embed", "h3_text_sha256"],
-                      [{key: row[key], "h3_text_embed": tensors_bytes(h3.embed(encoder, row["text"]), layer=50, text_sha256=text_sha256(row["text"])),
-                        "h3_text_sha256": text_sha256(row["text"])} for row in rows])
+            db.commit(table, [embed_column, sha_column],
+                      [{key: row[key], embed_column: tensors_bytes(h3.embed(encoder, row["text"]), layer=50, text_sha256=text_sha256(row["text"])),
+                        sha_column: text_sha256(row["text"])} for row in rows])
         return handle
 
     tasks = [(table_sql(t, worker, workers), handler(t), f"embed worker {worker} {t}") for t in TABLES]

@@ -9,7 +9,7 @@ Eval inference of the H3 Magic project (manifest §22), all through Bluejay so S
 A model is W = W_H3 + a·Δ_pexels + b·Δ_imagegen + c·Δ_graymagic (h3_eval_models a_pexels, b_imagegen, c_graymagic), sampled
 with classifier-free guidance scale `cfg` over the null prompt (NULL or 1 = H3's released one-pass sampler; > 1 = two
 forwards per step, h3magic/h3.py allow_cfg: plain flow-matching LoRAs de-distill H3, so adapter models need it).
-mode video: 141 frames (5.875 s, 24 fps) 512² -> video (H.264 CRF 12 MP4); mode image: 1 frame -> image (PNG).
+mode video: 141 frames (5.875 s, 24 fps) 512² (or h3_eval_models.size², 768 for Alpha Video v2) -> video (H.264 CRF 12 MP4); mode image: 1 frame -> image (PNG).
 A row with split_adapter (the split adapter, h3magic/split.py, m00972) adds the split LoRA at weight γ = g_split and the
 gray/white/black head with Δ·γ: video/image stay the gray head (the pipeline's own output), plus the white and black
 heads, and the RGBA of the three by the iterative least squares of manifest §17 (sana_alpha.fibo2.rgba_from_composites).
@@ -37,7 +37,9 @@ from h3magic import h3
 ROOT = Path(__file__).resolve().parents[2]
 EVAL_PROMPTS = ROOT / "h3magic/eval_prompts.json"
 # prompt_set of h3_eval_prompts / h3_eval_models (NULL = main): fg = the same 20 subjects with no background described (m00972)
-PROMPT_SETS = {"main": EVAL_PROMPTS, "fg": ROOT / "h3magic/eval_prompts_fg.json"}
+PROMPT_SETS = {"main": EVAL_PROMPTS, "fg": ROOT / "h3magic/eval_prompts_fg.json",
+               # Alpha Video v2 (manifest §23): the fg (g01-g20) and main (m01-m20) prompts + the gray suffix
+               "fgray": ROOT / "h3magic/eval_prompts_fgray.json", "mgray": ROOT / "h3magic/eval_prompts_mgray.json"}
 VIDEO_CRF = 12  # Near-lossless H.264, as h3_cut_clip's clips
 ADAPTERS = (("pexels", "pexels_adapter", "a_pexels"), ("imagegen", "imagegen_adapter", "b_imagegen"), ("graymagic", "graymagic_adapter", "c_graymagic"),
             ("split", "split_adapter", "g_split"))  # the split adapter's LoRA at γ (its head: h3.set_splitter)
@@ -194,7 +196,7 @@ def work_sql(worker, workers, only="%"):
         True
     """
     return ("SELECT g.model_tag, g.prompt_id, g.seed, m.mode, m.steps, m.a_pexels, m.b_imagegen, m.c_graymagic, "
-            "m.pexels_adapter, m.imagegen_adapter, m.graymagic_adapter, m.cfg, m.split_adapter, m.g_split, "
+            "m.pexels_adapter, m.imagegen_adapter, m.graymagic_adapter, m.cfg, m.split_adapter, m.g_split, m.size, "
             "blob_info(p.h3_text_embed) AS embed "
             "FROM h3_eval_generations g JOIN h3_eval_models m ON m.model_tag = g.model_tag "
             "JOIN h3_eval_prompts p ON p.prompt_id = g.prompt_id "
@@ -252,7 +254,7 @@ def work(worker, workers, poll_seconds=60, only="%"):
             t = time.time()
             sample = h3.generate_split if row["split_adapter"] else h3.generate
             result = sample(pipe, text, row["seed"], frames=h3.VIDEO_FRAMES if row["mode"] == "video" else 1, steps=row["steps"],
-                            cfg=guidance(row))
+                            size=int(row["size"] or h3.SIZE), cfg=guidance(row))
             seconds = time.time() - t
             frames = result["gray"] if row["split_adapter"] else result
             output = {"video": mp4_bytes(frames)} if row["mode"] == "video" else {"image": png_bytes(frames[0])}
