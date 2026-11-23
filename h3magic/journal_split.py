@@ -64,6 +64,9 @@ FINDINGS = (
     "<li><b>Video: the split fades after the first frame.</b> The split adapter was trained on single images only. In video, frame 0 splits as cleanly as an image. "
     "In later frames the white head's background drifts to light gray and the black head's to dark gray, so about 0.2&ndash;0.3 alpha is left in the background (it looks like a faint gray veil on the checkerboard). "
     "The subject's matte stays good and follows the motion. Gray surfaces that are part of the scene (a road under a car) get partly cut out too.</li>"
+    "<li><b>The split adapter alone on stock H3</b> (W_H3 + 0&middot;&Delta;_pexels + 0&middot;&Delta;_imagegen + 0&middot;&Delta;_graymagic + 1&middot;&Delta;_split, CFG 2.5 and CFG 1): "
+    "without the gray magic adapter, H3 draws a full scene even for subject-only prompts (dog on a lawn, car on a track), so the three heads stay almost equal and the fit leaves the scene mostly opaque. "
+    "Where H3 happens to draw a plain studio wall (the skater), the white head turns the wall white and the cut-out is partly right. So the split adapter does not bring the plain background by itself: it needs the gray magic adapter under it.</li>"
     "<li><b>One training fix was needed.</b> The first recipe (the guidance loss applied to every head) raised the gray head's loss from 3.23 to 4.50 in 50 steps. "
     "Giving white and black the gray head's guided target plus their plain difference from gray, and a 10&times; learning rate for the head's &Delta;, fixed it (gray 3.27 at step 25 and back to 3.23 at step 50).</li>"
     "</ul>")
