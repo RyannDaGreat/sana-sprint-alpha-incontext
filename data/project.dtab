@@ -1081,6 +1081,10 @@ tables
 			,	model_tag all_cfg_video	mode video	pexels_adapter models/h3magic/pexels/final	imagegen_adapter models/h3magic/imagegen/final	graymagic_adapter models/h3magic/graymagic/final	steps 30	a_pexels 1.0	b_imagegen 1.0	c_graymagic 1.0	cfg 2.5
 			,	model_tag graymagic_only_cfg_video	mode video	pexels_adapter models/h3magic/pexels/final	imagegen_adapter models/h3magic/imagegen/final	graymagic_adapter models/h3magic/graymagic/final	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 1.0	cfg 2.5
 			,	model_tag pexels_gray_cfg_video	mode video	pexels_adapter models/h3magic/pexels/final	imagegen_adapter models/h3magic/imagegen/final	graymagic_adapter models/h3magic/graymagic/final	steps 30	a_pexels 1.0	b_imagegen 0.0	c_graymagic 1.0	cfg 2.5
+			,	model_tag imagegen_cfg_image	mode image	pexels_adapter models/h3magic/pexels/final	imagegen_adapter models/h3magic/imagegen/final	graymagic_adapter models/h3magic/graymagic/final	steps 30	a_pexels 1.0	b_imagegen 1.0	c_graymagic 0.0	cfg 2.5
+			,	model_tag graymagic_cfg_image	mode image	pexels_adapter models/h3magic/pexels/final	imagegen_adapter models/h3magic/imagegen/final	graymagic_adapter models/h3magic/graymagic/final	steps 30	a_pexels 1.0	b_imagegen 1.0	c_graymagic 1.0	cfg 2.5
+			,	model_tag basic_ass_magic_cfg_image	mode image	graymagic_adapter models/h3magic/basic_ass_magic/final	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 1.0	cfg 2.5
+			,	model_tag basic_ass_magic_cfg_video	mode video	graymagic_adapter models/h3magic/basic_ass_magic/final	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 1.0	cfg 2.5
 
 	h3_eval_generations
 		 One row per H3 model and eval prompt: what the model makes from the prompt and its seed
