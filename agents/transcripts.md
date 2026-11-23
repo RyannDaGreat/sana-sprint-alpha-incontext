@@ -1290,3 +1290,6 @@ I'm gonna give you 3 more notifications.
 
 ## m00975 — 2026-11-22 ~10:21 PM ET
 You should probably get processing those latents ahead of time, by the way: plan to have them ready by the time we train on them. That takes priority over the fast decoder.
+
+## m00976 — 2026-11-22 ~10:23 PM ET
+To that clean final page, I want the 20 extra prompts which focus only on the essential components and not the background.
