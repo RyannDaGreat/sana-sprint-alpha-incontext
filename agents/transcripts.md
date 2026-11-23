@@ -1260,3 +1260,6 @@ Well, why don't you also launch a research sub-frenzy on how people actually tra
 
 ## m00965 — 2026-11-22 ~07:26 PM ET
 How do normal people do it?
+
+## m00966 — 2026-11-22 ~07:41 PM ET
+Show me the fixed Pexels videos side by side. Gimme local ip:port so I can see right now.
