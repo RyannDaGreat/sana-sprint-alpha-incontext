@@ -4,6 +4,7 @@ Is H3's encoder the bottleneck? (manifest §25, m00992), through Bluejay so Spar
     register                      (CPU, once) h3_enc_samples rows: the held-out images and clips, sources as lossless blobs
     images RUN [options]          long-lived GPU worker: latent optimization of single images through the FROZEN H3 decoder
     video RUN [options]           long-lived GPU worker: the same for whole 141-frame clips
+    baselines [--where]           GPU worker: only the three encoder baselines of samples that lack them
 
 For each sample: the encoder's posterior (untiled, as the project encodes), then Adam on the latent, starting from the
 posterior mode, against the source pixels with one objective of h3_enc_lib.OBJECTIVES, optionally plus a prior that
@@ -358,5 +359,30 @@ def video(run, objective="l1_vgg", where="kind = 'video'", steps=60, lr=0.01, pr
         print(f"{time.strftime('%I:%M:%S %p')} {run}: committed {r['sample_id']} ({seconds / 60:.1f} min)", flush=True)
 
 
+# ---------------------------------------------------------------- baselines alone
+
+def baselines(where="kind IN ('image', 'video')"):
+    """Command. Commits the three encoder baselines of every matching sample that lacks them (no optimization)."""
+    from bluejay import open_database
+    db = open_database("project.dtab")
+    vae, judges, gpu = L.load_vae(), L.Judges(), gpu_index()
+    rows = db.query(todo_sql("encoder_sample", where)).to_pylist()
+    print(f"baselines: {len(rows)} samples", flush=True)
+    for r in rows:
+        source = bytes_tensors(read_blob(r["frames"]))["frames"].numpy() if r["kind"] == "video" else read_png_rgb(r["src"])[None]
+        src = L.u8_to_float(source, "cuda")
+        mode, std = L.encode_posterior(vae, source)
+        kinds = {"encoder_mode": mode, "encoder_sample": L.sample_posterior(mode, std), "encoder_tiled": L.encode_posterior(vae, source, tiled=True)[0]}
+        out = []
+        with torch.no_grad():
+            for name, lat in kinds.items():
+                x = L.decode_float(vae, lat)
+                scores = judges.score(x, src)
+                out.append(result_row(name, r["sample_id"], scores, L.to_u8(x), lat, mode, std, gpu))
+                del x
+        db.commit("h3_enc_results", RESULT_COLUMNS, out, insert_missing=True)
+        print(f"{time.strftime('%I:%M:%S %p')} baselines: {r['sample_id']} PSNR sample {out[1]['psnr']:.2f} mode {out[0]['psnr']:.2f} tiled {out[2]['psnr']:.2f}", flush=True)
+
+
 if __name__ == "__main__":
-    fire.Fire({"register": register, "images": images, "video": video})
+    fire.Fire({"register": register, "images": images, "video": video, "baselines": baselines})

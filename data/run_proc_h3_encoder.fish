@@ -15,5 +15,6 @@ contains -- $argv[2] train evaluate; and set script processors/h3_enc_train.py
 
 ./aviary.sh bluejay initialize project.dtab; or exit  # By convention, every launch script initializes first
 set log ../agents/.scratchpad/logs
-set name (string join _ h3_enc $argv[2..3])
+set name h3_enc_$argv[2]
+test (count $argv) -ge 3; and not string match -q -- '-*' $argv[3]; and set name $name"_"$argv[3]  # the run name, when given
 env CUDA_VISIBLE_DEVICES=$gpu $H3_ENV --with lpips --with DISTS_pytorch --with pytorch-msssim python $script $argv[2..] 2>&1 | tee $log/$name.log

@@ -19,7 +19,7 @@ Saves models/h3magic/encoder_ft/<NAME>/encoder.safetensors (encoder.* and quant_
 and commits the run row (method encoder_finetuned, its training log).
 
     h3_enc_train.py train NAME [--steps 600] [--lr 1e-5] [--reg_weight 1.0] [--clips 160] [--images 2000]
-    h3_enc_train.py evaluate NAME [--where "kind = 'image'"]
+    h3_enc_train.py evaluate NAME [--where "kind = 'image'"] [--tiled]
     (from data/; GPU = $CUDA_VISIBLE_DEVICES; started by run_proc_h3_encoder.fish)
 """
 import copy
@@ -218,12 +218,20 @@ def train(name, steps=600, lr=1e-5, reg_weight=1.0, clips=160, images=2000, seed
     print(f"{name}: saved {out / 'encoder.safetensors'}", flush=True)
 
 
-def evaluate(name, where="kind IN ('image', 'video')"):
-    """Command. Scores the fine-tuned encoder's latents on held-out samples; commits run encft_<name> rows to h3_enc_results."""
+def evaluate(name, where="kind IN ('image', 'video')", tiled=False):
+    """
+    Command. Scores the fine-tuned encoder's latents on held-out samples; commits run encft_<name> rows to h3_enc_results.
+    tiled: encode in the VAE's 256-px spatial tiles (the crop size the encoder was fine-tuned on), run encft_<name>_tiled.
+    """
     from bluejay import open_database
     from safetensors.torch import load_file
     db = open_database("project.dtab")
-    run = f"encft_{name}"
+    run = f"encft_{name}" + ("_tiled" if tiled else "")
+    if tiled:
+        base = db.query(f"SELECT * FROM h3_enc_runs WHERE run_id = 'encft_{name}'").to_pylist()[0]
+        db.commit("h3_enc_runs", ["method", "objective", "terms", "steps", "lr", "prior_weight", "checkpoint", "train_log"],
+                  [{**{k: base[k] for k in ("method", "objective", "terms", "steps", "lr", "prior_weight", "checkpoint", "train_log")}, "run_id": run}],
+                  insert_missing=True)
     vae, judges, gpu = L.load_vae(), L.Judges(), O.gpu_index()
     teacher_enc, teacher_qc = copy.deepcopy(vae.encoder), copy.deepcopy(vae.quant_conv)
     state = load_file(OUT / name / "encoder.safetensors")
@@ -239,7 +247,9 @@ def evaluate(name, where="kind IN ('image', 'video')"):
         src = L.u8_to_float(source, "cuda")
         with torch.no_grad(), torch.autocast("cuda", torch.bfloat16):
             x = to_input(source[None], "cuda")
-            m_new, m_h3 = moments(vae.encoder, vae.quant_conv, x), moments(teacher_enc, teacher_qc, x)
+            m_h3 = moments(teacher_enc, teacher_qc, x)
+            vae.use_tiling = tiled
+            m_new = vae._encode(x) if tiled else moments(vae.encoder, vae.quant_conv, x)  # _encode = moments, tiled
         z, z_h3 = normalized_mode(vae, m_new)[0], normalized_mode(vae, m_h3)[0]
         std = (m_h3[0, 24:].float().clamp(-30, 20) * 0.5).exp() / L.stats(vae)[1]  # the original posterior's std, normalized
         with torch.no_grad():
