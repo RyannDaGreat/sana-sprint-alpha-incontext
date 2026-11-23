@@ -73,6 +73,16 @@ def section_key(mode, weights, tag):
     raise ValueError(f"model {tag}: mode {mode} with weights {weights} matches no journal row")
 
 
+FINDINGS = (
+    "<p>The first adapters (rows marked CFG 1 without \"v2\") make H3 worse: garbled details, wobbly shapes, floating motion. "
+    "Cause: the released H3 weights are <b>CFG-distilled</b> (guidance is baked in, so H3 runs without classifier-free guidance). "
+    "We trained the LoRAs with the plain flow-matching loss, which undoes that distillation; H3's own fine-tuning docs (musubi-tuner) "
+    "warn of exactly this. Measured: about 80% of the Pexels adapter's change points toward H3's unconditional prediction, and its "
+    "quality falls steadily with the adapter weight.</p>"
+    "<p>Two fixes, both shown below: (1) <b>CFG 2.5 at generation</b> with the same adapters repairs them (rows marked "
+    "\"generated with CFG 2.5\"; 2&times; the generation time). (2) <b>Retraining the normal way</b>: the ostris v3 training adapter "
+    "is used only during training, learning rate 1e-4, then generation on plain H3 at CFG 1 (rows marked \"v2\").</p>")
+
 VARIANTS = (("", ""), ("c", " — same adapters, generated with CFG 2.5 (repairs the lost guidance distillation)"),
             ("v2", " — retrained with the ostris v3 training adapter (the normal H3 recipe), CFG 1"))
 
@@ -317,6 +327,7 @@ def build():
 <h1>H3 Magic: results, one row per stage</h1>
 <p class="note">Same 20 prompts and fixed seeds in every row. Every item is the unmodified 512&times;512 output, labeled with its seed, seconds to generate and weight equation. Dataset pages: <a href="{DATASET_PAGES['pexels']}">Pexels clips</a>, <a href="{DATASET_PAGES['graymagic']}">gray magic images</a>.</p>
 <p>We build an RGB-on-gray version of the MiniMax H3 text-to-video model with adapters trained one on top of the other. Each row below is the model <b>W = W_H3 + a&middot;&Delta;_pexels + b&middot;&Delta;_imagegen + c&middot;&Delta;_graymagic</b>. Rows appear as they are evaluated.</p>
+<details open><summary>What went wrong with the first adapters, and the fix (2026-11-22)</summary>{FINDINGS}</details>
 <details open><summary>Lineage of the adapters</summary>{lineage_html()}</details>
 <details open><summary>Compare one prompt across all rows</summary><p><select id="cmp-prompt"></select></p><div id="cmp-out"></div></details>
 {"".join(body)}
