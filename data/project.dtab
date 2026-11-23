@@ -1011,6 +1011,14 @@ tables
 			 at 1024 and area-downsampled to 512, exactly as image_512 is the composite on 0.5 gray. h3_latent_black_512 is the done column
 			h3_latent_white_512, h3_latent_black_512 blob
 
+			 Alpha Video v2 (manifest §23). Written by h3_encode's job v3: magick_samples.rgba composited on 0.5 gray, white and black at 1024,
+			 area-resized to 768, H3 VAE latents (24, 1, 48, 48). h3_latent_black_768 is the done column
+			h3_latent_gray_768, h3_latent_white_768, h3_latent_black_768 blob
+			 Written by agents/.scratchpad/alphav2/set_captions_v3.py: h3_caption + the gray suffix of §23. h3_embed embeds it into h3_text_embed_v3
+			h3_caption_v3 string
+			h3_text_embed_v3 blob
+			h3_text_v3_sha256 string	 The sha256 (hex) of the h3_caption_v3 that h3_text_embed_v3 embeds
+
 	h3_pexels_clips
 		 One row per Pexels clip of the H3 Magic project. The video stays where it is: source_path refers to it (m00912)
 		primary_key pexels_id
@@ -1066,6 +1074,7 @@ tables
 			cfg float64	 classifier-free guidance scale over the null prompt (empty = 1 = H3's released sampler); adapters de-distill H3, so adapter rows use > 1
 			prompt_set string	 The h3_eval_prompts set it runs on (empty = main); plan pairs a model only with the prompts of its set (m00972)
 			split_adapter string	 The split adapter's step folder (h3magic/split.py: its LoRA + splitter_head.safetensors), empty = none (m00972)
+			size int64	 The side in pixels (empty = 512); Alpha Video v2 rows (manifest §23) use 768
 			g_split float64	 γ: the split LoRA's weight and the scale of its head's Δ (0 = the model without it, three equal heads)
 		initial_rows
 			,	model_tag stock_video	mode video	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 0.0

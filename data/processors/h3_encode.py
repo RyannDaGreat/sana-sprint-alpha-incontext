@@ -8,6 +8,8 @@ Each blob is safetensors {"latent": bfloat16}, normalized as h3magic/h3.py encod
     h3_pexels_clips   h3_latent_video   (24, 42, 32, 32)     (LC, LT, LH, LW) of clip_512 (141 frames)
     h3_magick_images  h3_latent_white_512, h3_latent_black_512   (24, 1, 32, 32) of magick_samples.rgba composited on
                       white and on black at 1024 and area-downsampled to 512 exactly as image_512 (the split adapter's targets)
+    h3_magick_images  h3_latent_gray_768, h3_latent_white_768, h3_latent_black_768   (24, 1, 48, 48) of magick_samples.rgba
+                      composited on 0.5 gray, white and black at 1024 and area-resized to 768 (job v3, Alpha Video v2, manifest §23)
 Only captioned rows are encoded (training needs the caption); each round does one query per job: images (cheap) and videos (~5 s each on an A100).
 
     h3_encode.py WORKER WORKERS [--jobs magick,frames,video] [--poll_seconds 120]   (from data/; GPU = $CUDA_VISIBLE_DEVICES)
@@ -36,8 +38,12 @@ JOBS = {  # job: (table, key, blob columns read, output column, rows per query)
     "frames": ("h3_pexels_clips", "pexels_id", FRAME_COLUMNS, "h3_latent_frames", 64),
     "video": ("h3_pexels_clips", "pexels_id", ["clip_512"], "h3_latent_video", 16),
     "split": ("h3_magick_images", "page_id", ["rgba"], "h3_latent_black_512", 64),  # done column; rgba from magick_samples
+    "v3": ("h3_magick_images", "page_id", ["rgba"], "h3_latent_black_768", 32),  # done column; rgba from magick_samples
 }
 SPLIT_BACKGROUNDS = {"h3_latent_white_512": 1.0, "h3_latent_black_512": 0.0}  # split job: output column -> composite_on_gray level
+V3_BACKGROUNDS = {"h3_latent_gray_768": 0.5, "h3_latent_white_768": 1.0, "h3_latent_black_768": 0.0}  # v3 job: output column -> level
+V3_SIZE = 768  # Alpha Video v2 resolution (m00983: "512 is a little bit low")
+RGBA_JOBS = {"split": SPLIT_BACKGROUNDS, "v3": V3_BACKGROUNDS}  # jobs that composite magick_samples.rgba themselves
 
 
 def job_sql(job, worker, workers, shards=None):
@@ -54,7 +60,7 @@ def job_sql(job, worker, workers, shards=None):
         True
     """
     table, key, blobs, output, limit = JOBS[job]
-    if job == "split":  # The RGBA lives in magick_samples: join it (same page_id)
+    if job in RGBA_JOBS:  # The RGBA lives in magick_samples: join it (same page_id)
         shard = shard_sql("h.page_id", worker, workers) if shards is None else byte_shard_sql("h.page_id", shards)
         return (f"SELECT h.page_id, blob_info(m.rgba) AS rgba FROM h3_magick_images h JOIN magick_samples m ON m.page_id = h.page_id "
                 f"WHERE h.{output} IS NULL AND h.h3_caption IS NOT NULL AND m.rgba IS NOT NULL AND {shard} LIMIT {limit}")
@@ -97,6 +103,48 @@ def split_composites(rgba):
     return np.stack([area_downsample(composite_on_gray(rgba, level), h3.SIZE) for level in SPLIT_BACKGROUNDS.values()])
 
 
+def area_resize(image, size):
+    """
+    Pure function. Area-resamples a square uint8 image to size x size (any ratio; cv2 INTER_AREA in float32, rounded).
+
+    Args:
+        image (np.ndarray): (H, H, C) uint8, e.g. (1024, 1024, 3)
+        size (int): Output side, e.g. 768
+
+    Returns:
+        np.ndarray: (size, size, C) uint8
+
+    Examples:
+        >>> x = np.zeros((4, 4, 3), np.uint8); x[:, :2] = 255
+        >>> area_resize(x, 2)[..., 0].tolist()
+        [[255, 0], [255, 0]]
+        >>> area_resize(np.full((1024, 1024, 3), 77, np.uint8), 768).shape, int(area_resize(np.full((1024, 1024, 3), 77, np.uint8), 768).max())
+        ((768, 768, 3), 77)
+    """
+    import cv2
+    return np.rint(cv2.resize(image.astype(np.float32), (size, size), interpolation=cv2.INTER_AREA)).clip(0, 255).astype(np.uint8)
+
+
+def v3_composites(rgba):
+    """
+    Pure function. The v3 job's images of one MAGICK RGBA: on 0.5 gray, white and black (V3_BACKGROUNDS order), each
+    composited at 1024 in 8 bit, then area-resized to V3_SIZE.
+
+    Args:
+        rgba (np.ndarray): (1024, 1024, 4) uint8 straight alpha
+
+    Returns:
+        np.ndarray: (3, 768, 768, 3) uint8 RGB
+
+    Examples:
+        >>> rgba = np.zeros((1024, 1024, 4), np.uint8); rgba[..., 0] = 255; rgba[:512, :, 3] = 255  # top opaque red, bottom clear
+        >>> out = v3_composites(rgba)
+        >>> out.shape, out[0, 0, 0].tolist(), out[0, -1, 0].tolist(), out[1, -1, 0].tolist(), out[2, -1, 0].tolist()
+        ((3, 768, 768, 3), [255, 0, 0], [128, 128, 128], [255, 255, 255], [0, 0, 0])
+    """
+    return np.stack([area_resize(composite_on_gray(rgba, level), V3_SIZE) for level in V3_BACKGROUNDS.values()])
+
+
 def encode_rows(vae, pool, job, rows):
     """
     Query (reads Blob files, runs the VAE). The output blobs of each row of one job.
@@ -114,16 +162,17 @@ def encode_rows(vae, pool, job, rows):
                 raise ValueError(f"clip_512 has shape {clip.shape}, expected {(h3.VIDEO_FRAMES, h3.SIZE, h3.SIZE, 3)}")
             out.append({output: tensors_bytes({"latent": h3.encode(vae, clip).to(torch.bfloat16)}, layout="LC, LT, LH, LW", **metadata)})
         return out
-    if job == "split":
-        images = np.stack(list(pool.map(lambda row: split_composites(read_png_rgba(row["rgba"])), rows)))  # (B, 2, 512, 512, 3)
+    if job in RGBA_JOBS:
+        composites = split_composites if job == "split" else v3_composites
+        images = np.stack(list(pool.map(lambda row: composites(read_png_rgba(row["rgba"])), rows)))  # (B, K, S, S, 3)
     else:
         images = np.stack(list(pool.map(lambda row: np.stack([read_png_rgb(row[c]) for c in blobs]), rows)))  # (B, K, H, W, 3)
     flat = images.reshape(-1, 1, *images.shape[2:])  # (B * K, 1, H, W, 3): one image per latent
     latents = torch.cat([h3.encode(vae, flat[i:i + IMAGE_BATCH]) for i in range(0, len(flat), IMAGE_BATCH)])  # (B * K, LC, 1, LH, LW)
     latents = latents.view(len(rows), images.shape[1], *latents.shape[1:]).to(torch.bfloat16)
-    if job == "split":
+    if job in RGBA_JOBS:
         return [{column: tensors_bytes({"latent": z[k]}, layout="LC, LT, LH, LW", background=level, **metadata)
-                 for k, (column, level) in enumerate(SPLIT_BACKGROUNDS.items())} for z in latents]
+                 for k, (column, level) in enumerate(RGBA_JOBS[job].items())} for z in latents]
     if job == "magick":
         return [{output: tensors_bytes({"latent": z[0]}, layout="LC, LT, LH, LW", **metadata)} for z in latents]
     return [{output: tensors_bytes({"latent": z}, layout="K, LC, LT, LH, LW; K = frames at 0..6 s", **metadata)} for z in latents]
