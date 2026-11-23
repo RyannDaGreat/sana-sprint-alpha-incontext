@@ -1,13 +1,12 @@
 {
- "status": "Round 1 of 3 scored. Round 2 runs on node 2 GPUs 4-7 from 7:42 AM ET (tiled whole-clip latents for the video child, hybrids, GAN)",
- "verdict": "So far: the latent holds a little more than H3's decoder extracts. A sampling refiner of H3's decode gains +0.56 dB and DISTS -0.004 over H3's decoder, of which the latent itself gives +0.15 dB and DISTS -0.002 (with the latent vs without). No decoder beats H3 by eye with significance (the refiner leans ahead, 26 to 18 votes). On whole-clip (video) latents H3's decoder is stronger still; that fair test is round 2.",
+ "status": "Round 2 scored (9:50 AM ET); round 3 running: H3's decoder fine-tuned on tiled whole-clip latents (h3dec_vid + no-GAN twin), the PMRF refiner on H3's video decode (refiner_vid + no-latent twin), PMRF from a regression mean (pmrf_mean)",
+ "verdict": "So far: the latent holds a little more than H3's decoder extracts on single images, but nothing beats H3 by eye. A sampling refiner of H3's decode with the DiT tokens gains +0.77 dB and DISTS -0.006 over H3's image decode and ties it by eye (27:24); the latent itself adds +0.15 dB beyond H3's decode. Regression decoders win every metric (up to +2.6 dB) and lose clearly by eye (blur). On whole-clip (video) latents H3's own decoder is far ahead of every 1-hour decoder (34.40 vs 31.02 dB); the warm-started video fine-tune of H3's decoder (round 3) is the remaining test.",
  "numbers": [
-  "H3's decoder, single-image path: PSNR 30.42 dB, DISTS 0.070, LPIPS-vgg 0.159, 714 ms per 512\u00b2 image (on tiled latents: 30.42 / 0.066)",
-  "refiner (PMRF: H3's decode + noise, a 4-step flow conditioned on the latent): ONE sample 30.97 dB, DISTS 0.066 (95% CI of the change excludes 0), sharper (sharp_fft 0.91 vs 0.83). Without the latent: 30.82 dB, DISTS 0.068 (not significant)",
-  "Blind A/B by eye vs H3's decoder (3 Opus judges, 24 windows each shown twice with the sides swapped; position bias 48-62% right side): refiner 26:18 (59%, 95% CI 44-72%), pixflow 28:27, fluxflow 29:33, pixreg 12:45 (H3 clearly better: pixreg is blurrier)",
-  "pixreg (68 M regression decoder, 70 min on 1 A100): 32.14 dB, DISTS 0.051, 51 ms, the best metrics, but it loses by eye",
-  "DWD (Decoding Without a Decoder) replicates on H3: a linear head on the DiT's last-layer tokens decodes 26.06 dB vs 24.43 dB from the latent itself (still far below a real decoder)",
-  "H3's decoder in VIDEO mode (whole-clip latent) gets 33.3 dB on the same frames: round 2 tests decoders on video latents",
+  "Single images, untiled latents: H3's decoder 30.42 dB / DISTS 0.070 / 714 ms; refiner_tok (PMRF on H3's decode + latent + DWD tokens) 31.18 / 0.065 / 970 ms, by eye 27:24 (tie); fusion (H3 decode + DWD image + tokens, regression) 33.02 / 0.051, by eye 9:36 (loses)",
+  "The user's DWD question (m01008): H3 decoder 30.42 / 0.070, DWD alone (dittok, 1 A100-hour vs ~350 H100-hours in the DWD paper; still improving slowly at 60 min) 26.76 / 0.154, best hybrid on metrics (fusion) 33.02 / 0.051, best hybrid by eye (refiner_tok) 31.18 / 0.065 = a tie with H3",
+  "Single images, tiled latents (what H3 expects): H3 30.42 / 0.066; pixreg_gan (DINO-GAN regression) 30.95 / 0.055, as sharp as H3, but by eye 17:29 for H3",
+  "Video, tiled whole-clip latents (frames 0/70/140 of 20 clips): H3's video decode 34.40 / 0.047; vidreg 31.02 / 0.070; vidreg_gan 28.53 / 0.087",
+  "Blind A/B by eye vs H3 (3 Opus judges, swapped pairs, position bias 31-62% right side): refiner 26:18, refiner_tok 27:24, pixflow 28:27, fluxflow 29:33, pixreg_gan 17:29, pixreg 12:45, fusion 9:36",
   "Reference points: \u00a725 optimized latent through H3's decoder 35.22 dB (12 images); FLUX.2 VAE round trip 38.89 dB"
  ]
 }
