@@ -48,8 +48,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import train as T  # noqa: E402  (h3magic/train.py: layout, noise, rows, bake, status)
 from h3magic import split as splitter  # noqa: E402
 
-CLIPS = T.ROOT / "models/h3magic/av2_motion_clips"
-VAL_CLIPS = 16  # default: the last 16 clips by name are held out
+CLIP_COLUMNS = ("h3_motion_gray_768", "h3_motion_white_768", "h3_motion_black_768")  # BlueJay h3_motion_clips (data/processors/h3_motion_clip.py)
+VAL_CLIPS = 20  # at most this many val clips (the val rows of h3_magick_images)
 BASE_LO, BASE_HI = 0.015, 0.08  # pre-shift base range: video sigma 0.15-0.51, around the last sampling step's 0.29
 VAL_BASES = (0.02, 0.0333, 0.06)
 FRAMES = 141
@@ -77,18 +77,32 @@ def readout_loss(delta_rows, x0_rows):
     return einx.mean("B R K C -> K", (difference - (x0_rows[..., 1:, :] - x0_rows[..., :1, :])) ** 2)
 
 
-def clip_files(split, val_clips=VAL_CLIPS):
-    """Query. Sorted clip files of the train or val split (the last val_clips by name are val)."""
-    files = sorted(p for p in CLIPS.glob("*.safetensors"))
-    return files[-val_clips:] if split == "val" else files[:-val_clips]
+def clip_records(split, limit=None):
+    """
+    Query. The finished h3_motion_clips rows of one split, by page_id: (clip row id, h3_magick_images row id) pairs, the
+    second for the caption embedding h3_text_embed_v3 (only rows whose embedding matches h3_caption_v3).
+    """
+    import hashlib
+    import lance
+    clips = lance.dataset(str(T.LANCE_DIR / "h3_motion_clips.lance"))
+    magick = lance.dataset(str(T.LANCE_DIR / "h3_magick_images.lance"))
+    done = clips.to_table(columns=["page_id"], filter=f"split = '{split}' AND h3_motion_black_768 IS NOT NULL", with_row_id=True).to_pylist()
+    mag = magick.to_table(columns=["page_id", "h3_caption_v3", "h3_text_v3_sha256"], filter="h3_text_embed_v3 IS NOT NULL", with_row_id=True).to_pylist()
+    fresh = {r["page_id"]: r["_rowid"] for r in mag if r["h3_caption_v3"] and r["h3_text_v3_sha256"] == hashlib.sha256(r["h3_caption_v3"].encode()).hexdigest()}
+    pairs = sorted((r["page_id"], r["_rowid"], fresh[r["page_id"]]) for r in done if r["page_id"] in fresh)
+    return [(c, m) for _, c, m in pairs][:limit]
 
 
-def load_clip(path):
+def load_clip(record):
     """Query. One clip: latents (1, LC, LT, LH, LW) gray, targets (1, K, LC, LT, LH, LW), prompt_embeds (1, N, 5120), tags (N,)."""
-    from safetensors.torch import load_file
-    d = load_file(str(path))
-    targets = torch.stack([d[k].float() for k in HEAD_KEYS])[None]
-    return dict(latents=targets[:, 0], targets=targets, prompt_embeds=d["prompt_embeds"], text_token_tags=d["text_token_tags"])
+    import lance
+    import safetensors.torch
+    clip_id, magick_id = record
+    clips = lance.dataset(str(T.LANCE_DIR / "h3_motion_clips.lance"))
+    heads = [safetensors.torch.load(clips.take_blobs(c, ids=[clip_id])[0].read())["latent"].float() for c in CLIP_COLUMNS]
+    text = safetensors.torch.load(lance.dataset(str(T.LANCE_DIR / "h3_magick_images.lance")).take_blobs("h3_text_embed_v3", ids=[magick_id])[0].read())
+    targets = torch.stack(heads)[None]
+    return dict(latents=targets[:, 0], targets=targets, prompt_embeds=text["prompt_embeds"], text_token_tags=text["text_token_tags"])
 
 
 def readout_forward(transformer, head, batch, audio, base, generator, device, layouts):
@@ -146,7 +160,7 @@ def train(name, graymagic, split, lr=1e-3, max_steps=400, save_every=25, val_eve
         lr (float): AdamW lr of Δ (no weight decay)
         max_steps, save_every, val_every, seed (int)
         stop_at (str): "HH:MM" Eastern hard stop; agents/.scratchpad/h3train/STOP_<name> stops early
-        val_clips (int): held-out clips (the last by name)
+        val_clips (int): at most this many val clips (h3_motion_clips split val)
     """
     dist.init_process_group("nccl")
     rank, world = dist.get_rank(), dist.get_world_size()
@@ -168,7 +182,7 @@ def train(name, graymagic, split, lr=1e-3, max_steps=400, save_every=25, val_eve
     head.gamma = 1.0
     params = list(head.delta.parameters())
     optimizer = torch.optim.AdamW(params, lr=lr, betas=T.ADAM_BETAS, eps=T.ADAM_EPS, weight_decay=0.0)
-    train_files, val_files = clip_files("train", val_clips), clip_files("val", val_clips)
+    train_files, val_files = clip_records("train"), clip_records("val", val_clips)
     draws = np.random.default_rng(seed)
     generator = torch.Generator(device=device).manual_seed(seed * 1000 + rank)
     layouts = {}
@@ -199,6 +213,10 @@ def train(name, graymagic, split, lr=1e-3, max_steps=400, save_every=25, val_eve
         log.write(f"0,,,,{val[0]:.5f},{val[1]:.5f},,{time.time():.0f}\n")
     step, last = 0, time.time()
     while True:
+        train_files = clip_records("train")  # clips the h3_motion_clip workers finished since the last pass join
+        count = torch.tensor(len(train_files), device=device)
+        dist.all_reduce(count, op=dist.ReduceOp.MIN)  # every rank sees the same list length
+        train_files = train_files[:int(count)]
         order = draws.permutation(len(train_files))
         for i in range(0, len(order) - world + 1, world):
             path = train_files[order[i + rank]]

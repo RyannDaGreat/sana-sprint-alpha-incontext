@@ -1154,6 +1154,13 @@ tables
 			,	model_tag split_bam_video	mode video	graymagic_adapter models/h3magic/basic_ass_magic_v2/final	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 1.0	split_adapter models/h3magic/split_bamd10/final	g_split 1.0
 			,	model_tag split_bam_image_fg	mode image	graymagic_adapter models/h3magic/basic_ass_magic_v2/final	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 1.0	prompt_set fg	split_adapter models/h3magic/split_bamd10/final	g_split 1.0
 			,	model_tag split_bam_video_fg	mode video	graymagic_adapter models/h3magic/basic_ass_magic_v2/final	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 1.0	prompt_set fg	split_adapter models/h3magic/split_bamd10/final	g_split 1.0
+			,	model_tag av2_stock_image_fgray	mode image	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 0.0	prompt_set fgray	size 768
+			,	model_tag av2_stock_video_fgray	mode video	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 0.0	prompt_set fgray	size 768
+			,	model_tag av2_stock_image_mgray	mode image	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 0.0	prompt_set mgray	size 768
+			,	model_tag av2_stock_video_mgray	mode video	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 0.0	prompt_set mgray	size 768
+			,	model_tag av2_gm_s00050_image_fgray	mode image	graymagic_adapter models/h3magic/graymagic_v3/step_00050	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 1.0	prompt_set fgray	size 768
+			,	model_tag av2_gm_s00100_image_fgray	mode image	graymagic_adapter models/h3magic/graymagic_v3/step_00100	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 1.0	prompt_set fgray	size 768
+			,	model_tag av2_gm_s00200_image_fgray	mode image	graymagic_adapter models/h3magic/graymagic_v3/step_00200	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 1.0	prompt_set fgray	size 768
 
 	h3_eval_generations
 		 One row per H3 model and eval prompt: what the model makes from the prompt and its seed
@@ -1175,6 +1182,20 @@ tables
 			 split_residual: the fit's mean RMS residual. split_x0_psnr: head 0 through the x0 path vs the pipeline's gray (dB, a check)
 			video_white, video_black, video_alpha, video_rgba, image_white, image_black, image_alpha, image_rgba blob
 			split_residual, split_x0_psnr float64
+
+	h3_motion_clips
+		 Alpha Video v2 (manifest §23 item 4): one synthetic moving cut-out per chosen MAGICK row (the first train rows by page_id + every val row).
+		 The row's RGBA moves along a smooth random path (h3magic/synth_motion.py), 141 frames at 768 x 768, composited on 0.5 gray, white and black
+		primary_key page_id
+		columns
+			page_id string
+
+			 Written by h3_motion_clip (data/processors/h3_motion_clip.py): a long-lived per-GPU worker committed with Bluejay's commit, not a Bluejay run
+			 The latents: {"latent": (24, 42, 48, 48) bfloat16}, H3 VAE video latents, normalized (h3magic/h3.py encode). The caption: h3_magick_images.h3_text_embed_v3
+			h3_motion_gray_768, h3_motion_white_768, h3_motion_black_768 blob
+			split string	 train or val, from h3_magick_images
+			path_seed int64	 The path's seed with page_id (h3_motion_clip.path_of)
+			scale_0, scale_1, center_x_0, center_y_0, center_x_1, center_y_1, angle_0, angle_1 float64
 
 
 processors
