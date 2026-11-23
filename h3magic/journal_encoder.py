@@ -27,7 +27,7 @@ ZOOM_SCALE = 3
 ZOOMS_PER_IMAGE = 2
 BASELINES = ("encoder_sample", "encoder_mode", "encoder_tiled")
 PANEL_SKIP = ("encoder_tiled",)  # in the tables only: its decode looks like the mode's
-SKIP_RUNS = ("smoke", "encft_smoke")  # code smoke tests
+SKIP_RUNS = ("smoke", "encft_smoke", "fm_untiled", "fm_tiled")  # code smoke tests; the FM-loss runs (the Finding box)
 BASELINE_LABEL = {"encoder_sample": "H3 encoder (pipeline latent: posterior sample)", "encoder_mode": "H3 encoder (posterior mode)",
                   "encoder_tiled": "H3 encoder, tiled encode (mode)"}
 METRICS = (("psnr", "PSNR dB", 1), ("ssim", "SSIM", 1), ("lpips_alex", "LPIPS alex", -1), ("lpips_vgg", "LPIPS vgg", -1), ("dists", "DISTS", -1),
@@ -219,9 +219,10 @@ def run_curves(results, runs, kind):
 
 CSS = """
 :root { --bg: #fdfdfb; --fg: #1d1d1f; --muted: #66666b; --rule: #dcdcd6; --accent: #2f5d8a; --box: #f0f0ea;
-        --gutter: 16px; --measure: 1700px; --font-body: 17px; --font-small: 14px; --pad: 8px; --hairline: 1px; --gap: 24px; --zcap: 288px; --bar: 4px; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #18191b; --fg: #e8e8e6; --muted: #a0a0a5; --rule: #3a3b3e; --accent: #8ab4dc; --box: #232427; } }
-:root[data-theme="dark"] { --bg: #18191b; --fg: #e8e8e6; --muted: #a0a0a5; --rule: #3a3b3e; --accent: #8ab4dc; --box: #232427; }
+        --gutter: 16px; --measure: 1700px; --font-body: 17px; --font-small: 14px; --pad: 8px; --hairline: 1px; --gap: 24px; --zcap: 288px; --bar: 4px; --swatch: 10px;
+        --series-1: #2a78d6; --series-2: #eb6834; --series-3: #1baf7a; --series-4: #eda100; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #18191b; --fg: #e8e8e6; --muted: #a0a0a5; --rule: #3a3b3e; --accent: #8ab4dc; --box: #232427; --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500; } }
+:root[data-theme="dark"] { --bg: #18191b; --fg: #e8e8e6; --muted: #a0a0a5; --rule: #3a3b3e; --accent: #8ab4dc; --box: #232427; --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500; }
 body { background: var(--bg); color: var(--fg); font: var(--font-body)/1.6 Georgia, serif; margin: 0; }
 main { max-width: var(--measure); margin: 0 auto; padding: 0 var(--gutter) var(--gap); }
 a { color: var(--accent); }
@@ -244,7 +245,94 @@ caption { text-align: left; color: var(--muted); }
 .zoom div { transform-origin: 0 0; image-rendering: pixelated; }
 .zcap { font: var(--font-small)/1.3 system-ui, sans-serif; max-width: var(--zcap); }
 svg text { fill: var(--fg); font: 12px system-ui, sans-serif; }
+svg .grid { stroke: var(--rule); stroke-width: 1; }
+svg .ref { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 4 4; }
+svg .muted { fill: var(--muted); }
+svg .dot { stroke: var(--box); stroke-width: 2; }
+.legend { display: flex; flex-wrap: wrap; gap: var(--gap); font: var(--font-small) system-ui, sans-serif; margin-top: var(--pad); }
+.key i { display: inline-block; width: var(--swatch); height: var(--swatch); border-radius: 50%; margin-right: calc(var(--pad) / 2); vertical-align: middle; }
 """
+
+
+LABEL_GAP = 13  # px between the end labels of the channel plot (one line of 12 px text)
+CHANNEL_SERIES = (("reencode_untiled_first10", "untiled, 512² (the project)", "--series-1"), ("reencode_tiled_384_96", "384-px tiles", "--series-2"),
+                  ("reencode_tiled_first10", "256-px tiles (diffusers default)", "--series-3"), ("reencode_tiled_128_32", "128-px tiles", "--series-4"))
+
+
+def channel_std_svg(stats, width=760, height=300):
+    """
+    Pure function. SVG line chart of the per-channel std of normalized latents (x = channel 0-23) for CHANNEL_SERIES
+    (the same 10 train clips encoded four ways), with a dashed reference line at 1.0 (H3's latents_std). Hover a dot for its value.
+
+    Examples:
+        >>> svg = channel_std_svg([{"stat_id": "reencode_untiled_first10", "channel_std": [0.7] * 24}])
+        >>> "<svg" in svg and "polyline" in svg and "1.0 = H3" in svg, channel_std_svg([])
+        (True, '')
+    """
+    by = {r["stat_id"]: r for r in stats}
+    series = [(label, var, by[sid]["channel_std"]) for sid, label, var in CHANNEL_SERIES if sid in by]
+    if not series:
+        return ""
+    left, right, top, bottom = 48, 200, 28, 36
+    hi = max(1.1, max(max(v) for _, _, v in series) * 1.05)
+    sx = lambda c: left + (width - left - right) * c / 23
+    sy = lambda v: top + (height - top - bottom) * (1 - v / hi)
+    grid = "".join(f"<line x1='{left}' x2='{width - right}' y1='{sy(v):.1f}' y2='{sy(v):.1f}' class='grid'/><text x='{left - 6}' y='{sy(v) + 4:.1f}' text-anchor='end'>{v:.1f}</text>"
+                   for v in np.arange(0, hi, 0.5))
+    ref = f"<line x1='{left}' x2='{width - right}' y1='{sy(1):.1f}' y2='{sy(1):.1f}' class='ref'/><text x='{left + 6}' y='{top - 10}' class='muted'>dashed line: 1.0 = H3's latents_std</text>"
+    ticks = "".join(f"<text x='{sx(c):.1f}' y='{height - bottom + 16}' text-anchor='middle'>{c}</text>" for c in range(0, 24, 4))
+    label_y = {}
+    for label, _, vals in sorted(series, key=lambda t: sy(t[2][-1])):  # end labels top to bottom, at least LABEL_GAP apart
+        y = sy(vals[-1]) + 4
+        label_y[label] = max(y, max(label_y.values(), default=-1e9) + LABEL_GAP)
+    lines = ""
+    for label, var, vals in series:
+        pts = " ".join(f"{sx(c):.1f},{sy(v):.1f}" for c, v in enumerate(vals))
+        dots = "".join(f"<circle cx='{sx(c):.1f}' cy='{sy(v):.1f}' r='4' style='fill:var({var})' class='dot'><title>{html.escape(label)}: channel {c}, std {v:.3f}</title></circle>" for c, v in enumerate(vals))
+        lines += f"<polyline fill='none' style='stroke:var({var})' stroke-width='2' points='{pts}'/>{dots}"
+        lines += f"<text x='{width - right + 6}' y='{label_y[label]:.1f}'>{html.escape(label)}</text>"
+    legend = "".join(f"<span class='key'><i style='background:var({var})'></i>{html.escape(label)}</span>" for label, var, _ in series)
+    return (f"<div class='legend'>{legend}</div><svg viewBox='0 0 {width} {height}' width='100%' style='max-width:{width}px' role='img' "
+            f"aria-label='Per-channel std of latents by encode tile size'>{grid}{ref}{ticks}{lines}"
+            f"<text x='{(left + width - right) / 2:.0f}' y='{height - 4}' text-anchor='middle' class='muted'>latent channel</text></svg>")
+
+
+def finding_html(stats, fm_rows, text):
+    """
+    Pure function. The "Finding" box: the agent's text, the channel-spread table of h3_enc_stats rows and the per-σ
+    flow-matching loss of stock H3 on untiled vs tiled latents (h3_enc_results runs fm_untiled / fm_tiled).
+
+    Args:
+        stats (list[dict]): stat_id, source, recipe, count, channel_mean, channel_std
+        fm_rows (list[dict]): run_id, sample_id, fm_loss_by_sigma (JSON)
+        text (str): HTML paragraph(s)
+
+    Examples:
+        >>> h = finding_html([{"stat_id": "a", "source": "s", "recipe": "r", "count": 2, "channel_mean": [0.0] * 24, "channel_std": [1.0] * 24}], [], "<p>x</p>")
+        >>> "1.000" in h and "<p>x</p>" in h
+        True
+    """
+    rows = "".join(f"<tr><td>{html.escape(r['recipe'])}</td><td>{html.escape(r['source'])}</td><td>{r['count']}</td>"
+                   f"<td>{np.mean(r['channel_std'][:16]):.3f}</td><td>{np.mean(r['channel_std'][16:]):.3f}</td></tr>" for r in stats)
+    table = (f"<div class='scroll'><table><caption>Per-channel spread (std) of normalized latents: H3's own latents_std makes it 1.0</caption>"
+             f"<tr><th>encode recipe</th><th>latents</th><th>n</th><th>std, channels 0&ndash;15</th><th>std, channels 16&ndash;23</th></tr>{rows}</table></div>")
+    fm = ""
+    if fm_rows:
+        by = {}
+        for r in fm_rows:
+            by.setdefault(r["sample_id"], {})[r["run_id"]] = json.loads(r["fm_loss_by_sigma"])
+        pairs = [d for d in by.values() if len(d) == 2]
+        sigmas = sorted(pairs[0]["fm_untiled"], key=float) if pairs else []
+        cells = ""
+        for sg in sigmas:
+            u = np.array([d["fm_untiled"][sg] for d in pairs])
+            t = np.array([d["fm_tiled"][sg] for d in pairs])
+            cells += (f"<tr><td>{float(sg):.2f}</td><td>{u.mean():.4f}</td><td>{t.mean():.4f}</td><td>{(t.mean() / u.mean() - 1) * 100:+.1f}%</td>"
+                      f"<td>{int((t < u).sum())} / {len(u)}</td></tr>")
+        fm = (f"<div class='scroll'><table><caption>Stock H3's flow-matching loss (MSE of its velocity, caption, CFG off, the same noise for both) on {len(pairs)} train clips "
+              f"encoded untiled (the project) vs tiled</caption><tr><th>noise &sigma;</th><th>untiled</th><th>tiled</th><th>change</th><th>clips where tiled is lower</th></tr>{cells}</table></div>")
+    plot = channel_std_svg(stats)
+    return f"<p><b>Finding 1: H3 expects tiled-encoded latents.</b></p>{text}{plot}{table}{fm}"
 
 
 def main(max_image_examples=16, max_other_videos=4):
@@ -334,6 +422,9 @@ def main(max_image_examples=16, max_other_videos=4):
             series = run_curves(results, others, kind)[key]
             if series:
                 curves += f"<h3>{kind}s: {label}</h3>" + curve_svg(series, label)
+    stats = db.query("SELECT stat_id, source, recipe, count, channel_mean, channel_std FROM h3_enc_stats ORDER BY stat_id").to_pylist()
+    fm_rows = db.query("SELECT run_id, sample_id, fm_loss_by_sigma FROM h3_enc_results WHERE run_id IN ('fm_untiled', 'fm_tiled')").to_pylist()
+    finding = finding_html(stats, fm_rows, verdict["finding"]) if verdict.get("finding") else ""
     numbers = "".join(f"<li>{n}</li>" for n in verdict["numbers"])
     extra = "".join(f"<details open><summary>{html.escape(s['title'])}</summary>{s['html']}</details>" for s in verdict.get("sections", []))
     page = f"""<!doctype html>
@@ -348,7 +439,7 @@ def main(max_image_examples=16, max_other_videos=4):
 <main>
 <h1>Is H3's encoder the bottleneck?</h1>
 <p class="note">Manifest §25 (m00992, m00993, m00994). {html.escape(verdict['status'])} Every image is the original lossless PNG at full resolution; zooms are cut from those files in the browser. All results live in Bluejay (h3_enc_samples, h3_enc_runs, h3_enc_results; Sparrow view view_h3_encoder).</p>
-<div class="verdict"><p><b>Verdict.</b> {verdict['verdict']}</p><ul>{numbers}</ul></div>
+<div class="verdict">{finding}<p><b>Finding 2 (the question asked): is the encoder the bottleneck?</b> {verdict['verdict']}</p><ul>{numbers}</ul></div>
 <p>The question (m00992): does a latent exist that the <b>frozen</b> H3 decoder turns into a clearly better picture than the encoder's own latent? We find one by gradient descent on the latent itself, against the source pixels, with several objectives, and judge the result with metrics the optimizer did not see and by eye on zoomed details. If such latents are much better, the encoder (not the decoder) limits H3's reconstructions, and a better encoder could be trained with the decoder frozen.</p>
 {extra}
 <details open><summary>Image examples: source, H3's encoder, optimized latents (full resolution) and detail zooms</summary>
