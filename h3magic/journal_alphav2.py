@@ -26,6 +26,7 @@ import journal_split as js
 PAGE = j.ROOT / "journal/h3magic_alphav2.html"
 ASSETS = j.ROOT / "journal/assets/h3magic_alphav2"
 SUFFIX_DIR = j.ROOT / "agents/.scratchpad/alphav2/suffix"
+TASTE_DIR = j.ROOT / "agents/.scratchpad/alphav2/taste"  # tasting sheets and other scratch outputs a note references (copied byte for byte)
 FG_PROMPTS = j.ROOT / "h3magic/eval_prompts_fg.json"
 CHOSEN = "hex_medium"
 NOTES = json.loads((Path(__file__).parent / "alphav2_notes.json").read_text()) if (Path(__file__).parent / "alphav2_notes.json").exists() else {}
@@ -37,7 +38,8 @@ INTRO = (
     "suffix does that, every caption and every test prompt of this version carries the suffix, so the gray magic adapter has "
     "little left to learn: mostly MAGICK's over-saturated look. Then only two adapters, both trained on still images at "
     "768&times;768 (512 was low): the gray magic adapter, and the split adapter on top of it (gray, white and black outputs, "
-    "least-squares RGBA). No Pexels and no image-gen adapter: the &quot;basic ass magic&quot; ablation showed they are not needed.</p>")
+    "least-squares RGBA). No Pexels and no image-gen adapter: the &quot;basic ass magic&quot; ablation showed they are not needed. "
+    "Training data: <a href=\"h3magic_dataset_v3.html\">the dataset page</a>.</p>")
 
 GLOSSARY = tuple((t, d) for t, d in js.GLOSSARY) + (
     ("Suffix", "A sentence added to the end of every prompt and caption, here the one that asks for a flat gray background."),
@@ -105,9 +107,24 @@ def suffix_section():
             f'<details class="sub"><summary>Test videos with the suffix (141 frames, 768&times;768)</summary><div class="grid">{"".join(videos)}</div></details></details>')
 
 
+def note_assets(text):
+    """
+    Pure function. The scratch files a note's HTML references: assets/h3magic_alphav2/taste/<name> -> <name>.
+
+    Examples:
+        >>> note_assets('<img data-src="assets/h3magic_alphav2/taste/a_b.png"> <a href="assets/h3magic_alphav2/taste/c.mp4">')
+        ['a_b.png', 'c.mp4']
+    """
+    import re
+    return re.findall(r"assets/h3magic_alphav2/taste/([\w.-]+)", text)
+
+
 def build():
     """Command. Writes journal/h3magic_alphav2.html from the suffix search outputs and the later entries that exist."""
-    sections = [suffix_section()] + [NOTES[k] for k in sorted(NOTES) if k.startswith("entry_")]
+    entries = [NOTES[k] for k in sorted(NOTES) if k.startswith("entry_")]
+    for name in note_assets("".join(entries)):
+        copy_asset(TASTE_DIR / name, ASSETS / "taste" / name)
+    sections = [suffix_section()] + entries
     glossary = "".join(f"<dt>{t}</dt><dd>{d}</dd>" for t, d in GLOSSARY)
     css = js.CSS + ":root { --media: 384px; } tr.chosen td { font-weight: bold; } table.scores td { font: var(--font-small)/1.4 system-ui, sans-serif; padding: 4px 8px; border-bottom: 1px solid var(--rule); }"
     page = f"""<!doctype html>
