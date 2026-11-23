@@ -893,7 +893,7 @@ Step 1000 live (after 351b011, one wasm thread for Memory64): fibo2_turbo_fibo2_
 
 **Modes (m00912, m00919): autopilot + bulldog + fork mode.** No blocking questions (a question waits at most 60 s, then h3magic decides); never let go of a hard problem; one agent per orthogonal item. Forks only for work that needs the whole conversation's context; simple, well-specified work goes to fresh Sonnet agents with a written brief (m00929).
 
-**Agent name for notifications: "h3magic"** (m00915). Every phone notification starts "h3magic:", gives context, is short, uses no invented jargon, and is written with the human-readable-notification skill (loaded before each send). At most **10** notifications in total (m00912, m00914).
+**Agent name for notifications: "h3magic"** (m00915). Every phone notification starts "h3magic:", gives context, is short, uses no invented jargon, and is written with the human-readable-notification skill (loaded before each send). At most **13** notifications in total (10 from m00912, m00914; 3 more from m00974).
 
 **Goal (m00912).** Eventually an RGBA version of MiniMax H3 (text to video, 480p class). This first pass stops at RGB on a 50% gray background. Method: the same adapter-on-adapter recipe as §1, on H3. Each adapter is a LoRA trained on the model with all earlier adapters **baked in**; at inference the adapters are summed with weights:
 `W = W_H3 + a·Δ_pexels + b·Δ_imagegen + c·Δ_graymagic`.

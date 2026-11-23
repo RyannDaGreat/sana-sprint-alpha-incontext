@@ -1284,3 +1284,6 @@ OK. The next thing I want, after you finish training, is to add those black/whit
 
 ## m00973 — 2026-11-22 ~10:12 PM ET
 W_H3 + 0·Δ_pexels + 0·Δ_imagegen + 0·Δ_graymagic + 1·Δ_split, CFG 2.5 --> I wanna see that too.
+
+## m00974 — 2026-11-22 ~10:17 PM ET
+I'm gonna give you 3 more notifications.

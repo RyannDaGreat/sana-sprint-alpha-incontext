@@ -25,7 +25,7 @@
 | H31 | Split adapter (m00972): one extra adapter giving gray / white / black (like FIBO2 §17), trained on top of the v2 chain AND on basic ass magic v2; ablations; RGBA by least squares | — | starting after training |
 | H15 | Journal: one dataset page per adapter (Pexels clips, image-gen frames, gray MAGICK), each with examples + captions and the adapter lineage (trained on top of which baked adapters) (m00934) | — | after each dataset is cut + captioned |
 
-### Notifications sent (max 10, signed h3magic)
+### Notifications sent (max 13: 10 + 3 more at m00974, signed h3magic)
 - N1 3:32 PM: captioning started (Gemini), 10k videos chosen, 5.875 s not approved
 - N2 03:50 PM: how the big fast decoder (r5a3_long) was made; adapting it to H3
 - N3 04:18 PM: Pexels selection page live (50 clips + captions); stock row done; training starts with 1,000 clips ~4:30
