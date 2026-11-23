@@ -1004,3 +1004,22 @@ Step 1000 live (after 351b011, one wasm thread for Memory64): fibo2_turbo_fibo2_
   - **Ablation rows (agents/.scratchpad/splith3/add_split_rows.py).** split_v2 with the full chain (5a-like: `split_v2_{image,video}`), gray magic only (5b-like: `split_v2_graymagic_*`), Pexels + gray magic (5c-like: `split_v2_pexels_gray_*`), the split adapter alone on stock H3 at CFG 2.5 (m00973: `split_v2_only_cfg_*`) and at CFG 1 (`split_v2_only_*`), γ = 0 sanity (`split_v2_g0_*`, must equal graymagic_image_v2 / all_video_v2), and `split_bam_{image,video}`. Page: `journal/h3magic_split.html` (`uv run --script h3magic/journal_split.py build`).
   - **Hazard (10:40 PM).** A long-lived h3_generate worker started before the split code (commit "Split adapter inference", 10:34 PM) renders a split_* row WITHOUT the split adapter and marks it done. Add split_* rows only when `agents/.scratchpad/splith3/safe_to_add.sh` passes (no such worker without `--only` on node 1, node 2 or here).
   - **Checks (10:30 PM).** Split encode spot check (6 rows): the gray recipe is pixel-identical to image_512; white/black decode 26–33 dB, the same as the stored gray (26–33). 1-GPU training smoke test (3 steps): step-1 val per head gray 3.40 (graymagic2's own val 3.25) / white 13.2 / black 16.0, 9.9 s/step, 69.6 GiB. GPU inference test (node 2, split_smoke): γ = 0 gray bit-identical to the base row; head 0 via the x0 path 52 dB from the pipeline's gray (bf16 rounding of the stored state), so the RGBA fit uses gray_x0; CFG 2.5 per head runs; detaching restores the base bit for bit.
+
+## 23. Alpha Video v2 (m00983, 2026-11-23 2:00 AM ET; deadline 3 PM ET)
+
+**Goal.** A better RGBA video model than the split adapter of §22 (Alpha Video 1), by 3 PM ET 2026-11-23; journal entries released as training goes.
+**Strategy (the user's).**
+1. **Prompt-only gray first** (its own journal entry): find a prompt suffix (e.g. "isolated on a gray background") that makes stock H3 put subjects on a flat gray background with no training. All prompts of this version (captions and eval prompts) carry the chosen suffix, so the gray magic adapter has little gradient left to learn.
+2. **Skip Pexels and image-gen**: the "basic ass magic" route worked, so only two adapters, both image-space (MAGICK, single-frame latents): the **gray magic adapter** (MAGICK on gray, captions with the gray suffix; it mostly absorbs MAGICK's oversaturated look, so removing it keeps the gray but drops the saturation) and the **split adapter** on top (gray / white / black heads, §22 split design with the difference targets).
+3. **768×768** (512 was low).
+4. **Tests**: both adapters, zero adapters, split only; inference prompts with the gray suffix; images and 6 s videos; RGBA by least squares; subject-only prompts first (m00980).
+**Training rule**: guidance loss (scale 4, lr 1e-4), as §22 proved.
+**Hardware (m00983)**: remote node 2 = all Alpha Video v2 training; the local node = inference only (both projects); remote node 1 = the Latent Compositor (§24). The H3 fast-decoder frenzy only uses idle local GPUs, lowest priority.
+
+## 24. Latent Compositor (m00983)
+
+**Goal.** A lightweight, differentiable network in H3-VAE latent space: input the latent of an alpha matte (encoded as a gray RGB image), the foreground latent and the background latent; output the latent of the composited RGB image (alpha·fg + (1−alpha)·bg), without decoding and re-encoding (that is the baseline to beat, never the method). Must be as precise as possible and cheap to backprop through (for later losses).
+**Data.** 1024×1024 images: MAGICK RGBA foregrounds composited onto opaque Pexels frames; all four images encoded with H3's VAE as single-frame latents.
+**Metrics.** On decoded outputs vs the true composite: PSNR, SSIM, LPIPS; latent MSE vs the target latent; and FIBO's image encoder (FLUX.2 VAE) latent distance (also a candidate training signal).
+**Method.** A research sub-frenzy (Sonnet) first, then a genetic frenzy: up to 7 rounds × 8 children; baselines: linear latent blend, decode→blend→encode. Remote node 1. Own journal page with many examples.
+**Notifications.** Up to 10 for these two projects (m00983), signed h3magic.
