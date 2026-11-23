@@ -335,6 +335,31 @@ def finding_html(stats, fm_rows, text):
     return f"<p><b>Finding 1: H3 expects tiled-encoded latents.</b></p>{text}{plot}{table}{fm}"
 
 
+def training_series(train_logs, window=10):
+    """
+    Pure function. Per fine-tune run, the moving average (over `window` log rows) of rec / rec_h3: the reconstruction
+    loss of the fine-tuned encoder relative to H3's own encoder on the same training batch (below 1 = better).
+
+    Args:
+        train_logs (dict[str, list[dict]]): run_id -> rows {step, rec, rec_h3, ...}
+
+    Returns:
+        list[tuple[str, list[int], list[float]]]
+
+    Examples:
+        >>> training_series({"r": [{"step": 10, "rec": 1.0, "rec_h3": 2.0}, {"step": 20, "rec": 1.0, "rec_h3": 1.0}]}, window=2)
+        [('r', [10, 20], [0.5, 0.75])]
+    """
+    out = []
+    for run, rows in sorted(train_logs.items()):
+        ratio = [r["rec"] / r["rec_h3"] for r in rows if r.get("rec_h3")]
+        steps = [r["step"] for r in rows if r.get("rec_h3")]
+        smooth = [float(np.mean(ratio[max(0, i - window + 1):i + 1])) for i in range(len(ratio))]
+        if smooth:
+            out.append((run, steps, smooth))
+    return out
+
+
 def main(max_image_examples=16, max_other_videos=4):
     """Command. Writes journal/h3magic_encoder.html and its assets from Bluejay (module docstring): every clip with an optimized latent, plus max_other_videos more."""
     from bluejay import open_database
@@ -417,6 +442,11 @@ def main(max_image_examples=16, max_other_videos=4):
                     f"{metric_table(rows, f'{html.escape(sid)}: all 141 frames vs the source')}</details>")
 
     curves = ""
+    logs = {r["run_id"]: json.loads(r["train_log"]) for r in db.query("SELECT run_id, train_log FROM h3_enc_runs WHERE method = 'encoder_finetuned' AND train_log IS NOT NULL").to_pylist()
+            if r["run_id"] not in SKIP_RUNS and not r["run_id"].endswith("_tiled")}  # a _tiled run shares its training log
+    if logs:
+        curves += ("<h3>Encoder fine-tuning: training loss relative to H3's own encoder (same batch; below 1 = better)</h3>"
+                   + curve_svg(training_series(logs), "rec / rec_H3, moving average of 10 log points").replace("vs Adam step (mean over the run's samples)", "vs training step"))
     for kind in ("image", "video"):
         for key, label in CURVE_KEYS:
             series = run_curves(results, others, kind)[key]
