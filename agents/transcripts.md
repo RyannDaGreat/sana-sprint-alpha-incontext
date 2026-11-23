@@ -1299,3 +1299,6 @@ Prioritize these extra prompts and renderings for the final page. In 20 minutes,
 
 ## m00978 — 2026-11-22 ~10:42 PM ET
 All of this is through BlueJay, right?
+
+## m00979 — 2026-11-22 ~11:39 PM ET
+Show me the split results side by side on local ip.
