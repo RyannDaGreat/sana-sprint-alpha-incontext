@@ -93,23 +93,23 @@ def png_bytes(image):
     return out.getvalue()
 
 
-def render_files(folder):
+def render_files(folder, decoded_dir="decoded"):
     """
     Query (lists the candidate folder). {test index: PNG path} of its decoded test samples: decoded/ (every EVAL sample),
     or showcase/ for a candidate scored before evaluate.py wrote decoded/.
     """
-    pngs = sorted((folder / "decoded").glob("*.png")) or sorted((folder / "showcase").glob("*.png"))
+    pngs = sorted((folder / decoded_dir).glob("*.png")) or (sorted((folder / "showcase").glob("*.png")) if decoded_dir == "decoded" else [])
     return {int(p.stem): p for p in pngs}
 
 
-def test_split(data_dir):
+def test_split(data_dir, split="test"):
     """
     Query (reads the test shards). The test split in position order: metadata, true-composite latents and pixels.
 
     Returns:
         tuple[list[dict], np.ndarray, dict]: metas; comp latents (N, 24, 64, 64) float16; alpha (N, H, W), fg and bg (N, H, W, 3) uint8
     """
-    shards = sorted(data_dir.glob("test_[0-9][0-9][0-9].safetensors"))
+    shards = sorted(data_dir.glob(f"{split}_[0-9][0-9][0-9].safetensors"))
     metas = [m for s in shards for m in json.loads(s.with_suffix(".json").read_text())]
     target = np.concatenate([load_file(str(s))["latents"][:, KEYS.index("comp")] for s in shards])
     parts = [load_file(str(s.with_name(s.stem + "_pixels.safetensors"))) for s in shards]
@@ -141,13 +141,15 @@ def main(sample, root):
     folder = root / job["folder"]
     round_dir = next(p for p in [folder, *folder.parents] if re.fullmatch(r"r[0-9]+", p.name))  # LC_DIR/r<k>/<name>[/variants/<v>]
     data_dir = round_dir.parent / "data"  # LC_DIR/data
-    per_sample = json.loads((folder / "results.json").read_text())["per_sample"]
-    metas, target, pixels = test_split(data_dir)
+    tiled = job["method_id"].endswith("@tiled")  # the same model scored on the tiled test latents (testtiled split)
+    suffix = "_testtiled" if tiled else ""
+    per_sample = json.loads((folder / f"results{suffix}.json").read_text())["per_sample"]
+    metas, target, pixels = test_split(data_dir, "testtiled" if tiled else "test")
     position = {m["index"]: i for i, m in enumerate(metas)}
-    pred = load_file(str(folder / "pred.safetensors"))["pred"]  # (N, 24, 64, 64) float16
+    pred = load_file(str(folder / f"pred{suffix}.safetensors"))["pred"]  # (N, 24, 64, 64) float16
     assert pred.shape == target.shape, (pred.shape, target.shape)
     mse = latent_mse(pred, target)
-    files = render_files(folder)
+    files = render_files(folder, f"decoded{suffix}")
 
     def one(k, index):
         """Command. Writes the child of one decoded test sample."""

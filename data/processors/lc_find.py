@@ -182,7 +182,8 @@ def read_json_if_exists(path):
 def method_rows(root, lc_dir):
     """
     Query (reads the candidate folders). One lc_methods row per LC_DIR/r<k>/**/results.json with a pred.safetensors
-    beside it (method_id = the folder under LC_DIR, e.g. "r3/agent_6/control"), sorted; others are reported and skipped.
+    beside it (method_id = the folder under LC_DIR, e.g. "r3/agent_6/control"), and one per results_testtiled.json with
+    pred_testtiled.safetensors (method_id + "@tiled": the same model on the tiled test latents); others are reported and skipped.
 
     Args:
         root (Path): The repo root
@@ -192,16 +193,17 @@ def method_rows(root, lc_dir):
         list[dict]
     """
     rows = []
-    for results_path in sorted((root / lc_dir).glob("r[0-9]*/**/results.json")):  # children's variants/ and control/ count too
-        folder = results_path.parent
-        if not (folder / "pred.safetensors").exists():  # a results.json copied without its predictions cannot be rendered
-            print(f"lc_find: skipping {folder} (no pred.safetensors)", flush=True)
-            continue
-        data = results_path.read_bytes()
-        rel = folder.relative_to(root / lc_dir).as_posix()
-        rows.append(method_row(rel, f"{lc_dir}/{rel}",
-                               read_json_if_exists(folder / "genome.json"), json.loads(data),
-                               read_json_if_exists(folder / "cost_clean.json"), hashlib.sha256(data).hexdigest()))
+    kinds = (("results.json", "pred.safetensors", ""), ("results_testtiled.json", "pred_testtiled.safetensors", "@tiled"))  # untiled; tiled split
+    for results_name, pred_name, tag in kinds:  # children's variants/ and control/ count too
+        for results_path in sorted((root / lc_dir).glob(f"r[0-9]*/**/{results_name}")):
+            folder = results_path.parent
+            if not (folder / pred_name).exists():  # results copied without their predictions cannot be rendered
+                print(f"lc_find: skipping {folder}/{results_name} (no {pred_name})", flush=True)
+                continue
+            data = results_path.read_bytes()
+            rel = folder.relative_to(root / lc_dir).as_posix()
+            rows.append(method_row(rel + tag, f"{lc_dir}/{rel}", read_json_if_exists(folder / "genome.json"), json.loads(data),
+                                   read_json_if_exists(folder / "cost_clean.json"), hashlib.sha256(data).hexdigest()))
     return rows
 
 
