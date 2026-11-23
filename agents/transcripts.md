@@ -1328,3 +1328,6 @@ By the way, for the test samples that you use for the alpha blending thing, make
 
 ## m00985 — 2026-11-23 ~02:10 AM ET
 You can have a batch swarm go over a bunch of samples to find intricate, tricky alpha masks.
+
+## m00986 — 2026-11-23 ~02:20 AM ET
+Show me the gray suffix results on local ip.
