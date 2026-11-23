@@ -119,12 +119,128 @@ def note_assets(text):
     return re.findall(r"assets/h3magic_alphav2/taste/([\w.-]+)", text)
 
 
+# Test tables (m00983: "tests showing both adapters, zero adapters, and just the split adapter"), each a list of columns
+# (title, model_tag, kind); kind gray = the model's own output, alpha / rgba / white / black = split outputs. Alpha Video 1
+# columns use the subject-only prompts without the suffix (f01-f20: same subject, motion and seed as g01-g20), at 512².
+AV1_V, AV1_I = "Alpha Video 1 (&sect;22 split, full chain, 512&sup2;)", "Alpha Video 1 (&sect;22 split, full chain, 512&sup2;)"
+TESTS = (
+    ("Video, subject-only prompts + suffix (g01&ndash;g20), 141 frames 768&sup2;", "video", "g", (
+        ("zero adapters (stock + suffix)", "av2_stock_video_fgray", "gray"),
+        ("gray magic v3", "av2_gm_video_fgray", "gray"),
+        ("gray magic v3 + split v3: gray head", "av2_both_video_fgray", "gray"),
+        ("gray magic v3 + split v3: alpha", "av2_both_video_fgray", "alpha"),
+        ("gray magic v3 + split v3: RGBA", "av2_both_video_fgray", "rgba"),
+        ("split v3 only: RGBA", "av2_split_video_fgray", "rgba"),
+        (AV1_V + ": alpha", "split_v2_video_fg", "alpha"),
+        (AV1_V + ": RGBA", "split_v2_video_fg", "rgba"))),
+    ("Images, subject-only prompts + suffix (g01&ndash;g20), 768&sup2;", "image", "g", (
+        ("zero adapters (stock + suffix)", "av2_stock_image_fgray", "gray"),
+        ("gray magic v3", "av2_gm_image_fgray", "gray"),
+        ("gray magic v3 + split v3: gray head", "av2_both_image_fgray", "gray"),
+        ("gray magic v3 + split v3: alpha", "av2_both_image_fgray", "alpha"),
+        ("gray magic v3 + split v3: RGBA", "av2_both_image_fgray", "rgba"),
+        ("split v3 only: RGBA", "av2_split_image_fgray", "rgba"),
+        (AV1_I + ": RGBA", "split_v2_image_fg", "rgba"))),
+    ("Video, main prompts + suffix (m01&ndash;m20; the prompts describe scenes), 141 frames 768&sup2;", "video", "m", (
+        ("zero adapters (stock + suffix)", "av2_stock_video_mgray", "gray"),
+        ("gray magic v3 + split v3: gray head", "av2_both_video_mgray", "gray"),
+        ("gray magic v3 + split v3: RGBA", "av2_both_video_mgray", "rgba"),
+        (AV1_V + ": RGBA", "split_v2_video", "rgba"))),
+    ("Images, main prompts + suffix (m01&ndash;m20), 768&sup2;", "image", "m", (
+        ("zero adapters (stock + suffix)", "av2_stock_image_mgray", "gray"),
+        ("gray magic v3 + split v3: gray head", "av2_both_image_mgray", "gray"),
+        ("gray magic v3 + split v3: RGBA", "av2_both_image_mgray", "rgba"),
+        (AV1_I + ": RGBA", "split_v2_image", "rgba"))),
+)
+SET_LETTER = {"fg": "f", "fgray": "g", "mgray": "m", None: "p", "main": "p"}  # prompt_set -> prompt id letter
+
+
+def adapter_name(folder):
+    """
+    Pure function. Display name of an adapter folder: its run name, plus the step when not final.
+
+    Examples:
+        >>> adapter_name("models/h3magic/graymagic_v3/final"), adapter_name("models/h3magic/split_v3/step_00150")
+        ('graymagic_v3', 'split_v3 (step 150)')
+    """
+    run, step = folder.rstrip("/").split("/")[-2:]
+    return run if step == "final" else f"{run} (step {int(step.split('_')[-1])})"
+
+
+def av2_equation(row):
+    """
+    Pure function. The weight equation of an av2 row: W_H3 + c·Δ_graymagic + γ·Δ_split, with CFG when not 1.
+
+    Examples:
+        >>> av2_equation({"c_graymagic": 1.0, "graymagic_adapter": "models/h3magic/graymagic_v3/final", "split_adapter": None, "cfg": None})
+        'W_H3 + 1·Δ_graymagic_v3'
+        >>> av2_equation({"c_graymagic": 0.0, "graymagic_adapter": None, "split_adapter": "models/h3magic/split_v3/final", "g_split": 1.0, "cfg": None})
+        'W_H3 + 1·Δ_split_v3'
+    """
+    terms = ["W_H3"]
+    if row.get("graymagic_adapter"):
+        terms.append(f"{row['c_graymagic']:g}·Δ_{adapter_name(row['graymagic_adapter'])}")
+    if row.get("split_adapter"):
+        terms.append(f"{row['g_split'] or 0:g}·Δ_{adapter_name(row['split_adapter'])}")
+    cfg = f", CFG {row['cfg']:g}" if (row.get("cfg") or 1) != 1 else ""
+    return " + ".join(terms) + cfg
+
+
+def prompt_id_for(model, number):
+    """
+    Pure function. The prompt id of one model row's prompt set for a prompt number ("07").
+
+    Examples:
+        >>> prompt_id_for({"prompt_set": "fg"}, "07"), prompt_id_for({"prompt_set": None}, "07"), prompt_id_for({"prompt_set": "fgray"}, "07")
+        ('f07', 'p07', 'g07')
+    """
+    return SET_LETTER[model.get("prompt_set")] + number
+
+
+def test_tables(models_by_tag):
+    """Command (copies outputs to journal/assets/h3magic/<tag>/). The comparison tables of TESTS, pending cells marked."""
+    used = {tag for _, _, _, cols in TESTS for _, tag, _ in cols if tag in models_by_tag}
+    plain = [models_by_tag[t] for t in used if not models_by_tag[t].get("split_adapter")]
+    split = [models_by_tag[t] for t in used if models_by_tag[t].get("split_adapter")]
+    found_plain, found_split = j.export_outputs(plain), js.export_split(split)
+    sources = {"g": j.ROOT / "h3magic/eval_prompts_fgray.json", "m": j.ROOT / "h3magic/eval_prompts_mgray.json"}
+    html_out = []
+    for title, mode, letter, cols in TESTS:
+        prompts = json.loads(sources[letter].read_text())
+        head = "".join(f"<th>{c}</th>" for c, _, _ in cols)
+        eqs = []
+        for c, tag, _ in cols:
+            m = models_by_tag.get(tag)
+            if m and (c.endswith("RGBA") or not m.get("split_adapter")):
+                eq = av2_equation(m) if tag.startswith("av2_") else js.split_equation(m)
+                eqs.append(f"<li>{c}: <span class=eq>{html.escape(eq)}</span> ({tag})</li>")
+        body = []
+        for p in prompts:
+            number = p["id"][1:]
+            cells = []
+            for c, tag, kind in cols:
+                m = models_by_tag.get(tag)
+                pid = prompt_id_for(m, number) if m else None
+                done = m and ((pid in found_split.get(tag, {})) if m.get("split_adapter") else (pid in found_plain.get(tag, {})))
+                if not done:
+                    cells.append('<td class="missing">pending</td>')
+                    continue
+                path = js.asset(tag, pid, kind, mode) if m.get("split_adapter") else j.media_path(tag, pid, mode)
+                cells.append(js.cell(path, mode, kind, p["short"]))
+            body.append(f'<tr><th class="label">{number}: {html.escape(p["short"])}<br><span class="note">seed {p["seed"]}</span></th>{"".join(cells)}</tr>')
+        html_out.append(f'<details class="row" open><summary>{title}</summary><ul class="note">{"".join(eqs)}</ul>'
+                        f'<div class="wide"><table><thead><tr><th></th>{head}</tr></thead><tbody>{"".join(body)}</tbody></table></div></details>')
+    return "".join(html_out)
+
+
 def build():
     """Command. Writes journal/h3magic_alphav2.html from the suffix search outputs and the later entries that exist."""
     entries = [NOTES[k] for k in sorted(NOTES) if k.startswith("entry_")]
     for name in note_assets("".join(entries)):
         copy_asset(TASTE_DIR / name, ASSETS / "taste" / name)
-    sections = [suffix_section()] + entries
+    models_by_tag = {m["model_tag"]: m for m in j.load_models()}
+    tests = f'<h2>Tests (subject-only prompts first)</h2>{NOTES.get("tests_finding", "")}{test_tables(models_by_tag)}'
+    sections = [suffix_section()] + entries + [tests]
     glossary = "".join(f"<dt>{t}</dt><dd>{d}</dd>" for t, d in GLOSSARY)
     css = js.CSS + ":root { --media: 384px; } tr.chosen td { font-weight: bold; } table.scores td { font: var(--font-small)/1.4 system-ui, sans-serif; padding: 4px 8px; border-bottom: 1px solid var(--rule); }"
     page = f"""<!doctype html>
