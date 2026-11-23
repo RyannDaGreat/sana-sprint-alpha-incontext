@@ -669,14 +669,16 @@ def prefetch(records, plan):
 # Forward
 # ---------------------------------------------------------------------------------------------------------------------
 
-def forward_loss(transformer, batch, audio, base, generator, device, layouts, guide=None):
+def forward_loss(transformer, batch, audio, base, generator, device, layouts, guide=None, split_target="guided"):
     """
     Near-pure function (advances generator; runs the model). Video flow loss of one batch at one base noise level.
     With `guide` (the guidance loss, musubi-tuner's recipe for CFG-distilled H3) and base >= guide["sigma_min"], the
     target is guided_target(x_0 − noise, u, scale), u = the model's no-grad prediction for the uncond probe text.
     With batch["targets"] (the split adapter, h3magic/split.py): x_t comes from the gray head's target, every head k
     has the target x0_k − noise with the SAME noise, and the guidance applies per head with u_k = head k's uncond
-    prediction; the loss is then one MSE per head.
+    prediction (split_target "guided"), or only to the gray head, the others getting its guided target plus their plain
+    difference x0_k − x0_gray (split_target "difference": the split is a property of the clean image, so it is not
+    amplified by the guidance scale); the loss is then one MSE per head.
 
     Args:
         transformer (nn.Module)
@@ -721,6 +723,8 @@ def forward_loss(transformer, batch, audio, base, generator, device, layouts, gu
         with torch.no_grad():  # LoRA stays on, as musubi does: u is the adapted model's own uncond prediction
             uncond = predict(guide["text_token_tags"], einx.rearrange("1 N C -> B N C", guide["prompt_embeds"], B=x0.shape[0]))
         target = guided_target(target, uncond.float(), guide["scale"])
+        if split and split_target == "difference":  # guided gray + the heads' plain differences from gray
+            target = einx.add("B R C, B R K C -> B R K C", target[..., 0, :], x0 - x0[..., :1, :])
     error = (predict(batch["text_token_tags"], batch["prompt_embeds"]).float() - target) ** 2
     return einx.mean("B R K C -> K", error) if split else error.mean()
 
@@ -739,7 +743,7 @@ def all_reduce_grads(params, world):
         offset += g.numel()
 
 
-def validate(transformer, records, audio, device, layouts, world, guide=None):
+def validate(transformer, records, audio, device, layouts, world, guide=None, split_target="guided"):
     """
     Query (runs the model without gradients). Mean validation loss over this rank's val items at VAL_BASES with fixed
     noise, averaged over ranks (a list of one per head for split records). Deterministic, so successive values are comparable.
@@ -751,7 +755,7 @@ def validate(transformer, records, audio, device, layouts, world, guide=None):
             batch = records.batch([i])
             for k, base in enumerate(VAL_BASES):
                 generator = torch.Generator(device=device).manual_seed(1000 * i + k)
-                total += forward_loss(transformer, batch, audio, base, generator, device, layouts, guide)
+                total += forward_loss(transformer, batch, audio, base, generator, device, layouts, guide, split_target)
                 count += 1
     if world > 1:
         dist.all_reduce(total)
@@ -789,7 +793,7 @@ def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr
           batch_size=16, max_steps=100000, save_every=100, val_every=100, seed=0, embed_column=COLUMNS["embed"],
           latent_column=None, lance_dir=str(LANCE_DIR), refresh_every=50, stop_at="", resume="", guidance_scale=0.0,
           guidance_sigma_min=0.15, guidance_uncond=str(UNCOND_FILE), base_weights="", optimizer_name="adamw", muon_lr=0.02,
-          split=False):
+          split=False, split_target="guided", delta_lr_scale=1.0):
     """
     Command. Trains adapter `name` (run under torchrun; one process per GPU). Saves to models/h3magic/<name>/step_XXXXX/
     and models/h3magic/<name>/final/, logs log.csv, writes STATUS, and stops when STOP_<name> appears, at max_steps or at
@@ -824,6 +828,8 @@ def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr
         split (bool): the split adapter (h3magic/split.py, m00972): proj_out gets K = 3 heads (gray, white, black; frozen
             base + zero-init float32 Δ) trained with the fresh LoRA; targets latent_column + SPLIT_COLUMNS, shared noise.
             Image mode on magick only
+        split_target (str): guided (guidance loss per head) | difference (guided gray + plain x0_k − x0_gray), see forward_loss
+        delta_lr_scale (float): the split head Δ's lr = lr × this (the LoRA keeps lr)
     """
     dist.init_process_group("nccl")
     rank_id, world = dist.get_rank(), dist.get_world_size()
@@ -841,7 +847,8 @@ def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr
                 video_frames=VIDEO_FRAMES if mode == "video" else 1, guidance_scale=guidance_scale,
                 guidance_sigma_min=guidance_sigma_min, training_only_base_weights=base_weights,
                 split=dict(heads=list(splitter.SPLIT_BACKGROUNDS), backgrounds=list(splitter.SPLIT_BACKGROUNDS.values()),
-                           targets=[latent_column, *SPLIT_COLUMNS], head_file=splitter.HEAD_FILE) if split else None)
+                           targets=[latent_column, *SPLIT_COLUMNS], head_file=splitter.HEAD_FILE, target=split_target,
+                           delta_lr_scale=delta_lr_scale) if split else None)
     guide = None
     if guidance_scale > 0:
         from safetensors.torch import load_file
@@ -859,7 +866,14 @@ def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr
         splitter.attach_splitter(transformer)
     transformer.train()
     params = [p for p in transformer.parameters() if p.requires_grad]
-    optimizer = make_optimizer(params, optimizer_name, lr, muon_lr, weight_decay)
+    if split:  # two AdamW groups: the LoRA at lr, the head's Δ at lr × delta_lr_scale (the schedule scales both)
+        delta = {id(p) for p in splitter.splitter_of(transformer).delta.parameters()}
+        assert optimizer_name == "adamw", "--split uses AdamW"
+        optimizer = torch.optim.AdamW([{"params": [p for p in params if id(p) not in delta], "lr": lr},
+                                       {"params": [p for p in params if id(p) in delta], "lr": lr * delta_lr_scale}],
+                                      betas=ADAM_BETAS, eps=ADAM_EPS, weight_decay=weight_decay)
+    else:
+        optimizer = make_optimizer(params, optimizer_name, lr, muon_lr, weight_decay)
     schedule = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda s: min(1.0, (s + 1) / WARMUP_STEPS))
     step = resume_from(transformer, optimizer, schedule, resume, out) if resume else 0
     if resume and split:
@@ -887,7 +901,7 @@ def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr
             continue
         for batch in prefetch(records, plan):
             base = float(draws.random())
-            losses = forward_loss(transformer, batch, audio, base, generator, device, layouts, guide)  # scalar, or (K,) split
+            losses = forward_loss(transformer, batch, audio, base, generator, device, layouts, guide, split_target)  # scalar, or (K,) split
             loss = losses.mean()
             loss.backward()
             all_reduce_grads(params, world)
@@ -904,7 +918,7 @@ def train(name, mode="video", data="pexels", bake_list="", rank=16, alpha=16, lr
                 val_records = Records(data, mode, "val", rank_id, world, embed_column, latent_column, lance_dir, extra_columns)
                 if val_records.ready_rows == val_records.split_rows:
                     transformer.eval()
-                    val_heads = validate(transformer, val_records, audio, device, layouts, world, guide)
+                    val_heads = validate(transformer, val_records, audio, device, layouts, world, guide, split_target)
                     val_loss = float(np.mean(val_heads)) if split else val_heads
                     if split and rank_id == 0:
                         print(f"{name} step {step} val per head {dict(zip(splitter.SPLIT_BACKGROUNDS, val_heads))}", flush=True)
