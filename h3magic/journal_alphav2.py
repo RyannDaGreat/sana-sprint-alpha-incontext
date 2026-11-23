@@ -107,6 +107,43 @@ def suffix_section():
             f'<details class="sub"><summary>Test videos with the suffix (141 frames, 768&times;768)</summary><div class="grid">{"".join(videos)}</div></details></details>')
 
 
+DRIFT_FILE = Path(__file__).parent / "alphav2_drift.json"  # video_drift.py results (border-band median alpha per frame)
+DRIFT_LABELS = {"split_v2_video_fg": ("Alpha Video 1 (split v2, 512²)", "--c1"), "split_bam_video_fg": ("Alpha Video 1 ablation (split on basic ass magic)", "--c2"),
+                "av2_both_video_fgray": ("v2: gray magic v3 + split v3 (768²)", "--c3"), "av2_bothv_video_fgray": ("v2 + video readout (768²)", "--c4")}
+
+
+def polyline(values, width, height, top):
+    """
+    Pure function. SVG polyline points of a curve: x spread over width, y = height · (1 − value / top).
+
+    Examples:
+        >>> polyline([0.0, 0.5, 1.0], 100, 50, 1.0)
+        '0.0,50.0 50.0,25.0 100.0,0.0'
+    """
+    n = max(len(values) - 1, 1)
+    return " ".join(f"{i * width / n:.1f},{height * (1 - min(v, top) / top):.1f}" for i, v in enumerate(values))
+
+
+def drift_html():
+    """Query (reads DRIFT_FILE). The drift chart (SVG, background alpha per frame) and the per-window table."""
+    data = json.loads(DRIFT_FILE.read_text())
+    w, h, top = 640, 240, 0.4
+    lines = "".join(f'<polyline fill="none" stroke="var({DRIFT_LABELS[t][1]})" stroke-width="2" points="{polyline(d["median_curve"], w, h, top)}"/>' for t, d in data.items())
+    grid = "".join(f'<line x1="0" x2="{w}" y1="{h * (1 - v / top):.0f}" y2="{h * (1 - v / top):.0f}" stroke="var(--rule)"/><text x="{w + 4}" y="{h * (1 - v / top) + 4:.0f}" class="ax">{v:.1f}</text>' for v in (0.0, 0.1, 0.2, 0.3, 0.4))
+    svg = (f'<svg viewBox="0 0 {w + 40} {h + 30}" style="max-width:100%;height:auto" role="img" aria-label="background alpha per frame">{grid}{lines}'
+           f'<text x="0" y="{h + 22}" class="ax">frame 0</text><text x="{w - 60}" y="{h + 22}" class="ax">frame 140</text></svg>')
+    legend = "".join(f'<li><span style="color:var({DRIFT_LABELS[t][1]})">&#9632;</span> {DRIFT_LABELS[t][0]}</li>' for t in data)
+    rows = "".join(f'<tr><td>{DRIFT_LABELS[t][0]}</td>' + "".join(f'<td>{d["table"][k]["median"]:.3f}</td>' for k in ("frame 0", "frames 1-23", "frames 24-69", "frames 70-140"))
+                   + f'<td>{d["table"]["per prompt frames 1-140"]["median"]:.3f} / {d["table"]["per prompt frames 1-140"]["p95"]:.3f}</td>'
+                   + f'<td>{20 - d["table"]["per prompt frames 1-140"]["above_0_03"]} of {d["prompts"]}</td>'
+                   + f'<td>{d["table"]["subject core"]["mean_alpha"]:.3f} ({d["table"]["subject core"]["below_0_9"]:.0%})</td></tr>' for t, d in data.items())
+    return (f'<p class="note">Background alpha per frame: in each frame, the median alpha of the outer 8% border band (background, ideally 0), averaged over the 20 subject-only prompts.</p>'
+            f'{svg}<ul class="note">{legend}</ul>'
+            f'<table class="scores"><thead><tr><th>model</th><th>frame 0</th><th>frames 1&ndash;23</th><th>frames 24&ndash;69</th><th>frames 70&ndash;140</th>'
+            f'<th>per prompt (frames 1&ndash;140): median / 95th pct</th><th>prompts below 0.03</th><th>solid subject: mean alpha in the core (share of core pixels below 0.9)</th></tr></thead><tbody>{rows}</tbody></table>'
+            f'<p class="note">Solid subject: in every 10th frame, the subject core = pixels with alpha &gt; 0.5, eroded by 15 px (edges, hair and spray excluded); its mean alpha should be 1.</p>')
+
+
 def note_assets(text):
     """
     Pure function. The scratch files a note's HTML references: assets/h3magic_alphav2/taste/<name> -> <name>.
@@ -130,6 +167,8 @@ TESTS = (
         ("gray magic v3 + split v3: gray head", "av2_both_video_fgray", "gray"),
         ("gray magic v3 + split v3: alpha", "av2_both_video_fgray", "alpha"),
         ("gray magic v3 + split v3: RGBA", "av2_both_video_fgray", "rgba"),
+        ("+ video readout (entry 5): alpha", "av2_bothv_video_fgray", "alpha"),
+        ("+ video readout (entry 5): RGBA", "av2_bothv_video_fgray", "rgba"),
         ("split v3 only: RGBA", "av2_split_video_fgray", "rgba"),
         (AV1_V + ": alpha", "split_v2_video_fg", "alpha"),
         (AV1_V + ": RGBA", "split_v2_video_fg", "rgba"))),
@@ -139,12 +178,14 @@ TESTS = (
         ("gray magic v3 + split v3: gray head", "av2_both_image_fgray", "gray"),
         ("gray magic v3 + split v3: alpha", "av2_both_image_fgray", "alpha"),
         ("gray magic v3 + split v3: RGBA", "av2_both_image_fgray", "rgba"),
+        ("+ video readout (entry 5): RGBA", "av2_bothv_image_fgray", "rgba"),
         ("split v3 only: RGBA", "av2_split_image_fgray", "rgba"),
         (AV1_I + ": RGBA", "split_v2_image_fg", "rgba"))),
     ("Video, main prompts + suffix (m01&ndash;m20; the prompts describe scenes), 141 frames 768&sup2;", "video", "m", (
         ("zero adapters (stock + suffix)", "av2_stock_video_mgray", "gray"),
         ("gray magic v3 + split v3: gray head", "av2_both_video_mgray", "gray"),
         ("gray magic v3 + split v3: RGBA", "av2_both_video_mgray", "rgba"),
+        ("+ video readout (entry 5): RGBA", "av2_bothv_video_mgray", "rgba"),
         (AV1_V + ": RGBA", "split_v2_video", "rgba"))),
     ("Images, main prompts + suffix (m01&ndash;m20), 768&sup2;", "image", "m", (
         ("zero adapters (stock + suffix)", "av2_stock_image_mgray", "gray"),
@@ -204,7 +245,7 @@ def tasting_tables(models_by_tag):
 
     Examples:
         >>> rows = {"av2_gm_s00100_image_fgray": {}, "av2_split_s00050_image_fgray": {}, "av2_stock_image_fgray": {}}
-        >>> [(t[0][:22], [c[1] for c in t[3]]) for t in tasting_tables(rows)]
+        >>> [(t[0][:22], [c[1] for c in t[3]]) for t in tasting_tables(rows)][:2]
         [('Tasting: gray magic v3', ['av2_stock_image_fgray', 'av2_gm_s00100_image_fgray']), ('Tasting: split v3 chec', ['av2_split_s00050_image_fgray', 'av2_split_s00050_image_fgray'])]
     """
     import re
@@ -212,8 +253,11 @@ def tasting_tables(models_by_tag):
     step = lambda tag: int(re.search(r"_s(\d{5})_", tag).group(1))
     gm = [("zero adapters (stock + suffix)", "av2_stock_image_fgray", "gray")] + [(f"step {step(t)}", t, "gray") for t in steps("gm")]
     split = [c for t in steps("split") for c in ((f"step {step(t)}: alpha", t, "alpha"), (f"step {step(t)}: RGBA", t, "rgba"))]
+    readout = sorted(t for t in models_by_tag if re.fullmatch(r"av2_bothv_s\d{5}_video_vgray", t))
+    video = [c for t in readout for c in ((f"readout step {step(t)}: alpha", t, "alpha"), (f"readout step {step(t)}: RGBA", t, "rgba"))]
     return (("Tasting: gray magic v3 checkpoints (images, g01&ndash;g20, 768&sup2;)", "image", "g", tuple(gm)),
-            ("Tasting: split v3 checkpoints (gray magic v3 + split step; images, g01&ndash;g20, 768&sup2;)", "image", "g", tuple(split)))
+            ("Tasting: split v3 checkpoints (gray magic v3 + split step; images, g01&ndash;g20, 768&sup2;)", "image", "g", tuple(split)),
+            ("Tasting: video readout checkpoints (gray magic v3 + split v3 + readout step; 4 videos)", "video", "v", tuple(video)))
 
 
 def test_tables(models_by_tag, tables=TESTS):
@@ -222,7 +266,7 @@ def test_tables(models_by_tag, tables=TESTS):
     plain = [models_by_tag[t] for t in used if not models_by_tag[t].get("split_adapter")]
     split = [models_by_tag[t] for t in used if models_by_tag[t].get("split_adapter")]
     found_plain, found_split = j.export_outputs(plain), js.export_split(split)
-    sources = {"g": j.ROOT / "h3magic/eval_prompts_fgray.json", "m": j.ROOT / "h3magic/eval_prompts_mgray.json"}
+    sources = {"g": j.ROOT / "h3magic/eval_prompts_fgray.json", "m": j.ROOT / "h3magic/eval_prompts_mgray.json", "v": j.ROOT / "h3magic/eval_prompts_vgray.json"}
     html_out = []
     for title, mode, letter, cols in tables:
         prompts = json.loads(sources[letter].read_text())
@@ -254,7 +298,7 @@ def test_tables(models_by_tag, tables=TESTS):
 
 def build():
     """Command. Writes journal/h3magic_alphav2.html from the suffix search outputs and the later entries that exist."""
-    entries = [NOTES[k] for k in sorted(NOTES) if k.startswith("entry_")]
+    entries = [NOTES[k].replace("{{DRIFT}}", drift_html()) for k in sorted(NOTES) if k.startswith("entry_")]
     for name in note_assets("".join(entries)):
         copy_asset(TASTE_DIR / name, ASSETS / "taste" / name)
     models_by_tag = {m["model_tag"]: m for m in j.load_models()}
@@ -262,7 +306,7 @@ def build():
     tests += f'<h2>Tasting during training</h2>{NOTES.get("tasting_finding", "")}{test_tables(models_by_tag, tasting_tables(models_by_tag))}'
     sections = [suffix_section()] + entries + [tests]
     glossary = "".join(f"<dt>{t}</dt><dd>{d}</dd>" for t, d in GLOSSARY)
-    css = js.CSS + ":root { --media: 384px; } tr.chosen td { font-weight: bold; } table.scores td { font: var(--font-small)/1.4 system-ui, sans-serif; padding: 4px 8px; border-bottom: 1px solid var(--rule); }"
+    css = js.CSS + ":root { --media: 384px; --c1: #c0504d; --c2: #e39b3c; --c3: #7f7f7f; --c4: #2f7ed8; } .ax { font: 11px system-ui, sans-serif; fill: var(--muted); } tr.chosen td { font-weight: bold; } table.scores td { font: var(--font-small)/1.4 system-ui, sans-serif; padding: 4px 8px; border-bottom: 1px solid var(--rule); }"
     page = f"""<!doctype html>
 <html lang="en">
 <head>
