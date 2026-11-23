@@ -30,6 +30,7 @@
 - N4 05:03 PM: results page (row 1), fast decoder page (round 0), gray magic dataset page live
 - N5 06:32 PM: rows 2 + ablation live; Pexels and image-gen done; gray magic training
 - N6 07:51 PM: mush fixed (CFG 2.5 on the same adapters, live); retrain running
+- N7 09:57 PM: retrained (guidance-loss) Pexels adapter live as row 2 v2
 
 ### Schedule (ET, 2026-11-22; deadline 11 PM, m00948)
 - 3:00–4:40 plan, data, captions, encode, stock row (done 4:16), Pexels page (live 4:20)
