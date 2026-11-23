@@ -1325,3 +1325,6 @@ And then the other experiment that I started talking about before: I want a comp
 
 ## m00984 — 2026-11-23 ~02:09 AM ET
 By the way, for the test samples that you use for the alpha blending thing, make sure you choose ones that are difficult, and other ones that have a lot of partial transparency, that look easy to fuck up if you do it wrong. I'm most interested in those, so that I can see a big difference.
+
+## m00985 — 2026-11-23 ~02:10 AM ET
+You can have a batch swarm go over a bunch of samples to find intricate, tricky alpha masks.
