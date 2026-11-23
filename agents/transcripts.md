@@ -1266,3 +1266,6 @@ Show me the fixed Pexels videos side by side. Gimme local ip:port so I can see r
 
 ## m00967 — 2026-11-22 ~07:48 PM ET
 Okay, this does indeed seem to look better. Still not always as good as the original, though. But you know what? It's a massive improvement. The original still looks better somehow, but maybe that's just Pexels being adapted. But, like, whereas I always see the arms — in the cyclist racing downhill, there's a period of the video where one of her arms at the beginning is actually just missing — versus the other one, which has much more crisp, clean colors throughout. And I'm not sure if this is because of Pexels, that the color distribution is different, or what the deal is. I mean, the spinning top on a table: the physics doesn't quite look as good, but again, it looks miles better than the original one we had before; that was way worse. So yeah, I think you're on the right track.
+
+## m00968 — 2026-11-22 ~07:50 PM ET
+What's your ETA? Are you on schedule?
