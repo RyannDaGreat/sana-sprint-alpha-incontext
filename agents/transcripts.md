@@ -1287,3 +1287,6 @@ W_H3 + 0·Δ_pexels + 0·Δ_imagegen + 0·Δ_graymagic + 1·Δ_split, CFG 2.5 --
 
 ## m00974 — 2026-11-22 ~10:17 PM ET
 I'm gonna give you 3 more notifications.
+
+## m00975 — 2026-11-22 ~10:21 PM ET
+You should probably get processing those latents ahead of time, by the way: plan to have them ready by the time we train on them. That takes priority over the fast decoder.
