@@ -6,7 +6,9 @@ Eval inference of the H3 Magic project (manifest §22), all through Bluejay so S
     work WORKER WORKERS           long-lived GPU worker: H3 loads ONCE (~77 GB), then generates this worker's rows, model
                                   by model; switching models only re-weights the LoRA adapters (h3magic/h3.py set_adapters)
 
-A model is W = W_H3 + a·Δ_pexels + b·Δ_imagegen + c·Δ_graymagic (h3_eval_models a_pexels, b_imagegen, c_graymagic).
+A model is W = W_H3 + a·Δ_pexels + b·Δ_imagegen + c·Δ_graymagic (h3_eval_models a_pexels, b_imagegen, c_graymagic), sampled
+with classifier-free guidance scale `cfg` over the null prompt (NULL or 1 = H3's released one-pass sampler; > 1 = two
+forwards per step, h3magic/h3.py allow_cfg: plain flow-matching LoRAs de-distill H3, so adapter models need it).
 mode video: 141 frames (5.875 s, 24 fps) 512² -> video (H.264 CRF 12 MP4); mode image: 1 frame -> image (PNG).
 Measured on one A100 (stock H3, 512²): video 100.9 s at 30 steps (30.4 s at 8); image 5.2 s at 30 steps.
 
@@ -83,7 +85,7 @@ def work_sql(worker, workers):
         True
     """
     return ("SELECT g.model_tag, g.prompt_id, g.seed, m.mode, m.steps, m.a_pexels, m.b_imagegen, m.c_graymagic, "
-            "m.pexels_adapter, m.imagegen_adapter, m.graymagic_adapter, blob_info(p.h3_text_embed) AS embed "
+            "m.pexels_adapter, m.imagegen_adapter, m.graymagic_adapter, m.cfg, blob_info(p.h3_text_embed) AS embed "
             "FROM h3_eval_generations g JOIN h3_eval_models m ON m.model_tag = g.model_tag "
             "JOIN h3_eval_prompts p ON p.prompt_id = g.prompt_id "
             "WHERE g.video IS NULL AND g.image IS NULL AND p.h3_text_embed IS NOT NULL "
@@ -101,6 +103,17 @@ def adapter_mix(row):
         {'pexels': ('models/h3magic/pexels/step_000400', 1.0)}
     """
     return {name: (row[path], float(row[weight] or 0)) for name, path, weight in ADAPTERS if row[path]}
+
+
+def guidance(row):
+    """
+    Pure function. The CFG scale of one h3_eval_models row: its cfg, or 1 (H3's released sampler) when NULL.
+
+    Examples:
+        >>> guidance({"cfg": None}), guidance({"cfg": 2.5})
+        (1.0, 2.5)
+    """
+    return float(row["cfg"]) if row["cfg"] is not None else 1.0
 
 
 def work(worker, workers, poll_seconds=60):
@@ -121,7 +134,8 @@ def work(worker, workers, poll_seconds=60):
             h3.set_adapters(pipe, adapter_mix(row))
             text = bytes_tensors(read_blob(row["embed"]))
             t = time.time()
-            frames = h3.generate(pipe, text, row["seed"], frames=h3.VIDEO_FRAMES if row["mode"] == "video" else 1, steps=row["steps"])
+            frames = h3.generate(pipe, text, row["seed"], frames=h3.VIDEO_FRAMES if row["mode"] == "video" else 1, steps=row["steps"],
+                                 cfg=guidance(row))
             seconds = time.time() - t
             output = {"video": mp4_bytes(frames)} if row["mode"] == "video" else {"image": png_bytes(frames[0])}
             db.commit("h3_eval_generations", [*output, "seconds", "gpu"],

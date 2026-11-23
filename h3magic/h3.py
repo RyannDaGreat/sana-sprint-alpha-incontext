@@ -18,6 +18,7 @@ and the decoder, which needs >= 7 latent frames, decodes the latent repeated 7 t
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -37,6 +38,7 @@ SIZE = 512
 DTYPE = torch.bfloat16
 ENCODE_SEED = 20261122  # Seed of every sampled VAE posterior, so a clip encodes the same twice
 IMAGE_DECODE_REPEAT = 7  # Fewest latent frames the released decoder takes; frame 0 of 7 repeats: 36.4 dB round trip (frame 0 of a real clip: 38.2 dB)
+NULL_PROMPT_EMBED = ROOT / "h3magic/null_prompt_embed.safetensors"  # embed(text_encoder, " "): H3's unconditional input for CFG ("" gives 0 text rows and crashes Qwen3-VL)
 
 
 def repoint_index(model_dir):
@@ -239,23 +241,40 @@ def psnr(a, b):
     return float(10 * np.log10(255 ** 2 / mse))
 
 
+def adapter_key(path):
+    """
+    Pure function. The peft adapter name of a LoRA folder: its path with every non-word character as "_". Adapters are
+    keyed by PATH, not by role: keyed by role ("pexels"), a long-lived worker that had loaded step_00100 kept using it
+    for a later row that asked for final under the same role (fixed 2026-11-22, Diagnose).
+
+    Examples:
+        >>> adapter_key("models/h3magic/pexels/step_00100")
+        'models_h3magic_pexels_step_00100'
+    """
+    return re.sub(r"\W", "_", str(path))
+
+
 def set_adapters(pipe, adapters):
     """
-    Command, untested (no adapter exists yet). Makes the transformer W_H3 + sum(weight * delta) over `adapters`, loading each LoRA file once per process
-    (peft named adapters; switching weights never reloads the base). An empty dict = stock H3.
+    Command. Makes the transformer W_H3 + sum(weight * delta) over `adapters`, loading each LoRA folder once per process
+    under its adapter_key (peft named adapters; switching weights never reloads the base). An empty dict = stock H3.
+    Tested 2026-11-22 (Diagnose): weight 0 equals stock exactly, and weight 1 equals train.py's model (MSE 2-6e-5).
 
     Args:
         pipe (MiniMaxH3ModularPipeline): From load_pipeline
-        adapters (dict[str, tuple[str, float]]): name -> (adapter folder or file, weight), e.g.
-            {"pexels": ("models/h3magic/pexels/step_000500", 1.0), "graymagic": (..., 1.0)}
+        adapters (dict[str, tuple[str, float]]): role -> (adapter folder, weight), e.g.
+            {"pexels": ("models/h3magic/pexels/final", 1.0), "graymagic": ("models/h3magic/graymagic/final", 1.0)}
     """
     loaded = set(getattr(pipe, "_h3magic_loaded", ()))
-    for name, (path, _) in adapters.items():
-        if name not in loaded:
-            pipe.load_lora_weights(str(ROOT / path), adapter_name=name)
-            loaded.add(name)
+    weights = {}
+    for path, weight in adapters.values():
+        key = adapter_key(path)
+        if key not in loaded:
+            pipe.load_lora_weights(str(ROOT / path), adapter_name=key)
+            loaded.add(key)
+        weights[key] = weights.get(key, 0.0) + float(weight)
     pipe._h3magic_loaded = loaded
-    active = {name: weight for name, (_, weight) in adapters.items() if weight != 0}
+    active = {key: weight for key, weight in weights.items() if weight != 0}
     if active:
         pipe.transformer.enable_lora() if hasattr(pipe.transformer, "enable_lora") else None
         pipe.set_adapters(list(active), list(active.values()))
@@ -263,8 +282,85 @@ def set_adapters(pipe, adapters):
         pipe.transformer.disable_lora()
 
 
+def guided(uncond, cond, scale):
+    """
+    Pure function. Classifier-free guidance: uncond + scale · (cond − uncond). Scale 1 gives cond.
+
+    Examples:
+        >>> guided(torch.tensor([1.0]), torch.tensor([3.0]), 2.5).tolist()
+        [6.0]
+        >>> guided(torch.tensor([1.0, 2.0]), torch.tensor([3.0, 2.0]), 1.0).tolist()
+        [3.0, 2.0]
+    """
+    return uncond + scale * (cond - uncond)
+
+
+def allow_cfg():
+    """
+    Command. Patches diffusers' H3 denoiser block so that a pipeline carrying `_h3magic_cfg` (set by generate) runs a
+    second, unconditional forward per step on the null prompt and returns guided(v_uncond, v_cond, scale) for video and
+    audio. Without `_h3magic_cfg` the block runs exactly as released. Idempotent.
+
+    H3 is guidance-distilled (no CFG at inference), but a LoRA trained with plain flow matching de-distills it
+    (Diagnose, 2026-11-22: the Pexels adapter's change points at H3's unconditional prediction, cosine 0.93 at
+    sigma 0.991), so adapter models need CFG back.
+    """
+    from diffusers.modular_pipelines.minimax_h3 import denoise
+    from diffusers.modular_pipelines.minimax_h3.before_denoise import MiniMaxH3SetTimestepsStep
+    if getattr(denoise, "_h3magic_cfg", False):
+        return
+    released = denoise.MiniMaxH3LoopDenoiser.__call__
+
+    def denoise_with_cfg(self, components, block_state, i, t):
+        """Command. The released denoiser step, then (when components._h3magic_cfg is set) the unconditional pass and CFG."""
+        components, block_state = released(self, components, block_state, i, t)
+        cfg = getattr(components, "_h3magic_cfg", None)
+        if cfg is None:
+            return components, block_state
+        fields, (timesteps, indices) = block_state.denoiser_input_fields, block_state.row_timestep_plan[i]
+        video_t = float(timesteps[indices[fields["video_indices"][0]]])  # this step's noise levels, read off the conditional plan
+        audio_t = float(timesteps[indices[fields["audio_indices"][0]]])
+        null = cfg["layout"]
+        unique, inverse = MiniMaxH3SetTimestepsStep.build_row_timesteps(
+            null["video_indices"].cpu(), null["audio_indices"].cpu(), 0, 0, null["text_indices"].numel(), video_t, audio_t,
+            max(video_t, components.keyframe_noise_aug), 1.0)
+        device = block_state.latents.device
+        video_u, audio_u = getattr(components, self.transformer_name)(
+            hidden_states=block_state.latents[None], audio_hidden_states=block_state.audio_latents[None],
+            encoder_hidden_states=cfg["prompt_embeds"], timestep=unique.to(device), timestep_indices=inverse.to(device),
+            attention_kwargs=block_state.attention_kwargs, return_dict=False, **null)
+        block_state.noise_pred = guided(video_u.float(), block_state.noise_pred.float(), cfg["scale"])
+        block_state.audio_noise_pred = guided(audio_u.float(), block_state.audio_noise_pred.float(), cfg["scale"])
+        return components, block_state
+
+    denoise.MiniMaxH3LoopDenoiser.__call__ = denoise_with_cfg
+    denoise._h3magic_cfg = True
+
+
+def null_layout(pipe, frames, size, device):
+    """
+    Query. The packed layout of an unconditional t2va request (the null prompt), with the same media rows as a
+    conditional request of `frames` frames at size²: the transformer's position_ids, token_tags and row indices.
+
+    Returns:
+        dict: prompt_embeds (1, N_null, 5120) on device, layout (dict of tensors on device)
+    """
+    from safetensors.torch import load_file
+    from diffusers.modular_pipelines.minimax_h3 import before_denoise
+    null = load_file(str(NULL_PROMPT_EMBED))
+    latent_frames = before_denoise.video_latent_num_frames(frames, pipe.vae_frames_per_chunk, pipe.vae_latents_per_chunk)
+    side = size // pipe.vae_spatial_compression_ratio
+    position_ids, token_tags, video_indices, audio_indices, text_indices, _, _ = \
+        before_denoise.MiniMaxH3PrepareLayoutStep.build_packed_sequence(
+            null["text_token_tags"], latent_frames, side, side, before_denoise.audio_latent_num_frames(frames),
+            pipe.patch_size, pipe.audio_channels, pipe.audio_tag, pipe.video_tag, ())
+    layout = dict(position_ids=position_ids, token_tags=token_tags, video_indices=video_indices,
+                  audio_indices=audio_indices, text_indices=text_indices)
+    return dict(prompt_embeds=null["prompt_embeds"].to(device, DTYPE), layout={k: v.to(device) for k, v in layout.items()})
+
+
 @torch.no_grad()
-def generate(pipe, text, seed, frames=VIDEO_FRAMES, steps=30, size=SIZE):
+def generate(pipe, text, seed, frames=VIDEO_FRAMES, steps=30, size=SIZE, cfg=1.0):
     """
     Command (runs the GPU model). One t2va generation from a precomputed text embedding; the audio is discarded.
 
@@ -273,14 +369,22 @@ def generate(pipe, text, seed, frames=VIDEO_FRAMES, steps=30, size=SIZE):
         seed (int): Noise seed
         frames (int): 141 for a 5.875 s video, 1 for an image
         steps (int): num_inference_steps
+        cfg (float): classifier-free guidance scale over the null prompt; 1 = the released pipeline exactly (one
+            forward per step), > 1 = two forwards per step (allow_cfg)
 
     Returns:
         np.ndarray: uint8 (frames, size, size, 3)
     """
     device = pipe._execution_device
-    result = pipe(prompt_embeds=text["prompt_embeds"].to(device), text_token_tags=text["text_token_tags"],
-                  num_frames=frames, height=size, width=size, num_inference_steps=steps,
-                  generator=torch.Generator().manual_seed(seed), output=["videos"], output_type="np")
+    if cfg != 1:
+        allow_cfg()
+        pipe._h3magic_cfg = dict(scale=float(cfg), **null_layout(pipe, frames, size, device))
+    try:
+        result = pipe(prompt_embeds=text["prompt_embeds"].to(device), text_token_tags=text["text_token_tags"],
+                      num_frames=frames, height=size, width=size, num_inference_steps=steps,
+                      generator=torch.Generator().manual_seed(seed), output=["videos"], output_type="np")
+    finally:
+        pipe._h3magic_cfg = None  # The next request is unguided unless it asks again
     video = result["videos"][0] if isinstance(result, dict) else result[0]
     return to_uint8_frames(video)
 
