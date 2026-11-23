@@ -1352,3 +1352,6 @@ For the quality frenzy, by the way — for the quality part of the genetic one �
 
 ## m00993 — 2026-11-23 ~02:41 AM ET
 That regression experiment deserves its own journal entry, by the way.
+
+## m00994 — 2026-11-23 ~02:41 AM ET
+That experiment is the encoder bottleneck, and all the information that we can gather on it, with the important conclusions at the top. And obviously plenty of examples.
