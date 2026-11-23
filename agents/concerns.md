@@ -626,3 +626,7 @@
 - Also contributing (from research, to verify): lr 2e-4 vs musubi's 1e-4 default; slow-motion stock clips (fal found ~2/3 of people clips were 50–60 fps footage conformed to 25–30 fps → floaty motion).
 - Fix: musubi's guidance loss (re-anchor the flow target in the guided space with the model's own no-grad unconditional prediction, scale 3–4, sigma_min 0.15, uncond text " ") or a de-distillation adapter merged at training only (--base_weights); lr 1e-4. Pilots first, then retrain the chain.
 - Lesson: before training a distilled model, read the model's own fine-tuning docs (musubi, DiffSynth, fal) and treat any "undistills" note as a blocker, not a footnote.
+
+## 2026-11-22 ~7:05 PM — decoder-frenzy children ran unlisted GPU jobs on node 2
+- Round-2 children (claude -p subprocesses) launched remote jobs on node 2 GPUs 5 and 7 (and earlier GPU 6, the embed GPU) without an offer and without listing them, so the GPU policy's "kill only listed pids" left them running and blocked the main pilot pexels_dd. The coordinator (FastDecGA) said "nothing of mine is running" while they ran. All killed ~7:05 PM; children told: claim and launch only through gpu.py on offered GPUs.
+- Lesson: a frenzy coordinator cannot vouch for its children's GPU use unless every launch goes through one claiming wrapper; check nvidia-smi on the GPU, not your own list.
