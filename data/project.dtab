@@ -1007,6 +1007,10 @@ tables
 			h3_latent_512, h3_text_embed blob
 			h3_text_sha256 string	 The sha256 (hex) of the h3_caption that h3_text_embed embeds. Use the embedding only when it matches the current caption (m00939)
 
+			 Written by h3_encode's job split (the split adapter's targets, manifest §22): the same latent of magick_samples.rgba composited on white and on black
+			 at 1024 and area-downsampled to 512, exactly as image_512 is the composite on 0.5 gray. h3_latent_black_512 is the done column
+			h3_latent_white_512, h3_latent_black_512 blob
+
 	h3_pexels_clips
 		 One row per Pexels clip of the H3 Magic project. The video stays where it is: source_path refers to it (m00912)
 		primary_key pexels_id
@@ -1045,6 +1049,7 @@ tables
 			 Written by h3_generate.py plan
 			short, prompt string
 			seed int64
+			prompt_set string	 main (empty) = h3magic/eval_prompts.json p01-p20; fg = h3magic/eval_prompts_fg.json f01-f20: the same subjects, no background described (m00972)
 
 			 Written by h3_embed (as h3_pexels_clips)
 			h3_text_embed blob
@@ -1059,6 +1064,7 @@ tables
 			steps int64
 			a_pexels, b_imagegen, c_graymagic float64
 			cfg float64	 classifier-free guidance scale over the null prompt (empty = 1 = H3's released sampler); adapters de-distill H3, so adapter rows use > 1
+			prompt_set string	 The h3_eval_prompts set it runs on (empty = main); plan pairs a model only with the prompts of its set (m00972)
 		initial_rows
 			,	model_tag stock_video	mode video	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 0.0
 			,	model_tag stock_image	mode image	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 0.0
@@ -1078,6 +1084,8 @@ tables
 			,	model_tag pexels_gl_s00080_video	mode video	pexels_adapter models/h3magic/pexels_gl/step_00080	steps 30	a_pexels 1.0	b_imagegen 0.0	c_graymagic 0.0
 			,	model_tag pexels_video_v2	mode video	pexels_adapter models/h3magic/pexels_gl/final	steps 30	a_pexels 1.0	b_imagegen 0.0	c_graymagic 0.0
 			,	model_tag pexels2_s00225_video	mode video	pexels_adapter models/h3magic/pexels2/final	steps 30	a_pexels 1.0	b_imagegen 0.0	c_graymagic 0.0
+			,	model_tag basic_ass_magic_image_v2	mode image	graymagic_adapter models/h3magic/basic_ass_magic_v2/final	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 1.0
+			,	model_tag basic_ass_magic_video_v2	mode video	graymagic_adapter models/h3magic/basic_ass_magic_v2/final	steps 30	a_pexels 0.0	b_imagegen 0.0	c_graymagic 1.0
 			,	model_tag imagegen_image_v2	mode image	pexels_adapter models/h3magic/pexels_gl/final	imagegen_adapter models/h3magic/imagegen2/final	steps 30	a_pexels 1.0	b_imagegen 1.0	c_graymagic 0.0
 			,	model_tag pexels_dd_s00080_video	mode video	pexels_adapter models/h3magic/pexels_dd/step_00080	steps 30	a_pexels 1.0	b_imagegen 0.0	c_graymagic 0.0
 			,	model_tag pexels_muon2_s00040_video	mode video	pexels_adapter models/h3magic/pexels_muon2/step_00040	steps 30	a_pexels 1.0	b_imagegen 0.0	c_graymagic 0.0
