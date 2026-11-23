@@ -1257,3 +1257,6 @@ I did hear that Muon is actually a good way to train. Perhaps you could test and
 
 ## m00964 — 2026-11-22 ~07:15 PM ET
 Well, why don't you also launch a research sub-frenzy on how people actually train H3? I know it's possible, I know people do it, there's plenty of LoRAs [transcribed "lores"] for it. How do people normally do it? How does the average Joe train H3? We know there's a way, and it's probably not super complicated.
+
+## m00965 — 2026-11-22 ~07:26 PM ET
+How do normal people do it?
