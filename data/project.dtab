@@ -1253,6 +1253,91 @@ tables
 			gpu int64
 
 
+	 FASTDEC GA (manifest §22, m00998: every experiment goes through BlueJay). The genetic search for a fast replacement of the H3 VAE decoder.
+	 Round 0 = everything done before the literature research (rounds 1-3 of the first search, and the lead's copies). Rounds 1-5 are the cited searches
+	 A candidate is a model dir (model.py, ckpt.pt, genome.json). Run: fd_register, then fd_score and fd_render (GPU). View: view_fd_leaderboard
+
+	fd_methods
+		 One row per candidate decoder (and the two references: the original decode and the source). A new candidate is a new row with method_id, round and model_dir
+		primary_key method_id
+		columns
+			method_id string
+
+			 Written by the seed rows (initial_rows below) or by whoever adds a candidate
+			round int64	 The search round. 0 = everything before the research
+			model_dir string	 Folder of model.py, ckpt.pt, genome.json, relative to the repo root. Empty for the references
+			status string	 Seed: "winner" (a tier winner of round 0) or "reference". Else fd_register writes "registered"
+
+			 Written by fd_register, from MODEL_DIR/genome.json
+			name, tier_target, kind string	 kind: mutation, crossover, wildcard, reference or source. tier_target: T10, T30, T100 or TQ, as the agent wrote it
+			agent int64
+			parents list_(string())	 The candidates or methods it descends from
+			paper, paper_url string	 The paper or method cited, and its URL. Empty in round 0: it came before the literature research
+			hypothesis, change string	 The idea in one sentence, and what exactly was changed
+			params string	 JSON: n_params and the agent's own note on the checkpoint
+			ckpt_path string	 The weights, relative to the repo root
+			how_to_load string	 How to build the model and load the weights, as the agent wrote it
+			genome_json string	 The whole genome card, as JSON text
+			verdict string	 The agent's own verdict on the candidate
+			created string	 When it was registered, ISO 8601 with the time zone
+		initial_rows
+			,	method_id original_full_decode	round 0	name original_full_decode	tier_target reference	kind reference	status reference	hypothesis The reference: the H3 VAE decoder (36-layer ViT), bf16 with tiling. Every speedup and every vs_full score is relative to it
+			,	method_id source	round 0	name source	tier_target reference	kind source	status reference	hypothesis The source frames: the Pexels clip as cut for H3 (141 frames, 512 x 512), before any encode. Every vs_source score is relative to it
+			,	method_id r1a1_w64b1t1q1k3e1h0	round 0	model_dir agents/.scratchpad/fastdec_ga/r1/agent_1
+			,	method_id r1a2_C_teacher	round 0	model_dir agents/.scratchpad/fastdec_ga/r1/agent_2
+			,	method_id r1a3_wide_halfres	round 0	model_dir agents/.scratchpad/fastdec_ga/r1/agent_3
+			,	method_id r1a4_patch	round 0	model_dir agents/.scratchpad/fastdec_ga/r1/agent_4
+			,	method_id r1a5_trunc_h3	round 0	model_dir agents/.scratchpad/fastdec_ga/r1/agent_5
+			,	method_id r1a6_mix	round 0	model_dir agents/.scratchpad/fastdec_ga/r1/agent_6
+			,	method_id r1a7_tq_refiner	round 0	model_dir agents/.scratchpad/fastdec_ga/r1/agent_7
+			,	method_id r2a1_long_wide	round 0	model_dir agents/.scratchpad/fastdec_ga/r2/agent_1
+			,	method_id r2a2_wide_anchor_cheaphead	round 0	model_dir agents/.scratchpad/fastdec_ga/r2/agent_2
+			,	method_id r2a3_C_freeze300_long	round 0	model_dir agents/.scratchpad/fastdec_ga/r2/agent_3
+			,	method_id r2a5_e1h0_skip16	round 0	model_dir agents/.scratchpad/fastdec_ga/r2/agent_5
+			,	method_id r2a4_w64e1h0_long_extra	round 0	model_dir agents/.scratchpad/fastdec_ga/r2/agent_4/v_A
+			,	method_id r2a4_v_B	round 0	model_dir agents/.scratchpad/fastdec_ga/r2/agent_4/v_B
+			,	method_id r2a4_v_C	round 0	model_dir agents/.scratchpad/fastdec_ga/r2/agent_4/v_C
+			,	method_id r2a6_lp05_antiblur	round 0	model_dir agents/.scratchpad/fastdec_ga/r2/agent_6/variants/lp05
+			,	method_id r2a7_trunc_h3_k4	round 0	model_dir agents/.scratchpad/fastdec_ga/r2/agent_7/k4
+			,	method_id r2a7_trunc_h3_k2	round 0	model_dir agents/.scratchpad/fastdec_ga/r2/agent_7/k2
+			,	method_id lead_a1_wide	round 0	model_dir agents/.scratchpad/fastdec_ga/lead/lead_a1_wide
+			,	method_id lead_a2_anchor	round 0	model_dir agents/.scratchpad/fastdec_ga/lead/lead_a2_anchor
+			,	method_id lead_a3_seed	round 0	model_dir agents/.scratchpad/fastdec_ga/lead/lead_a3_seed	status winner
+			,	method_id lead_a5_skip16	round 0	model_dir agents/.scratchpad/fastdec_ga/lead/lead_a5_skip16	status winner
+			,	method_id lead_a7_k4	round 0	model_dir agents/.scratchpad/fastdec_ga/lead/lead_a7_k4	status winner
+			,	method_id r3a2_fullh3_ft	round 0	model_dir agents/.scratchpad/fastdec_ga/r3/agent_2
+			,	method_id r3a4_antiblur_finetune	round 0	model_dir agents/.scratchpad/fastdec_ga/r3/agent_4
+			,	method_id r3a5_skip16_wide96_head2	round 0	model_dir agents/.scratchpad/fastdec_ga/r3/agent_5
+			,	method_id r3a6_deep_lean	round 0	model_dir agents/.scratchpad/fastdec_ga/r3/agent_6
+
+	fd_scores
+		 One row per method and evaluation: the speed and the quality of one candidate on one set of clips
+		primary_key method_id,eval_id
+		columns
+			method_id, eval_id string	 eval_id: val20_stride<N> = the 20 held-out clips with SSIM and LPIPS on every Nth frame (score.py); genome_card = the numbers on the agent's own card
+			 Written by fd_score
+			ms_clean float64	 The decode time of one latent (141 frames), ms, from the coordinator's clean timing. Empty when it was never timed clean
+			ms_note string	 Where the time comes from. A scorer time on a shared GPU is named here and never put into ms_clean
+			speedup float64	 The full decode's ms divided by ms_clean
+			tier string	 T100 (speedup >= 100), T30, T10, slow, untimed or reference
+			ssim_vs_full, lpips_vs_full, psnr_vs_full float64	 Against the full H3 decode, mean over the clips. LPIPS is alex; lower is better
+			ssim_vs_source, lpips_vs_source, psnr_vs_source float64	 Against the source frames
+			de2000 float64	 CIEDE2000 against the source
+			flicker, flicker_vs_source float64	 The gap between the candidate's mean temporal difference and the full decode's (flicker) or the source's (flicker_vs_source). Lower is better
+			sharp_grad, sharp_fft float64	 Sobel gradient and high-frequency energy of the candidate over the source's. 1 = as sharp as the source
+			steps int64	 Training steps, when known
+
+	fd_renders
+		 One row per method and held-out clip: the candidate's decode of the clip as a video
+		primary_key method_id,clip_id
+		columns
+			method_id, clip_id string	 clip_id = the Pexels id
+			 Written by fd_render (the 20 val clips) or fd_import_mp4 (the journal page's 6 clips, round 0)
+			mp4 blob	 141 frames, 24 fps, 512 x 512, H.264 CRF 12, no audio
+			n_frames int64
+			fps float64
+			psnr_vs_full, ssim_vs_full, lpips_vs_full float64	 Of this clip against the full decode (SSIM and LPIPS on every 4th frame)
+
 	 LATENT COMPOSITOR (manifest §24, m00998: every experiment goes through BlueJay). A small network in H3 latent space: the latents of a matte,
 	 a foreground and a background in, the latent of their composite out. Its files stay in LC_DIR: lc_find finds them, lc_import_shard and
 	 lc_import_renders import them. Run: fish data/run_proc_latentcomp.fish. View: view_lc_methods, view_lc_compare, view_lc_renders, view_lc_samples
@@ -1961,6 +2046,138 @@ processors
 					h3_caption_seconds @	     float  Wall time of the Gemini calls, rewrites included                     38.0
 
 
+	 FASTDEC GA (manifest §22, m00998). Every processor below reads fd_methods rows. fd_methods rows are claimed one at a time ($SAMPLE)
+
+	fd_register	 Fills one fd_methods row from its model dir's genome.json. CPU only
+		query sql
+			SELECT method_id, model_dir, status FROM fd_methods -- Methods,
+			WHERE fd_register_claim IS NULL                     -- not yet claimed,
+			  AND model_dir         IS NOT NULL                 -- that have a model dir (not the references),
+			ORDER BY round, method_id                           -- oldest round first
+			LIMIT 1                                             -- one at a time
+		claim	fd_register_claim fd_methods
+		command bash
+			uv run --script processors/fd_register.py "$SAMPLE"
+		materialize
+			input.json	              TYPE  DESCRIPTION                                                                      EXAMPLE
+				method_id @	    [Key]  str   The candidate                                                                    "r2a5_e1h0_skip16"
+				model_dir @	          ~str   Folder of model.py, ckpt.pt, genome.json                                         "agents/.scratchpad/fastdec_ga/r2/agent_5"
+				status @	           str   Seed status, or empty                                                            "winner"
+		commit
+			fd_methods
+				result.json	          SUBFIELD  TYPE   DESCRIPTION                                                                      EXAMPLE
+					agent @	                     int    Which child wrote it                                                             5
+					name @	                     str    The genome's name (must equal method_id)                                         "r2a5_e1h0_skip16"
+					tier_target @	             str    The tier the agent aimed at                                                      "T100"
+					kind @	                     str    mutation, crossover or wildcard                                                  "crossover"
+					parents @	                 list   Where it came from                                                               ["r1a1 e1h0", "r1a4"]
+					paper @	                     str    Paper or method cited. Empty before round 1                                      ""
+					paper_url @	                 str    Its URL                                                                          ""
+					hypothesis @	             str    The idea. Empty before round 1                                                   ""
+					change @	                 str    What was changed                                                                 "Cut the tail at 1/4 resolution ..."
+					params @	                 str    JSON: n_params, checkpoint_note                                                  "{...}"
+					ckpt_path @	                 str    The weights                                                                      "agents/.../ckpt.pt"
+					how_to_load @	             str    Python that builds and loads it                                                  "import sys; ..."
+					genome_json @	             str    The whole genome card                                                            "{...}"
+					verdict @	                 str    The agent's verdict                                                              "Still blurry ..."
+					status @	                 str    "winner", "reference" or "registered"                                            "registered"
+					created @	                 str    ISO 8601 time of the registration                                                "2026-11-23T08:15:02-05:00"
+
+	fd_score	 Scores one registered candidate (or the original decode) into fd_scores. Reads scores.json, or runs score.py on the GPU. See processors/fd_score.py
+		query sql
+			SELECT method_id, model_dir, kind FROM fd_methods         -- Methods,
+			WHERE fd_score_claim IS NULL                              -- not yet claimed,
+			  AND status         IS NOT NULL                          -- that fd_register did (the references have a seed status),
+			  AND (model_dir IS NOT NULL OR kind = 'reference')       -- with weights, or the original decode (it has BASELINE.json),
+			ORDER BY round, method_id                                 -- oldest round first
+			LIMIT 1                                                   -- one at a time
+		claim	fd_score_claim fd_methods
+		command bash
+			uv run --script processors/fd_score.py "$SAMPLE"
+		materialize
+			input.json	              TYPE  DESCRIPTION                                                                      EXAMPLE
+				method_id @	    [Key]  str   The candidate                                                                    "r2a5_e1h0_skip16"
+				model_dir @	          ~str   Folder of model.py, ckpt.pt, genome.json                                         "agents/.scratchpad/fastdec_ga/r2/agent_5"
+				kind @	              ~str   mutation, crossover, wildcard, reference                                         "crossover"
+		commit
+			fd_scores
+				children/	                TYPE   DESCRIPTION                                                                      EXAMPLE
+					fields.json	   SUBFIELD  TYPE   DESCRIPTION                                                                      EXAMPLE
+						method_id @	   [Key]  str    The candidate                                                                    "r2a5_e1h0_skip16"
+						eval_id @	   [Key]  str    The evaluation                                                                   "val20_stride4"
+						ms_clean @	          float  Clean decode time of 141 frames, ms                                              124.4
+						ms_note @	          str    Where the time comes from                                                        "clean timing, timings.json"
+						speedup @	          float  Full decode ms / ms_clean                                                        46.8
+						tier @	              str    T100, T30, T10, slow, untimed, reference                                         "T30"
+						ssim_vs_full @	      float  Against the full decode                                                          0.816
+						lpips_vs_full @	      float  Against the full decode, alex                                                    0.193
+						psnr_vs_full @	      float  Against the full decode, dB                                                      28.07
+						ssim_vs_source @	  float  Against the source                                                               0.791
+						lpips_vs_source @	  float  Against the source, alex                                                         0.219
+						psnr_vs_source @	  float  Against the source, dB                                                           27.62
+						de2000 @	          float  CIEDE2000 against the source                                                     4.02
+						flicker @	          float  Temporal-difference gap to the full decode 0.94
+						flicker_vs_source @	  float  Temporal-difference gap to the source                                            1.15
+						sharp_grad @	      float  Sobel gradient, candidate / source                                               0.69
+						sharp_fft @	          float  High-frequency energy, candidate / source                                        0.40
+						steps @	              int    Training steps, when known                                                       32218
+
+	fd_render	 Decodes the 20 held-out val clips with one candidate into fd_renders (mp4 and per-clip scores). NEEDS A GPU: run one loop per idle GPU
+		query sql
+			SELECT method_id, model_dir FROM fd_methods   -- Methods,
+			WHERE fd_render_claim IS NULL                 -- not yet claimed,
+			  AND fd_import_claim IS NULL                 -- whose renders fd_import_mp4 did not import,
+			  AND status          IS NOT NULL             -- that fd_register did,
+			  AND model_dir       IS NOT NULL             -- with weights,
+			ORDER BY round, method_id                     -- oldest round first
+			LIMIT 1                                       -- one at a time
+		claim	fd_render_claim fd_methods
+		command bash
+			uv run --script processors/fd_render.py "$SAMPLE"
+		materialize
+			input.json	              TYPE  DESCRIPTION                                                                      EXAMPLE
+				method_id @	    [Key]  str   The candidate                                                                    "r2a5_e1h0_skip16"
+				model_dir @	          ~str   Folder of model.py, ckpt.pt, genome.json                                         "agents/.scratchpad/fastdec_ga/r2/agent_5"
+		commit
+			fd_renders
+				children/	                TYPE   DESCRIPTION                                                                      EXAMPLE
+					mp4 clip.mp4	         blob   H.264 CRF 12, 141 frames, 24 fps, 512 x 512                                      3 MB .mp4
+					fields.json	   SUBFIELD  TYPE   DESCRIPTION                                                                      EXAMPLE
+						method_id @	   [Key]  str    The candidate                                                                    "r2a5_e1h0_skip16"
+						clip_id @	   [Key]  str    The Pexels id of the val clip                                                    "8620887"
+						n_frames @	          int    Frames                                                                           141
+						fps @	              float  Frames per second                                                                24.0
+						psnr_vs_full @	      float  This clip against the full decode, dB                                            30.9
+						ssim_vs_full @	      float  This clip against the full decode                                                0.83
+						lpips_vs_full @	      float  This clip against the full decode, alex                                          0.165
+
+	fd_import_mp4	 Round 0 migration: the journal's mp4s of the 6 page clips (source, full decode, tier winners) into fd_renders. CPU only
+		query sql
+			SELECT method_id, model_dir FROM fd_methods   -- Methods,
+			WHERE fd_import_claim IS NULL                 -- not yet claimed,
+			  AND round = 0                               -- of round 0,
+			  AND status IN ('winner', 'reference')       -- that have journal mp4s (tier winners, the original decode, the source),
+			LIMIT 1                                       -- one at a time
+		claim	fd_import_claim fd_methods
+		command bash
+			uv run --script processors/fd_import_mp4.py "$SAMPLE"
+		materialize
+			input.json	              TYPE  DESCRIPTION                                                                      EXAMPLE
+				method_id @	    [Key]  str   The method                                                                       "lead_a5_skip16"
+				model_dir @	          ~str   Folder of scores.json, or empty                                                  "agents/.scratchpad/fastdec_ga/lead/lead_a5_skip16"
+		commit
+			fd_renders
+				children/	                TYPE   DESCRIPTION                                                                      EXAMPLE
+					mp4 clip.mp4	         blob   The journal's mp4: 141 frames, 24 fps, 512 x 512                                 3 MB .mp4
+					fields.json	   SUBFIELD  TYPE   DESCRIPTION                                                                      EXAMPLE
+						method_id @	   [Key]  str    The method                                                                       "lead_a5_skip16"
+						clip_id @	   [Key]  str    The Pexels id of the page clip                                                   "8620887"
+						n_frames @	          int    Frames                                                                           141
+						fps @	              float  Frames per second                                                                24.0
+						psnr_vs_full @	      float  From scores.json rows, or empty                                                  30.9
+						ssim_vs_full @	      float  From scores.json rows, or empty                                                  0.83
+						lpips_vs_full @	      float  From scores.json rows, or empty                                                  0.165
+
 	 LATENT COMPOSITOR (manifest §24). Run: fish data/run_proc_latentcomp.fish (CPU only). It runs lc_find every time, then imports each new
 	 or changed shard and candidate. lc_shards and lc_methods rows are claimed one at a time ($SAMPLE)
 
@@ -2322,6 +2539,39 @@ queries
 		JOIN h3_enc_runs    u ON u.run_id    = r.run_id    -- and its run,
 		ORDER BY s.kind, r.sample_id, u.method, r.run_id   -- sample by sample, the encoder first
 
+
+	 FASTDEC GA (manifest §22, m00998)
+
+	view_fd_leaderboard sql
+		SELECT
+		    struct('video' AS widget, r.mp4 AS src, concat(m.method_id, ' ', coalesce(s.tier, '')) AS caption) AS clip_8620887,
+		    m.method_id,
+		    s.tier,
+		    s.ms_clean,
+		    s.speedup,
+		    s.ssim_vs_full,
+		    s.lpips_vs_full,
+		    s.psnr_vs_full,
+		    s.ssim_vs_source,
+		    s.lpips_vs_source,
+		    s.psnr_vs_source,
+		    s.sharp_grad,
+		    s.sharp_fft,
+		    s.flicker,
+		    s.eval_id,
+		    m.round,
+		    m.tier_target,
+		    m.kind,
+		    m.status,
+		    m.parents,
+		    m.change,
+		    m.verdict
+		FROM fd_methods m                                                           -- Each method,
+		JOIN fd_scores s ON s.method_id = m.method_id                               -- with its scores,
+		LEFT JOIN fd_renders r ON r.method_id = m.method_id AND r.clip_id = '8620887' -- and its render of the first page clip, if it has one
+		ORDER BY CASE s.tier WHEN 'T100' THEN 0 WHEN 'T30' THEN 1 WHEN 'T10' THEN 2  -- fastest tier first,
+		                     WHEN 'slow' THEN 3 WHEN 'untimed' THEN 4 ELSE 5 END,   -- the references last,
+		         s.ssim_vs_full DESC                                                -- then the most like the full decode first
 
 	 LATENT COMPOSITOR (manifest §24)
 
