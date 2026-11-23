@@ -12,6 +12,7 @@ Reads the BlueJay tables h3_eval_models and h3_eval_generations from data/lance.
 """
 
 import html
+import re
 import json
 from pathlib import Path
 
@@ -60,16 +61,32 @@ def section_key(mode, weights, tag):
         'A2'
     """
     if tag.startswith(ABLATION):
-        return {"image": "A1", "video": "A2"}[mode]
-    if "step" in tag:
+        return {"image": "A1", "video": "A2"}[mode] + variant_suffix(tag)
+    if "step" in tag or re.search(r"_s\d{5}_", tag):
         named = [name for (name, _, _), w in zip(ADAPTERS, weights) if w > 0]
         if not named:
             raise ValueError(f"checkpoint row {tag} has no adapter weight")
         return "ckpt_" + named[-1]
     for key, sec_mode, sec_weights, _ in SECTIONS:
         if sec_weights is not None and (mode, tuple(float(w) for w in weights)) == (sec_mode, tuple(float(w) for w in sec_weights)):
-            return key
+            return key + variant_suffix(tag)
     raise ValueError(f"model {tag}: mode {mode} with weights {weights} matches no journal row")
+
+
+VARIANTS = (("", ""), ("c", " — same adapters, generated with CFG 2.5 (repairs the lost guidance distillation)"),
+            ("v2", " — retrained with the ostris v3 training adapter (the normal H3 recipe), CFG 1"))
+
+
+def variant_suffix(tag):
+    """
+    Pure function. The section-key suffix of a model tag: "c" for a CFG row ("_cfg" in the tag), "v2" for the retrained chain
+    (tag ends "_v2"), else "" (the first chain, plain flow-matching training, CFG 1).
+
+    Examples:
+        >>> variant_suffix("pexels_cfg_video"), variant_suffix("all_video_v2"), variant_suffix("pexels_video")
+        ('c', 'v2', '')
+    """
+    return "v2" if tag.endswith("_v2") else "c" if "_cfg" in tag else ""
 
 
 def weight_equation(row):
@@ -85,10 +102,11 @@ def weight_equation(row):
         >>> weight_equation({"model_tag": "basic_ass_magic_image", "c_graymagic": 1.0})
         'W_H3 + 1·Δ_basic_ass_magic'
     """
+    cfg = f", CFG {row['cfg']:g}" if (row.get("cfg") or 1) != 1 else ""
     if row.get("model_tag", "").startswith(ABLATION):
-        return f"W_H3 + {row['c_graymagic']:g}·Δ_{ABLATION}"
+        return f"W_H3 + {row['c_graymagic']:g}·Δ_{ABLATION}{cfg}"
     terms = [f"{row[w]:g}·Δ_{name}" for name, w, path in ADAPTERS if row[w] or row[path]]
-    return " + ".join(["W_H3", *terms])
+    return " + ".join(["W_H3", *terms]) + cfg
 
 
 def media_path(tag, prompt_id, mode):
@@ -268,10 +286,12 @@ def build():
 
     body = []
     shown = []
-    for key, _, _, title in SECTIONS:
-        if key in by_key:
-            body.append(section_html(title, by_key[key], found, prompts))
-            shown.append((key, title))
+    for base, _, _, base_title in SECTIONS:
+        for suffix, note in VARIANTS:
+            key, title = base + suffix, base_title + note
+            if key in by_key:
+                body.append(section_html(title, by_key[key], found, prompts))
+                shown.append((key, title))
     ckpts = [(f"ckpt_{name}", f"Training checkpoints: {CHECKPOINT_TITLES[name]}") for name, _, _ in ADAPTERS if f"ckpt_{name}" in by_key]
     if ckpts:
         inner = "".join(section_html(f"{title.split(': ')[1]}: {m['model_tag']}", [m], found, prompts, open_=False, sub=True)
