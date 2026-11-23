@@ -35,6 +35,7 @@
 - N7 09:57 PM: retrained (guidance-loss) Pexels adapter live as row 2 v2
 - N8 10:47 PM: ETA final page ~11:00 PM
 - N9 11:15 PM: final results page complete (main + foreground-only); headline finding
+- N10 12:47 AM: split adapter page live
 
 ### Schedule (ET, 2026-11-22; deadline 11 PM, m00948)
 - 3:00–4:40 plan, data, captions, encode, stock row (done 4:16), Pexels page (live 4:20)
